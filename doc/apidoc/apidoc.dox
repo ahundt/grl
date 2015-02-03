@@ -1,0 +1,172 @@
+// ===========================================================================
+// Main Page
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+/**
+@mainpage CMake BASIS
+
+@section Overview
+
+<b><a href="../../index.html">CMake BASIS</a></b> makes it easy 
+to create sharable software and libraries that work together. This is accomplished by 
+combining and documenting some of the best practices and utilities available. More 
+importantly, BASIS supplies a fully integrated suite of functionality to make the 
+whole process seamless! 
+
+@subsection Features
+
+- Project Creation
+    - Quick project setup with mad-libs style text substitution
+    - Customizable project templates
+- Standards
+    - Filesystem layout standards
+    - Basic software implementation standards
+    - Command-line parsing standards
+    - Guidelines on coding style
+- Build system utilities
+    - New CMake Module APIs
+    - Version Control Integration
+    - Automatic Packaging
+- Documentation
+    - Documentation generation tools
+    - Manuals
+    - PDF and HTML output of each
+    - Integrated with CMake APIs
+- Testing
+    - Unit testing
+    - Continuous integration
+    - Executable testing frameworks
+- Program Execution
+    - Parsing library
+    - Command execution library
+    - Unix philosophy and tool chains
+
+Visit the <b><a href="../../index.html">CMake BASIS</a></b> main website for more information.
+
+*/
+
+
+// ===========================================================================
+// CMake Modules
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+/**
+@defgroup CMakeAPI Public CMake Interface
+@brief    Public interface of CMake modules.
+
+The variables, functions, and macros listed here are intended to be used
+by the developer of a software development project based on BASIS in their
+project specific CMake implementation and the CMakeLists.txt files.
+
+@ingroup BasisModules
+*/
+
+// ---------------------------------------------------------------------------
+/**
+@defgroup CMakeFindModules Find Package Modules
+@brief    CMake Find modules used by basis_find_package() command.
+
+The BASIS package provides CMake Find module implementations for third-party
+packages which are commonly used at SBIA but do not provide a CMake
+package configuration file (&lt;Package&gt;Config.cmake or &lt;package&gt;-config.cmake)
+such that CMake cannot find the package by default in config-mode.
+
+@ingroup BasisModules
+*/
+
+// ---------------------------------------------------------------------------
+/**
+@defgroup CMakeTools Auxiliary CMake Modules
+@brief    Auxiliary CMake modules included and used by the main modules.
+
+@ingroup BasisModules
+*/
+
+// ---------------------------------------------------------------------------
+/**
+@defgroup CMakeUtilities CMake Utilities
+@brief    Utilities implementated by the CMake modules.
+
+@ingroup CMakeTools
+*/
+
+// ---------------------------------------------------------------------------
+/**
+@defgroup CMakeHelpers Non-CMake Utilities
+@brief    Auxiliary non-CMake implementations used by the CMake modules.
+
+@ingroup CMakeTools
+*/
+
+// ===========================================================================
+// Utilities
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+/**
+@defgroup CxxCmdLine Command-line Parsing Library
+@brief    Command-line parsing library for C++.
+
+@ingroup BasisCxxUtilities
+*/
+
+// ---------------------------------------------------------------------------
+/**
+@defgroup CxxTesting Testing Framework
+@brief    Testing framework for C++.
+
+Unit tests cover only single functions, classes, and modules of the software.
+For the implementation of such tests, BASIS includes a copy of the Google
+Test library (GTest). In order to use this library, simply include the
+sbia/basis/test.h header file in your unit test implementation. To add a
+unit test to the build system, use the basis_add_test() CMake command together
+with the @c UNITTEST option.
+
+@note A copy of the Google Test (gtest) library is included with BASIS.
+      See the <a href="http://code.google.com/p/googletest/wiki/Documentation">
+      documentation of Google Test</a> for information on how to write
+      unit tests using this library.
+
+System tests, on the other side, execute the programs of the package with
+given test input data and compare the output of the programs to the expected
+results. Therefore, a test driver similar to the one included with the ITK 4
+is provided by BASIS. It can be used to either execute a test implemented in
+C++ directly, or to run any test as external process. This test driver in
+particular provides a way of comparing an output image written by the test
+to one or more baseline images. The tolerance of the comparison regarding
+certain criteria can be set on the command-line of the test driver. Use the
+basis_add_test_driver() CMake command to add a test driver with built-in
+C++ tests to the build system, or use the imported sbia.basis.testdriver
+executable target as the @c COMMAND argument of the basis_add_test() CMake
+command. Note that tests for the separate tests built into a test driver
+created by basis_add_test_driver() have still to be added using
+basis_add_test().
+
+@note See the help output of the <tt>basistest-driver</tt> executable of BASIS for
+      a list of available options to perform image-based regression tests
+      or have a look at the documentation generated from the testdriver.h
+      header file.
+      @code basistest-driver --help @endcode
+
+@ingroup BasisCxxUtilities
+*/
+
+// ===========================================================================
+// Tools
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+/**
+@defgroup Tools BASIS Tools
+@brief    Basic command-line tools.
+
+The BASIS package not only provides the implementation of the standardized
+build system, auxiliary implementations for different supported programming
+languages, and the standardized project directory structure, it also includes
+some utility command-line tools. In particular, the project management tool
+which is used to create and/or modify BASIS projects, and tools for the
+automated testing of the software of a BASIS project. These tools are
+summarized in this module.
+*/

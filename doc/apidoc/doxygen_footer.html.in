@@ -1,0 +1,7 @@
+
+<div class="footer">
+&copy; @PROJECT_COPYRIGHT@. Last updated on $datetime. Created using <a href="http://www.doxygen.org/index.html">Doxygen</a> $doxygenversion.
+</div>
+<!--END !GENERATE_TREEVIEW-->
+</body>
+</html>

@@ -1,0 +1,50 @@
+# ============================================================================
+# Copyright (c) 2015 <provider-name>
+# All rights reserved.
+#
+# See COPYING file for license information.
+# ============================================================================
+
+##############################################################################
+# @file  @CONFIG_FILE@
+# @brief CMake package configuration file.
+#
+# @note The @CONFIG_FILE@ file is automatically generated
+#       by BASIS from the template file Config.cmake.in which is part of
+#       the Robone package.
+#
+# Variables in this file have to be prefixed by the name of this package.
+# In the default package configuration file of BASIS, which can be included
+# here using the \@BASIS_CONFIG\@ variable, this prefix is defined as @c NS
+# variable. Moreover, the macro basis_set_config() should be used for
+# convenience to set any configuration variable, e.g.,
+#
+# @code
+# basis_set_config (INCLUDE_DIR "@INCLUDE_DIR_CONFIG@")
+# @endcode
+#
+# where the variable @c INCLUDE_DIR_CONFIG is set in the ConfigSettings.cmake
+# file of the BASIS installation. Note that this statement will set the
+# variable ${NS}INCLUDE_DIR, where by default @c NS is the package name
+# followed by an underscore (_).
+#
+# See the Config.cmake.in file of BASIS for details.
+#
+# @ingroup BasisConfig
+##############################################################################
+
+## @addtogroup BasisConfig
+# @{
+
+
+@BASIS_CONFIG@
+
+# ============================================================================
+# @PROJECT_NAME@ configuration
+# ============================================================================
+
+# Add further package configuration settings here.
+
+
+## @}
+# end of Doxygen group - keep at end of file

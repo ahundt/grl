@@ -1,0 +1,39 @@
+# ============================================================================
+# Copyright (c) 2015 <provider-name>
+# All rights reserved.
+#
+# See COPYING file for license information.
+# ============================================================================
+
+##############################################################################
+# @file  @USE_FILE@
+# @brief CMake package configuration use file.
+#
+# @note The @USE_FILE@ file is automatically generated
+#       by BASIS from the template file ConfigUse.cmake.in which is part of
+#       the Robone package.
+#
+# In the default package use file of BASIS, which can be included here using
+# the \@BASIS_USE\@ variable, the prefix used by the package configuration
+# file is defined as @c NS variable. Thus, to use any variable set by the
+# corresponding package configuration file, use code similar to:
+#
+# @code
+# include_directories (${${NS}INCLUDE_DIRS})
+# @endcode
+#
+# See the ConfigUse.cmake.in file of BASIS for details.
+#
+# @note The CMake code which is substituted for the \@BASIS_USE\@ variable
+#       contains an include guard.
+#
+# @ingroup BasisConfig
+##############################################################################
+
+@BASIS_USE@
+
+# ============================================================================
+# @PROJECT_NAME@ configuration
+# ============================================================================
+
+# Use further project package configuration settings here.
