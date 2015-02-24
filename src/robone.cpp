@@ -45,11 +45,14 @@ int main(int argc,char**argv) {
 
     azmq::pub_socket publisher(ios);
     publisher.bind("ipc://nasdaq-feed");
+	
+	flatbuffers::FlatBufferBuilder fbb;
+	
+	auto controlPoint = robone::CreateVrepControlPoint(fbb);
 
-    std::array<char, 256> buf;
     for (;;) {
-        auto size = subscriber.receive(boost::asio::buffer(buf));
-        publisher.send(boost::asio::buffer(buf));
+        auto size = subscriber.receive(boost::asio::buffer(fbb.GetBufferPointer(), fbb.GetSize()));
+        publisher.send(boost::asio::buffer(fbb.GetBufferPointer(), fbb.GetSize()));
     }
     return 0;
 }

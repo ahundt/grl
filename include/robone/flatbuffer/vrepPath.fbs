@@ -18,7 +18,7 @@ struct EulerXYZd {
 }
 
 
-table vrepControlPoint {
+table VrepControlPoint {
   position:Vector3d;
   rotation:EulerXYZd;
   
@@ -50,10 +50,10 @@ table vrepControlPoint {
   auxiliaryChannel4:double = 0.0;
 }
 
-root_type vrepControlPoint;
+root_type VrepControlPoint;
 
-table vrepPath {
-  controlPoints:[vrepControlPoint];
+table VrepPath {
+  controlPoints:[VrepControlPoint];
 }
 
-root_type vrepPath;
+root_type VrepPath;
