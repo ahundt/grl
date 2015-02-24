@@ -21,7 +21,7 @@ basis_set_property(SOURCE robone.cpp APPEND PROPERTY OBJECT_DEPENDS ${ROBONE_FLA
 
 
 basis_add_executable(robone.cpp)
-basis_target_link_libraries(robone ${PCL_LIBRARIES} ${Boost_LIBRARIES})
+basis_target_link_libraries(robone ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
 
 # ============================================================================
 # library target(s)

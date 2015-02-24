@@ -19,6 +19,7 @@
 #include <Eigen/Geometry>
 
 #include "robone/flatbuffer/vrepPath_generated.h"
+#include "robone/AzmqFlatbuffer.hpp"
 
 
 namespace po = boost::program_options;
@@ -36,8 +37,21 @@ namespace po = boost::program_options;
  */
 int main(int argc,char**argv) {
 
-	
-	return 0;
+    boost::asio::io_service ios;
+    azmq::sub_socket subscriber(ios);
+    subscriber.connect("tcp://192.168.55.112:5556");
+    subscriber.connect("tcp://192.168.55.201:7721");
+    subscriber.set_option(azmq::socket::subscribe("NASDAQ"));
+
+    azmq::pub_socket publisher(ios);
+    publisher.bind("ipc://nasdaq-feed");
+
+    std::array<char, 256> buf;
+    for (;;) {
+        auto size = subscriber.receive(boost::asio::buffer(buf));
+        publisher.send(boost::asio::buffer(buf));
+    }
+    return 0;
 }
 
 
