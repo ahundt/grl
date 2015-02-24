@@ -104,7 +104,7 @@ basis_project (
   # dependencies
   DEPENDS
     ZeroMQ
-	AzioMQ
+	AZMQ
 	FlatBuffers
 	Boost{program_options,filesystem,unit_test_framework,system}
 	Eigen3
