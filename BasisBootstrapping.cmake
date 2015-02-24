@@ -1,5 +1,5 @@
 # ============================================================================
-# Copyright (c) 2015 <provider-name>
+# Copyright (c) 2014 <provider-name>
 # All rights reserved.
 #
 # See COPYING file for license information.
@@ -26,17 +26,19 @@ include (CMakeParseArguments)
 # @par
 # <table border=0>
 #  <tr>
-#    @tp @b VERSION major.minor.patch @endtp
-#    <td>Version of CMake BASIS to download.</td>
+#    @tp @b VERSION major.minor.patch|commit @endtp
+#    <td>Release, commit, or branch of CMake BASIS to download.</td>
 #  </tr>
 #  <tr>
 #    @tp @b DOWNLOAD_URL url @endtp
 #    <td>URL from which to download the CMake BASIS source distribution package.
 #        The given URL can be either a complete download URL which includes the
-#        package name (which must end with .tar.gz or .zip) or the path of
+#        package name (which must end with .tar.gz or .zip), the path of
 #        a remote directory which contains the CMake BASIS packages named
-#        cmake-basis-version.zip (for Windows) and cmake-basis-version.tar.gz (for Unix).
-#        (default: http://opensource.andreasschuh.com/cmake-basis/_downloads)</td>
+#        cmake-basis-version.zip (for Windows) and cmake-basis-version.tar.gz
+#        (for Unix), or the URL of a Git repository.
+#        (default: http://opensource.andreasschuh.com/cmake-basis/_downloads
+#                  or git@github.com:schuhschuh/cmake-basis.git)</td>
 #  </tr>
 #  <tr>
 #    @tp @b INFORM_USER @endtp
@@ -86,17 +88,21 @@ function (basis_bootstrap)
     endif ()
   endif ()
 
-  set (DOWNLOAD_PATH    "${CMAKE_CURRENT_BINARY_DIR}")
-  if (WIN32)
-    set (BASIS_ARCHIVE "cmake-basis-${BASIS_VERSION}.zip")
+  set (DOWNLOAD_PATH "${CMAKE_CURRENT_BINARY_DIR}")
+  if (BASIS_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z]*)?$")
+    if (WIN32)
+      set (BASIS_ARCHIVE "cmake-basis-${BASIS_VERSION}.zip")
+    else ()
+      set (BASIS_ARCHIVE "cmake-basis-${BASIS_VERSION}.tar.gz")
+    endif ()
+    if (NOT BASIS_DOWNLOAD_URL)
+      set (BASIS_DOWNLOAD_URL "http://opensource.andreasschuh.com/cmake-basis/_downloads")
+    endif ()
+    if (NOT BASIS_DOWNLOAD_URL MATCHES "\\.(zip|tar\\.gz)$")
+      set (BASIS_DOWNLOAD_URL "${BASIS_DOWNLOAD_URL}/${BASIS_ARCHIVE}")
+    endif ()
   else ()
-    set (BASIS_ARCHIVE "cmake-basis-${BASIS_VERSION}.tar.gz")
-  endif ()
-  if (NOT BASIS_DOWNLOAD_URL)
-    set (BASIS_DOWNLOAD_URL "http://opensource.andreasschuh.com/cmake-basis/_downloads")
-  endif ()
-  if (NOT BASIS_DOWNLOAD_URL MATCHES "\\.(zip|tar\\.gz)$")
-    set (BASIS_DOWNLOAD_URL "${BASIS_DOWNLOAD_URL}/${BASIS_ARCHIVE}")
+    set (BASIS_DOWNLOAD_URL "git@github.com:schuhschuh/cmake-basis.git")
   endif ()
   set (BASIS_SOURCE_DIR "${DOWNLOAD_PATH}/cmake-basis-${BASIS_VERSION}")
   set (BASIS_BINARY_DIR "${DOWNLOAD_PATH}/cmake-basis-${BASIS_VERSION}/build")
@@ -109,34 +115,74 @@ function (basis_bootstrap)
 
     # download and extract source code if not done before
     if (NOT EXISTS "${BASIS_SOURCE_DIR}/BasisProject.cmake")
-      # download source code distribution package
-      if (NOT EXISTS "${DOWNLOAD_PATH}/${BASIS_ARCHIVE}")
-        message (STATUS "Downloading CMake BASIS v${BASIS_VERSION}...")
-        file (DOWNLOAD "${BASIS_DOWNLOAD_URL}" "${DOWNLOAD_PATH}/${BASIS_ARCHIVE}" STATUS RETVAL)
-        list (GET RETVAL 1 ERRMSG)
-        list (GET RETVAL 0 RETVAL)
-        if (NOT RETVAL EQUAL 0)
-          message (FATAL_ERROR "Failed to download CMake BASIS v${BASIS_VERSION} from\n"
+
+      # clone Git repository and checkout specified commit/branch
+      if (BASIS_DOWNLOAD_URL MATCHES ".git$")
+
+        find_package (Git QUIET)
+        if (NOT GIT_FOUND)
+          set (ERRMSG "Git client not found: GIT_EXECUTABLE")
+        else ()
+          mark_as_advanced (GIT_EXECUTABLE)
+          message (STATUS "Cloning CMake BASIS repository...")
+          execute_process (
+            COMMAND "${GIT_EXECUTABLE}" clone "${BASIS_DOWNLOAD_URL}" "${BASIS_SOURCE_DIR}"
+            RESULT_VARIABLE RETVAL
+            ERROR_VARIABLE  ERRMSG
+          )
+          if (RETVAL EQUAL 0)
+            execute_process (
+              COMMAND "${GIT_EXECUTABLE}" checkout --detach "${BASIS_VERSION}"
+              WORKING_DIRECTORY "${BASIS_SOURCE_DIR}"
+              RESULT_VARIABLE   RETVAL
+              ERROR_VARIABLE    ERRMSG
+            )
+            if (RETVAL EQUAL 0)
+              set (ERRMSG)
+              message (STATUS "Cloning CMake BASIS repository... - done")
+            endif ()
+          endif ()
+        endif ()
+        if (ERRMSG)
+          message (FATAL_ERROR "Failed to clone CMake BASIS ${BASIS_VERSION} from\n"
                                "\t${BASIS_DOWNLOAD_URL}\n"
                                "Error: ${ERRMSG}\n"
-                               "Either try again or follow the instructions at\n"
+                               "Ensure GIT_EXECUTABLE is set and try again or follow the instructions at\n"
                                "\thttp://opensource.andreasschuh.com/cmake-basis/\n"
                                "to download and install it manually before configuring this project.\n")
         endif ()
-        message (STATUS "Downloading CMake BASIS v${BASIS_VERSION}... - done")
+
+      else ()
+
+        # download source code distribution package
+        if (NOT EXISTS "${DOWNLOAD_PATH}/${BASIS_ARCHIVE}")
+          message (STATUS "Downloading CMake BASIS v${BASIS_VERSION}...")
+          file (DOWNLOAD "${BASIS_DOWNLOAD_URL}" "${DOWNLOAD_PATH}/${BASIS_ARCHIVE}" STATUS RETVAL)
+          list (GET RETVAL 1 ERRMSG)
+          list (GET RETVAL 0 RETVAL)
+          if (NOT RETVAL EQUAL 0)
+            message (FATAL_ERROR "Failed to download CMake BASIS v${BASIS_VERSION} from\n"
+                                 "\t${BASIS_DOWNLOAD_URL}\n"
+                                 "Error: ${ERRMSG}\n"
+                                 "Either try again or follow the instructions at\n"
+                                 "\thttp://opensource.andreasschuh.com/cmake-basis/\n"
+                                 "to download and install it manually before configuring this project.\n")
+          endif ()
+          message (STATUS "Downloading CMake BASIS v${BASIS_VERSION}... - done")
+        endif ()
+        # extract source package
+        message (STATUS "Extracting CMake BASIS...")
+        execute_process (COMMAND ${CMAKE_COMMAND} -E tar -xvzf "${DOWNLOAD_PATH}/${BASIS_ARCHIVE}" RESULT_VARIABLE RETVAL)
+        if (NOT RETVAL EQUAL 0)
+          file (REMOVE_RECURSE "${BASIS_SOURCE_DIR}")
+          message (FATAL_ERROR "Failed to extract the downloaded archive file ${DOWNLOAD_PATH}/${BASIS_ARCHIVE}!")
+        endif ()
+        message (STATUS "Extracting CMake BASIS... - done")
+
       endif ()
-      # extract source package
-      message (STATUS "Extracting CMake BASIS...")
-      execute_process (COMMAND ${CMAKE_COMMAND} -E tar -xvzf "${DOWNLOAD_PATH}/${BASIS_ARCHIVE}" RESULT_VARIABLE RETVAL)
-      if (NOT RETVAL EQUAL 0)
-        file (REMOVE_RECURSE "${BASIS_SOURCE_DIR}")
-        message (FATAL_ERROR "Failed to extract the downloaded archive file ${DOWNLOAD_PATH}/${BASIS_ARCHIVE}!")
-      endif ()
-      message (STATUS "Extracting CMake BASIS... - done")
     endif ()
 
     # configure
-    # TODO: Does this work on Windows as well ? Do we need "-G${CMAKE_GENERATOR}" ?
     file (MAKE_DIRECTORY "${BASIS_BINARY_DIR}")
 
     set (CMAKE_ARGUMENTS "-DBASIS_REGISTER:BOOL=OFF") # do not register this BASIS build/installation
@@ -153,14 +199,14 @@ function (basis_bootstrap)
       math (EXPR N "${N} - 2")
     endwhile ()
     execute_process (
-      COMMAND "${CMAKE_COMMAND}" ${CMAKE_ARGUMENTS} "${BASIS_SOURCE_DIR}"
+      COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" ${CMAKE_ARGUMENTS} "${BASIS_SOURCE_DIR}"
       WORKING_DIRECTORY "${BASIS_BINARY_DIR}"
     )
     # build
-    execute_process (COMMAND "${CMAKE_BUILD_TOOL}" all WORKING_DIRECTORY "${BASIS_BINARY_DIR}")
+    execute_process (COMMAND "${CMAKE_COMMAND}" --build "${BASIS_BINARY_DIR}" --config Release)
     # install
     if (BASIS_INSTALL_PREFIX)
-      execute_process (COMMAND "${CMAKE_BUILD_TOOL}" install WORKING_DIRECTORY "${BASIS_BINARY_DIR}")
+      execute_process (COMMAND "${CMAKE_COMMAND}" --build "${BASIS_BINARY_DIR}" --config Release --target install)
       set (BASIS_DIR "${BASIS_INSTALL_PREFIX}" PARENT_SCOPE)
     else ()
       set (BASIS_DIR "${BASIS_BINARY_DIR}" PARENT_SCOPE)
