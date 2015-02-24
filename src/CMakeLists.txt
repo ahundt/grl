@@ -9,6 +9,22 @@
 # @file  CMakeLists.txt
 # @brief Build configuration of software.
 ##############################################################################
+set(RFB ./../include/robone/flatbuffer/vrepPath.fbs)
+# Generate flatbuffer message C++ headers
+flatbuffers_generate_c_headers(ROBONE_FLATBUFFERS ${RFB})
+message(STATUS "ROBONE_FLATBUFFERS_OUTPUTS: " ${ROBONE_FLATBUFFERS_OUTPUTS})
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${RFB}")
+	message(STATUS "file exists")
+else()
+
+	message(STATUS "file does not exist")
+endif()
+
+basis_set_property(SOURCE robone.cpp APPEND PROPERTY OBJECT_DEPENDS ${ROBONE_FLATBUFFERS_OUTPUTS})
+
+basis_add_executable(robone.cpp)
+basis_target_link_libraries(robone ${PCL_LIBRARIES} ${Boost_LIBRARIES})
 
 # ============================================================================
 # library target(s)
