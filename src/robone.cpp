@@ -18,6 +18,8 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/Geometry>
 
+#include "robone/flatbuffer/vrepPath_generated.h"
+
 
 namespace po = boost::program_options;
 
