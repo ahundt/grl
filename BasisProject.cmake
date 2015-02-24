@@ -103,6 +103,11 @@ basis_project (
   # --------------------------------------------------------------------------
   # dependencies
   DEPENDS
+    ZeroMQ
+	AzioMQ
+	FlatBuffers
+	Boost{program_options,filesystem,unit_test_framework,system}
+	Eigen3
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>

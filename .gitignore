@@ -26,3 +26,7 @@
 *.exe
 *.out
 *.app
+
+# Build Folder
+build/*
+xcodebuild/*
