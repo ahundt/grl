@@ -25,22 +25,133 @@
 #include "robone/AzmqFlatbuffer.hpp"
 
 
-int x = 0;
 namespace po = boost::program_options;
 
-/// @todo this is not ready for use!
-void receiveVCP(boost::system::error_code ec,azmq::sub_socket&& subscriber,azmq::pub_socket&& publisher, flatbuffers::FlatBufferBuilder&& fbb){
+
+
+struct monitor_handler {
+
+#if defined BOOST_MSVC
+#pragma pack(push, 1)
+    struct event_t
+    {
+        uint16_t e;
+        uint32_t i;
+    };
+#pragma pack(pop)
+#else
+    struct event_t
+    {
+        uint16_t e;
+        uint32_t i;
+    } __attribute__((packed));
+#endif
+
+    azmq::socket socket_;
+    std::string role_;
+    std::vector<event_t> events_;
+
+    monitor_handler(boost::asio::io_service & ios, azmq::socket& s, std::string role)
+        : socket_(s.monitor(ios, ZMQ_EVENT_ALL))
+        , role_(std::move(role))
+    { }
+
+    void start()
+    {
+        socket_.async_receive([this](boost::system::error_code const& ec,
+                                     azmq::message & msg, size_t) {
+                if (ec)
+                    return;
+                event_t event;
+                msg.buffer_copy(boost::asio::buffer(&event, sizeof(event)));
+                events_.push_back(event);
+                socket_.flush();
+                start();
+            });
+    }
+
+    void cancel()
+    {
+        socket_.cancel();
+    }
+};
+
+void bounce(azmq::socket & server, azmq::socket & client) {
 	
-        std::array<char, 256> buf;
-        auto size = subscriber.receive(boost::asio::buffer(buf));
-		auto VrepControlPointIn = robone::GetVrepControlPoint(buf.begin());
-		const robone::VrepControlPoint* VCPin = robone::GetVrepControlPoint(buf.begin());
+	std::array<uint8_t, 512> buf;
+	for (int x = 0; x<100; ++x) {
 		
-		std::cout << "received: " << VCPin->position()->x() << "\n";
+		/////////////////////////
+		// Client sends to server
 		
-		x++;
-		auto rv = robone::Vector3d(x,0,0);
-        publisher.send(boost::asio::buffer(fbb.GetBufferPointer(), fbb.GetSize()));
+		flatbuffers::FlatBufferBuilder fbb;
+		robone::Vector3d rv(x,0,0);
+	    auto controlPoint = robone::CreateVrepControlPoint(fbb,&rv);
+		robone::FinishVrepControlPointBuffer(fbb, controlPoint);
+        client.send(boost::asio::buffer(fbb.GetBufferPointer(), fbb.GetSize()));
+		
+		
+		//////////////////////////////
+		// Server receives from client
+		
+        auto size = server.receive(boost::asio::buffer(buf));
+		auto verifier = flatbuffers::Verifier(buf.begin(),buf.size());
+		auto bufOK = robone::VerifyVrepControlPointBuffer(verifier);
+		
+		if(size == fbb.GetSize() && bufOK){
+		    const robone::VrepControlPoint* VCPin = robone::GetVrepControlPoint(buf.begin());
+		    std::cout << "received: " << VCPin->position()->x() << "\n";
+		} else {
+			std::cout << "wrong size or failed verification. size: "<< size <<" bufOk: " <<bufOK << "\n";
+		}
+    }
+}
+
+
+void RunSocketMonitor() {
+    boost::asio::io_service ios;
+    boost::asio::io_service ios_m;
+
+    using socket_ptr = std::unique_ptr<azmq::socket>;
+    socket_ptr client(new azmq::socket(ios, ZMQ_DEALER));
+    socket_ptr server(new azmq::socket(ios, ZMQ_DEALER));
+
+    monitor_handler client_monitor(ios_m, *client, "client");
+    monitor_handler server_monitor(ios_m, *server, "server");
+
+    client_monitor.start();
+    server_monitor.start();
+
+    std::thread t([&] {
+        ios_m.run();
+    });
+
+    server->bind("tcp://127.0.0.1:9998");
+    client->connect("tcp://127.0.0.1:9998");
+
+    bounce(*client, *server);
+
+    // On Windows monitored sockets must be closed before their monitors,
+    // otherwise ZMQ crashes or deadlocks during the context termination.
+    // ZMQ's bug?
+    client.reset();
+    server.reset();
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    ios_m.stop();
+    t.join();
+
+//    BOOST_REQUIRE(client_monitor.events_.size() == 3);
+//    CHECK(client_monitor.events_[0].e == ZMQ_EVENT_CONNECT_DELAYED);
+//    CHECK(client_monitor.events_[1].e == ZMQ_EVENT_CONNECTED);
+//    CHECK(client_monitor.events_[2].e == ZMQ_EVENT_MONITOR_STOPPED);
+//
+//    REQUIRE(server_monitor.events_.size() == 4);
+//    CHECK(server_monitor.events_[0].e == ZMQ_EVENT_LISTENING);
+//    CHECK(server_monitor.events_[1].e == ZMQ_EVENT_ACCEPTED);
+//    CHECK(server_monitor.events_[2].e == ZMQ_EVENT_CLOSED);
+//    CHECK(server_monitor.events_[3].e == ZMQ_EVENT_MONITOR_STOPPED);
 }
 
 
@@ -55,37 +166,7 @@ void receiveVCP(boost::system::error_code ec,azmq::sub_socket&& subscriber,azmq:
  */
 int main(int argc,char**argv) {
 
-    boost::asio::io_service ios;
-    azmq::sub_socket subscriber(ios);
-    subscriber.connect("tcp://127.0.0.1:5556");
-    //subscriber.connect("tcp://192.168.55.201:7721");
-    subscriber.set_option(azmq::socket::subscribe("CUT_PATH"));
-
-    azmq::pub_socket publisher(ios);
-    publisher.bind("tcp://127.0.0.1:5556");
-	
-	flatbuffers::FlatBufferBuilder fbb;
-	
-	robone::Vector3d rv(0,0,0);
-    std::array<char, 256> buf;
-
-	//std::bind(receiveVCP(std::placeholders::_1,subscriber, publisher,fbb));
-
-    for (;;) {
-	
-	
-		x++;
-		rv = robone::Vector3d(x,0,0);
-	    auto controlPoint = robone::CreateVrepControlPoint(fbb,&rv);
-        publisher.send(boost::asio::buffer(fbb.GetBufferPointer(), fbb.GetSize()));
-	
-        auto size = subscriber.receive(boost::asio::buffer(buf));
-		auto VrepControlPointIn = robone::GetVrepControlPoint(buf.begin());
-		const robone::VrepControlPoint* VCPin = robone::GetVrepControlPoint(buf.begin());
-		
-		std::cout << "received: " << VCPin->position()->x() << "\n";
-		
-    }
+	RunSocketMonitor();
 
 	
     return 0;
