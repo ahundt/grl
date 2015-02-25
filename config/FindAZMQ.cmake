@@ -3,9 +3,8 @@
 # Variables
 # AZMQROOT - set this to a location where ZeroMQ may be found
 #
-# AZMQ_FOUND - True of ZeroMQ found
+# AZMQ_FOUND - True if ZeroMQ found
 # AZMQ_INCLUDE_DIRS - Location of ZeroMQ includes
-# AZMQ_LIBRARIS - ZeroMQ libraries
 
 include(FindPackageHandleStandardArgs)
 
@@ -18,8 +17,7 @@ endif()
 find_path(AZMQ_INCLUDE_DIRS NAMES azmq/actor.hpp HINTS ${_AZMQ_ROOT}/include)
 
 
-find_package_handle_standard_args(AZMQ FOUND_VAR AZMQ_FOUND
-                                      REQUIRED_VARS AZMQ_INCLUDE_DIRS)
+find_package_handle_standard_args(AZMQ FOUND_VAR AZMQ_FOUND REQUIRED_VARS AZMQ_INCLUDE_DIRS)
 
 if (AZMQ_FOUND)
     mark_as_advanced(AZMQ_FIND_VERSION_EXACT AZMQ_INCLUDE_DIRS )
