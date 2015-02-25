@@ -13,4 +13,6 @@
 # example directory of the installation tree.
 ##############################################################################
 
+basis_add_subdirectory(v_repExtPluginSkeleton)
+
 basis_install_directory ("." "${INSTALL_EXAMPLE_DIR}")

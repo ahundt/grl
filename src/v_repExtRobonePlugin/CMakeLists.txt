@@ -10,18 +10,6 @@
 # @brief Build configuration of software.
 ##############################################################################
 
-# list flatbuffer headers
-set(RFB VrepControlPoint.fbs VrepPath.fbs)
-# directory to include flatbuffers
-set(ROBONE_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include/robone/flatbuffer)
-# Generate flatbuffer message C++ headers
-flatbuffers_generate_c_headers(ROBONE_FLATBUFFERS ../include/robone/flatbuffer/  ${ROBONE_FLATBUFFERS_INCLUDE_DIR} ${RFB})
-basis_include_directories(${ROBONE_FLATBUFFERS_INCLUDE_DIR})
-basis_set_property(SOURCE zmqFlatbuffersTest.cpp APPEND PROPERTY OBJECT_DEPENDS ${ROBONE_FLATBUFFERS_OUTPUTS})
-
-
-basis_add_executable(zmqFlatbuffersTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
 
 # ============================================================================
 # library target(s)
@@ -41,7 +29,9 @@ basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIE
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
-add_subdirectory(v_repExtRobonePlugin)
+basis_add_library(v_repExtRobonePlugin SHARED v_repExtRobonePlugin.cpp v_repLib.cpp)
+target_include_directories(v_repExtRobonePlugin SYSTEM PRIVATE "${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include")
+
 
 # ============================================================================
 # executable target(s)
