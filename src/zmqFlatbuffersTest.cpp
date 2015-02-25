@@ -28,7 +28,7 @@
 namespace po = boost::program_options;
 
 
-
+/// @todo what does this help accomplish?
 struct monitor_handler {
 
 #if defined BOOST_MSVC
@@ -76,6 +76,11 @@ struct monitor_handler {
     }
 };
 
+/// Send messages between a client and server synchronously. 
+///
+/// @see overview of zmq socket types https://sachabarbs.wordpress.com/2014/08/21/zeromq-2-the-socket-types-2/
+/// @see bounce is based on https://github.com/zeromq/azmq/blob/master/test/socket/main.cpp
+/// @see flatbuffers https://google.github.io/flatbuffers/md__cpp_usage.html
 void bounce(azmq::socket & server, azmq::socket & client) {
 	
 	std::array<uint8_t, 512> buf;
