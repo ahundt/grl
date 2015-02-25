@@ -15,17 +15,13 @@ set(RFB VrepControlPoint.fbs VrepPath.fbs)
 # directory to include flatbuffers
 set(ROBONE_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include/robone/flatbuffer)
 # Generate flatbuffer message C++ headers
-message(STATUS "18<<<<<<<<<<<<<<<<")
 flatbuffers_generate_c_headers(ROBONE_FLATBUFFERS ../include/robone/flatbuffer/  ${ROBONE_FLATBUFFERS_INCLUDE_DIR} ${RFB})
-message(STATUS "20<<<<<<<<<<<<<<<<")
 basis_include_directories(${ROBONE_FLATBUFFERS_INCLUDE_DIR})
-message(STATUS "22<<<<<<<<<<<<<<<<")
-basis_set_property(SOURCE robone.cpp APPEND PROPERTY OBJECT_DEPENDS ${ROBONE_FLATBUFFERS_OUTPUTS})
-message(STATUS "24<<<<<<<<<<<<<<<<")
+basis_set_property(SOURCE zmqFlatbuffersTest.cpp APPEND PROPERTY OBJECT_DEPENDS ${ROBONE_FLATBUFFERS_OUTPUTS})
 
 
-basis_add_executable(robone.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(robone ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
+basis_add_executable(zmqFlatbuffersTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
+basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
 
 # ============================================================================
 # library target(s)
