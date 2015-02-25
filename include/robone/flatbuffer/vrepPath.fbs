@@ -1,56 +1,9 @@
 // based on a v-rep path 
 // http://www.coppeliarobotics.com/helpFiles/en/pathImportExport.htm
 
+include "VrepControlPoint.fbs";
+
 namespace robone;
-
-// pos in meters
-struct Vector3d {
-  x:double;
-  y:double;
-  z:double;
-}
-
-// euler angles in DEGREES
-struct EulerXYZd {
-  rx:double;
-  ry:double;
-  rz:double;
-}
-
-
-table VrepControlPoint {
-  position:Vector3d;
-  rotation:EulerXYZd;
-  
-  // represents a control point's relative velocity 
-  // (for the generation of a velocity profile).
-  relativeVelocity:double = 1.0; 
-  
-  // BezierPointCount is the number of Bezier points 
-  // that are desired for the control point.
-  bezierPointCount:int = 1;
-  
-  // 1 and 2 are the interpolation factors described in the section on path control points and Bezier points 
-  // http://www.coppeliarobotics.com/helpFiles/en/pathsControlPointsAndBezierPoints.htm
-
-  interpolationFactor1:double = 0.5; 
-  interpolationFactor2:double = 0.5;
-
-
-  virtualDistance:double = 0.0; // see the section on movement along a path for details. http://www.coppeliarobotics.com/helpFiles/en/pathMovementAlongAPath.htm
-
-
-  auxiliaryFlags:int = 0; // a flag that can be used for various purposes, and that can be queried via the simGetDataOnPath function.
-
-  // aux channels are values that can be used for various purposes, 
-  // and that can be queried via the simGetDataOnPath function. Default are values of 0.0
-  auxiliaryChannel1:double = 0.0; // todo: make this a timestamp?
-  auxiliaryChannel2:double = 0.0;
-  auxiliaryChannel3:double = 0.0;
-  auxiliaryChannel4:double = 0.0;
-}
-
-root_type VrepControlPoint;
 
 table VrepPath {
   controlPoints:[VrepControlPoint];
