@@ -83,18 +83,17 @@ struct monitor_handler {
 /// @see flatbuffers https://google.github.io/flatbuffers/md__cpp_usage.html
 void bounce(azmq::socket & server, azmq::socket & client) {
 	
+	flatbuffers::FlatBufferBuilder fbb;
 	std::array<uint8_t, 512> buf;
 	for (int x = 0; x<100; ++x) {
 		
 		/////////////////////////
 		// Client sends to server
 		
-		flatbuffers::FlatBufferBuilder fbb;
 		robone::Vector3d rv(x,0,0);
 	    auto controlPoint = robone::CreateVrepControlPoint(fbb,&rv);
 		robone::FinishVrepControlPointBuffer(fbb, controlPoint);
         client.send(boost::asio::buffer(fbb.GetBufferPointer(), fbb.GetSize()));
-		
 		
 		//////////////////////////////
 		// Server receives from client
@@ -109,6 +108,8 @@ void bounce(azmq::socket & server, azmq::socket & client) {
 		} else {
 			std::cout << "wrong size or failed verification. size: "<< size <<" bufOk: " <<bufOK << "\n";
 		}
+		
+		fbb.Clear();
     }
 }
 
