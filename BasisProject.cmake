@@ -91,7 +91,7 @@ basis_project (
   VENDOR           #<vendor>
   PROVIDER_NAME    #<provider-name>
   PROVIDER_LOGO    #<provider-logo>
-  PROVIDER_WEBSITE "http://www.<vendor>.com/Robone"
+  PROVIDER_WEBSITE "http://www.github.com/ahundt/robone"
   DIVISION_NAME    #<division-name>
   DIVISION_LOGO    #<division-logo>
   DIVISION_WEBSITE #<division-website>
@@ -106,7 +106,7 @@ basis_project (
     ZeroMQ
 	AZMQ
 	FlatBuffers
-	Boost{program_options,filesystem,unit_test_framework,system,regex}
+	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine}
 	Eigen3
     #<dependency>
   OPTIONAL_DEPENDS
