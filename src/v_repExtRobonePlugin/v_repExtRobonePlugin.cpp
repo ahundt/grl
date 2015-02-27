@@ -32,11 +32,24 @@
 #define PLUGIN_VERSION 1
 
 LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
+std::unique_ptr<KukaVrepInterface> kukaVrepInterfacePG;
 
 
 #define CONCAT(x,y,z) x y z
 #define strConCat(x,y,z)	CONCAT(x,y,z)
 #define LUA_GET_SENSOR_DATA_COMMAND "simExtSkeleton_getSensorData"
+
+
+void LUA_GET_REAL_KUKA_STATE_CALLBACK(SLuaCallBack* p)
+{ // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
+  // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
+}
+
+void LUA_SET_SIM_KUKA_IDENTIFIERS_CALLBACK(SLuaCallBack* p)
+{
+	// Here we need the ineger "Handle" identifiers for the arm itself, and for each joint
+}
+
 
 void LUA_GET_SENSOR_DATA_CALLBACK(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
@@ -183,6 +196,11 @@ VREP_DLLEXPORT void v_repEnd()
 {
 	// Here you could handle various clean-up tasks
 
+		/////////////////////////
+		// PUT OBJECT RESET CODE HERE
+		// close out as necessary
+		////////////////////
+	
 	unloadVrepLibrary(vrepLib); // release the library
 }
 
@@ -225,6 +243,38 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		{ // we actualize plugin objects for changes in the scene
 
 			//...
+			//////////////
+			// PUT MAIN CODE HERE
+			
+			/////////////
+			// Get simulation time point
+			// make sure it is "right" (what does that mean?)
+			
+			
+			// find the v-rep C functions to do the following:
+			////////////////////////////////////////////////////
+			// Use handles that were found at the "start" of this simulation running
+			// get the joint angles, torque, etc from the simulation
+			// Send updated position to the real arm based on simulation
+			
+            
+			// Step 1
+			////////////////////////////////////////////////////
+			// call the functions here and just print joint angles out
+			// or display something on the screens
+			
+
+			///////////////////
+			// call our object to get the latest real kuka state
+			// then use the functions below to set the simulation state
+			// to match
+			///////////////////
+			// simSetJointForce
+			// simSetJointInterval
+			// simSetJointMode
+			// simSetJointPosition
+			// simSetJointTargetPosition
+			// simSetJointTargetVelocity
 
 			refreshDlgFlag=true; // always a good idea to trigger a refresh of this plugin's dialog here
 		}
@@ -238,10 +288,22 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 	if (message==sim_message_eventcallback_simulationabouttostart)
 	{ // Simulation is about to start
 
+		/////////////////////////
+		// PUT OBJECT STARTUP CODE HERE
+		////////////////////
+		// get the handles to all the objects, joints, etc that we need
+		/////////////////////
+		// simGetObjectHandle
 	}
 
 	if (message==sim_message_eventcallback_simulationended)
 	{ // Simulation just ended
+
+		/////////////////////////
+		// PUT OBJECT RESET CODE HERE
+		// close out as necessary
+		////////////////////
+		
 
 	}
 
