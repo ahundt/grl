@@ -24,8 +24,8 @@ basis_add_executable(zmqFlatbuffersTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
 basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
 
 
-basis_add_executable(echo_server.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(echo_server ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
+basis_add_executable(AzmqFlatbufferTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
+basis_target_link_libraries(AzmqFlatbufferTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
 
 # ============================================================================
 # library target(s)
