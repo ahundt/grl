@@ -1,21 +1,9 @@
 // based on a v-rep path 
 // http://www.coppeliarobotics.com/helpFiles/en/pathImportExport.htm
 
+include "Geometry.fbs";
+
 namespace robone;
-
-// pos in meters
-struct Vector3d {
-  x:double;
-  y:double;
-  z:double;
-}
-
-// euler angles in DEGREES
-struct EulerXYZd {
-  rx:double;
-  ry:double;
-  rz:double;
-}
 
 
 table VrepControlPoint {

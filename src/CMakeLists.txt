@@ -11,7 +11,7 @@
 ##############################################################################
 
 # list flatbuffer headers
-set(RFB VrepControlPoint.fbs VrepPath.fbs)
+set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs)
 # directory to include flatbuffers
 set(ROBONE_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include/robone/flatbuffer)
 # Generate flatbuffer message C++ headers
