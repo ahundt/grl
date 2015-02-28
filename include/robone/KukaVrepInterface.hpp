@@ -3,7 +3,7 @@
 
 
 class KukaVrepInterface {
-	
+public:
 	KukaVrepInterface(){
 		
 	}
@@ -12,11 +12,11 @@ class KukaVrepInterface {
 		
 	}
 	
-	sendControlPointToJava(){
+	void sendControlPointToJava(){
 		
 	}
 	
-	getLatestRealState(){
+	void getLatestRealState(){
 		
 	}
 
