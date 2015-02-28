@@ -43,7 +43,12 @@ static const int default_circular_buffer_size = 10;
 /// @todo Consider making this a simple std::vector so it is runtime configurable
 typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_buffer_type;
 
-
+  /// Initialize AzmqFlatbuffer with a socket.
+  /// The socket should be fully configured 
+  /// and ready to use when it is passed to this object.
+  /// We also recommend the user utilizes AZMQFlatbuffer(std::move(socket)) 
+  /// when calling this constructor.
+  /// @see AzmqFlatbufferTest for an example of usage.
   explicit AZMQFlatbuffer(azmq::socket socket)
     : socket_(std::move(socket)),
       strand_(socket_.get_io_service()),
@@ -58,7 +63,8 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
 	 }
   }
 
-/// @todo make it so FlatBufferBuilders can be used directly
+  /// Send a FlatbufferBuilder to the destination specified in the socket.
+  /// @todo make it so FlatBufferBuilders can be used directly
   void async_send_flatbuffer(std::shared_ptr<flatbuffers::FlatBufferBuilder> fbbP)
   {
     auto self(shared_from_this());
@@ -104,7 +110,14 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
 			return back;
 	}
 	
-	/// @todo this only works once... make it keep receiving repeatedly
+	/// Initializes the process of receiving 
+	/// buffers from the source specified
+	/// by the azmq::socket taht was provided.
+	/// This initializes a loop that will continuously
+	/// read data and fill out the internal ring buffer
+	/// for users to extract. This allows this class to
+	/// run asynchronously while interacting with
+	/// synchronous users.
 	void start_async_receive_buffers(){
 		if(doneReceiving_){
 			doneReceiving_=false;
@@ -143,6 +156,8 @@ private:
 		});
 	}
 public:
+	
+	/// Stop receiving buffers
 	void stop_async_receive_buffers(){
 		doneReceiving_ = true;
 	}
