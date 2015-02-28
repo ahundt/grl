@@ -35,7 +35,7 @@
 /// Rationale: FlatBufferBuilders are much faster if they are reused
 /// so we create a small pool of them that you can get from this object
 /// after you send a flat buffer, the builder is put into the pool
-class AZMQFlatbuffer : public std::enable_shared_from_this<AZMQFlatbuffer>
+class AzmqFlatbuffer : public std::enable_shared_from_this<AzmqFlatbuffer>
 {
 public:
 
@@ -46,10 +46,10 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
   /// Initialize AzmqFlatbuffer with a socket.
   /// The socket should be fully configured 
   /// and ready to use when it is passed to this object.
-  /// We also recommend the user utilizes AZMQFlatbuffer(std::move(socket)) 
+  /// We also recommend the user utilizes AzmqFlatbuffer(std::move(socket)) 
   /// when calling this constructor.
   /// @see AzmqFlatbufferTest for an example of usage.
-  explicit AZMQFlatbuffer(azmq::socket socket)
+  explicit AzmqFlatbuffer(azmq::socket socket)
     : socket_(std::move(socket)),
       strand_(socket_.get_io_service()),
 	  unusedFlatBufferBuilders_(default_circular_buffer_size),
@@ -152,7 +152,7 @@ private:
 			self->receiveBuffersWithData_.push_back(rbP);
 			
 			// run this function again *after* it returns
-			if(!doneReceiving_) socket_.get_io_service().post(std::bind(&AZMQFlatbuffer::next_async_receive_buffers,this));
+			if(!doneReceiving_) socket_.get_io_service().post(std::bind(&AzmqFlatbuffer::next_async_receive_buffers,this));
 		});
 	}
 public:
@@ -186,7 +186,7 @@ public:
 	}
 private:
 
-void operator()(boost::system::error_code ec, std::size_t bytes_transferred, std::shared_ptr<AZMQFlatbuffer> self, receive_buffer_type rbP){
+void operator()(boost::system::error_code ec, std::size_t bytes_transferred, std::shared_ptr<AzmqFlatbuffer> self, receive_buffer_type rbP){
 
 			if(ec) std::cout << "start_async_receive_buffers error! todo: figure out how to handle this\n";
 			// make rbp the size of the actual amount of data read

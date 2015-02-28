@@ -16,7 +16,7 @@
 /// @see overview of zmq socket types https://sachabarbs.wordpress.com/2014/08/21/zeromq-2-the-socket-types-2/
 /// @see bounce is based on https://github.com/zeromq/azmq/blob/master/test/socket/main.cpp
 /// @see flatbuffers https://google.github.io/flatbuffers/md__cpp_usage.html
-void bounce(std::shared_ptr<AZMQFlatbuffer> sendP, std::shared_ptr<AZMQFlatbuffer> receiveP) {
+void bounce(std::shared_ptr<AzmqFlatbuffer> sendP, std::shared_ptr<AzmqFlatbuffer> receiveP) {
 	
 	receiveP->start_async_receive_buffers();
 	
@@ -66,32 +66,32 @@ int main(int argc, char* argv[])
     boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
     signals.async_wait( std::bind(&boost::asio::io_service::stop, &io_service));
 #if 0
-	std::shared_ptr<AZMQFlatbuffer> sendP;
+	std::shared_ptr<AzmqFlatbuffer> sendP;
 	{
 		boost::system::error_code ec;
 		azmq::socket socket(io_service, ZMQ_DEALER);
 		socket.connect("tcp://127.0.0.1:9998");
-		sendP = std::make_shared<AZMQFlatbuffer>(std::move(socket));
+		sendP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 	}
-	std::shared_ptr<AZMQFlatbuffer> receiveP;
+	std::shared_ptr<AzmqFlatbuffer> receiveP;
 	{
 		boost::system::error_code ec;
 		azmq::socket socket(io_service, ZMQ_DEALER);
 		socket.bind("tcp://127.0.0.1:9998");
-		receiveP = std::make_shared<AZMQFlatbuffer>(std::move(socket));
+		receiveP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 	}
 
 	// Will run until signal is received, using separate objects for send and receive
     std::thread t(bounce,sendP,receiveP);
 #else
 
-	std::shared_ptr<AZMQFlatbuffer> receiveP;
+	std::shared_ptr<AzmqFlatbuffer> receiveP;
 	{
 		boost::system::error_code ec;
 		azmq::socket socket(io_service, ZMQ_DEALER);
 		socket.bind("tcp://127.0.0.1:9998");
 		socket.connect("tcp://127.0.0.1:9998");
-		receiveP = std::make_shared<AZMQFlatbuffer>(std::move(socket));
+		receiveP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 	}
 
 	// Will run until signal is received, using one object for both send and receive
