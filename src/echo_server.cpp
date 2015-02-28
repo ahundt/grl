@@ -57,7 +57,8 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
       strand_(socket_.get_io_service()),
 	  unusedFlatBufferBuilders_(default_circular_buffer_size),
 	  unusedReceiveBuffers_(default_circular_buffer_size),
-	  receiveBuffersWithData_(default_circular_buffer_size)
+	  receiveBuffersWithData_(default_circular_buffer_size),
+	  doneReceiving_(true)
   {
      for (int i = 0; i<default_circular_buffer_size; ++i) {
         unusedFlatBufferBuilders_.push_back(std::make_shared<flatbuffers::FlatBufferBuilder>());
@@ -113,7 +114,14 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
 	
 	/// @todo this only works once... make it keep receiving repeatedly
 	void start_async_receive_buffers(){
+		if(doneReceiving_){
+			doneReceiving_=false;
+			next_async_receive_buffers();
+		}
+	}
 	
+private:
+	void next_async_receive_buffers(){
 	    receive_buffer_type rbP;
 		{ // this bracket is important so the lock is released ASAP
 			std::lock_guard<std::mutex> lock(receiveBuffersLock_);
@@ -137,8 +145,14 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
 			rbP->resize(std::min(bytes_transferred,rbP->capacity()));
 			std::lock_guard<std::mutex> lock(receiveBuffersLock_);
 			self->receiveBuffersWithData_.push_back(rbP);
-			//if(!doneReceiving_) start_async_receive_buffers();
+			
+			// run this function again *after* it returns
+			if(!doneReceiving_) socket_.get_io_service().post(std::bind(&ZMQFlatbufferSession::next_async_receive_buffers,this));
 		});
+	}
+public:
+	void stop_async_receive_buffers(){
+		doneReceiving_ = true;
 	}
 	
 #if 0
@@ -297,6 +311,7 @@ private:
 /// @see flatbuffers https://google.github.io/flatbuffers/md__cpp_usage.html
 void bounce(std::shared_ptr<ZMQFlatbufferSession> sendP, std::shared_ptr<ZMQFlatbufferSession> receiveP) {
 	
+	receiveP->start_async_receive_buffers();
 	
 	for (int x = 0; x<100; ++x) {
 		
@@ -313,7 +328,6 @@ void bounce(std::shared_ptr<ZMQFlatbufferSession> sendP, std::shared_ptr<ZMQFlat
 		
 		//////////////////////////////////////////////
 		// Server receives from client asynchronously!
-		receiveP->start_async_receive_buffers();
 		while (!receiveP->receive_buffers_empty()) {
 			auto rbP = receiveP->get_back_receive_buffer_with_data();
 			auto rbPstart = &(rbP->begin()[0]);
@@ -329,7 +343,7 @@ void bounce(std::shared_ptr<ZMQFlatbufferSession> sendP, std::shared_ptr<ZMQFlat
 			
 		}
 		
-		std::this_thread::sleep_for( std::chrono::milliseconds(100) );
+		std::this_thread::sleep_for( std::chrono::milliseconds(1) );
     }
 }
 
@@ -344,6 +358,7 @@ int main(int argc, char* argv[])
     // Register signal handlers so that the daemon may be shut down when a signal is received.
     boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
     signals.async_wait( std::bind(&boost::asio::io_service::stop, &io_service));
+#if 0
 	std::shared_ptr<ZMQFlatbufferSession> sendP;
 	{
 		boost::system::error_code ec;
@@ -359,8 +374,23 @@ int main(int argc, char* argv[])
 		receiveP = std::make_shared<ZMQFlatbufferSession>(std::move(socket));
 	}
 
-	// Will run until signal is received
+	// Will run until signal is received, using separate objects for send and receive
     std::thread t(bounce,sendP,receiveP);
+#else
+
+	std::shared_ptr<ZMQFlatbufferSession> receiveP;
+	{
+		boost::system::error_code ec;
+		azmq::socket socket(io_service, ZMQ_DEALER);
+		socket.bind("tcp://127.0.0.1:9998");
+		socket.connect("tcp://127.0.0.1:9998");
+		receiveP = std::make_shared<ZMQFlatbufferSession>(std::move(socket));
+	}
+
+	// Will run until signal is received, using one object for both send and receive
+    std::thread t(bounce,receiveP,receiveP);
+#endif
+	
 	io_service.run();
 	
   }
