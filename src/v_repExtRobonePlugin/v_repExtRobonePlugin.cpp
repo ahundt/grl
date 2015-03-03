@@ -249,14 +249,43 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 			// PUT MAIN CODE HERE
 			
 			/////////////
-			// Get simulation time point
+			if (simGetSimulationState() != sim_simulation_advancing_abouttostop)
+			{	
+				std::cout << simGetSimulationTime() << std::endl; // Get simulation time point
+			}
 			// make sure it is "right" (what does that mean?)
 			
-			
+
 			// find the v-rep C functions to do the following:
 			////////////////////////////////////////////////////
 			// Use handles that were found at the "start" of this simulation running
-			// get the joint angles, torque, etc from the simulation
+
+			// Next few Lines get the joint angles, torque, etc from the simulation
+
+			for (i=0 ; i<=6 ; i++)
+			{
+				float* simJointPosition[7];
+				simGetJointPosition(jointHandle[i],&simJointPosition[i]);  //Retrieves the intrinsic position of a joint (Angle for revolute joint)
+			}
+
+			for (i=0 ; i<=6 ; i++)
+			{
+				float* simJointForce[7];
+				simGetJointForce(jointHandle[i],&simJointForce[i]);	//Retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled. 
+			}
+
+			for (i=0 ; i<=6 ; i++)
+			{
+				float* simJointTargetPosition[7];
+				simGetJointTargetPosition(jointHandle[i],&simJointTargetPosition[i]);  //Retrieves the target position of a joint
+			}
+
+			for (i=0 ; i<=6 ; i++)
+			{
+				float* simJointTrasformationMatrix[7];	
+				simGetJointMatrix(jointHandle[i],&simJointTransformationMatrix[i]);   //Retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
+			}
+
 			// Send updated position to the real arm based on simulation
 			
             
@@ -264,13 +293,31 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 			////////////////////////////////////////////////////
 			// call the functions here and just print joint angles out
 			// or display something on the screens
+
+			std::cout << *jointAngle << std::endl << *jointForce << std::endl << *jointTargetPosition << std::endl << *jointTransformationMatrix << std::endl ;
 			
 
 			///////////////////
 			// call our object to get the latest real kuka state
 			// then use the functions below to set the simulation state
 			// to match
-			///////////////////
+			/////////////////// I am assuming 2 matrices for Real Joint Angles and Forces and set the simulation to them
+
+			float realJointPosition[7] = { 0, 0, 0, 0, 0, 0, 0 };
+			float realJointForce[7] = { 0, 0, 0, 0, 0, 0, 0 };
+
+			for (i=0 ; i <=6) ; i++)
+			{
+				simSetJointPosition(jointHandle[i],realJointPosition[i]); //Sets the intrinsic position of a joint. May have no effect depending on the joint mode
+			}
+			
+			for (i=0 ; i <=6) ; i++)
+			{
+				simSetJointTargetPosition(simInt objectHandle,simFloat targetPosition);  //Sets the target position of a joint if the joint is in torque/force mode (also make sure that the joint's motor and position control are enabled
+			simSetJointTargetVelocity(simInt objectHandle,simFloat targetVelocity);  //Sets the intrinsic target velocity of a non-spherical joint. This command makes only sense when the joint mode is: (a) motion mode: the joint's motion handling feature must be enabled (simHandleJoint must be called (is called by default in the main script), and the joint motion properties must be set in the joint settings dialog), (b) torque/force mode: the dynamics functionality and the joint motor have to be enabled (position control should however be disabled)
+			simSetJointForce(simInt objectHandle,simFloat forceOrTorque); //Sets the maximum force or torque that a joint can exert. This function has no effect when the joint is not dynamically enabled
+			simSetJointInterval(simInt objectHandle,simBool cyclic,const simFloat* interval); //Sets the interval parameters of a joint (i.e. range values)
+			simSetJointMode(simInt jointHandle,simInt jointMode,simInt options); //Sets the operation mode of a joint. Might have as side-effect the change of additional properties of the joint
 			// simSetJointForce
 			// simSetJointInterval
 			// simSetJointMode
@@ -289,6 +336,24 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 
 	if (message==sim_message_eventcallback_simulationabouttostart)
 	{ // Simulation is about to start
+
+			jointHandle = {-1,-1,-1,-1,-1,-1,-1};
+
+			jointHandle[0] = simGetObjectHandle("LBR_iiwa_14_R820_joint1");	//Obtain Joint Handles
+			jointHandle[1] = simGetObjectHandle("LBR_iiwa_14_R820_joint2");
+			jointHandle[2] = simGetObjectHandle("LBR_iiwa_14_R820_joint3");
+			jointHandle[3] = simGetObjectHandle("LBR_iiwa_14_R820_joint4");
+			jointHandle[4] = simGetObjectHandle("LBR_iiwa_14_R820_joint5");
+			jointHandle[5] = simGetObjectHandle("LBR_iiwa_14_R820_joint6");
+			jointHandle[6] = simGetObjectHandle("LBR_iiwa_14_R820_joint7");
+
+			robotTip = simGetObjectHandle("RobotTip#0");					//Obtain RobotTip handle
+			robotTarget = simGetObjectHandle("RobotTarget#0");
+			implantCutPath = simGetObjectHandle("ImplantCutPath");
+			removeBallJoit = simGetObjectHandle("RemoveBallJoint");
+			bone = simGetObjectHandle("FemurBone");
+
+
 
 		/////////////////////////
 		// PUT OBJECT STARTUP CODE HERE
