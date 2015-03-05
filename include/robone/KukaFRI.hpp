@@ -208,9 +208,9 @@ namespace robone { namespace robot {
 	
 
 	    // Decode message buffer (using nanopb decoder)
-	void decode(KUKA::FRI::ClientData& friData){
+	void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
 	/// @todo FRI_MONITOR_MSG_MAX_SIZE may not be the right size... probably need the actual size received
-	    if (!friData.decoder.decode(friData.receiveBuffer, KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE)) {
+	    if (!friData.decoder.decode(friData.receiveBuffer, msg_size)) {
 	        throw std::runtime_error( "Error decoding received data");
 	    }
 		
@@ -229,7 +229,7 @@ namespace robone { namespace robot {
 	
 	/// encode data in the class into the send buffer
 	/// @todo update the statements in here to run on the actual data types available
-	void encode(KUKA::FRI::ClientData& friData,KukaState& state){
+	std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
 	    // Check whether to send a response
 	    friData.lastSendCounter = 0;
       
@@ -248,7 +248,9 @@ namespace robone { namespace robot {
 		
 		int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
 	        if (!friData.encoder.encode(friData.sendBuffer, buffersize))
-	            return;
+	            return 0;
+		
+		return buffersize;
 	}
 	
 	void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
@@ -273,13 +275,14 @@ namespace robone { namespace robot {
 	/// @todo implement sending state
 	void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, KukaState& state){
 		std::size_t buf_size = socket.receive(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE));
+		decode(friData,buf_size);
 		copy(friData.monitoringMsg,state);
 
 	    friData.lastSendCounter++;
 	    // Check whether to send a response
 	    if (friData.lastSendCounter >= friData.monitoringMsg.connectionInfo.receiveMultiplier){
-	    	encode(friData,state);
-			socket.send(boost::asio::buffer(friData.sendBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE));
+	    	buf_size = encode(friData,state);
+			socket.send(boost::asio::buffer(friData.sendBuffer,buf_size));
 	    }
 	}
 	
