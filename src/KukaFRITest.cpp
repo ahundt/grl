@@ -21,6 +21,23 @@
 #include <cstring>
 #include <iostream>
 #include <boost/asio.hpp>
+#include <vector>
+using std::vector;
+#include <iostream>
+using std::ostream;
+
+template<typename T,size_t N>
+ostream& operator<< (ostream& out, const boost::array<T,N>& v) {
+    out << "[";
+    size_t last = v.size() - 1;
+    for(size_t i = 0; i < v.size(); ++i) {
+        out << v[i];
+        if (i != last) 
+            out << ", ";
+    }
+    out << "]";
+    return out;
+}
 
 using boost::asio::ip::udp;
 
@@ -43,23 +60,21 @@ int main(int argc, char* argv[])
 
     boost::asio::ip::udp::resolver resolver(io_service);
     boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), argv[1], argv[2]});
+	s.connect(endpoint);
 	
 	KUKA::FRI::ClientData friData(7);
 	robone::robot::arm::KukaState state;
 
-    std::cout << "Enter message: ";
-    char request[max_length];
-    std::cin.getline(request, max_length);
-    size_t request_length = std::strlen(request);
-    s.send_to(boost::asio::buffer(request, request_length), endpoint);
+	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
 
-    char reply[max_length];
-    boost::asio::ip::udp::endpoint sender_endpoint;
-    size_t reply_length = s.receive_from(
-        boost::asio::buffer(reply, max_length), sender_endpoint);
-    std::cout << "Reply is: ";
-    std::cout.write(reply, reply_length);
-    std::cout << "\n";
+	for (std::size_t i = 0;;++i) {
+		update_state(s,friData,state);
+		if (i==0) {
+			startTime = state.timestamp;
+		}
+		std::cout << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << "\n";
+		
+	}
   }
   catch (std::exception& e)
   {
