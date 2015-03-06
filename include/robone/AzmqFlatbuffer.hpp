@@ -1,7 +1,10 @@
 #ifndef _AZMQ_FLATBUFFER_
 #define _AZMQ_FLATBUFFER_
 
-
+#include <mutex>
+#include <iostream>
+#include <memory>
+#include <thread>
 
 #include <boost/asio.hpp>
 #include <boost/asio/io_service.hpp>
@@ -12,9 +15,6 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/container/static_vector.hpp>
-#include <iostream>
-#include <memory>
-#include <thread>
 
 
 #include <azmq/socket.hpp>
