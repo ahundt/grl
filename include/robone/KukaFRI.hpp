@@ -79,10 +79,7 @@ namespace robone { namespace robot {
 	/// copy interpolated commanded joint angles
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it,boost::units::plane_angle_base_dimension,interpolated_state_tag){
-        if (monitoringMsg.ipoData.has_jointPosition) {
-           kuka::detail::copyJointState(monitoringMsg.ipoData.jointPosition.value.arg,it);
-        }
-
+           kuka::detail::copyJointState(monitoringMsg.ipoData.jointPosition.value.arg,it,monitoringMsg.ipoData.has_jointPosition);
 	}
 	
 	/// @todo consider changing these get* functions to get(data,type_tag());
