@@ -1,6 +1,10 @@
 
+##################################################
+# Ubuntu Instructions to setup robone with Docker
+##################################################
 
-# install docker
+# install docker (from  https://www.docker.com/)
+
 curl -sSL https://get.docker.com/ubuntu/ | sudo sh
 
 ####################
@@ -16,6 +20,11 @@ sudo gpasswd -a ${USER} docker
 # log out then log in
 ####################
 
+###########################################
+# clone the docker setup script I modified
+##########################################
+
+git clone https://github.com/ahundt/install-clang.git
 
 ####################
 # setup c++ environment in a protected box so it doesn't mess with your OS
@@ -26,34 +35,29 @@ docker pull rsmmr/clang
 # source : https://registry.hub.docker.com/u/rsmmr/clang/
 
 
-# update
-docker run rsmmr/clang apt-get update
+cd install-clang
 
-# boost
-docker run rsmmr/clang apt-get install -y libboost-all-dev                       
-
-# eigen                
-docker run rsmmr/clang apt-get install -y libeigen3-dev
-
-# useful command line utilities
-docker run rsmmr/clang apt-get install -y wget curl
 
 ####################
-# zmq
+# coplete setup c++ environment in a protected box so it doesn't mess with your OS
 ####################
+make docker-build
+
+####################
+# run c++ environment as if it was a separate OS
+####################
+make docker-run
+
+#########################################
+# how to cleanup if something goes wrong:
+#########################################
+# http://jimhoskins.com/2013/07/27/remove-untagged-docker-images.html
 
 
-docker run rsmmr/clang apt-get install -y libtool autoconf automake uuid-dev build-essential
 
 
 
-# note: the directory ~ in this case is /root
-docker run rsmmr/clang /bin/sh -c 'cd ~ && \
-                       wget http://download.zeromq.org/zeromq-4.0.5.tar.gz && \
-                       tar zxvf zeromq-4.0.5.tar.gz && cd zeromq-4.0.5 && \
-                       ./configure && make && make install'
 
-# source : https://maddigitiser.wordpress.com/2013/05/02/installing-zeromq-on-ubuntu-13-04/
 
 
 
@@ -62,11 +66,8 @@ docker run rsmmr/clang /bin/sh -c 'cd ~ && \
 
 
 ###############################################################
-alternative
-
-
-
-
+alternative, ignore below here
+###############################################################
 
 
 # install docker
@@ -106,15 +107,11 @@ docker run --user="root" sango/cpp-clang apt-get install -y cmake libtool autoco
 # zmq
 ####################
 
-docker run --user="root" sango/cpp-clang /bin/sh -c 'cd /home/sango && \
-                       curl  --remote-name http://download.zeromq.org/zeromq-4.0.5.tar.gz && \
-                       tar zxvf zeromq-4.0.5.tar.gz && cd zeromq-4.0.5 && \
-                       ./configure && make && make install'
-
 # source : https://maddigitiser.wordpress.com/2013/05/02/installing-zeromq-on-ubuntu-13-04/
 
-#####
+########
 # robone
-#####
+########
 
-docker run  --user="root" sango/cpp-clang git clone https://github.com/ahundt/robone.git  /home/sango/robone
+docker run --user="root" sango/cpp-clang /bin/sh -c 'git clone https://github.com/zeromq/azmq.git /root/azmq/ && cd azmq && mkdir build && cd build && cmake .. && make && make test && make install"
+docker run  --user="root" sango/cpp-clang git clone https://github.com/ahundt/robone.git  /root/robone
