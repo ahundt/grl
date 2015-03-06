@@ -27,7 +27,7 @@ using std::vector;
 using std::ostream;
 
 template<typename T,size_t N>
-ostream& operator<< (ostream& out, const boost::array<T,N>& v) {
+ostream& operator<< (ostream& out, const boost::container::static_vector<T,N>& v) {
     out << "[";
     size_t last = v.size() - 1;
     for(size_t i = 0; i < v.size(); ++i) {
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
 	  /// @todo add default host/port
     if (argc != 3)
     {
-      std::cerr << "Usage: blocking_udp_echo_client <host> <port>\n";
+      std::cerr << "Usage: " << argv[0] << " <host> <port>\n";
       return 1;
     }
 

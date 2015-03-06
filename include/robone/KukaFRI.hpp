@@ -9,10 +9,12 @@
 #include <boost/units/physical_dimensions/torque.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/asio.hpp>
+#include <boost/container/static_vector.hpp>
 
 // Kuka include files
 #include "friClientIf.h"
 #include "friClientData.h"
+#include "robone/tags.hpp"
 
 namespace KUKA {
 	namespace LBRState {
@@ -27,10 +29,6 @@ namespace KUKA {
 
 namespace robone { namespace robot { 
 	    
-		struct state_tag{}; /// @todo consider moving to separate tag header
-		struct command_tag{};
-		struct external_state_tag{}; /// @todo consider eliding external and internal sensor tag
-		struct interpolated_state_tag{};
 	
 	namespace arm {
 		
@@ -39,62 +37,50 @@ namespace robone { namespace robot {
 				const int default_port_id = 30200;
 		
 			namespace detail {
-				template<typename OutputIterator>
-				void copyJointState(tRepeatedDoubleArguments* values,OutputIterator it){
-					std::copy(static_cast<double*>(values->value),static_cast<double*>(values->value)+KUKA::LBRState::NUM_DOF,it);
+				template<typename T, typename OutputIterator>
+				void copyJointState(T values,OutputIterator it, bool dataAvailable = true){
+					if(dataAvailable) std::copy(static_cast<double*>(static_cast<tRepeatedDoubleArguments*>(values)->value),static_cast<double*>(static_cast<tRepeatedDoubleArguments*>(values)->value)+KUKA::LBRState::NUM_DOF,it);
 				}
 			}
 		}
 	
 	/// copy measured joint angle to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::plane_angle_base_dimension, robone::robot::state_tag){
-
-        if (monitoringMsg.monitorData.has_measuredJointPosition) {
-           kuka::detail::copyJointState(static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.measuredJointPosition.value.arg),it);
-        }
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::plane_angle_base_dimension, state_tag){
+ 	   kuka::detail::copyJointState(monitoringMsg.monitorData.measuredJointPosition.value.arg,it,monitoringMsg.monitorData.has_measuredJointPosition);
 	}
 	
 	
 	/// copy commanded joint angle to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::plane_angle_base_dimension, robone::robot::command_tag){
-
-        if (monitoringMsg.monitorData.has_commandedJointPosition) {
-           kuka::detail::copyJointState(static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),it);
-        }
-	}
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::plane_angle_base_dimension, command_tag){
+		kuka::detail::copyJointState(monitoringMsg.monitorData.commandedJointPosition.value.arg,it, monitoringMsg.monitorData.has_commandedJointPosition);
+    }
 	
 	
 	/// copy measured joint torque to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::torque_dimension, robone::robot::state_tag){
-        if (monitoringMsg.monitorData.has_measuredTorque) {
-           kuka::detail::copyJointState(static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.measuredTorque.value.arg),it);
-        }
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::torque_dimension, state_tag){
+           kuka::detail::copyJointState(monitoringMsg.monitorData.measuredTorque.value.arg,it, monitoringMsg.monitorData.has_measuredTorque);
 	}
 	
 	/// copy measured external joint torque to output iterator
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::torque_dimension, external_state_tag){
-        if (monitoringMsg.monitorData.has_externalTorque) {
-           kuka::detail::copyJointState(static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.externalTorque.value.arg),it);
-        }
+           kuka::detail::copyJointState(monitoringMsg.monitorData.externalTorque.value.arg,it, monitoringMsg.monitorData.has_externalTorque);
 	}
 	
 	/// copy commanded  joint torque to output iterator
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::torque_dimension, command_tag){
-        if (monitoringMsg.monitorData.has_commandedTorque) {
-           kuka::detail::copyJointState(static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedTorque.value.arg),it);
-        }
+           kuka::detail::copyJointState(monitoringMsg.monitorData.commandedTorque.value.arg,it, monitoringMsg.monitorData.has_commandedTorque);
 	}
 	
 	/// copy interpolated commanded joint angles
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it,boost::units::plane_angle_base_dimension,interpolated_state_tag){
         if (monitoringMsg.ipoData.has_jointPosition) {
-           kuka::detail::copyJointState(static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg),it);
+           kuka::detail::copyJointState(monitoringMsg.ipoData.jointPosition.value.arg,it);
         }
 
 	}
@@ -191,7 +177,7 @@ namespace robone { namespace robot {
 	
 	/// @todo replace with something generic
 	struct KukaState {
-		typedef boost::array<double,KUKA::LBRState::NUM_DOF> joint_state;
+		typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
 		joint_state position;
 		joint_state torque;
 		joint_state commandedPosition;
@@ -254,11 +240,11 @@ namespace robone { namespace robot {
 	}
 	
 	void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
-		copy(monitoringMsg,state.position.begin(),boost::units::plane_angle_base_dimension(),robone::robot::state_tag());
-		copy(monitoringMsg,state.torque.begin(),boost::units::torque_dimension(),robone::robot::state_tag());
-		copy(monitoringMsg,state.commandedPosition.begin(),boost::units::plane_angle_base_dimension(),robone::robot::command_tag());
-		copy(monitoringMsg,state.commandedTorque.begin(),boost::units::torque_dimension(),robone::robot::command_tag());
-		copy(monitoringMsg,state.ipoJointPosition.begin(),boost::units::plane_angle_base_dimension(),robone::robot::interpolated_state_tag());
+		copy(monitoringMsg,state.position.begin(),boost::units::plane_angle_base_dimension(),state_tag());
+		copy(monitoringMsg,state.torque.begin(),boost::units::torque_dimension(),state_tag());
+		copy(monitoringMsg,state.commandedPosition.begin(),boost::units::plane_angle_base_dimension(),command_tag());
+		copy(monitoringMsg,state.commandedTorque.begin(),boost::units::torque_dimension(),command_tag());
+		copy(monitoringMsg,state.ipoJointPosition.begin(),boost::units::plane_angle_base_dimension(),interpolated_state_tag());
 		state.sessionState = getSessionState(monitoringMsg);
 		state.connectionQuality = getConnectionQuality(monitoringMsg);
 		state.safetyState = getSafetyState(monitoringMsg);
@@ -286,7 +272,15 @@ namespace robone { namespace robot {
 	    }
 	}
 	
+	namespace kuka {
 	
+	class iiwa : std::enable_shared_from_this<iiwa>
+	{
+	
+	};
+	
+	
+	}
 
 }}} /// namespace robone::robot::arm
 
