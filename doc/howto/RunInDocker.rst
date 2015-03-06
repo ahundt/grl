@@ -44,16 +44,21 @@ cd install-clang
 make docker-build
 
 ####################
-# run c++ environment as if it was a separate OS
+# run c++ environment as if it was a separate OS.
 ####################
+
 make docker-run
+
+
+# build files should bin in /root
 
 #########################################
 # how to cleanup if something goes wrong:
 #########################################
 # http://jimhoskins.com/2013/07/27/remove-untagged-docker-images.html
-
-
+# http://docs.docker.com/reference/commandline/cli/
+# bash script: https://github.com/blueyed/dotfiles/blob/master/usr/bin/docker-cleanup
+# github issue requesing cleanup: https://github.com/docker/docker/issues/928
 
 
 
