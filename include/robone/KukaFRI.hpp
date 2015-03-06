@@ -104,14 +104,20 @@ namespace robone { namespace robot {
 	}
 	
 	
-	/// @todo consider changing these get* functions to get(data,type_tag());
-		/// @todo this one requires a callback... figure it out
-	KUKA::FRI::EDriveState getDriveState(const FRIMonitoringMessage& monitoringMsg) {
-		KUKA::FRI::EDriveState KukaSafetyState = KUKA::FRI::EDriveState::OFF;
-	    if (monitoringMsg.has_robotInfo) {
-	         //   KukaSafetyState = static_cast<KUKA::FRI::EDriveState>(monitoringMsg.robotInfo.driveState);
-	    }
-		return KukaSafetyState;
+	KUKA::FRI::EDriveState getDriveState(const FRIMonitoringMessage& _message)
+	{
+	   tRepeatedIntArguments *values =
+			 (tRepeatedIntArguments *)_message.robotInfo.driveState.arg;
+	   int firstState = (int)values->value[0];
+	   for (int i=1; i<KUKA::LBRState::NUM_DOF; i++)
+	   {
+		  int state = (int)values->value[i];
+		  if (state != firstState)
+		  {
+			 return KUKA::FRI::EDriveState::TRANSITIONING;
+		  }
+	   }
+	   return (KUKA::FRI::EDriveState)firstState;
 	}
 	
 #if 0 // original getConnectionInfo
@@ -246,8 +252,7 @@ namespace robone { namespace robot {
 		state.connectionQuality = getConnectionQuality(monitoringMsg);
 		state.safetyState = getSafetyState(monitoringMsg);
 		state.operationMode = getOperationMode(monitoringMsg);
-		/// @todo this one requires a callback... figure it out
-		//state.driveState = getDriveState(monitoringMsg);
+		state.driveState = getDriveState(monitoringMsg);
 			
 		/// @todo fill out missing state update steps
 		
@@ -274,6 +279,17 @@ namespace robone { namespace robot {
 	class iiwa : std::enable_shared_from_this<iiwa>
 	{
 	
+	
+	private:
+	  
+      KUKA::FRI::MonitoringMessageDecoder decoder;            //!< monitoring message decoder
+      KUKA::FRI::CommandMessageEncoder encoder;               //!< command message encoder
+	  uint32_t sequenceCounter; //!< sequence counter for command messages
+	  uint32_t lastSendCounter; //!< steps since last send command
+	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE> monitor_buf;
+	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE> command_buf;
+		
+	  boost::asio::ip::udp::socket socket;
 	};
 	
 	
