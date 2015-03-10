@@ -3,6 +3,7 @@
 # Ubuntu Instructions to setup robone with Docker
 ##################################################
 
+# Install docker with the line below
 
 curl -sSL https://get.docker.com/ubuntu/ | sudo sh
 
@@ -42,13 +43,18 @@ cd install-clang
 
 
 ####################
-# coplete setup c++ environment in a protected box so it doesn't mess with your OS
+# complete setup c++ environment in a protected box so it doesn't mess with your OS
 ####################
+
 make docker-build
 
 ####################
 # run c++ environment as if it was a separate OS.
 ####################
+
+# typically you should only need this next
+# line if you are making changes and 
+# just want to rerun the OS.
 
 make docker-run
 
@@ -74,7 +80,7 @@ make docker-run
 
 
 ###############################################################
-alternative, ignore below here
+#alternative, ignore below here
 ###############################################################
 
 
