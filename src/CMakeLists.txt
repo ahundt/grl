@@ -16,16 +16,45 @@ set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs)
 set(ROBONE_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include/robone/flatbuffer)
 # Generate flatbuffer message C++ headers
 flatbuffers_generate_c_headers(ROBONE_FLATBUFFERS ../include/robone/flatbuffer/  ${ROBONE_FLATBUFFERS_INCLUDE_DIR} ${RFB})
-basis_include_directories(${ROBONE_FLATBUFFERS_INCLUDE_DIR})
+basis_include_directories(${ROBONE_FLATBUFFERS_INCLUDE_DIR} )
 basis_set_property(SOURCE zmqFlatbuffersTest.cpp APPEND PROPERTY OBJECT_DEPENDS ${ROBONE_FLATBUFFERS_OUTPUTS})
 
 
 basis_add_executable(zmqFlatbuffersTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
+basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
 
 basis_add_executable(AzmqFlatbufferTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(AzmqFlatbufferTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
+basis_target_link_libraries(AzmqFlatbufferTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
+#message(STATUS "kuka_lwr_iiwa_fri_INCLUDE_DIRS:${kuka_lwr_iiwa_fri_INCLUDE_DIRS}")
+#message(STATUS "KUKA_LWR_IIWA_FRI_INCLUDE_DIRS:${KUKA_LWR_IIWA_FRI_INCLUDE_DIRS}")
+#message(STATUS "kuka_lwr_iiwa_fri_INCLUDE_DIR:${kuka_lwr_iiwa_fri_INCLUDE_DIR}")
+#message(STATUS "KUKA_LWR_IIWA_FRI_INCLUDE_DIR:${KUKA_LWR_IIWA_FRI_INCLUDE_DIR}")
+#message(STATUS "MODULE_kuka_lwr_iiwa_fri_INCLUDE_DIRS:${kuka_lwr_iiwa_fri_INCLUDE_DIRS}")
+#message(STATUS "MODULE_KUKA_LWR_IIWA_FRI_INCLUDE_DIRS:${KUKA_LWR_IIWA_FRI_INCLUDE_DIRS}")
+#message(STATUS "MODULE_kuka_lwr_iiwa_fri_INCLUDE_DIR:${kuka_lwr_iiwa_fri_INCLUDE_DIR}")
+#message(STATUS "MODULE_KUKA_LWR_IIWA_FRI_INCLUDE_DIR:${KUKA_LWR_IIWA_FRI_INCLUDE_DIR}")
+#message(STATUS "KUKA_LWR_IIWA_FRI_PROJECT_INCLUDE_DIR:${KUKA_LWR_IIWA_FRI_PROJECT_INCLUDE_DIR}")
+#message(STATUS "kuka_lwr_iiwa_fri_PROJECT_INCLUDE_DIR:${kuka_lwr_iiwa_fri_PROJECT_INCLUDE_DIR}")
+#message(STATUS "MODULE_INCLUDE_DIRS:${MODULE_INCLUDE_DIRS}")
+
+#TODO: THIS IS A HACK, fix it!
+if(MODULE_kuka_lwr_iiwa_fri)
+	# These directories are hard coded
+	# replace with relative reconfigurable directories
+	basis_include_directories(
+	   ../modules/kuka_lwr_iiwa_fri/include
+       ../modules/kuka_lwr_iiwa_fri/src/base
+       ../modules/kuka_lwr_iiwa_fri/src/protobuf
+       ../modules/kuka_lwr_iiwa_fri/src/protobuf_gen
+	   ../modules/kuka_lwr_iiwa_fri/src/nanopb-0.2.8
+	   #${NANOPB_INCLUDE_DIRS}
+    )
+	#basis_include_directories(${kuka_lwr_iiwa_fri_PROJECT_INCLUDE_DIRS})
+	basis_add_executable(KukaFRITest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
+	basis_target_link_libraries(KukaFRITest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb)
+endif()
 
 # ============================================================================
 # library target(s)

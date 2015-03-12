@@ -111,6 +111,7 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
+    Threads
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
