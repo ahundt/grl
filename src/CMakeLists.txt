@@ -16,16 +16,16 @@ set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs)
 set(ROBONE_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include/robone/flatbuffer)
 # Generate flatbuffer message C++ headers
 flatbuffers_generate_c_headers(ROBONE_FLATBUFFERS ../include/robone/flatbuffer/  ${ROBONE_FLATBUFFERS_INCLUDE_DIR} ${RFB})
-basis_include_directories(${ROBONE_FLATBUFFERS_INCLUDE_DIR})
+basis_include_directories(${ROBONE_FLATBUFFERS_INCLUDE_DIR} )
 basis_set_property(SOURCE zmqFlatbuffersTest.cpp APPEND PROPERTY OBJECT_DEPENDS ${ROBONE_FLATBUFFERS_OUTPUTS})
 
 
 basis_add_executable(zmqFlatbuffersTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
+basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
 
 basis_add_executable(AzmqFlatbufferTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(AzmqFlatbufferTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES})
+basis_target_link_libraries(AzmqFlatbufferTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 #message(STATUS "kuka_lwr_iiwa_fri_INCLUDE_DIRS:${kuka_lwr_iiwa_fri_INCLUDE_DIRS}")
 #message(STATUS "KUKA_LWR_IIWA_FRI_INCLUDE_DIRS:${KUKA_LWR_IIWA_FRI_INCLUDE_DIRS}")
