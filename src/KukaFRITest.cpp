@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "robone/KukaFRI.hpp"
+#include "robone/KukaFriClientData.hpp"
 
 //
 // blocking_udp_echo_client.cpp

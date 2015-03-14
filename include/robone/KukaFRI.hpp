@@ -4,6 +4,7 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <boost/geometry/core/access.hpp>
 #include <boost/units/physical_dimensions/torque.hpp>
 #include <boost/units/physical_dimensions/plane_angle.hpp>
 #include <boost/units/physical_dimensions/torque.hpp>
@@ -13,8 +14,11 @@
 
 // Kuka include files
 #include "friClientIf.h"
-#include "friClientData.h"
+#include "friMessages.pb.h"
+#include "friCommandMessageEncoder.h"
+#include "friMonitoringMessageDecoder.h"
 #include "robone/tags.hpp"
+#include "robone/KukaNanopb.hpp"
 
 namespace KUKA {
 	namespace LBRState {
@@ -37,49 +41,59 @@ namespace robone { namespace robot {
 				const int default_port_id = 30200;
 		
 			namespace detail {
+    
+                /// @todo replace with joint_iterator<tRepeatedDoubleArguments,T>()
 				template<typename T, typename OutputIterator>
 				void copyJointState(T values,OutputIterator it, bool dataAvailable = true){
 					if(dataAvailable) std::copy(static_cast<double*>(static_cast<tRepeatedDoubleArguments*>(values)->value),static_cast<double*>(static_cast<tRepeatedDoubleArguments*>(values)->value)+KUKA::LBRState::NUM_DOF,it);
 				}
+				
+			    /// @todo handle dataAvaliable = false case
+				/// @todo support tRepeatedIntArguments, and perhaps const versions
+				template<typename T>
+				boost::iterator_range<T> get(T& values, bool dataAvailable = true){
+				  return boost::iterator_range<T>(*values);
+				}
+				
 			}
 		}
 	
+    
 	/// copy measured joint angle to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::plane_angle_base_dimension, state_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_angle_multi_state_tag){
  	   kuka::detail::copyJointState(monitoringMsg.monitorData.measuredJointPosition.value.arg,it,monitoringMsg.monitorData.has_measuredJointPosition);
 	}
 	
+	/// copy interpolated commanded joint angles
+	template<typename OutputIterator>
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it,revolute_joint_angle_interpolated_multi_state_tag){
+           kuka::detail::copyJointState(monitoringMsg.ipoData.jointPosition.value.arg,it,monitoringMsg.ipoData.has_jointPosition);
+	}
 	
 	/// copy commanded joint angle to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::plane_angle_base_dimension, command_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_angle_multi_command_tag){
 		kuka::detail::copyJointState(monitoringMsg.monitorData.commandedJointPosition.value.arg,it, monitoringMsg.monitorData.has_commandedJointPosition);
     }
 	
 	
 	/// copy measured joint torque to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::torque_dimension, state_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_multi_state_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.measuredTorque.value.arg,it, monitoringMsg.monitorData.has_measuredTorque);
 	}
 	
 	/// copy measured external joint torque to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::torque_dimension, external_state_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_external_multi_state_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.externalTorque.value.arg,it, monitoringMsg.monitorData.has_externalTorque);
 	}
 	
 	/// copy commanded  joint torque to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, boost::units::torque_dimension, command_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_multi_command_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.commandedTorque.value.arg,it, monitoringMsg.monitorData.has_commandedTorque);
-	}
-	
-	/// copy interpolated commanded joint angles
-	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it,boost::units::plane_angle_base_dimension,interpolated_state_tag){
-           kuka::detail::copyJointState(monitoringMsg.ipoData.jointPosition.value.arg,it,monitoringMsg.ipoData.has_jointPosition);
 	}
 	
 	/// @todo consider changing these get* functions to get(data,type_tag());
@@ -178,101 +192,7 @@ namespace robone { namespace robot {
 		return timestamp;
 	}
 	
-	/// @todo replace with something generic
-	struct KukaState {
-		typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
-		joint_state position;
-		joint_state torque;
-		joint_state commandedPosition;
-		joint_state commandedTorque;
-		joint_state ipoJointPosition;
-		KUKA::FRI::ESessionState      sessionState;
-		KUKA::FRI::EConnectionQuality connectionQuality;
-		KUKA::FRI::ESafetyState       safetyState;
-		KUKA::FRI::EOperationMode     operationMode;
-		KUKA::FRI::EDriveState        driveState;
-		
-		std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
-	};
 	
-
-	    // Decode message buffer (using nanopb decoder)
-	void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
-	/// @todo FRI_MONITOR_MSG_MAX_SIZE may not be the right size... probably need the actual size received
-	    if (!friData.decoder.decode(friData.receiveBuffer, msg_size)) {
-	        throw std::runtime_error( "Error decoding received data");
-	    }
-		
-
-	    // check message type
-	    if (friData.expectedMonitorMsgID != friData.monitoringMsg.header.messageIdentifier)
-	    {
-			throw std::invalid_argument(std::string("KukaFRI.hpp: Problem reading buffer, id code: ") +
-				                         boost::lexical_cast<std::string>(static_cast<int>(friData.monitoringMsg.header.messageIdentifier)) + 
-										std::string(" does not match expected id code: ") +
-					                    boost::lexical_cast<std::string>(static_cast<int>(friData.expectedMonitorMsgID)) + std::string("\n")
-										);
-	        return;
-	    }
-	}
-	
-	/// encode data in the class into the send buffer
-	/// @todo update the statements in here to run on the actual data types available
-	std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
-	    // Check whether to send a response
-	    friData.lastSendCounter = 0;
-      
-	    // set sequence counters
-	    friData.commandMsg.header.sequenceCounter = friData.sequenceCounter++;
-	    friData.commandMsg.header.reflectedSequenceCounter = friData.monitoringMsg.header.sequenceCounter;
-
-	    // copy current joint position to commanded position
-	    friData.commandMsg.has_commandData = true;
-	    friData.commandMsg.commandData.has_jointPosition = true;
-	    tRepeatedDoubleArguments *dest  = (tRepeatedDoubleArguments*)friData.commandMsg.commandData.jointPosition.value.arg;
-		if ((state.sessionState == KUKA::FRI::COMMANDING_WAIT) || (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE))
-		    std::copy(state.ipoJointPosition.begin(),state.ipoJointPosition.end(),dest->value); /// @todo is this the right thing to copy?
-	    else
-		    std::copy(state.commandedPosition.begin(),state.commandedPosition.end(),dest->value);  /// @todo is this the right thing to copy?
-		
-		int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
-	        if (!friData.encoder.encode(friData.sendBuffer, buffersize))
-	            return 0;
-		
-		return buffersize;
-	}
-	
-	void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
-		copy(monitoringMsg,state.position.begin(),boost::units::plane_angle_base_dimension(),state_tag());
-		copy(monitoringMsg,state.torque.begin(),boost::units::torque_dimension(),state_tag());
-		copy(monitoringMsg,state.commandedPosition.begin(),boost::units::plane_angle_base_dimension(),command_tag());
-		copy(monitoringMsg,state.commandedTorque.begin(),boost::units::torque_dimension(),command_tag());
-		copy(monitoringMsg,state.ipoJointPosition.begin(),boost::units::plane_angle_base_dimension(),interpolated_state_tag());
-		state.sessionState = getSessionState(monitoringMsg);
-		state.connectionQuality = getConnectionQuality(monitoringMsg);
-		state.safetyState = getSafetyState(monitoringMsg);
-		state.operationMode = getOperationMode(monitoringMsg);
-		state.driveState = getDriveState(monitoringMsg);
-			
-		/// @todo fill out missing state update steps
-		
-	}
-	
-	
-	/// @todo implment async version of this, probably in a small class
-	/// @todo implement sending state
-	void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, KukaState& state){
-		std::size_t buf_size = socket.receive(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE));
-		decode(friData,buf_size);
-		copy(friData.monitoringMsg,state);
-
-	    friData.lastSendCounter++;
-	    // Check whether to send a response
-	    if (friData.lastSendCounter >= friData.monitoringMsg.connectionInfo.receiveMultiplier){
-	    	buf_size = encode(friData,state);
-			socket.send(boost::asio::buffer(friData.sendBuffer,buf_size));
-	    }
-	}
 	
 	namespace kuka {
 	
@@ -296,6 +216,147 @@ namespace robone { namespace robot {
 	}
 
 }}} /// namespace robone::robot::arm
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Register CoordinateBase as a model of the boost::geometry point concept.
+// Registration does not add any dependencies
+// until the templates are instantiated.
+// @see boost.org/libs/geometry for details
+//
+// include is required for macro below:
+// #include <boost/geometry/geometries/register/point.hpp>
+// macro unrolled and modified to create registration below:
+// BOOST_GEOMETRY_REGISTER_POINT_2D(nrec::spatial::CoordinateBase ,nrec::spatial::CoordinateBase::value_type,cs::cartesian, operator[](0), operator[](1) )
+///////////////////////////////////////////////////////////////////////////////
+namespace mpl_ {template< int N > struct int_;} // forward declaration
+namespace boost {
+// _MSC_VER is a workaround for MSVC2010
+// where multiple using declarations cause
+// multiple definition error code C2874
+#ifdef _MSC_VER
+namespace mpl {template< int N > struct int_;}
+#else // _MSC_VER
+namespace mpl { using ::mpl_::int_; }
+#endif // _MSC_VER
+
+
+namespace geometry {
+namespace cs { struct cartesian; } // forward declaration
+struct box_tag; // forward declaration
+struct point_tag; // forward declaration
+
+namespace traits {
+    template<typename T, typename Enable> struct tag; // forward declaration
+    template<typename T, typename Enable> struct dimension; // forward declaration
+    template<typename T, typename Enable> struct coordinate_type; // forward declaration
+    template<typename T, typename Enable> struct coordinate_system; // forward declaration
+    template <typename Geometry, std::size_t Dimension, typename Enable > struct access; // forward declaration
+	
+    template<typename Enable> struct tag<FRIMonitoringMessage, Enable > { typedef robone::device_state_tag type; };
+    template<typename Enable> struct dimension<FRIMonitoringMessage, Enable > : boost::mpl::int_<KUKA::LBRState::NUM_DOF> {};
+    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+
+	
+	
+//    template<typename GeometryTag,typename Enable> struct coordinate_type<FRIMonitoringMessage, GeometryTag, Enable >;
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_multi_state_tag             , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_interpolated_multi_state_tag, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_multi_state_tag            , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_external_multi_state_tag   , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_multi_command_tag           , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_multi_command_tag          , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+	
+    template<typename Enable> struct access<FRIMonitoringMessage , KUKA::LBRState::NUM_DOF, Enable>
+    {
+	    // angle
+        const typename coordinate_type<FRIMonitoringMessage,Enable>::type
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_multi_state_tag) {
+				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
+		}
+		
+		// interpolated angle
+        const typename coordinate_type<FRIMonitoringMessage,Enable>::type
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_interpolated_multi_state_tag) {
+				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg), monitoringMsg.ipoData.has_jointPosition);
+		}
+		
+		// torque
+        const typename coordinate_type<FRIMonitoringMessage,Enable>::type
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_multi_state_tag) {
+				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.measuredTorque.value.arg),monitoringMsg.monitorData.has_measuredTorque);
+		}
+		
+		// external torque
+        const typename coordinate_type<FRIMonitoringMessage,Enable>::type
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_external_multi_state_tag) {
+				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.externalTorque.value.arg),monitoringMsg.monitorData.has_externalTorque);
+		}
+		
+		// commanded angle
+        const typename coordinate_type<FRIMonitoringMessage,Enable>::type
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_multi_command_tag) {
+				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg),monitoringMsg.ipoData.has_jointPosition);
+		}
+		
+		// commanded torque
+        const typename coordinate_type<FRIMonitoringMessage,Enable>::type
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_multi_command_tag) {
+				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedTorque.value.arg), monitoringMsg.monitorData.has_commandedTorque);
+		}
+		
+        //static inline void set(nrec::spatial::Coordinate<Dim,T,U> & p, typename nrec::spatial::Coordinate<Dim,T,U>::value_type const& value) { p.operator[](Index) = value; }
+		
+		
+		
+		
+		
+		
+		
+		
+//	    // angle
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_multi_state_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_multi_state_tag) {
+//				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.commandedJointPosition.value.arg,monitoringMsg.monitorData.has_measuredJointPosition);
+//		}
+//		
+//		// interpolated angle
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_interpolated_multi_state_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_interpolated_multi_state_tag) {
+//				return robone::robot::arm::kuka::get(monitoringMsg.ipoData.jointPosition.value.arg, monitoringMsg.ipoData.has_jointPosition);
+//		}
+//		
+//		// torque
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_multi_state_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_multi_state_tag) {
+//				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.measuredTorque.value.arg,monitoringMsg.monitorData.has_measuredTorque);
+//		}
+//		
+//		// external torque
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_external_multi_state_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_external_multi_state_tag) {
+//				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.externalTorque.value.arg,monitoringMsg.monitorData.has_externalTorque);
+//		}
+//		
+//		// commanded angle
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_multi_command_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_multi_command_tag) {
+//				return robone::robot::arm::kuka::get(monitoringMsg.ipoData.jointPosition.value.arg,monitoringMsg.ipoData.has_jointPosition);
+//		}
+//		
+//		// commanded torque
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_multi_command_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_multi_command_tag) {
+//				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.commandedTorque.value.arg, monitoringMsg.monitorData.has_commandedTorque);
+//		}
+//		
+    };
+
+}}} // boost::geometry::traits
+
+
+
 
 #endif
 
