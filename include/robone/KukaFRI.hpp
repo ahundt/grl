@@ -39,6 +39,8 @@ namespace robone { namespace robot {
 		namespace kuka {
 				// Following from Kuka example program
 				const int default_port_id = 30200;
+				struct send_period{};
+				struct receive_multiplier{};
 		
 			namespace detail {
     
@@ -96,29 +98,28 @@ namespace robone { namespace robot {
            kuka::detail::copyJointState(monitoringMsg.monitorData.commandedTorque.value.arg,it, monitoringMsg.monitorData.has_commandedTorque);
 	}
 	
-	/// @todo consider changing these get* functions to get(data,type_tag());
-	KUKA::FRI::ESafetyState getSafetyState(const FRIMonitoringMessage& monitoringMsg) {
-		KUKA::FRI::ESafetyState KukaSafetyState = KUKA::FRI::ESafetyState::NORMAL_OPERATION;
+	/// @todo consider using another default value, or perhaps boost::optional<Kuka::FRI::ESafetyState>?
+	KUKA::FRI::ESafetyState get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::ESafetyState) {
+		KUKA::FRI::ESafetyState state = KUKA::FRI::ESafetyState::NORMAL_OPERATION;
 	    if (monitoringMsg.has_robotInfo) {
 	        if (monitoringMsg.robotInfo.has_safetyState)
-	            KukaSafetyState = static_cast<KUKA::FRI::ESafetyState>(monitoringMsg.robotInfo.safetyState);
+	            return static_cast<KUKA::FRI::ESafetyState>(monitoringMsg.robotInfo.safetyState);
 	    }
-		return KukaSafetyState;
+		return state;
 	}
 	
 	
-	/// @todo consider changing these get* functions to get(data,type_tag());
-	KUKA::FRI::EOperationMode getOperationMode(const FRIMonitoringMessage& monitoringMsg) {
-		KUKA::FRI::EOperationMode KukaSafetyState = KUKA::FRI::EOperationMode::TEST_MODE_1;
+	KUKA::FRI::EOperationMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EOperationMode) {
+		KUKA::FRI::EOperationMode state = KUKA::FRI::EOperationMode::TEST_MODE_1;
 	    if (monitoringMsg.has_robotInfo) {
 	        if (monitoringMsg.robotInfo.has_operationMode)
-	            KukaSafetyState = static_cast<KUKA::FRI::EOperationMode>(monitoringMsg.robotInfo.operationMode);
+	            state = static_cast<KUKA::FRI::EOperationMode>(monitoringMsg.robotInfo.operationMode);
 	    }
-		return KukaSafetyState;
+		return state;
 	}
 	
 	
-	KUKA::FRI::EDriveState getDriveState(const FRIMonitoringMessage& _message)
+	KUKA::FRI::EDriveState get(const FRIMonitoringMessage& _message, const KUKA::FRI::EDriveState)
 	{
 	   tRepeatedIntArguments *values =
 			 (tRepeatedIntArguments *)_message.robotInfo.driveState.arg;
@@ -148,7 +149,7 @@ namespace robone { namespace robot {
 	}
 #endif
 	
-	KUKA::FRI::ESessionState getSessionState(const FRIMonitoringMessage& monitoringMsg){
+	KUKA::FRI::ESessionState get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::ESessionState){
 		KUKA::FRI::ESessionState KukaSessionState = KUKA::FRI::ESessionState::IDLE;
 	    if (monitoringMsg.has_connectionInfo) {
 	        KukaSessionState = static_cast<KUKA::FRI::ESessionState>(monitoringMsg.connectionInfo.sessionState);
@@ -156,7 +157,7 @@ namespace robone { namespace robot {
 		return KukaSessionState;
 	}
 	
-	KUKA::FRI::EConnectionQuality getConnectionQuality(const FRIMonitoringMessage& monitoringMsg){
+	KUKA::FRI::EConnectionQuality get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EConnectionQuality){
 		KUKA::FRI::EConnectionQuality KukaQuality = KUKA::FRI::EConnectionQuality::POOR;
 	    if (monitoringMsg.has_connectionInfo) {
 	        KukaQuality = static_cast<KUKA::FRI::EConnectionQuality>(monitoringMsg.connectionInfo.quality);
@@ -164,7 +165,7 @@ namespace robone { namespace robot {
 		return KukaQuality;
 	}
 	
-	uint32_t getSendPeriod(const FRIMonitoringMessage& monitoringMsg){
+	uint32_t get(const FRIMonitoringMessage& monitoringMsg, const kuka::send_period){
 		uint32_t KukaSendPeriod = 0;
 	    if (monitoringMsg.has_connectionInfo) {
 	        if (monitoringMsg.connectionInfo.has_sendPeriod)
@@ -173,7 +174,7 @@ namespace robone { namespace robot {
 		return KukaSendPeriod;
 	}
 	
-	std::size_t getReceiveMultiplier(const FRIMonitoringMessage& monitoringMsg){
+	std::size_t get(const FRIMonitoringMessage& monitoringMsg,const kuka::receive_multiplier){
 		std::size_t KukaReceiveMultiplier = 0;
 	    if (monitoringMsg.has_connectionInfo) {
 	        if (monitoringMsg.connectionInfo.has_receiveMultiplier)
@@ -182,7 +183,7 @@ namespace robone { namespace robot {
 		return KukaReceiveMultiplier;
 	}
 	
-	std::chrono::time_point<std::chrono::high_resolution_clock> getTimeStamp(const FRIMonitoringMessage& monitoringMsg){
+	std::chrono::time_point<std::chrono::high_resolution_clock> get(const FRIMonitoringMessage& monitoringMsg,const std::chrono::time_point<std::chrono::high_resolution_clock>){
 		// defaults to the epoch
 		std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
         if (monitoringMsg.monitorData.has_timestamp) {
@@ -192,24 +193,68 @@ namespace robone { namespace robot {
 		return timestamp;
 	}
 	
+namespace kuka {
+	
+	struct iiwaMonitorState {
+	  iiwaMonitorState():monitoringMessage(), decoder(&monitoringMessage,KUKA::LBRState::NUM_DOF){}
+	  
+      iiwaMonitorState(const iiwaMonitorState&) = delete;
+      iiwaMonitorState& operator=(const iiwaMonitorState&) = delete;
+	 
+	  const FRIMonitoringMessage& get(){return monitoringMessage;}
+		
+	  private:
+	  FRIMonitoringMessage monitoringMessage;          //!< monitoring message struct
+      KUKA::FRI::MonitoringMessageDecoder decoder;            //!< monitoring message decoder
+	};
+	
+	struct iiwaCommandState {
+	  iiwaCommandState():commandMessage(), encoder(&commandMessage,KUKA::LBRState::NUM_DOF){}
+	  
+      iiwaCommandState(const iiwaCommandState&) = delete;
+      iiwaCommandState& operator=(const iiwaCommandState&) = delete;
+	 
+	  const FRICommandMessage& get(){return commandMessage;}
+		
+	  private:
+	  FRICommandMessage commandMessage;          //!< monitoring message struct
+      KUKA::FRI::CommandMessageEncoder encoder;            //!< monitoring message decoder
+	};
+} // namespace kuka
+	
+	
+	// unwrap the monitor state when calling get()
+	template<typename T>
+	T get(kuka::iiwaMonitorState & state, T&& t){
+	  return get(state.get(),std::forward<T>(t));
+	}
+	
 	
 	
 	namespace kuka {
 	
+	
+	
 	class iiwa : std::enable_shared_from_this<iiwa>
 	{
 	
+	explicit iiwa(boost::asio::ip::udp::socket socket):
+	  monitor_buf(0,monitor_buf.capacity()),
+	  command_buf(0,command_buf.capacity()),
+      sequenceCounter(0),
+      lastSendCounter(0),
+	  socket_(std::move(socket)){}
+	
 	
 	private:
-	  
-      KUKA::FRI::MonitoringMessageDecoder decoder;            //!< monitoring message decoder
-      KUKA::FRI::CommandMessageEncoder encoder;               //!< command message encoder
-	  uint32_t sequenceCounter; //!< sequence counter for command messages
-	  uint32_t lastSendCounter; //!< steps since last send command
+	  std::unique_ptr<iiwaMonitorState> monitorStateP;
+	  std::unique_ptr<iiwaCommandState> commandStateP;
 	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE> monitor_buf;
 	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE> command_buf;
+	  uint32_t sequenceCounter; //!< sequence counter for command messages
+	  uint32_t lastSendCounter; //!< steps since last send command
 		
-	  boost::asio::ip::udp::socket socket;
+	  boost::asio::ip::udp::socket socket_;
 	};
 	
 	

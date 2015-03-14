@@ -7,7 +7,7 @@
 namespace robone { namespace robot { namespace arm {
     // Decode message buffer (using nanopb decoder)
 void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
-/// @todo FRI_MONITOR_MSG_MAX_SIZE may not be the right size... probably need the actual size received
+
     if (!friData.decoder.decode(friData.receiveBuffer, msg_size)) {
         throw std::runtime_error( "Error decoding received data");
     }
@@ -50,11 +50,11 @@ void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
 	copy(monitoringMsg,state.commandedPosition.begin(),revolute_joint_angle_multi_command_tag());
 	copy(monitoringMsg,state.commandedTorque.begin(),revolute_joint_torque_multi_command_tag());
 	copy(monitoringMsg,state.ipoJointPosition.begin(),revolute_joint_angle_interpolated_multi_state_tag());
-	state.sessionState = getSessionState(monitoringMsg);
-	state.connectionQuality = getConnectionQuality(monitoringMsg);
-	state.safetyState = getSafetyState(monitoringMsg);
-	state.operationMode = getOperationMode(monitoringMsg);
-	state.driveState = getDriveState(monitoringMsg);
+	state.sessionState = get(monitoringMsg,KUKA::FRI::ESessionState());
+	state.connectionQuality = get(monitoringMsg,KUKA::FRI::EConnectionQuality());
+	state.safetyState = get(monitoringMsg,KUKA::FRI::ESafetyState());
+	state.operationMode = get(monitoringMsg,KUKA::FRI::EOperationMode());
+	state.driveState = get(monitoringMsg,KUKA::FRI::EDriveState());
 		
 	/// @todo fill out missing state update steps
 	
