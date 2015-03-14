@@ -201,11 +201,14 @@ namespace kuka {
       iiwaMonitorState(const iiwaMonitorState&) = delete;
       iiwaMonitorState& operator=(const iiwaMonitorState&) = delete;
 	 
-	  const FRIMonitoringMessage& get(){return monitoringMessage;}
+	  const FRIMonitoringMessage& get()const {return monitoringMessage;}
 		
 	  private:
 	  FRIMonitoringMessage monitoringMessage;          //!< monitoring message struct
       KUKA::FRI::MonitoringMessageDecoder decoder;            //!< monitoring message decoder
+	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE> buf_;
+		
+	  friend class iiwa;
 	};
 	
 	struct iiwaCommandState {
@@ -214,22 +217,29 @@ namespace kuka {
       iiwaCommandState(const iiwaCommandState&) = delete;
       iiwaCommandState& operator=(const iiwaCommandState&) = delete;
 	 
-	  const FRICommandMessage& get(){return commandMessage;}
+	  const FRICommandMessage& get() const {return commandMessage;}
 		
 	  private:
 	  FRICommandMessage commandMessage;          //!< monitoring message struct
       KUKA::FRI::CommandMessageEncoder encoder;            //!< monitoring message decoder
+		
+	  friend class iiwa;
 	};
 } // namespace kuka
 	
 	
 	// unwrap the monitor state when calling get()
 	template<typename T>
-	T get(kuka::iiwaMonitorState & state, T&& t){
+	T get(const kuka::iiwaMonitorState & state, T&& t){
 	  return get(state.get(),std::forward<T>(t));
 	}
 	
 	
+	// unwrap the monitor state when calling copy()
+	template<typename ...Params>
+	void copy(kuka::iiwaMonitorState &state, Params&&... params){
+	  copy(state.get(),std::forward<Params>(params)...);
+	}
 	
 	namespace kuka {
 	
@@ -239,18 +249,44 @@ namespace kuka {
 	{
 	
 	explicit iiwa(boost::asio::ip::udp::socket socket):
-	  monitor_buf(0,monitor_buf.capacity()),
-	  command_buf(0,command_buf.capacity()),
+	  command_buf_(0,command_buf_.capacity()),
       sequenceCounter(0),
       lastSendCounter(0),
 	  socket_(std::move(socket)){}
+		
+		
+	  /// @param Handler is expected to be a fn with the signature f(boost::system::error_code,std::unique_ptr<iiwaMonitorState>)
+	  template<typename Handler>
+	  void async_receive(std::unique_ptr<iiwaMonitorState> monitor, Handler&& handler){
+	  
+		  auto self(shared_from_this());
+		  monitor->buf_.resize(monitor->buf_.capacity());
+		  
+		  socket_.async_receive(boost::asio::buffer(&monitor->buf_[0],monitor->buf_.size()),
+		     std::bind([this,self](boost::system::error_code const ec, std::size_t bytes_transferred, Handler&& handler, std::unique_ptr<iiwaMonitorState>& moved_monitor)
+			 {
+			   moved_monitor->buf_.resize(bytes_transferred);
+			   moved_monitor->decoder.decode(reinterpret_cast<char*>(&(moved_monitor->buf_[0])),bytes_transferred);
+				 
+			   /// @todo make sure this matches up with the synchronous version and Dr. Kazanzides' version
+			   /// @todo need to update the state now that the data is received and set up a new data "send"
+			   /// @todo however, some thought needs to go into when the async_send data is actually supplied, because the user needs to be able to send it.
+			   /// @todo also wrap these calls in a strand so there aren't threading issues. That should still be fast enough, but it can be adjusted if further improvement is needed.
+			   //moved_monitor->
+			  
+			 },std::move(monitor)));
+	  }
 	
-	
+	  boost::asio::ip::udp::socket& socket(){
+	    return socket_;
+	  }
 	private:
-	  std::unique_ptr<iiwaMonitorState> monitorStateP;
-	  std::unique_ptr<iiwaCommandState> commandStateP;
-	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE> monitor_buf;
-	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE> command_buf;
+	
+		
+	  /// @todo wrap everything here in a strand so there aren't threading issues
+	  std::unique_ptr<iiwaMonitorState> monitorStateP_;
+	  std::unique_ptr<iiwaCommandState> commandStateP_;
+	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE> command_buf_;
 	  uint32_t sequenceCounter; //!< sequence counter for command messages
 	  uint32_t lastSendCounter; //!< steps since last send command
 		

@@ -141,7 +141,7 @@ private:
 		
 		auto self(shared_from_this());
 		
-		socket_.async_receive(boost::asio::buffer(&(rbP->begin()[0]),rbP->size()), [this,self,rbP](boost::system::error_code const& ec, size_t bytes_transferred) {
+		socket_.async_receive(boost::asio::buffer(&(rbP->begin()[0]),rbP->size()), [this,self,rbP](boost::system::error_code const ec, size_t bytes_transferred) {
 			if(ec) std::cout << "start_async_receive_buffers error! todo: figure out how to handle this\n";
 			// make rbp the size of the actual amount of data read
 			rbP->resize(std::min(bytes_transferred,rbP->capacity()));
