@@ -339,7 +339,7 @@ namespace kuka {
           command.commandMessage.has_commandData = true;
           command.commandMessage.commandData.has_jointPosition = true;
           tRepeatedDoubleArguments *dest  = (tRepeatedDoubleArguments*)command.commandMessage.commandData.jointPosition.value.arg;
-          if (receivedCommandForJointAngles_ && (sessionState_ == KUKA::FRI::COMMANDING_WAIT) || (sessionState_ == KUKA::FRI::COMMANDING_ACTIVE))
+          if (receivedCommandForJointAngles_ && ((sessionState_ == KUKA::FRI::COMMANDING_WAIT) || (sessionState_ == KUKA::FRI::COMMANDING_ACTIVE)))
               std::copy(lastMonitorJointAngles_.begin(),lastMonitorJointAngles_.end(),dest->value);
           else
               std::copy(lastCommandedJointAngles_.begin(),lastCommandedJointAngles_.end(),dest->value);

@@ -48,19 +48,29 @@ int main(int argc, char* argv[])
 {
   try
   {
+    std::string host("");
+    std::string port("30200");
+  
 	  /// @todo add default host/port
-    if (argc != 3)
+    if (argc !=3 || argc !=0)
     {
       std::cerr << "Usage: " << argv[0] << " <host> <port>\n";
       return 1;
     }
+  
+    if(argc ==3){
+      host = std::string(argv[1]);
+      port = std::string(argv[2]);
+    }
+    
+      std::cout << "using: "  << argv[0] << " " <<  host << " " << port;
 
     boost::asio::io_service io_service;
 
     boost::asio::ip::udp::socket s(io_service, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0));
 
     boost::asio::ip::udp::resolver resolver(io_service);
-    boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), argv[1], argv[2]});
+    boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), host, port});
 	s.connect(endpoint);
 	
 	KUKA::FRI::ClientData friData(7);
