@@ -42,6 +42,9 @@ std::unique_ptr<KukaVrepInterface> kukaVrepInterfacePG;
 #define strConCat(x,y,z)	CONCAT(x,y,z)
 #define LUA_GET_SENSOR_DATA_COMMAND "simExtSkeleton_getSensorData"
 
+int jointHandle[7] = {-1,-1,-1,-1,-1,-1,-1};	//global variables defined
+bool allHandlesSet = false;
+
 
 void LUA_GET_REAL_KUKA_STATE_CALLBACK(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
@@ -256,35 +259,37 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 			}
 			// make sure it is "right" (what does that mean?)
 			
-
+				
 			// find the v-rep C functions to do the following:
 			////////////////////////////////////////////////////
 			// Use handles that were found at the "start" of this simulation running
 
 			// next few Lines get the joint angles, torque, etc from the simulation
-
-			for (i=0 ; i<=6 ; i++)
+			if (allHandlesSet == true)
 			{
-				float* simJointPosition[7];
-				simGetJointPosition(jointHandle[i],&simJointPosition[i]);  //retrieves the intrinsic position of a joint (Angle for revolute joint)
+			float* simJointPosition[7];
+			float* simJointForce[7];
+			float* simJointTargetPosition[7];
+			float* simJointTransformationMatrix[7];
+
+			for (int i=0 ; i<=6 ; i++)
+			{	
+				simGetJointPosition(jointHandle[i],simJointPosition[i]);  //retrieves the intrinsic position of a joint (Angle for revolute joint)
 			}
 
-			for (i=0 ; i<=6 ; i++)
-			{
-				float* simJointForce[7];
-				simGetJointForce(jointHandle[i],&simJointForce[i]);	//retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled. 
+			for (int i=0 ; i<=6 ; i++)
+			{	
+				simGetJointForce(jointHandle[i],simJointForce[i]);	//retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled. 
 			}
 
-			for (i=0 ; i<=6 ; i++)
-			{
-				float* simJointTargetPosition[7];
-				simGetJointTargetPosition(jointHandle[i],&simJointTargetPosition[i]);  //retrieves the target position of a joint
+			for (int i=0 ; i<=6 ; i++)
+			{		
+				simGetJointTargetPosition(jointHandle[i],simJointTargetPosition[i]);  //retrieves the target position of a joint
 			}
 
-			for (i=0 ; i<=6 ; i++)
-			{
-				float* simJointTrasformationMatrix[7];	
-				simGetJointMatrix(jointHandle[i],&simJointTransformationMatrix[i]);   //retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
+			for (int i=0 ; i<=6 ; i++)
+			{		
+				simGetJointMatrix(jointHandle[i],simJointTransformationMatrix[i]);   //retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
 			}
 
 			// Send updated position to the real arm based on simulation
@@ -295,7 +300,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 			// call the functions here and just print joint angles out
 			// or display something on the screens
 
-			std::cout << *jointAngle << std::endl << *jointForce << std::endl << *jointTargetPosition << std::endl << *jointTransformationMatrix << std::endl ;
+			std::cout << *simJointPosition << std::endl << *simJointForce << std::endl << *simJointTargetPosition << std::endl << *simJointTransformationMatrix << std::endl ;
 			
 
 			///////////////////
@@ -312,29 +317,29 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 
 			// setting the simulation variables to data from real robot (here they have been assumed given)
 
-			for (i=0 ; i <=6) ; i++)
+			for (int i=0 ; i <=6 ; i++)
 			{
 				simSetJointPosition(jointHandle[i],realJointPosition[i]); //Sets the intrinsic position of a joint. May have no effect depending on the joint mode
 			}
 			
-			for (i=0 ; i <=6) ; i++)
+			for (int i=0 ; i <=6 ; i++)
 			{
 				simSetJointTargetPosition(jointHandle[i],realJointTargetPosition[i]);  //Sets the target position of a joint if the joint is in torque/force mode (also make sure that the joint's motor and position control are enabled
 			}
 
-			for (i=0 ; i <=6) ; i++)
+			for (int i=0 ; i <=6 ; i++)
 			{
 				simSetJointForce(jointHandle[i],realJointForce[i]);  //Sets the maximum force or torque that a joint can exert. This function has no effect when the joint is not dynamically enabled
 			}
 			
-			for (i=0 ; i <=6) ; i++)
+			for (int i=0 ; i <=6 ; i++)
 			{
 				simSetJointTargetVelocity(jointHandle[i],realJointTargetVelocity[i]);  //Sets the intrinsic target velocity of a non-spherical joint. This command makes only sense when the joint mode is: (a) motion mode: the joint's motion handling feature must be enabled (simHandleJoint must be called (is called by default in the main script), and the joint motion properties must be set in the joint settings dialog), (b) torque/force mode: the dynamics functionality and the joint motor have to be enabled (position control should however be disabled)
 			}
 			  
 			//simSetJointInterval(simInt objectHandle,simBool cyclic,const simFloat* interval); //Sets the interval parameters of a joint (i.e. range values)
 			//simSetJointMode(simInt jointHandle,simInt jointMode,simInt options); //Sets the operation mode of a joint. Might have as side-effect the change of additional properties of the joint
-
+			}
 			refreshDlgFlag=true; // always a good idea to trigger a refresh of this plugin's dialog here
 		}
 	}
@@ -347,7 +352,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 	if (message==sim_message_eventcallback_simulationabouttostart)
 	{ // Simulation is about to start
 
-			jointHandle = {-1,-1,-1,-1,-1,-1,-1};
+			
 
 			jointHandle[0] = simGetObjectHandle("LBR_iiwa_14_R820_joint1");	//Obtain Joint Handles
 			jointHandle[1] = simGetObjectHandle("LBR_iiwa_14_R820_joint2");
@@ -356,14 +361,15 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 			jointHandle[4] = simGetObjectHandle("LBR_iiwa_14_R820_joint5");
 			jointHandle[5] = simGetObjectHandle("LBR_iiwa_14_R820_joint6");
 			jointHandle[6] = simGetObjectHandle("LBR_iiwa_14_R820_joint7");
+			allHandlesSet = true;
 
-			robotTip = simGetObjectHandle("RobotTip#0");					//Obtain RobotTip handle
-			robotTarget = simGetObjectHandle("RobotTarget#0");
-			implantCutPath = simGetObjectHandle("ImplantCutPath");
-			removeBallJoit = simGetObjectHandle("RemoveBallJoint");
-			bone = simGetObjectHandle("FemurBone");
+			int robotTip = simGetObjectHandle("RobotTip#0");					//Obtain RobotTip handle
+			int robotTarget = simGetObjectHandle("RobotTarget#0");
+			int implantCutPath = simGetObjectHandle("ImplantCutPath");
+			int removeBallJoit = simGetObjectHandle("RemoveBallJoint");
+			int bone = simGetObjectHandle("FemurBone");
 
-
+			
 
 		/////////////////////////
 		// PUT OBJECT STARTUP CODE HERE
