@@ -19,8 +19,9 @@ namespace robone {
 	struct external_state_tag{}; ///< @todo consider eliminating/replacing external state tag
 	struct interpolated_state_tag{};  ///< @todo consider eliminating/replacing interpolated state tag
 	
-	
-	struct device_state_tag : boost::geometry::multi_tag, state_tag {};
+    
+    struct device_state_tag : boost::geometry::multi_tag, state_tag {};
+    struct device_command_tag : boost::geometry::multi_tag, command_tag {};
 	
 	// joint angle
 	struct revolute_joint_angle_multi_state_tag : revolute_joint_tag, state_tag, boost::units::plane_angle_base_dimension, boost::geometry::multi_tag {};

@@ -75,9 +75,9 @@ std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
     friData.commandMsg.commandData.has_jointPosition = true;
     tRepeatedDoubleArguments *dest  = (tRepeatedDoubleArguments*)friData.commandMsg.commandData.jointPosition.value.arg;
 	if ((state.sessionState == KUKA::FRI::COMMANDING_WAIT) || (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE))
-	    std::copy(state.ipoJointPosition.begin(),state.ipoJointPosition.end(),dest->value); /// @todo is this the right thing to copy?
+	    std::copy(state.ipoJointPosition.begin(),state.ipoJointPosition.end(),dest->value);
     else
-	    std::copy(state.commandedPosition.begin(),state.commandedPosition.end(),dest->value);  /// @todo is this the right thing to copy?
+	    std::copy(state.commandedPosition.begin(),state.commandedPosition.end(),dest->value);
 	
 	int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
         if (!friData.encoder.encode(friData.sendBuffer, buffersize))

@@ -192,111 +192,197 @@ namespace robone { namespace robot {
         }
 		return timestamp;
 	}
+        
+    
+	
 	
 namespace kuka {
+        
+        
+
 	
-	struct iiwaMonitorState {
-	  iiwaMonitorState():monitoringMessage(), decoder(&monitoringMessage,KUKA::LBRState::NUM_DOF){}
-	  
-      iiwaMonitorState(const iiwaMonitorState&) = delete;
-      iiwaMonitorState& operator=(const iiwaMonitorState&) = delete;
-	 
-	  const FRIMonitoringMessage& get()const {return monitoringMessage;}
-		
-	  private:
-	  FRIMonitoringMessage monitoringMessage;          //!< monitoring message struct
-      KUKA::FRI::MonitoringMessageDecoder decoder;            //!< monitoring message decoder
-	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE> buf_;
-		
-	  friend class iiwa;
-	};
-	
-	struct iiwaCommandState {
-	  iiwaCommandState():commandMessage(), encoder(&commandMessage,KUKA::LBRState::NUM_DOF){}
-	  
-      iiwaCommandState(const iiwaCommandState&) = delete;
-      iiwaCommandState& operator=(const iiwaCommandState&) = delete;
-	 
-	  const FRICommandMessage& get() const {return commandMessage;}
-		
-	  private:
-	  FRICommandMessage commandMessage;          //!< monitoring message struct
-      KUKA::FRI::CommandMessageEncoder encoder;            //!< monitoring message decoder
-		
-	  friend class iiwa;
-	};
-} // namespace kuka
-	
-	
-	// unwrap the monitor state when calling get()
-	template<typename T>
-	T get(const kuka::iiwaMonitorState & state, T&& t){
-	  return get(state.get(),std::forward<T>(t));
-	}
-	
-	
-	// unwrap the monitor state when calling copy()
-	template<typename ...Params>
-	void copy(kuka::iiwaMonitorState &state, Params&&... params){
-	  copy(state.get(),std::forward<Params>(params)...);
-	}
-	
-	namespace kuka {
-	
-	
-	
+    /// kuka iiwa driver
 	class iiwa : std::enable_shared_from_this<iiwa>
-	{
-	
+    {
+    public:
+    struct MonitorState {
+        MonitorState():monitoringMessage(), decoder(&monitoringMessage,KUKA::LBRState::NUM_DOF){}
+        
+        MonitorState(const MonitorState&) = delete;
+        MonitorState& operator=(const MonitorState&) = delete;
+        
+        const FRIMonitoringMessage& get()const {return monitoringMessage;}
+        
+    private:
+        FRIMonitoringMessage monitoringMessage;          //!< monitoring message struct
+        KUKA::FRI::MonitoringMessageDecoder decoder;            //!< monitoring message decoder
+        boost::container::static_vector<uint8_t,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE> buf_;
+        
+        friend class iiwa;
+    };
+    
+    struct CommandState {
+        CommandState():
+        commandMessage(),
+        encoder(&commandMessage,KUKA::LBRState::NUM_DOF),
+        command_buf_(0,command_buf_.capacity()){}
+        
+        CommandState(const CommandState&) = delete;
+        CommandState& operator=(const CommandState&) = delete;
+        
+        const FRICommandMessage& get() const {return commandMessage;}
+        
+    private:
+        FRICommandMessage commandMessage;          //!< monitoring message struct
+        KUKA::FRI::CommandMessageEncoder encoder;            //!< monitoring message decoder
+        boost::container::static_vector<uint8_t,KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE> command_buf_;
+        
+        friend class iiwa;
+    };
+    
+    /// @todo make a simple constructor for those who don't care as much about asio details
+    
+    
+	/// note that since a socket cannot be copied,
+	/// you should initialize this object with
+	/// @code
+    /// boost::asio::io_service io_service;
+	/// boost::asio::ip::udp::socket socket(io_service);
+    /// // initialize socket state
+	/// iiwa driver(std::move(socket));
+    /// io_service.run();
+	/// @endcode
 	explicit iiwa(boost::asio::ip::udp::socket socket):
-	  command_buf_(0,command_buf_.capacity()),
-      sequenceCounter(0),
-      lastSendCounter(0),
-	  socket_(std::move(socket)){}
+      commandState_(new CommandState),
+      sequenceCounter_(0),
+      lastSendCounter_(0),
+      receivedCommandForJointAngles_(false),
+      strand_(socket.get_io_service()),
+      socket_(std::move(socket))
+      {}
 		
 		
-	  /// @param Handler is expected to be a fn with the signature f(boost::system::error_code,std::unique_ptr<iiwaMonitorState>)
+	  /// @param Handler is expected to be a fn with the signature f(boost::system::error_code,std::unique_ptr<MonitorState>)
+      ///
+      /// Design philosopy: it is important that thread safety be maintained, so a boost::asio::strand is used to enforced serial calling of receive/send for this
 	  template<typename Handler>
-	  void async_receive(std::unique_ptr<iiwaMonitorState> monitor, Handler&& handler){
+	  void async_receive(std::unique_ptr<MonitorState> monitor, Handler&& handler){
 	  
 		  auto self(shared_from_this());
 		  monitor->buf_.resize(monitor->buf_.capacity());
 		  
 		  socket_.async_receive(boost::asio::buffer(&monitor->buf_[0],monitor->buf_.size()),
-		     std::bind([this,self](boost::system::error_code const ec, std::size_t bytes_transferred, Handler&& handler, std::unique_ptr<iiwaMonitorState>& moved_monitor)
+             strand_.wrap( // serialize receive and send in a single thread
+		     std::bind([this,self](boost::system::error_code const ec, std::size_t bytes_transferred, Handler&& handler, std::unique_ptr<MonitorState>& moved_monitor)
 			 {
 			   moved_monitor->buf_.resize(bytes_transferred);
 			   moved_monitor->decoder.decode(reinterpret_cast<char*>(&(moved_monitor->buf_[0])),bytes_transferred);
 				 
+             
+               lastSendCounter_++;
+               lastMonitorSequenceCounter_ = moved_monitor->monitoringMessage.header.sequenceCounter;
+               copy(moved_monitor->monitoringMessage, lastMonitorJointAngles_.begin(), revolute_joint_angle_multi_command_tag());
+             
+             
+             
 			   /// @todo make sure this matches up with the synchronous version and Dr. Kazanzides' version
 			   /// @todo need to update the state now that the data is received and set up a new data "send"
 			   /// @todo however, some thought needs to go into when the async_send data is actually supplied, because the user needs to be able to send it.
 			   /// @todo also wrap these calls in a strand so there aren't threading issues. That should still be fast enough, but it can be adjusted if further improvement is needed.
+               if(commandState_) async_send();
+             
+               handler(ec,std::move(moved_monitor));
 			   //moved_monitor->
 			  
-			 },std::move(monitor)));
+			 },std::move(monitor))));
 	  }
 	
 	  boost::asio::ip::udp::socket& socket(){
 	    return socket_;
 	  }
+    
+    /// @todo provide a way for users to send commands over FRI
+    
 	private:
 	
+      /// @todo this should eventually run separately, and use a similar API to async_receive
+      //template<typename Handler>
+      void async_send(/*std::unique_ptr<CommandState> command, Handler&& handler*/){
+          /// @todo convert commandState_ to a parameter
+          // Check whether to send a response
+          if (lastSendCounter_ >= receiveMultiplier_){
+              commandState_->command_buf_.resize(commandState_->command_buf_.capacity());
+              std::size_t buf_size = encode(*commandState_);
+              commandState_->command_buf_.resize(buf_size);
+              
+              auto self(shared_from_this());
+              
+              socket_.async_send(boost::asio::buffer(&commandState_->command_buf_[0],buf_size),
+                                 strand_.wrap( // serialize receive and send in a single thread
+                                 [this,self](boost::system::error_code const ec, std::size_t bytes_transferred/*, Handler&& handler,*/)
+                                 {
+                                   /// @todo remove this when it actually goes to a real handler
+                                     /// @todo actually send this to a real handler
+                                     //handler(ec,bytes_transferred,std::move(moved_command));
+                                     if(ec) std::cout << "iiwa send command error\n";
+                                 }));
+          }
+      }
+    
+    std::size_t encode(CommandState& command){
+          lastSendCounter_ = 0;
+          sequenceCounter_++;
+          command.commandMessage.header.sequenceCounter = sequenceCounter_;
+          command.commandMessage.header.reflectedSequenceCounter = lastMonitorSequenceCounter_;
+          
+          // copy current joint position to commanded position
+          command.commandMessage.has_commandData = true;
+          command.commandMessage.commandData.has_jointPosition = true;
+          tRepeatedDoubleArguments *dest  = (tRepeatedDoubleArguments*)command.commandMessage.commandData.jointPosition.value.arg;
+          if (receivedCommandForJointAngles_ && (sessionState_ == KUKA::FRI::COMMANDING_WAIT) || (sessionState_ == KUKA::FRI::COMMANDING_ACTIVE))
+              std::copy(lastMonitorJointAngles_.begin(),lastMonitorJointAngles_.end(),dest->value);
+          else
+              std::copy(lastCommandedJointAngles_.begin(),lastCommandedJointAngles_.end(),dest->value);
+          
+          int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
+          if (!command.encoder.encode(reinterpret_cast<char*>(&command.command_buf_[0]), buffersize))
+              return 0;
+        
+          return buffersize;
+      }
 		
-	  /// @todo wrap everything here in a strand so there aren't threading issues
-	  std::unique_ptr<iiwaMonitorState> monitorStateP_;
-	  std::unique_ptr<iiwaCommandState> commandStateP_;
-	  boost::container::static_vector<uint8_t,KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE> command_buf_;
-	  uint32_t sequenceCounter; //!< sequence counter for command messages
-	  uint32_t lastSendCounter; //!< steps since last send command
-		
-	  boost::asio::ip::udp::socket socket_;
+	    /// @todo wrap everything here in a strand so there aren't threading issues
+        std::unique_ptr<CommandState> commandState_;
+	    uint32_t sequenceCounter_; //!< sequence counter for command messages
+        uint32_t lastMonitorSequenceCounter_;
+	    uint32_t lastSendCounter_; //!< steps since last send command
+        uint32_t receiveMultiplier_;
+        KUKA::FRI::ESessionState sessionState_;
+        boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> lastMonitorJointAngles_;
+        bool receivedCommandForJointAngles_;
+        boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> lastCommandedJointAngles_;
+    
+        boost::asio::io_service::strand strand_;
+        boost::asio::ip::udp::socket socket_;
 	};
+        
+        
+        // unwrap the monitor state when calling get()
+        template<typename T>
+        T get(const iiwa::MonitorState & state, T&& t){
+            return get(state.get(),std::forward<T>(t));
+        }
+        
+        
+        // unwrap the monitor state when calling copy()
+        template<typename ...Params>
+        void copy(iiwa::MonitorState &state, Params&&... params){
+            copy(state.get(),std::forward<Params>(params)...);
+        }
 	
-	
-	}
+    } // namespace kuka
 
-}}} /// namespace robone::robot::arm
+}}} // namespace robone::robot::arm
 
 
 
@@ -433,6 +519,48 @@ namespace traits {
 //		}
 //		
     };
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    template<typename Enable> struct tag<FRICommandMessage, Enable > { typedef robone::device_command_tag type; };
+    template<typename Enable> struct dimension<FRICommandMessage, Enable > : boost::mpl::int_<KUKA::LBRState::NUM_DOF> {};
+    template<typename Enable> struct coordinate_type<FRICommandMessage, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    
+    
+    
+    //    template<typename GeometryTag,typename Enable> struct coordinate_type<FRICommandMessage, GeometryTag, Enable >;
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_multi_state_tag             , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_interpolated_multi_state_tag, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_multi_state_tag            , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_external_multi_state_tag   , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_multi_command_tag           , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_multi_command_tag          , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    
+    template<typename Enable> struct access<FRICommandMessage , KUKA::LBRState::NUM_DOF, Enable>
+    {
+    // angle
+//    const typename coordinate_type<FRICommandMessage,Enable>::type
+//    get(FRICommandMessage  const& monitoringMsg,robone::revolute_joint_angle_multi_state_tag) {
+//        return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
+//    }
+    
+    template<typename Range>
+    static inline void set(FRICommandMessage & state, Range&& range, robone::revolute_joint_angle_multi_command_tag) {  }
+    
+    
+    };
+    
 
 }}} // boost::geometry::traits
 
