@@ -70,6 +70,20 @@ make docker-run
 # github issue requesing cleanup: https://github.com/docker/docker/issues/928
 
 
+#########################################
+# running apps that have a gui, such as vrep, inside a docker container
+#########################################
+
+# these options have not yet been tested
+
+#http://fabiorehm.com/blog/2014/09/11/running-gui-apps-with-docker/
+#
+#http://www.jann.cc/2014/09/06/sandboxing_proprietary_applications_with_docker.html#running-gui-applications
+#https://github.com/rogaha/docker-desktop
+#
+#http://blog.docker.com/2013/07/docker-desktop-your-desktop-over-ssh-running-inside-of-a-docker-container/
+
+
 
 
 
