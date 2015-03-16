@@ -4,6 +4,9 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <boost/range/adaptor/copied.hpp>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range.hpp>
 #include <boost/geometry/core/access.hpp>
 #include <boost/units/physical_dimensions/torque.hpp>
 #include <boost/units/physical_dimensions/plane_angle.hpp>
@@ -63,38 +66,38 @@ namespace robone { namespace robot {
     
 	/// copy measured joint angle to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_angle_multi_state_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_angle_open_chain_state_tag){
  	   kuka::detail::copyJointState(monitoringMsg.monitorData.measuredJointPosition.value.arg,it,monitoringMsg.monitorData.has_measuredJointPosition);
 	}
 	
 	/// copy interpolated commanded joint angles
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it,revolute_joint_angle_interpolated_multi_state_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it,revolute_joint_angle_interpolated_open_chain_state_tag){
            kuka::detail::copyJointState(monitoringMsg.ipoData.jointPosition.value.arg,it,monitoringMsg.ipoData.has_jointPosition);
 	}
 	
 	/// copy commanded joint angle to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_angle_multi_command_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_angle_open_chain_command_tag){
 		kuka::detail::copyJointState(monitoringMsg.monitorData.commandedJointPosition.value.arg,it, monitoringMsg.monitorData.has_commandedJointPosition);
     }
 	
 	
 	/// copy measured joint torque to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_multi_state_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_open_chain_state_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.measuredTorque.value.arg,it, monitoringMsg.monitorData.has_measuredTorque);
 	}
 	
 	/// copy measured external joint torque to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_external_multi_state_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_external_open_chain_state_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.externalTorque.value.arg,it, monitoringMsg.monitorData.has_externalTorque);
 	}
 	
 	/// copy commanded  joint torque to output iterator
 	template<typename OutputIterator>
-	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_multi_command_tag){
+	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_open_chain_command_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.commandedTorque.value.arg,it, monitoringMsg.monitorData.has_commandedTorque);
 	}
 	
@@ -194,6 +197,13 @@ namespace robone { namespace robot {
 	}
         
     
+    template<typename Range>
+    static inline void set(FRICommandMessage & state, Range&& range, robone::revolute_joint_angle_open_chain_command_tag) {
+       state.has_commandData = true;
+       state.commandData.has_jointPosition = true;
+       tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
+       boost::copy(range, dest->value);
+     }
 	
 	
 namespace kuka {
@@ -202,6 +212,11 @@ namespace kuka {
 
 	
     /// kuka iiwa driver
+    ///
+    ///
+    /// @internal
+    ///   All async calls need to be wrapped in strand_.wrap(), this serializes the calls so there are no threading problems.
+    /// @endinternal
 	class iiwa : std::enable_shared_from_this<iiwa>
     {
     public:
@@ -225,7 +240,7 @@ namespace kuka {
         CommandState():
         commandMessage(),
         encoder(&commandMessage,KUKA::LBRState::NUM_DOF),
-        command_buf_(0,command_buf_.capacity()){}
+        buf_(0,buf_.capacity()){}
         
         CommandState(const CommandState&) = delete;
         CommandState& operator=(const CommandState&) = delete;
@@ -233,9 +248,9 @@ namespace kuka {
         const FRICommandMessage& get() const {return commandMessage;}
         
     private:
-        FRICommandMessage commandMessage;          //!< monitoring message struct
-        KUKA::FRI::CommandMessageEncoder encoder;            //!< monitoring message decoder
-        boost::container::static_vector<uint8_t,KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE> command_buf_;
+        FRICommandMessage commandMessage;          //!< command message struct
+        KUKA::FRI::CommandMessageEncoder encoder;            //!< command message encoder
+        boost::container::static_vector<uint8_t,KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE> buf_;
         
         friend class iiwa;
     };
@@ -253,114 +268,148 @@ namespace kuka {
     /// io_service.run();
 	/// @endcode
 	explicit iiwa(boost::asio::ip::udp::socket socket):
-      commandState_(new CommandState),
       sequenceCounter_(0),
       lastSendCounter_(0),
-      receivedCommandForJointAngles_(false),
       strand_(socket.get_io_service()),
       socket_(std::move(socket))
       {}
+    
 		
-		
-	  /// @param Handler is expected to be a fn with the signature f(boost::system::error_code,std::unique_ptr<MonitorState>)
+	  /// Advanced function to receive data from the FRI. We recommend using async_update.
+	  /// @param Handler is expected to be a fn with the signature f(boost::system::error_code, std::size_t bytes_transferred)
+      ///
+      /// @note The user is responsible for keeping the MonitorState valid for the duration of the asynchronous call
       ///
       /// Design philosopy: it is important that thread safety be maintained, so a boost::asio::strand is used to enforced serial calling of receive/send for this
 	  template<typename Handler>
-	  void async_receive(std::unique_ptr<MonitorState> monitor, Handler&& handler){
+	  void async_receive(MonitorState& monitor, Handler&& handler){
 	  
 		  auto self(shared_from_this());
-		  monitor->buf_.resize(monitor->buf_.capacity());
+		  monitor.buf_.resize(monitor.buf_.capacity());
 		  
-		  socket_.async_receive(boost::asio::buffer(&monitor->buf_[0],monitor->buf_.size()),
+		  socket_.async_receive(boost::asio::buffer(&monitor.buf_[0],monitor.buf_.size()),
              strand_.wrap( // serialize receive and send in a single thread
-		     std::bind([this,self](boost::system::error_code const ec, std::size_t bytes_transferred, Handler&& handler, std::unique_ptr<MonitorState>& moved_monitor)
+             std::bind([this,self,&monitor](boost::system::error_code const ec, std::size_t bytes_transferred, Handler&& handler)
 			 {
-			   moved_monitor->buf_.resize(bytes_transferred);
-			   moved_monitor->decoder.decode(reinterpret_cast<char*>(&(moved_monitor->buf_[0])),bytes_transferred);
+			   monitor.buf_.resize(bytes_transferred);
+			   monitor.decoder.decode(reinterpret_cast<char*>(&(monitor.buf_[0])),bytes_transferred);
 				 
              
                lastSendCounter_++;
-               lastMonitorSequenceCounter_ = moved_monitor->monitoringMessage.header.sequenceCounter;
-               copy(moved_monitor->monitoringMessage, lastMonitorJointAngles_.begin(), revolute_joint_angle_multi_command_tag());
-             
-             
+               lastMonitorSequenceCounter_ = monitor.monitoringMessage.header.sequenceCounter;
+               lastMonitorJointAngles_.clear();
+               copy(monitor.monitoringMessage, std::back_inserter(lastMonitorJointAngles_), revolute_joint_angle_open_chain_command_tag());
              
 			   /// @todo make sure this matches up with the synchronous version and Dr. Kazanzides' version
 			   /// @todo need to update the state now that the data is received and set up a new data "send"
 			   /// @todo however, some thought needs to go into when the async_send data is actually supplied, because the user needs to be able to send it.
 			   /// @todo also wrap these calls in a strand so there aren't threading issues. That should still be fast enough, but it can be adjusted if further improvement is needed.
-               if(commandState_) async_send();
              
-               handler(ec,std::move(moved_monitor));
-			   //moved_monitor->
+             
+               /// @todo should we pass bytes_transferred?
+               handler(ec,bytes_transferred);
 			  
-			 },std::move(monitor))));
+			 },std::move(handler))));
 	  }
+      
+	  /// @brief Advanced function to send data to the FRI. We recommend using async_update.
+      ///
+	  /// @param Handler is expected to be a fn with the signature f(boost::system::error_code, std::size_t bytes_transferred)
+      ///
+      /// It is important to note that this functionality differs slightly from what kuka provides.
+      /// The CommandState is expected to be set so that it has command data when you make the call.
+      /// If you do not set the command data, it will be assumed that you simply wish to monitor.
+      ///
+      /// @todo should we pass bytes_transferred as well to f(boost::system::error_code,bytes_transferred)?
+      /// @note the user is responsible for keeping the MonitorState valid for the duration of the asynchronous call
+      template<typename Handler>
+      void async_send(CommandState& command, Handler&& handler){
+          /// @todo convert commandState_ to a parameter
+          // Check whether to send a response
+          
+		  auto self(shared_from_this());
+		  command.buf_.resize(command.buf_.capacity());
+          
+          socket_.get_io_service().post(
+            strand_.wrap( // serialize receive and send in a single thread
+            std::bind([this,self,&command](Handler&& handler){
+              if (lastSendCounter_ >= receiveMultiplier_){
+                  command.buf_.resize(command.buf_.capacity());
+                  std::size_t buf_size = encode(command);
+                  command.buf_.resize(buf_size);
+                  
+                  auto self(shared_from_this());
+                  
+                  socket_.async_send(
+                      boost::asio::buffer(&command.buf_[0],buf_size),
+                      strand_.wrap( // serialize receive and send in a single thread
+                      std::bind([this,self,&command](boost::system::error_code const ec, std::size_t bytes_transferred, Handler&& handler)
+                      {
+                          handler(ec,bytes_transferred);
+                      },std::move(handler))));
+              } else {
+                // didn't need to send data at this time
+                // there is no error and no bytes were transferred
+                handler(boost::system::error_code(),0);
+              }
+           },std::move(handler))));
+      }
+    
+      /// This is the recommended mechanism to communicate with the FRI
+      template<typename Handler>
+      void async_update(MonitorState& monitor, CommandState& command, Handler&& handler){
+      
+         auto self(shared_from_this());
+         
+         // receive the latest state
+         async_receive(monitor,
+           [this,&command,self](boost::system::error_code const ec, std::size_t bytes_transferred,Handler&& handler){
+             if(!ec){
+               // send the new command (if appropriate)
+               async_send(command, handler);
+             } else {
+               handler(ec,bytes_transferred);
+             }
+           
+           }
+         );
+      }
+    
 	
 	  boost::asio::ip::udp::socket& socket(){
 	    return socket_;
 	  }
     
-    /// @todo provide a way for users to send commands over FRI
+    /// @todo provide a way for users to send commands (and not send commands) over FRI
     
 	private:
-	
-      /// @todo this should eventually run separately, and use a similar API to async_receive
-      //template<typename Handler>
-      void async_send(/*std::unique_ptr<CommandState> command, Handler&& handler*/){
-          /// @todo convert commandState_ to a parameter
-          // Check whether to send a response
-          if (lastSendCounter_ >= receiveMultiplier_){
-              commandState_->command_buf_.resize(commandState_->command_buf_.capacity());
-              std::size_t buf_size = encode(*commandState_);
-              commandState_->command_buf_.resize(buf_size);
-              
-              auto self(shared_from_this());
-              
-              socket_.async_send(boost::asio::buffer(&commandState_->command_buf_[0],buf_size),
-                                 strand_.wrap( // serialize receive and send in a single thread
-                                 [this,self](boost::system::error_code const ec, std::size_t bytes_transferred/*, Handler&& handler,*/)
-                                 {
-                                   /// @todo remove this when it actually goes to a real handler
-                                     /// @todo actually send this to a real handler
-                                     //handler(ec,bytes_transferred,std::move(moved_command));
-                                     if(ec) std::cout << "iiwa send command error\n";
-                                 }));
-          }
-      }
     
     std::size_t encode(CommandState& command){
           lastSendCounter_ = 0;
           sequenceCounter_++;
           command.commandMessage.header.sequenceCounter = sequenceCounter_;
           command.commandMessage.header.reflectedSequenceCounter = lastMonitorSequenceCounter_;
-          
+        
+          // copy the monitor data if we are not in a commanding state
+          // note that this differs slightly form the implementation kuka provides!
+          if(!command.commandMessage.has_commandData || (sessionState_ != KUKA::FRI::COMMANDING_WAIT) || (sessionState_ != KUKA::FRI::COMMANDING_ACTIVE)) {
+            set(command.commandMessage,lastMonitorJointAngles_,robone::revolute_joint_angle_open_chain_command_tag());
+          }
           // copy current joint position to commanded position
-          command.commandMessage.has_commandData = true;
-          command.commandMessage.commandData.has_jointPosition = true;
-          tRepeatedDoubleArguments *dest  = (tRepeatedDoubleArguments*)command.commandMessage.commandData.jointPosition.value.arg;
-          if (receivedCommandForJointAngles_ && ((sessionState_ == KUKA::FRI::COMMANDING_WAIT) || (sessionState_ == KUKA::FRI::COMMANDING_ACTIVE)))
-              std::copy(lastMonitorJointAngles_.begin(),lastMonitorJointAngles_.end(),dest->value);
-          else
-              std::copy(lastCommandedJointAngles_.begin(),lastCommandedJointAngles_.end(),dest->value);
           
           int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
-          if (!command.encoder.encode(reinterpret_cast<char*>(&command.command_buf_[0]), buffersize))
+          if (!command.encoder.encode(reinterpret_cast<char*>(&command.buf_[0]), buffersize))
               return 0;
         
           return buffersize;
       }
 		
-	    /// @todo wrap everything here in a strand so there aren't threading issues
-        std::unique_ptr<CommandState> commandState_;
 	    uint32_t sequenceCounter_; //!< sequence counter for command messages
         uint32_t lastMonitorSequenceCounter_;
 	    uint32_t lastSendCounter_; //!< steps since last send command
         uint32_t receiveMultiplier_;
         KUKA::FRI::ESessionState sessionState_;
         boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> lastMonitorJointAngles_;
-        bool receivedCommandForJointAngles_;
-        boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> lastCommandedJointAngles_;
     
         boost::asio::io_service::strand strand_;
         boost::asio::ip::udp::socket socket_;
@@ -428,48 +477,48 @@ namespace traits {
 	
 	
 //    template<typename GeometryTag,typename Enable> struct coordinate_type<FRIMonitoringMessage, GeometryTag, Enable >;
-//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_multi_state_tag             , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_interpolated_multi_state_tag, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_multi_state_tag            , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_external_multi_state_tag   , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_multi_command_tag           , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_multi_command_tag          , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_open_chain_state_tag             , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_interpolated_open_chain_state_tag, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_open_chain_state_tag            , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_external_open_chain_state_tag   , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_open_chain_command_tag           , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+//    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_torque_open_chain_command_tag          , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
 	
     template<typename Enable> struct access<FRIMonitoringMessage , KUKA::LBRState::NUM_DOF, Enable>
     {
 	    // angle
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_multi_state_tag) {
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_open_chain_state_tag) {
 				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
 		}
 		
 		// interpolated angle
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_interpolated_multi_state_tag) {
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_interpolated_open_chain_state_tag) {
 				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg), monitoringMsg.ipoData.has_jointPosition);
 		}
 		
 		// torque
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_multi_state_tag) {
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_open_chain_state_tag) {
 				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.measuredTorque.value.arg),monitoringMsg.monitorData.has_measuredTorque);
 		}
 		
 		// external torque
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_external_multi_state_tag) {
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_external_open_chain_state_tag) {
 				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.externalTorque.value.arg),monitoringMsg.monitorData.has_externalTorque);
 		}
 		
 		// commanded angle
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_multi_command_tag) {
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_open_chain_command_tag) {
 				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg),monitoringMsg.ipoData.has_jointPosition);
 		}
 		
 		// commanded torque
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_multi_command_tag) {
+		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_open_chain_command_tag) {
 				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedTorque.value.arg), monitoringMsg.monitorData.has_commandedTorque);
 		}
 		
@@ -483,38 +532,38 @@ namespace traits {
 		
 		
 //	    // angle
-//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_multi_state_tag,Enable>::type
-//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_multi_state_tag) {
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_open_chain_state_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_open_chain_state_tag) {
 //				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.commandedJointPosition.value.arg,monitoringMsg.monitorData.has_measuredJointPosition);
 //		}
 //		
 //		// interpolated angle
-//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_interpolated_multi_state_tag,Enable>::type
-//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_interpolated_multi_state_tag) {
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_interpolated_open_chain_state_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_interpolated_open_chain_state_tag) {
 //				return robone::robot::arm::kuka::get(monitoringMsg.ipoData.jointPosition.value.arg, monitoringMsg.ipoData.has_jointPosition);
 //		}
 //		
 //		// torque
-//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_multi_state_tag,Enable>::type
-//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_multi_state_tag) {
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_open_chain_state_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_open_chain_state_tag) {
 //				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.measuredTorque.value.arg,monitoringMsg.monitorData.has_measuredTorque);
 //		}
 //		
 //		// external torque
-//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_external_multi_state_tag,Enable>::type
-//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_external_multi_state_tag) {
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_external_open_chain_state_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_external_open_chain_state_tag) {
 //				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.externalTorque.value.arg,monitoringMsg.monitorData.has_externalTorque);
 //		}
 //		
 //		// commanded angle
-//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_multi_command_tag,Enable>::type
-//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_multi_command_tag) {
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_open_chain_command_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_open_chain_command_tag) {
 //				return robone::robot::arm::kuka::get(monitoringMsg.ipoData.jointPosition.value.arg,monitoringMsg.ipoData.has_jointPosition);
 //		}
 //		
 //		// commanded torque
-//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_multi_command_tag,Enable>::type
-//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_multi_command_tag) {
+//        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_open_chain_command_tag,Enable>::type
+//		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_open_chain_command_tag) {
 //				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.commandedTorque.value.arg, monitoringMsg.monitorData.has_commandedTorque);
 //		}
 //		
@@ -534,29 +583,35 @@ namespace traits {
     
     
     template<typename Enable> struct tag<FRICommandMessage, Enable > { typedef robone::device_command_tag type; };
-    template<typename Enable> struct dimension<FRICommandMessage, Enable > : boost::mpl::int_<KUKA::LBRState::NUM_DOF> {};
+    template<typename Enable> struct dimension<FRICommandMessage, Enable > : boost::mpl::int_<1> {}; // each joint is 1 dimensional
     template<typename Enable> struct coordinate_type<FRICommandMessage, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
     
     
     
     //    template<typename GeometryTag,typename Enable> struct coordinate_type<FRICommandMessage, GeometryTag, Enable >;
-    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_multi_state_tag             , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_interpolated_multi_state_tag, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_multi_state_tag            , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_external_multi_state_tag   , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_multi_command_tag           , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_multi_command_tag          , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_open_chain_state_tag             , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_interpolated_open_chain_state_tag, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_open_chain_state_tag            , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_external_open_chain_state_tag   , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_open_chain_command_tag           , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
+    //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_torque_open_chain_command_tag          , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
     
     template<typename Enable> struct access<FRICommandMessage , KUKA::LBRState::NUM_DOF, Enable>
     {
     // angle
 //    const typename coordinate_type<FRICommandMessage,Enable>::type
-//    get(FRICommandMessage  const& monitoringMsg,robone::revolute_joint_angle_multi_state_tag) {
+//    get(FRICommandMessage  const& monitoringMsg,robone::revolute_joint_angle_open_chain_state_tag) {
 //        return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
 //    }
     
     template<typename Range>
-    static inline void set(FRICommandMessage & state, Range&& range, robone::revolute_joint_angle_multi_command_tag) {  }
+    static inline void set(FRICommandMessage & state, Range&& range, robone::revolute_joint_angle_open_chain_command_tag) {
+       state.has_commandData = true;
+       state.commandData.has_jointPosition = true;
+       tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
+       boost::copy(range, dest->value);
+     }
+    
     
     
     };

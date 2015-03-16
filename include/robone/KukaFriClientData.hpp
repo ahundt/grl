@@ -63,11 +63,11 @@ struct KukaState {
 
 void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
     state.clear();
-	copy(monitoringMsg,std::back_inserter(state.position),revolute_joint_angle_multi_state_tag());
-	copy(monitoringMsg,std::back_inserter(state.torque),revolute_joint_torque_multi_state_tag());
-	copy(monitoringMsg,std::back_inserter(state.commandedPosition),revolute_joint_angle_multi_command_tag());
-	copy(monitoringMsg,std::back_inserter(state.commandedTorque),revolute_joint_torque_multi_command_tag());
-	copy(monitoringMsg,std::back_inserter(state.ipoJointPosition),revolute_joint_angle_interpolated_multi_state_tag());
+	copy(monitoringMsg,std::back_inserter(state.position),revolute_joint_angle_open_chain_state_tag());
+	copy(monitoringMsg,std::back_inserter(state.torque),revolute_joint_torque_open_chain_state_tag());
+	copy(monitoringMsg,std::back_inserter(state.commandedPosition),revolute_joint_angle_open_chain_command_tag());
+	copy(monitoringMsg,std::back_inserter(state.commandedTorque),revolute_joint_torque_open_chain_command_tag());
+	copy(monitoringMsg,std::back_inserter(state.ipoJointPosition),revolute_joint_angle_interpolated_open_chain_state_tag());
 	state.sessionState = get(monitoringMsg,KUKA::FRI::ESessionState());
 	state.connectionQuality = get(monitoringMsg,KUKA::FRI::EConnectionQuality());
 	state.safetyState = get(monitoringMsg,KUKA::FRI::ESafetyState());
