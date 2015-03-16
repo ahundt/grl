@@ -242,6 +242,8 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 	// For a complete list of messages that you can intercept/react with, search for "sim_message_eventcallback"-type constants
 	// in the V-REP user manual.
 
+    std::cout << "RobonePlugin received v_repMessage!\n";
+
 	if (message==sim_message_eventcallback_refreshdialogs)
 		refreshDlgFlag=true; // V-REP dialogs were refreshed. Maybe a good idea to refresh this plugin's dialog too
 
