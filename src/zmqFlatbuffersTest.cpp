@@ -81,7 +81,7 @@ struct monitor_handler {
 /// @see overview of zmq socket types https://sachabarbs.wordpress.com/2014/08/21/zeromq-2-the-socket-types-2/
 /// @see bounce is based on https://github.com/zeromq/azmq/blob/master/test/socket/main.cpp
 /// @see flatbuffers https://google.github.io/flatbuffers/md__cpp_usage.html
-void bounce(azmq::socket & server, azmq::socket & client) {
+void bounce(azmq::socket & server, azmq::socket & client, bool send_only = true) {
 	
 	flatbuffers::FlatBufferBuilder fbb;
 	std::array<uint8_t, 512> buf;
@@ -94,21 +94,22 @@ void bounce(azmq::socket & server, azmq::socket & client) {
 	    auto controlPoint = robone::CreateVrepControlPoint(fbb,&rv);
 		robone::FinishVrepControlPointBuffer(fbb, controlPoint);
         client.send(boost::asio::buffer(fbb.GetBufferPointer(), fbb.GetSize()));
+                std::cout << "sent: " << rv.x() << "\n";
 		
 		//////////////////////////////
 		// Server receives from client
-		
-        auto size = server.receive(boost::asio::buffer(buf));
-		auto verifier = flatbuffers::Verifier(buf.begin(),buf.size());
-		auto bufOK = robone::VerifyVrepControlPointBuffer(verifier);
-		
-		if(size == fbb.GetSize() && bufOK){
-		    const robone::VrepControlPoint* VCPin = robone::GetVrepControlPoint(buf.begin());
-		    std::cout << "received: " << VCPin->position()->x() << "\n";
-		} else {
-			std::cout << "wrong size or failed verification. size: "<< size <<" bufOk: " <<bufOK << "\n";
+		if(! send_only) {
+            auto size = server.receive(boost::asio::buffer(buf));
+            auto verifier = flatbuffers::Verifier(buf.begin(),buf.size());
+            auto bufOK = robone::VerifyVrepControlPointBuffer(verifier);
+            
+            if(size == fbb.GetSize() && bufOK){
+                const robone::VrepControlPoint* VCPin = robone::GetVrepControlPoint(buf.begin());
+                std::cout << "received: " << VCPin->position()->x() << "\n";
+            } else {
+                std::cout << "wrong size or failed verification. size: "<< size <<" bufOk: " <<bufOK << "\n";
+            }
 		}
-		
 		fbb.Clear();
     }
 }

@@ -29,6 +29,15 @@ void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
 /// @todo replace with something generic
 struct KukaState {
 	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
+    
+//    KukaState()
+//    :
+//    position(0,KUKA::LBRState::NUM_DOF),
+//    torque(0,KUKA::LBRState::NUM_DOF),
+//    commandedPosition(0,KUKA::LBRState::NUM_DOF),
+//    commandedTorque(0,KUKA::LBRState::NUM_DOF),
+//    ipoJointPosition(0,KUKA::LBRState::NUM_DOF){}
+    
 	joint_state position;
 	joint_state torque;
 	joint_state commandedPosition;
@@ -41,15 +50,24 @@ struct KukaState {
 	KUKA::FRI::EDriveState        driveState;
 	
 	std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+    
+    void clear(){
+      position.clear();
+      torque.clear();
+      commandedPosition.clear();
+      commandedTorque.clear();
+      ipoJointPosition.clear();
+    }
 };
 
 
 void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
-	copy(monitoringMsg,state.position.begin(),revolute_joint_angle_multi_state_tag());
-	copy(monitoringMsg,state.torque.begin(),revolute_joint_torque_multi_state_tag());
-	copy(monitoringMsg,state.commandedPosition.begin(),revolute_joint_angle_multi_command_tag());
-	copy(monitoringMsg,state.commandedTorque.begin(),revolute_joint_torque_multi_command_tag());
-	copy(monitoringMsg,state.ipoJointPosition.begin(),revolute_joint_angle_interpolated_multi_state_tag());
+    state.clear();
+	copy(monitoringMsg,std::back_inserter(state.position),revolute_joint_angle_multi_state_tag());
+	copy(monitoringMsg,std::back_inserter(state.torque),revolute_joint_torque_multi_state_tag());
+	copy(monitoringMsg,std::back_inserter(state.commandedPosition),revolute_joint_angle_multi_command_tag());
+	copy(monitoringMsg,std::back_inserter(state.commandedTorque),revolute_joint_torque_multi_command_tag());
+	copy(monitoringMsg,std::back_inserter(state.ipoJointPosition),revolute_joint_angle_interpolated_multi_state_tag());
 	state.sessionState = get(monitoringMsg,KUKA::FRI::ESessionState());
 	state.connectionQuality = get(monitoringMsg,KUKA::FRI::EConnectionQuality());
 	state.safetyState = get(monitoringMsg,KUKA::FRI::ESafetyState());
@@ -90,7 +108,9 @@ std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
 /// @todo implment async version of this, probably in a small class
 /// @todo implement sending state
 void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, KukaState& state){
-	std::size_t buf_size = socket.receive(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE));
+    
+    boost::asio::ip::udp::endpoint sender_endpoint;
+	std::size_t buf_size = socket.receive_from(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),sender_endpoint);
 	decode(friData,buf_size);
 	copy(friData.monitoringMsg,state);
 
