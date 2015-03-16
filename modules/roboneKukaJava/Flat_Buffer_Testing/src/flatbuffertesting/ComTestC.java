@@ -17,6 +17,8 @@ public class ComTestC {
         subscriber.connect("tcp://127.0.0.1:9998");
         subscriber.setRcvHWM(1000000);
         subscriber.subscribe(TOPIC.getBytes());
+        System.out.println("Subscribed to "+TOPIC);
+        
         int c = 0;
     
         while (true) {
@@ -24,6 +26,7 @@ public class ComTestC {
             ByteBuffer bb = ByteBuffer.wrap(data);
             VrepControlPoint controlpoint = VrepControlPoint.getRootAsVrepControlPoint(bb);
             Vector3d position = controlpoint.position();
+            System.out.println("Position "+c+":");
             System.out.println(position);
             if (c >= NUM_MSG) {
                     break;
