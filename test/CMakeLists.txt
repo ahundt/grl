@@ -75,3 +75,5 @@ endif ()
 # public tests
 # ============================================================================
 
+basis_add_executable(asioSocketTest.cpp)
+basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES})
