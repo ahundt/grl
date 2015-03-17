@@ -35,7 +35,7 @@
 #define PLUGIN_VERSION 1
 
 LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
-std::unique_ptr<KukaVrepInterface> kukaVrepInterfacePG;
+std::unique_ptr<robone::KukaVrep> kukaVrepInterfacePG;
 
 
 #define CONCAT(x,y,z) x y z

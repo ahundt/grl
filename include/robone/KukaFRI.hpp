@@ -307,7 +307,9 @@ namespace kuka {
              
              
                /// @todo should we pass bytes_transferred?
-               handler(ec,bytes_transferred);
+               /// @todo FIXME
+               //handler(ec,bytes_transferred);
+               //socket_.get_io_service().post(std::bind(handler,ec,bytes_transferred));
 			  
 			 },std::move(handler))));
 	  }
@@ -363,15 +365,17 @@ namespace kuka {
          
          // receive the latest state
          async_receive(monitor,
-           [this,&command,self](boost::system::error_code const ec, std::size_t bytes_transferred,Handler&& handler){
+           std::bind([this,&command,self](boost::system::error_code const ec, std::size_t bytes_transferred,Handler&& handler){
              if(!ec){
                // send the new command (if appropriate)
-               async_send(command, handler);
+               /// @todo FIXME
+               //async_send(command, std::forward<Handler>(handler));
              } else {
-               handler(ec,bytes_transferred);
+               /// @todo FIXME
+               //handler(ec,bytes_transferred);
              }
            
-           }
+           },std::move(handler))
          );
       }
     

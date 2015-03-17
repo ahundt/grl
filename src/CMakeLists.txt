@@ -54,6 +54,9 @@ if(MODULE_kuka_lwr_iiwa_fri)
 	#basis_include_directories(${kuka_lwr_iiwa_fri_PROJECT_INCLUDE_DIRS})
 	basis_add_executable(KukaFRITest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
 	basis_target_link_libraries(KukaFRITest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb)
+
+	basis_add_executable(KukaFRIClientDataTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
+	basis_target_link_libraries(KukaFRIClientDataTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb)
 endif()
 
 # ============================================================================
