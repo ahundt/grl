@@ -12,7 +12,7 @@ public class Pub { // Used to be Wuclient
         long bTime = System.currentTimeMillis();
         // Prepare our context and publisher
         Context context = ZMQ.context(1);
-        Socket publisher = context.socket(ZMQ.PUSH);
+        Socket publisher = context.socket(ZMQ.DEALER);
         publisher.bind("tcp://127.0.0.1:5563");
         publisher.setHWM(1000000);
         publisher.setSndHWM(1000000);

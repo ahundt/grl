@@ -8,16 +8,15 @@ import org.jeromq.ZMQ.Socket;
  
 public class ComTestC {
     static final int NUM_MSG = 10;
-    static final String TOPIC = "topic";
+    static final String ADDRESS = "tcp://127.0.0.1:9998";
     public static void main(String[] args) throws Exception {
  
         Context context = ZMQ.context(1);
-        Socket subscriber = context.socket(ZMQ.SUB);
+        Socket subscriber = context.socket(ZMQ.DEALER);
  
         subscriber.connect("tcp://127.0.0.1:9998");
         subscriber.setRcvHWM(1000000);
-        subscriber.subscribe(TOPIC.getBytes());
-        System.out.println("Subscribed to "+TOPIC);
+        System.out.println("Connected to: "+ADDRESS);
         
         int c = 0;
     
