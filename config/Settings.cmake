@@ -35,9 +35,12 @@ if(COMPILER_SUPPORTS_CXX11)
 elseif(COMPILER_SUPPORTS_CXX0X)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 else()
-        message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+        message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support, or our tests failed to detect it correctly. Please use a different C++ compiler or report this problem to the developers.")
 endif()
 
+# Link the boost.log library
+# @todo consider an alternative to always linking boost log
+ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 
 # OSX RPATH
 if(APPLE)

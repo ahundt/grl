@@ -106,7 +106,7 @@ basis_project (
     ZeroMQ
 	AZMQ
 	FlatBuffers
-	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine}
+	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log}
 	Eigen3
     #<dependency>
   OPTIONAL_DEPENDS

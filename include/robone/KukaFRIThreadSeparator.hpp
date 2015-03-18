@@ -1,5 +1,5 @@
-#ifndef _KUKA_VREP_INTERFACE_HPP_
-#define _KUKA_VREP_INTERFACE_HPP_
+#ifndef _KUKA_FRI_THREAD_SEPARATOR_
+#define _KUKA_FRI_THREAD_SEPARATOR_
 
 #include <tuple>
 #include <memory>
@@ -10,14 +10,18 @@
 
 namespace robone {
 
-/// @brief the purpose of this class is to integrate the KukaFRI driver with the VRep interface, which requires its own thread to be maintained    
+/// @brief Allows a thread to get data from a kuka device asynchronously without capturing the thread.
+///
+/// Interface for threads that have special status so cannot be mixed with other threads.
+/// Examples of this problem can be found in Qt and V-Rep plugins, for example.
 /// all async calls are done in a separate user thread
 /// you must call the async calls then call run_user()
 /// to call the corresponding handlers
-/// @todo Either rename this to be FRI specific, or maybe have one FRIKuka class, one JavaKuka class, and one new class that should have the KukaVrep name combining the two.
+/// @todo Either rename this to be FRI specific, or maybe have one FRIKuka class, one JavaKuka class, and one new class that should have the KukaFRIThreadSeparator name combining the two.
 /// @todo generalize this if possible to work for multiple devices beyond the kuka
 //template<template <typename> Allocator = std::allocator>
-class KukaVrep : std::enable_shared_from_this<KukaVrep> {
+/// @todo consider making this an asio io_service, see asio logger C++03 example https://github.com/boostorg/asio/tree/master/example/cpp03/services
+class KukaFRIThreadSeparator : std::enable_shared_from_this<KukaFRIThreadSeparator> {
     
 public:
     enum ParamIndex {
@@ -37,11 +41,25 @@ public:
     /// @todo move this to params
     static const int default_circular_buffer_size = 3;
     
-	KukaVrep(boost::asio::io_service& ios, Params params = defaultParams())
+	KukaFRIThreadSeparator(boost::asio::io_service& ios, Params params = defaultParams())
         :
         io_service_(ios),
         strand_(ios)
     {
+      construct(params);
+	}
+        
+	KukaFRIThreadSeparator(Params params = defaultParams())
+        :
+        optional_internal_io_service_P(new boost::asio::io_service),
+        io_service_(*optional_internal_io_service_P),
+        strand_(*optional_internal_io_service_P)
+    {
+      construct(params);
+	}
+    
+    
+    void construct(Params params = defaultParams()){
 
         boost::asio::ip::udp::socket s(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(std::get<localhost>(params)), boost::lexical_cast<short>(std::get<localport>(params))));
 
@@ -63,9 +81,9 @@ public:
         // start up the driver thread
         /// @todo perhaps allow user to control this?
         driver_threadP.reset(new std::thread([&]{ io_service_.run(); }));
-	}
+    }
 	
-	~KukaVrep(){
+	~KukaFRIThreadSeparator(){
 		workP.reset();
 	}
 	
@@ -88,6 +106,9 @@ public:
             if(!monitorStates.empty()){
                 monitorP = monitorStates.front();
                 monitorStates.pop_front();
+            } else {
+               // @todo allocation here, make sure the user knows something is wrong!
+               monitorP = std::make_shared<robot::arm::kuka::iiwa::MonitorState>();
             }
 
             // don't need to wrap this one because it happens in the user thread
@@ -108,6 +129,50 @@ public:
             commandStates.push_front(commandStateP);
 		}));
         
+    }
+    
+    
+    /// If you received a MonitorState previously, you can return it to the pool
+    /// this is only useful for performance reasons
+    void async_addMonitorState(std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> monitorP){
+    
+        auto self (shared_from_this());
+        
+		io_service_.post(strand_.wrap([this,self, monitorP](){
+		    // now in io_service_ thread, can return monitorstate to the buffer
+            monitorStates.push_back(monitorP);
+		}));
+    }
+    
+    
+    /// @brief get a command state from the internal pool
+    /// pass a handler with the signature void f(std::shared_ptr<robot::arm::kuka::iiwa::MonitorState>)
+    /// @note IMPORTANT: WRITE ONLY! The command you get may contain no data or old data
+    /// @todo this function may do an allocation, consider alternatives
+    template<typename Handler>
+    void async_MakeCommandState(Handler handler){
+        auto self(shared_from_this());
+        
+		io_service_.post(strand_.wrap([this,self,handler](){
+		    // now in io_service_ thread, can get latest state
+            std::shared_ptr<robot::arm::kuka::iiwa::CommandState> commandStateP;
+            // the most recent command should stay there
+            if(monitorStates.size()>1){
+                // old commands are in the back
+                commandStateP = commandStates.back();
+                commandStates.pop_front();
+            } else {
+               // @todo allocation here, make sure the user knows something is wrong!
+               commandStateP = std::make_shared<robot::arm::kuka::iiwa::CommandState>();
+            }
+
+            // don't need to wrap this one because it happens in the user thread
+            user_io_service_.post([commandStateP,handler](){
+                // now in user_io_service_thread, can pass the final result to the user
+                handler(commandStateP);
+            });
+		}));
+      
     }
     
   /// The io_service::run() call will block until all asynchronous operations
@@ -146,12 +211,15 @@ private:
                     commandStates.push_back(cs);
                      
                     // run this function again *after* it returns
-                    io_service_.post(std::bind(&KukaVrep::update_state,this));
+                    io_service_.post(std::bind(&KukaFRIThreadSeparator::update_state,this));
                 }
              //) // wrap call ends here, needs to be fixed
              ); // end async_update call
         }
     }
+    
+    /// may be null, allows the user to choose if they want to provide an io_service
+    std::unique_ptr<boost::asio::io_service> optional_internal_io_service_P;
     
 	// other things to do somewhere:
 	// - get list of control points
@@ -171,6 +239,7 @@ private:
     boost::circular_buffer<std::shared_ptr<robot::arm::kuka::iiwa::MonitorState>> monitorStates;
     /// the front is the most recent state, the back is the oldest
     boost::circular_buffer<std::shared_ptr<robot::arm::kuka::iiwa::CommandState>> commandStates;
+    
 };
 
 } // namespace robone

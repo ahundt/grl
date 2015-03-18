@@ -10,6 +10,7 @@
 # @brief Build configuration of software.
 ##############################################################################
 
+
 # list flatbuffer headers
 set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs)
 # directory to include flatbuffers

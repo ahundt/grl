@@ -29,9 +29,15 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
+
+
+# @todo THIS IF STATEMENT IS A HACK, FIX IT!
+if(MODULE_kuka_lwr_iiwa_fri)
 basis_add_library(v_repExtRobonePlugin SHARED v_repExtRobonePlugin.cpp v_repLib.cpp)
-basis_target_link_libraries(v_repExtRobonePlugin ${Boost_LIBRARIES})
+basis_target_link_libraries(v_repExtRobonePlugin ${Boost_LIBRARIES}  ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb)
 target_include_directories(v_repExtRobonePlugin SYSTEM PRIVATE "${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include")
+endif()
+
 
 
 # ============================================================================
