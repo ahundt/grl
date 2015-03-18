@@ -30,6 +30,7 @@
 #       BASIS will automatically add a library build target for these modules.
 
 basis_add_library(v_repExtRobonePlugin SHARED v_repExtRobonePlugin.cpp v_repLib.cpp)
+basis_target_link_libraries(v_repExtRobonePlugin ${Boost_LIBRARIES})
 target_include_directories(v_repExtRobonePlugin SYSTEM PRIVATE "${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include")
 
 

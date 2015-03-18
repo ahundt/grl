@@ -57,14 +57,8 @@ public:
    	       commandStates.push_back(std::make_shared<robot::arm::kuka::iiwa::CommandState>());
    	     }
     
-        std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> ms = monitorStates.front();
-        monitorStates.pop_front();
-        std::shared_ptr<robot::arm::kuka::iiwa::CommandState> cs = commandStates.front();
-        commandStates.pop_front();
-    
-        auto self(shared_from_this());
         // start running the
-        update_state(boost::system::error_code(),0,ms,cs,self);
+        update_state();
         
         // start up the driver thread
         /// @todo perhaps allow user to control this?
@@ -86,10 +80,10 @@ public:
     /// so be sure to check if it is valid
     /// @todo instead of posting an empty shared ptr consider also posting the corresponding error code
     template<typename Handler>
-	void async_getLatestState(Handler && handler){
+	void async_getLatestState(Handler handler){
         auto self(shared_from_this());
         
-		io_service_.post(strand_.wrap(std::bind([this,self](Handler && handler){
+		io_service_.post(strand_.wrap([this,self,handler](){
 		    // now in io_service_ thread, can get latest state
             std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> monitorP;
             if(!monitorStates.empty()){
@@ -98,11 +92,11 @@ public:
             }
 
             // don't need to wrap this one because it happens in the user thread
-            user_io_service_.post(std::bind([monitorP](Handler && handler){
+            user_io_service_.post([monitorP,handler](){
                 // now in user_io_service_thread, can pass the final result to the user
                 handler(monitorP);
-            },std::move(handler)));
-		},std::move(handler))));
+            });
+		}));
 	}
     
     /// @todo maybe allow a handler so the user can get their commands back?
@@ -131,36 +125,33 @@ public:
 private:
 
      /// @todo how to handle command state? If the user doesn't provide one what do we do? Copy the monitor state? This may be handled already in KukaFRI
-    void update_state(boost::system::error_code ec, std::size_t bytes_transferred, std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> ms, std::shared_ptr<robot::arm::kuka::iiwa::CommandState> cs, std::shared_ptr<KukaVrep> self){
-        // new data available
-        BOOST_VERIFY(monitorStates.size()>0); // we should always keep at least one state available
-
-        // put the latest state on the front and get the oldest from the back
-        monitorStates.push_front(ms);
-        ms = monitorStates.back();
-        monitorStates.pop_back();
-        
-        if(!commandStates.empty()){
-            // this state is old, put it in back of the line
-            commandStates.push_back(cs);
-            // get the latest out front
-            cs = commandStates.front();
+    void update_state(){
+        if(!io_service_.stopped()) {
+            
+            BOOST_VERIFY(!monitorStates.empty()); // we should always keep at least one state available
+            BOOST_VERIFY(!commandStates.empty()); // we should always keep at least one state available
+            std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> ms = monitorStates.front();
+            monitorStates.pop_front();
+            std::shared_ptr<robot::arm::kuka::iiwa::CommandState> cs = commandStates.front();
             commandStates.pop_front();
+            
+            auto self(shared_from_this());
+            
+            iiwaP->async_update(*ms,*cs,//strand_.wrap( /// @todo FIXME
+                [this,self,ms,cs](boost::system::error_code ec, std::size_t bytes_transferred){
+                    // new data available
+
+                    // put the latest state on the front and get the oldest from the back
+                    monitorStates.push_front(ms);
+                    // this command state is old, put it in back of the line
+                    commandStates.push_back(cs);
+                     
+                    // run this function again *after* it returns
+                    io_service_.post(std::bind(&KukaVrep::update_state,this));
+                }
+             //) // wrap call ends here, needs to be fixed
+             ); // end async_update call
         }
-        
-        if(!io_service_.stopped()) iiwaP->async_update(*ms,*cs,
-                                                               //strand_.wrap( /// @todo FIXME
-                                                                [](boost::system::error_code ec, std::size_t bytes_transferred){
-                                                                // do nothing
-                                                                }
-                                                               //)
-                                                      );
-        // rerun the kuka API
-//        if(!io_service_.stopped()) iiwaP->async_update(*ms,*cs,
-//                                                               //strand_.wrap( /// @todo FIXME
-//                                                                 std::bind(&KukaVrep::update_state,this,boost::asio::placeholders::error,boost::asio::placeholders::bytes_transferred,ms,cs,self)
-//                                                               //)
-//                                                      );
     }
     
 	// other things to do somewhere:

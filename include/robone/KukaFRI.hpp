@@ -282,14 +282,14 @@ namespace kuka {
       ///
       /// Design philosopy: it is important that thread safety be maintained, so a boost::asio::strand is used to enforced serial calling of receive/send for this
 	  template<typename Handler>
-	  void async_receive(MonitorState& monitor, Handler&& handler){
+	  void async_receive(MonitorState& monitor, Handler handler){
 	  
 		  auto self(shared_from_this());
 		  monitor.buf_.resize(monitor.buf_.capacity());
 		  
 		  socket_.async_receive(boost::asio::buffer(&monitor.buf_[0],monitor.buf_.size()),
              strand_.wrap( // serialize receive and send in a single thread
-             std::bind([this,self,&monitor](boost::system::error_code const ec, std::size_t bytes_transferred, Handler&& handler)
+             [this,self,&monitor,handler](boost::system::error_code const ec, std::size_t bytes_transferred)
 			 {
 			   monitor.buf_.resize(bytes_transferred);
 			   monitor.decoder.decode(reinterpret_cast<char*>(&(monitor.buf_[0])),bytes_transferred);
@@ -308,10 +308,10 @@ namespace kuka {
              
                /// @todo should we pass bytes_transferred?
                /// @todo FIXME
-               //handler(ec,bytes_transferred);
+               handler(ec,bytes_transferred);
                //socket_.get_io_service().post(std::bind(handler,ec,bytes_transferred));
 			  
-			 },std::move(handler))));
+			 }));
 	  }
       
 	  /// @brief Advanced function to send data to the FRI. We recommend using async_update.
@@ -325,7 +325,7 @@ namespace kuka {
       /// @todo should we pass bytes_transferred as well to f(boost::system::error_code,bytes_transferred)?
       /// @note the user is responsible for keeping the MonitorState valid for the duration of the asynchronous call
       template<typename Handler>
-      void async_send(CommandState& command, Handler&& handler){
+      void async_send(CommandState& command, Handler handler){
           /// @todo convert commandState_ to a parameter
           // Check whether to send a response
           
@@ -334,8 +334,8 @@ namespace kuka {
           
           socket_.get_io_service().post(
             strand_.wrap( // serialize receive and send in a single thread
-            std::bind([this,self,&command](Handler&& handler){
-              if (lastSendCounter_ >= receiveMultiplier_){
+            [this,self,&command,handler](){
+              if (isCommandReadyToSend()){
                   command.buf_.resize(command.buf_.capacity());
                   std::size_t buf_size = encode(command);
                   command.buf_.resize(buf_size);
@@ -345,37 +345,37 @@ namespace kuka {
                   socket_.async_send(
                       boost::asio::buffer(&command.buf_[0],buf_size),
                       strand_.wrap( // serialize receive and send in a single thread
-                      std::bind([this,self,&command](boost::system::error_code const ec, std::size_t bytes_transferred, Handler&& handler)
+                      [this,self,&command,handler](boost::system::error_code const ec, std::size_t bytes_transferred)
                       {
                           handler(ec,bytes_transferred);
-                      },std::move(handler))));
+                      }));
               } else {
                 // didn't need to send data at this time
                 // there is no error and no bytes were transferred
                 handler(boost::system::error_code(),0);
               }
-           },std::move(handler))));
+           }));
       }
     
       /// This is the recommended mechanism to communicate with the FRI
+      /// @todo may need to differentiate between async_receive failing and asying_send failing
       template<typename Handler>
-      void async_update(MonitorState& monitor, CommandState& command, Handler&& handler){
+      void async_update(MonitorState& monitor, CommandState& command, Handler handler){
       
          auto self(shared_from_this());
          
          // receive the latest state
          async_receive(monitor,
-           std::bind([this,&command,self](boost::system::error_code const ec, std::size_t bytes_transferred,Handler&& handler){
-             if(!ec){
+           // strand_.wrap( /// @todo FIXME wrap this call
+           [this,&command,self,handler](boost::system::error_code const ec, std::size_t bytes_transferred){
+             if(!ec && isCommandReadyToSend()){
                // send the new command (if appropriate)
-               /// @todo FIXME
-               //async_send(command, std::forward<Handler>(handler));
+               async_send(command, handler);
              } else {
-               /// @todo FIXME
-               //handler(ec,bytes_transferred);
+               handler(ec,bytes_transferred);
              }
            
-           },std::move(handler))
+           }/// ) /// @todo FIXME
          );
       }
     
@@ -387,6 +387,10 @@ namespace kuka {
     /// @todo provide a way for users to send commands (and not send commands) over FRI
     
 	private:
+    
+    bool isCommandReadyToSend(){
+       return lastSendCounter_ >= receiveMultiplier_;
+    }
     
     std::size_t encode(CommandState& command){
           lastSendCounter_ = 0;

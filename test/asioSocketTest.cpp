@@ -20,21 +20,21 @@ struct dummy{};
 struct SocketTest : std::enable_shared_from_this<SocketTest> {
 
 
-  SocketTest(boost::asio::ip::udp::socket socket):socket_(std::move(socket)){}
+  SocketTest(boost::asio::ip::udp::socket socket):socket_(std::move(socket)),strand_(socket_.get_io_service()){}
 
   template<typename Handler>
-  void async_receive(dummy dummy,Handler&& handler){
+  void async_receive(boost::system::error_code ec, std::size_t bytes_transferred, dummy dummy1,Handler handler, dummy dummy2){
     auto self(shared_from_this());
   
-    socket_.async_receive(boost::asio::buffer(buf_), std::bind([this,self](boost::system::error_code ec, std::size_t bytes_transferred, Handler&& moved_handler){
-       moved_handler(ec,bytes_transferred);
+    socket_.async_receive(boost::asio::buffer(buf_), strand_.wrap([this,self,handler](boost::system::error_code ec, std::size_t bytes_transferred){
+       handler(ec,bytes_transferred);
         
-    }, std::move(handler)));
-     
+    }));
   }
 
   std::array<char,max_length> buf_;
   boost::asio::ip::udp::socket socket_;
+  boost::asio::io_service::strand strand_;
 };
 
 
@@ -74,10 +74,11 @@ int main(int argc, char* argv[])
 	
     SocketTest socket_test(std::move(s));
 
-    socket_test.async_receive(dummy(), []( boost::system::error_code ec, std::size_t bytes_transferred){
+    socket_test.async_receive(boost::system::error_code(),0,dummy(), []( boost::system::error_code ec, std::size_t bytes_transferred){
         // many cool things accomplished!
-    });
-		
+    },dummy());
+  
+    io_service.run();
   }
   catch (std::exception& e)
   {
