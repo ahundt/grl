@@ -21,7 +21,7 @@ namespace robone {
 /// @todo generalize this if possible to work for multiple devices beyond the kuka
 //template<template <typename> Allocator = std::allocator>
 /// @todo consider making this an asio io_service, see asio logger C++03 example https://github.com/boostorg/asio/tree/master/example/cpp03/services
-class KukaFRIThreadSeparator : std::enable_shared_from_this<KukaFRIThreadSeparator> {
+class KukaFRIThreadSeparator : public std::enable_shared_from_this<KukaFRIThreadSeparator> {
     
 public:
     enum ParamIndex {
@@ -44,7 +44,9 @@ public:
 	KukaFRIThreadSeparator(boost::asio::io_service& ios, Params params = defaultParams())
         :
         io_service_(ios),
-        strand_(ios)
+        strand_(ios),
+        monitorStates(default_circular_buffer_size),
+        commandStates(default_circular_buffer_size)
     {
       construct(params);
 	}
@@ -53,7 +55,9 @@ public:
         :
         optional_internal_io_service_P(new boost::asio::io_service),
         io_service_(*optional_internal_io_service_P),
-        strand_(*optional_internal_io_service_P)
+        strand_(*optional_internal_io_service_P),
+        monitorStates(default_circular_buffer_size),
+        commandStates(default_circular_buffer_size)
     {
       construct(params);
 	}
@@ -67,7 +71,7 @@ public:
         boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), std::get<remotehost>(params), std::get<remoteport>(params)});
     	s.connect(endpoint);
         
-        iiwaP.reset(new robot::arm::kuka::iiwa(std::move(s)));
+        iiwaP = std::make_shared<robot::arm::kuka::iiwa>(std::move(s));
         
         
         for (int i = 0; i<default_circular_buffer_size; ++i) {
@@ -75,8 +79,8 @@ public:
    	       commandStates.push_back(std::make_shared<robot::arm::kuka::iiwa::CommandState>());
    	     }
     
-        // start running the
-        update_state();
+        // start running the driver
+        io_service_.post(std::bind(&KukaFRIThreadSeparator::update_state,this));
         
         // start up the driver thread
         /// @todo perhaps allow user to control this?
@@ -85,6 +89,8 @@ public:
 	
 	~KukaFRIThreadSeparator(){
 		workP.reset();
+        io_service_.stop();
+        driver_threadP->join();
 	}
 	
 	void sendControlPointToJava(){
@@ -228,7 +234,7 @@ private:
 	boost::asio::io_service& io_service_;
     boost::asio::io_service user_io_service_;
     boost::asio::io_service::strand strand_;
-    std::unique_ptr<robot::arm::kuka::iiwa> iiwaP;
+    std::shared_ptr<robot::arm::kuka::iiwa> iiwaP;
     std::unique_ptr<boost::asio::io_service::work> workP;
     std::unique_ptr<std::thread> driver_threadP;
     

@@ -217,7 +217,7 @@ namespace kuka {
     /// @internal
     ///   All async calls need to be wrapped in strand_.wrap(), this serializes the calls so there are no threading problems.
     /// @endinternal
-	class iiwa : std::enable_shared_from_this<iiwa>
+	class iiwa : public std::enable_shared_from_this<iiwa>
     {
     public:
     struct MonitorState {

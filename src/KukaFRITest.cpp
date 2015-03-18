@@ -43,13 +43,13 @@ int main(int argc, char* argv[])
       std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
 
     boost::asio::io_service io_service;
+    auto kukaFRIThreadSeparator = std::make_shared<robone::KukaFRIThreadSeparator>(io_service);
 
-    robone::KukaFRIThreadSeparator kukaFRIThreadSeparator(io_service);
 
 
     double delta = 0.0001;
 	for (std::size_t i = 0;;++i) {
-        kukaFRIThreadSeparator.async_getLatestState([&delta,&kukaFRIThreadSeparator](std::shared_ptr<robone::robot::arm::kuka::iiwa::MonitorState> updatedState){
+        kukaFRIThreadSeparator->async_getLatestState([&delta,&kukaFRIThreadSeparator](std::shared_ptr<robone::robot::arm::kuka::iiwa::MonitorState> updatedState){
             boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> jointAngles;
             robone::robot::arm::copy(updatedState->get(), std::back_inserter(jointAngles), robone::revolute_joint_angle_open_chain_state_tag());
             
@@ -60,12 +60,12 @@ int main(int argc, char* argv[])
             
             auto commandP = std::make_shared<robone::robot::arm::kuka::iiwa::CommandState>();
             robone::robot::arm::set(*commandP, jointAngles, robone::revolute_joint_angle_open_chain_command_tag());
-            kukaFRIThreadSeparator.async_sendCommand(commandP);
+            kukaFRIThreadSeparator->async_sendCommand(commandP);
             
             
         });
         
-            kukaFRIThreadSeparator.run_user();
+        kukaFRIThreadSeparator->run_user();
 		
 	}
   }
