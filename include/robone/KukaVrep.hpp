@@ -74,7 +74,6 @@ public:
 	}
 	
     
-    // todo
     /// pass a handler with the signature void f(std::shared_ptr<robot::arm::kuka::iiwa::MonitorState>)
     /// note that if no states are available, an empty sharedptr will be posted,
     /// so be sure to check if it is valid

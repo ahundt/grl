@@ -245,7 +245,7 @@ namespace kuka {
         CommandState(const CommandState&) = delete;
         CommandState& operator=(const CommandState&) = delete;
         
-        const FRICommandMessage& get() const {return commandMessage;}
+        FRICommandMessage& get() {return commandMessage;}
         
     private:
         FRICommandMessage commandMessage;          //!< command message struct
@@ -422,22 +422,32 @@ namespace kuka {
         boost::asio::io_service::strand strand_;
         boost::asio::ip::udp::socket socket_;
 	};
-        
-        
-        // unwrap the monitor state when calling get()
-        template<typename T>
-        T get(const iiwa::MonitorState & state, T&& t){
-            return get(state.get(),std::forward<T>(t));
-        }
-        
-        
-        // unwrap the monitor state when calling copy()
-        template<typename ...Params>
-        void copy(iiwa::MonitorState &state, Params&&... params){
-            copy(state.get(),std::forward<Params>(params)...);
-        }
+    
 	
     } // namespace kuka
+
+        
+    // unwrap the monitor state when calling get()
+    template<typename T>
+    T get(const kuka::iiwa::MonitorState & state, T&& t){
+        return get(state.get(),std::forward<T>(t));
+    }
+    
+    
+    // unwrap the monitor state when calling copy()
+    template<typename ...Params>
+    void copy(kuka::iiwa::MonitorState &state, Params&&... params){
+        copy(state.get(),std::forward<Params>(params)...);
+    }
+    
+    
+    
+    // unwrap the monitor state when calling get()
+    template<typename Range>
+    void set(kuka::iiwa::CommandState & state, Range range, robone::revolute_joint_angle_open_chain_command_tag tag){
+        set(state.get(),range,tag);
+    }
+
 
 }}} // namespace robone::robot::arm
 
