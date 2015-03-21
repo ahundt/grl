@@ -1,17 +1,23 @@
 package friCommunication;
 
+import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
+import java.util.concurrent.TimeUnit;
+
 import com.kuka.connectivity.fri.FRIConfiguration;
+import com.kuka.connectivity.fri.FRIJointOverlay;
 import com.kuka.connectivity.fri.FRISession;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.deviceModel.LBR;
+import com.kuka.roboticsAPI.geometricModel.CartDOF;
+import com.kuka.roboticsAPI.motionModel.controlModeModel.CartesianImpedanceControlMode;
 
 /**
  * Creates a FRI Session.
  */
-public class FRICommandsMotionJavaHoldsPosition extends RoboticsAPIApplication
+public class FRIHoldsPosition_Command extends RoboticsAPIApplication
 {
     private Controller _lbrController;
     private LBR _lbr;
@@ -25,7 +31,7 @@ public class FRICommandsMotionJavaHoldsPosition extends RoboticsAPIApplication
         // **********************************************************************
         // *** change next line to the FRIClient's IP address                 ***
         // **********************************************************************
-        _hostName = "127.0.0.1";
+        _hostName = "192.170.10.100";
     }
 
     @Override
@@ -35,7 +41,7 @@ public class FRICommandsMotionJavaHoldsPosition extends RoboticsAPIApplication
         FRIConfiguration friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
         friConfiguration.setSendPeriodMilliSec(4);
         FRISession friSession = new FRISession(friConfiguration);
-		FRIJointOverlay motionOverlay = new FRIJointOverlay(session);
+		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
 		
 		CartesianImpedanceControlMode controlMode = new CartesianImpedanceControlMode();
 		controlMode.parametrize(CartDOF.X).setStiffness(1000.0);
@@ -44,7 +50,7 @@ public class FRICommandsMotionJavaHoldsPosition extends RoboticsAPIApplication
         _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
 
         // sync move for infinite time with overlay ...
-		lbr.move(positionHold(controlMode, -1, TimeUnit.SECONDS).addMotionOverlay(motionOverlay));
+		_lbr.move(positionHold(controlMode, -1, TimeUnit.SECONDS).addMotionOverlay(motionOverlay));
         //_lbr.moveAsync(ptp(Math.toRadians(-90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
 
         // ... blending into sync move with overlay
@@ -62,7 +68,7 @@ public class FRICommandsMotionJavaHoldsPosition extends RoboticsAPIApplication
      */
     public static void main(final String[] args)
     {
-        final FRICommandsMotionJavaHoldsPosition app = new FRICommandsMotionJavaHoldsPosition();
+        final FRIHoldsPosition_Command app = new FRIHoldsPosition_Command();
         app.runApplication();
     }
 

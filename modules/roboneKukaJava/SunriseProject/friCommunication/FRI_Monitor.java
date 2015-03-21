@@ -11,7 +11,7 @@ import com.kuka.roboticsAPI.deviceModel.LBR;
 /**
  * Creates a FRI Session.
  */
-public class FRITestingMontiorMode extends RoboticsAPIApplication
+public class FRI_Monitor extends RoboticsAPIApplication
 {
     private Controller _lbrController;
     private LBR _lbr;
@@ -25,7 +25,7 @@ public class FRITestingMontiorMode extends RoboticsAPIApplication
         // **********************************************************************
         // *** change next line to the FRIClient's IP address                 ***
         // **********************************************************************
-        _hostName = "127.0.0.1";
+        _hostName = "192.170.10.100";
     }
 
     @Override
@@ -35,7 +35,7 @@ public class FRITestingMontiorMode extends RoboticsAPIApplication
         FRIConfiguration friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
         friConfiguration.setSendPeriodMilliSec(4);
         FRISession friSession = new FRISession(friConfiguration);
-     
+        for(int i = 0; i < 50; i++){
         // move to start pose
         _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
 
@@ -44,6 +44,7 @@ public class FRITestingMontiorMode extends RoboticsAPIApplication
 
         // ... blending into sync move with overlay
         _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
+        }
 
         // done
         friSession.close();
@@ -57,7 +58,7 @@ public class FRITestingMontiorMode extends RoboticsAPIApplication
      */
     public static void main(final String[] args)
     {
-        final FRITestingMontiorMode app = new FRITestingMontiorMode();
+        final FRI_Monitor app = new FRI_Monitor();
         app.runApplication();
     }
 
