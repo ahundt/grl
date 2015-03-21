@@ -287,8 +287,9 @@ namespace kuka {
 		  auto self(shared_from_this());
 		  monitor.buf_.resize(monitor.buf_.capacity());
 		  
-		  socket_.async_receive(boost::asio::buffer(&monitor.buf_[0],monitor.buf_.size()),
-             strand_.wrap( // serialize receive and send in a single thread
+		  socket_.async_receive_from(boost::asio::buffer(&monitor.buf_[0],monitor.buf_.size()),sender_endpoint_,
+             /// @todo FIXME disabled strand_.wrap(
+             //strand_.wrap( // serialize receive and send in a single thread
              [this,self,&monitor,handler](boost::system::error_code const ec, std::size_t bytes_transferred)
 			 {
 			   monitor.buf_.resize(bytes_transferred);
@@ -311,7 +312,9 @@ namespace kuka {
                handler(ec,bytes_transferred);
                //socket_.get_io_service().post(std::bind(handler,ec,bytes_transferred));
 			  
-			 }));
+			 }
+             //)
+             );
 	  }
       
 	  /// @brief Advanced function to send data to the FRI. We recommend using async_update.
@@ -333,7 +336,8 @@ namespace kuka {
 		  command.buf_.resize(command.buf_.capacity());
           
           socket_.get_io_service().post(
-            strand_.wrap( // serialize receive and send in a single thread
+            /// @todo FIXME strand wrap disabled
+            //strand_.wrap( // serialize receive and send in a single thread
             [this,self,&command,handler](){
               if (isCommandReadyToSend()){
                   command.buf_.resize(command.buf_.capacity());
@@ -342,8 +346,8 @@ namespace kuka {
                   
                   auto self(shared_from_this());
                   
-                  socket_.async_send(
-                      boost::asio::buffer(&command.buf_[0],buf_size),
+                  socket_.async_send_to(
+                      boost::asio::buffer(&command.buf_[0],buf_size),sender_endpoint_,
                       strand_.wrap( // serialize receive and send in a single thread
                       [this,self,&command,handler](boost::system::error_code const ec, std::size_t bytes_transferred)
                       {
@@ -354,7 +358,9 @@ namespace kuka {
                 // there is no error and no bytes were transferred
                 handler(boost::system::error_code(),0);
               }
-           }));
+           }
+           //)
+           );
       }
     
       /// This is the recommended mechanism to communicate with the FRI
@@ -418,6 +424,7 @@ namespace kuka {
         uint32_t receiveMultiplier_;
         KUKA::FRI::ESessionState sessionState_;
         boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> lastMonitorJointAngles_;
+        boost::asio::ip::udp::endpoint sender_endpoint_;
     
         boost::asio::io_service::strand strand_;
         boost::asio::ip::udp::socket socket_;

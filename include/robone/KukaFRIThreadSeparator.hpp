@@ -39,7 +39,7 @@ public:
     }
     
     /// @todo move this to params
-    static const int default_circular_buffer_size = 3;
+    static const int default_circular_buffer_size = 10;
     
 	KukaFRIThreadSeparator(boost::asio::io_service& ios, Params params = defaultParams())
         :
@@ -88,7 +88,7 @@ public:
     }
 	
 	~KukaFRIThreadSeparator(){
-		workP.reset();
+		//workP.reset();
         io_service_.stop();
         driver_threadP->join();
 	}
@@ -109,12 +109,15 @@ public:
 		io_service_.post(strand_.wrap([this,self,handler](){
 		    // now in io_service_ thread, can get latest state
             std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> monitorP;
-            if(!monitorStates.empty()){
-                monitorP = monitorStates.front();
-                monitorStates.pop_front();
-            } else {
+            if(latest_monitorState_.get()!=nullptr){
+                monitorP = latest_monitorState_;
+                latest_monitorState_.reset();
+            }
+            
+            if(monitorStates.empty()) {
                // @todo allocation here, make sure the user knows something is wrong!
-               monitorP = std::make_shared<robot::arm::kuka::iiwa::MonitorState>();
+               // do nothing because this can be called a lot, user has to resupply
+               monitorStates.push_back(std::make_shared<robot::arm::kuka::iiwa::MonitorState>());
             }
 
             // don't need to wrap this one because it happens in the user thread
@@ -152,7 +155,7 @@ public:
     
     
     /// @brief get a command state from the internal pool
-    /// pass a handler with the signature void f(std::shared_ptr<robot::arm::kuka::iiwa::MonitorState>)
+    /// pass a handler with the signature void f(std::shared_ptr<robot::arm::kuka::iiwa::CommandState>)
     /// @note IMPORTANT: WRITE ONLY! The command you get may contain no data or old data
     /// @todo this function may do an allocation, consider alternatives
     template<typename Handler>
@@ -163,7 +166,7 @@ public:
 		    // now in io_service_ thread, can get latest state
             std::shared_ptr<robot::arm::kuka::iiwa::CommandState> commandStateP;
             // the most recent command should stay there
-            if(monitorStates.size()>1){
+            if(commandStates.size()>1){
                 // old commands are in the back
                 commandStateP = commandStates.back();
                 commandStates.pop_front();
@@ -191,6 +194,10 @@ public:
     void run_user(){
         user_io_service_.run();
     }
+    
+    boost::asio::io_service& get_user_io_service(){
+        return user_io_service_;
+    }
 
 private:
 
@@ -209,10 +216,10 @@ private:
             
             iiwaP->async_update(*ms,*cs,//strand_.wrap( /// @todo FIXME
                 [this,self,ms,cs](boost::system::error_code ec, std::size_t bytes_transferred){
-                    // new data available
-
+                    // new data available, if the old one wasn't taken send it back into the circular buffer
+                    if(latest_monitorState_) monitorStates.push_front(latest_monitorState_);
                     // put the latest state on the front and get the oldest from the back
-                    monitorStates.push_front(ms);
+                    latest_monitorState_ = ms;
                     // this command state is old, put it in back of the line
                     commandStates.push_back(cs);
                      
@@ -235,13 +242,14 @@ private:
     boost::asio::io_service user_io_service_;
     boost::asio::io_service::strand strand_;
     std::shared_ptr<robot::arm::kuka::iiwa> iiwaP;
-    std::unique_ptr<boost::asio::io_service::work> workP;
+    //std::unique_ptr<boost::asio::io_service::work> workP;
     std::unique_ptr<std::thread> driver_threadP;
     
     /// @todo have separate sets for full/empty states?
     /// @todo replace with unique_ptr
     
     /// the front is the most recent state, the back is the oldest
+    std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> latest_monitorState_;
     boost::circular_buffer<std::shared_ptr<robot::arm::kuka::iiwa::MonitorState>> monitorStates;
     /// the front is the most recent state, the back is the oldest
     boost::circular_buffer<std::shared_ptr<robot::arm::kuka::iiwa::CommandState>> commandStates;

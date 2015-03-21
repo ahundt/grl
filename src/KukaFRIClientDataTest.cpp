@@ -7,6 +7,7 @@
 
 #include "robone/KukaFRI.hpp"
 #include "robone/KukaFriClientData.hpp"
+#include <boost/log/trivial.hpp>
 
 //
 // blocking_udp_echo_client.cpp
@@ -23,12 +24,11 @@
 #include <iostream>
 #include <boost/asio.hpp>
 #include <vector>
-using std::vector;
 #include <iostream>
-using std::ostream;
+
 
 template<typename T,size_t N>
-ostream& operator<< (ostream& out, const boost::container::static_vector<T,N>& v) {
+std::ostream& operator<< (std::ostream& out, const boost::container::static_vector<T,N>& v) {
     out << "[";
     size_t last = v.size() - 1;
     for(size_t i = 0; i < v.size(); ++i) {
@@ -39,6 +39,58 @@ ostream& operator<< (ostream& out, const boost::container::static_vector<T,N>& v
     out << "]";
     return out;
 }
+
+
+template<typename T,std::size_t U>
+inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  boost::container::static_vector<T,U>& v)
+{
+    out << "[";
+    size_t last = v.size() - 1;
+    for(size_t i = 0; i < v.size(); ++i) {
+        out << v[i];
+        if (i != last) 
+            out << ", ";
+    }
+    out << "]";
+    return out;
+}
+
+//
+//template<typename T,typename V>
+//inline T& printseq(T& out, V& v){
+//    out << "[";
+//    size_t last = v.size() - 1;
+//    for(size_t i = 0; i < v.size(); ++i) {
+//        out << v[i];
+//        if (i != last) 
+//            out << ", ";
+//    }
+//    out << "]";
+//    return out;
+//}
+//
+//template<typename T,size_t N>
+//inline boost::log::formatting_ostream& operator<< (boost::log::formatting_ostream& out, const boost::container::static_vector<T,N>& v) {
+//  return printseq(out,v);
+//}
+//
+//
+//template<typename T,size_t N>
+//ostream& operator<< (ostream& out, const boost::container::static_vector<T,N>& v) {
+//  return printseq(out,v);
+//}
+//
+//
+//template<typename T>
+//inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
+//{
+//    return printseq(out, v);
+//}
+//template<typename T>
+//inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)
+//{
+//    return printseq(out,v);
+//}
 
 using boost::asio::ip::udp;
 
@@ -84,14 +136,30 @@ int main(int argc, char* argv[])
     friData.expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
 
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+  
+    
+    double delta = 0.001;
+    BOOST_LOG_TRIVIAL(warning) << "WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT "
+                               << "if joint angle delta variable is too large with respect to "
+                               << "the time it takes to go around the loop and change it. "
+                               << "Current delta (radians/update): " << delta << "\n";
+  
 
 	for (std::size_t i = 0;;++i) {
+        try {
 		update_state(s,friData,state);
+        } catch(...){} // dangerous, fix this
 		if (i==0) {
 			startTime = state.timestamp;
 		}
-		std::cout << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << "\n";
-		
+		BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << "\n";
+            state.ipoJointPosition.clear();
+            boost::copy(state.position,std::back_inserter(state.ipoJointPosition));
+            /// consider moving joint angles based on time
+//            int joint_to_move = 3;
+//            state.ipoJointPosition[joint_to_move]+=delta;
+//            if (state.ipoJointPosition[joint_to_move] >  1.5 && delta > 0) delta *=-1;
+//            if (state.ipoJointPosition[joint_to_move] < -1.5 && delta < 0) delta *=-1;
 	}
   }
   catch (std::exception& e)
