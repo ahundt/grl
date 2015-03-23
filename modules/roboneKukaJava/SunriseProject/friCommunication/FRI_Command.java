@@ -2,6 +2,9 @@ package friCommunication;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import com.kuka.connectivity.fri.FRIConfiguration;
 import com.kuka.connectivity.fri.FRIJointOverlay;
 import com.kuka.connectivity.fri.FRISession;
@@ -37,18 +40,33 @@ public class FRI_Command extends RoboticsAPIApplication
         friConfiguration.setSendPeriodMilliSec(4);
         FRISession friSession = new FRISession(friConfiguration);
 		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
+		
+        // wait until FRI session is ready to switch to command mode
+        try
+        {
+            friSession.await(10, TimeUnit.SECONDS);
+        }
+        catch (final TimeoutException e)
+        {
 
-        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
+        }
+
+        // move to start pose
+        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(90), .0));
         
 	     for(int i = 0; i < 100; i++) {
-		    // async move with overlay ...
-	        _lbr.moveAsync(ptp(Math.toRadians(-90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0).addMotionOverlay(motionOverlay));
-	
+	         // async move with overlay ...
+	         _lbr.moveAsync(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(90), .0)
+	                 .setJointVelocityRel(0.2)
+	                 .addMotionOverlay(motionOverlay)
+	                 .setBlendingRel(0.1)
+	                 );
 
-	        // ... blending into sync move 
-	        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0).addMotionOverlay(motionOverlay));
-	//        _lbr.moveAsync(ptp(Math.toRadians(-90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0).addMotionOverlay(motionOverlay));
-	
+	         // ... blending into sync move with overlay
+	         _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0)
+	                 .setJointVelocityRel(0.2)
+	                 .addMotionOverlay(motionOverlay)
+	                 );
 	     }
 
 	    _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
