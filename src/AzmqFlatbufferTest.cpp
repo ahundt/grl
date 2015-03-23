@@ -89,7 +89,9 @@ int main(int argc, char* argv[])
       shouldReceive = true;
     }
     
-    std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
+    std::cout << "using: "  << argv[0] << " ";
+    if(shouldReceive) std::cout <<  localhost << " " << localport << " ";
+    std::cout <<  remotehost << " " << remoteport << "\n";
     boost::asio::io_service io_service;
 	
 	
