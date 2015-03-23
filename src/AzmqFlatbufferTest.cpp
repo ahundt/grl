@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
       return 1;
     }
     
-    bool shouldReceive = false;
+    bool shouldReceive = true;
   
     if(argc == 3){
       remotehost = std::string(argv[1]);
@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 	{
 		boost::system::error_code ec;
 		azmq::socket socket(io_service, ZMQ_DEALER);
-		if (shouldReceive) socket.bind("tcp://" + localhost + ":" + localport);
+		socket.bind("tcp://" + localhost + ":" + localport);
 		receiveP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 	}
 
@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
 	{
 		boost::system::error_code ec;
 		azmq::socket socket(io_service, ZMQ_DEALER);
-		if(shouldReceive) socket.bind("tcp://" + localhost + ":" + localport);
+		socket.bind("tcp://" + localhost + ":" + localport);
 		socket.connect("tcp://"+ remotehost + ":" + remoteport);
 		receiveP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 	}
