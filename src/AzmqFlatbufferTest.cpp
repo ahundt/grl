@@ -16,7 +16,7 @@
 /// @see overview of zmq socket types https://sachabarbs.wordpress.com/2014/08/21/zeromq-2-the-socket-types-2/
 /// @see bounce is based on https://github.com/zeromq/azmq/blob/master/test/socket/main.cpp
 /// @see flatbuffers https://google.github.io/flatbuffers/md__cpp_usage.html
-void bounce(std::shared_ptr<AzmqFlatbuffer> sendP, std::shared_ptr<AzmqFlatbuffer> receiveP) {
+void bounce(std::shared_ptr<AzmqFlatbuffer> sendP, std::shared_ptr<AzmqFlatbuffer> receiveP, bool shouldReceive = true) {
 	
 	receiveP->start_async_receive_buffers();
 	
@@ -35,7 +35,7 @@ void bounce(std::shared_ptr<AzmqFlatbuffer> sendP, std::shared_ptr<AzmqFlatbuffe
 		
 		//////////////////////////////////////////////
 		// Server receives from client asynchronously!
-		while (!receiveP->receive_buffers_empty()) {
+		while (shouldReceive && !receiveP->receive_buffers_empty()) {
 			auto rbP = receiveP->get_back_receive_buffer_with_data();
 			auto rbPstart = &(rbP->begin()[0]);
 			auto verifier = flatbuffers::Verifier(rbPstart,rbP->size());
@@ -57,8 +57,39 @@ void bounce(std::shared_ptr<AzmqFlatbuffer> sendP, std::shared_ptr<AzmqFlatbuffe
 
 int main(int argc, char* argv[])
 {
-  try
-  {
+//  try
+//  {
+  
+    std::string localhost("127.0.0.1");
+    std::string localport("9998");
+    std::string remotehost("127.0.0.1");
+    std::string remoteport("9998");
+  
+    std::cout << "argc: " << argc << "\n";
+	  /// @todo add default localhost/localport
+    if (argc != 5 && argc != 1 && argc != 3)
+    {
+      std::cerr << "Usage: " << argv[0] << " <localip> <localport> <remoteip> <remoteport>\n";
+      return 1;
+    }
+    
+    bool shouldReceive = false;
+  
+    if(argc == 3){
+      remotehost = std::string(argv[1]);
+      remoteport = std::string(argv[2]);
+      shouldReceive = false;
+    }
+    
+    if(argc == 5){
+      localhost = std::string(argv[1]);
+      localport = std::string(argv[2]);
+      remotehost = std::string(argv[3]);
+      remoteport = std::string(argv[4]);
+      shouldReceive = true;
+    }
+    
+    std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
     boost::asio::io_service io_service;
 	
 	
@@ -70,14 +101,14 @@ int main(int argc, char* argv[])
 	{
 		boost::system::error_code ec;
 		azmq::socket socket(io_service, ZMQ_DEALER);
-		socket.connect("tcp://127.0.0.1:9998");
+		socket.connect("tcp://"+ remotehost + ":" + remoteport);
 		sendP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 	}
 	std::shared_ptr<AzmqFlatbuffer> receiveP;
 	{
 		boost::system::error_code ec;
 		azmq::socket socket(io_service, ZMQ_DEALER);
-		socket.bind("tcp://127.0.0.1:9998");
+		if (shouldReceive) socket.bind("tcp://" + localhost + ":" + localport);
 		receiveP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 	}
 
@@ -89,22 +120,22 @@ int main(int argc, char* argv[])
 	{
 		boost::system::error_code ec;
 		azmq::socket socket(io_service, ZMQ_DEALER);
-		socket.bind("tcp://127.0.0.1:9998");
-		socket.connect("tcp://127.0.0.1:9998");
+		if(shouldReceive) socket.bind("tcp://" + localhost + ":" + localport);
+		socket.connect("tcp://"+ remotehost + ":" + remoteport);
 		receiveP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 	}
 
 	// Will run until signal is received, using one object for both send and receive
-    std::thread t(bounce,receiveP,receiveP);
+    std::thread t(bounce,receiveP,receiveP,shouldReceive);
 #endif
 	
 	io_service.run();
 	
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "Exception: " << e.what() << "\n";
-  }
+//  }
+//  catch (std::exception& e)
+//  {
+//    std::cerr << "Exception: " << e.what() << "\n";
+//  }
 
   return 0;
 }
