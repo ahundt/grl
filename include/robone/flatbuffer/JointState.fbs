@@ -1,0 +1,11 @@
+
+namespace robone;
+
+table JointState {
+  // @todo consider adding name string
+  position:[double]; // angle in radians
+  velocity:[double]; // velocity in radians/second
+  acceleration:[double]; // acceleration in radians/(second^2)
+}
+
+root_type JointState;
