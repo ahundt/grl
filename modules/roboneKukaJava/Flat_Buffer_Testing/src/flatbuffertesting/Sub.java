@@ -7,8 +7,8 @@ import org.jeromq.ZMQ.Context;
 import org.jeromq.ZMQ.Socket;
  
 //https://github.com/miniway/jeromq/tree/master/src/test/java/guide
-public class Sub { // Used to be Wuserver
-    static final int NUM_MSG = 1000000;
+public class Sub {
+    static final int NUM_MSG = 10;
     static final String ADDRESS = "tcp://127.0.0.1:5563";
     public static void main(String[] args) throws Exception {
         long bTime = System.currentTimeMillis();
@@ -23,15 +23,14 @@ public class Sub { // Used to be Wuserver
         
         int c = 0;
         while (true) {
-            String msg = subscriber.recvStr();
-            if(msg.startsWith("message")){
-                c++;
-                System.out.println(c + msg);
-                if (c >= NUM_MSG) {
-                    break;
-                }
+            byte [] msg = subscriber.recv();
+            c++;
+            System.out.println(msg);
+            if (c >= NUM_MSG) {
+                break;
             }
         }
+        
         long secs = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()- bTime);
         System.out.println("Wuserver done at " + c + " in " + secs + " seconds");
         subscriber.close();
