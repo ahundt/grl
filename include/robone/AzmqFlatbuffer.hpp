@@ -21,11 +21,6 @@
 #include <flatbuffers/flatbuffers.h>
 
 
-#include "robone/flatbuffer/Geometry_generated.h"
-#include "robone/flatbuffer/VrepControlPoint_generated.h"
-#include "robone/flatbuffer/VrepPath_generated.h"
-
-
 
 /// @brief sends and receives flatbuffer data via AZMQ implementation of ZeroMQ plus manages the relevant buffers
 ///

@@ -60,6 +60,9 @@ public:
         commandStates(default_circular_buffer_size)
     {
       construct(params);
+      
+        // start up the driver thread since the io_service_ is internal only
+        driver_threadP.reset(new std::thread([&]{ io_service_.run(); }));
 	}
     
     
@@ -82,15 +85,14 @@ public:
         // start running the driver
         io_service_.post(std::bind(&KukaFRIThreadSeparator::update_state,this));
         
-        // start up the driver thread
-        /// @todo perhaps allow user to control this?
-        driver_threadP.reset(new std::thread([&]{ io_service_.run(); }));
     }
 	
 	~KukaFRIThreadSeparator(){
-		//workP.reset();
-        io_service_.stop();
-        driver_threadP->join();
+        if(driver_threadP){
+		  //workP.reset();
+          driver_threadP->join();
+          io_service_.stop();
+        }
 	}
 	
 	void sendControlPointToJava(){

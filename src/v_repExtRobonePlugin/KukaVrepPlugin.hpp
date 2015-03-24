@@ -7,10 +7,13 @@
 #include <boost/log/trivial.hpp>
 
 #include "robone/KukaFRIThreadSeparator.hpp"
+#include "robone/AzmqFlatbuffer.hpp"
+#include "robone/flatbuffer/JointState_generated.h"
 
 #include "v_repLib.h"
 
 /// @todo separate out robone specific code from general kuka control code
+/// @todo Template on robot driver and create a driver that just reads/writes to/from the simulation, then pass the two templates so the simulation and the real driver can be selected.
 class KukaVrepPlugin : public std::enable_shared_from_this<KukaVrepPlugin> {
 public:
 
@@ -27,11 +30,15 @@ public:
         RobotTargetBaseName,
         ImplantCutPathName,
         RemoveBallJointPathName,
-        FemurBoneName
+        FemurBoneName,
+        LocalZMQAddress,
+        RemoteZMQAddress
     };
     
     /// @todo allow default params
     typedef std::tuple<
+        std::string,
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -62,23 +69,37 @@ public:
                     "Robotiiwa"              , // RobotTargetBaseHandle,
                     "ImplantCutPath"         , // ImplantCutPathHandle,
                     "RemoveBallJoint"        , // RemoveBallJointPathHandle,
-                    "FemurBone"                // FemurBoneHandle
+                    "FemurBone"              , // FemurBoneHandle
+                    "tcp://0.0.0.0:5563"     , // LocalZMQAddress
+                    "tcp://172.31.1.147:5563"  // RemoteZMQAddress
                 );
     }
 
 /// @todo allow KukaFRIThreadSeparator parameters to be updated
 KukaVrepPlugin (Params params = defaultParams())
       :
-      params_(params),
-      kukaFRIThreadSeparatorP(new robone::KukaFRIThreadSeparator())
+      kukaFRIThreadSeparatorP(new robone::KukaFRIThreadSeparator(device_driver_io_service)),
+      params_(params)
 {
   initHandles();
+  
+  	{
+		boost::system::error_code ec;
+		azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
+		socket.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
+		socket.connect(std::get<RemoteZMQAddress>            (params_).c_str()   );
+		kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
+	}
+    
+        // start up the driver thread
+        /// @todo perhaps allow user to control this?
+        driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
 }
 
 
 void run_one(){
 
-  if(!allHandlesSet) throw std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates.");
+  if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates."));
   getRealKukaAngles();
   getStateFromVrep();
   updateVrepFromKuka();
@@ -142,13 +163,41 @@ void getRealKukaAngles() {
 void sendSimulatedJointAnglesToKuka(){
 
         BOOST_VERIFY(kukaFRIThreadSeparatorP);
+    
+/// @todo make this handled by template driver implementations/extensions
+
+        if(kukaJavaDriverP){
+            /////////////////////////////////////////
+            // Client sends to server asynchronously!
             
-        // create the command for the FRI
-        auto commandP = std::make_shared<robone::robot::arm::kuka::iiwa::CommandState>();
-        // Set the FRI to the simulated joint positions
-        robone::robot::arm::set(*commandP, simJointPosition, robone::revolute_joint_angle_open_chain_command_tag());
-        // send the command
-        this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
+            /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
+            std::vector<double> joints;
+            
+			auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+			
+            /// @todo should we use simJointTargetPosition here?
+            joints.clear();
+            boost::copy(simJointPosition, std::back_inserter(joints));
+            auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
+            /// @note we don't have a velocity right now, sending empty!
+            joints.clear();
+            //boost::copy(simJointVelocity, std::back_inserter(joints));
+            auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
+            joints.clear();
+            boost::copy(simJointForce, std::back_inserter(joints));
+            auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
+			auto jointState = robone::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
+			robone::FinishJointStateBuffer(*fbbP, jointState);
+			kukaJavaDriverP->async_send_flatbuffer(fbbP);
+            
+        } else {
+            // create the command for the FRI
+            auto commandP = std::make_shared<robone::robot::arm::kuka::iiwa::CommandState>();
+            // Set the FRI to the simulated joint positions
+            robone::robot::arm::set(*commandP, simJointPosition, robone::revolute_joint_angle_open_chain_command_tag());
+            // send the command
+            this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
+        }
     
         kukaFRIThreadSeparatorP->run_user();
 }
@@ -238,9 +287,12 @@ bool allHandlesSet = false;
 
 boost::asio::io_service vrep_owned_io_service;
 boost::asio::io_service device_driver_io_service;
-std::unique_ptr<robone::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
+std::unique_ptr<std::thread> driver_threadP;
+std::shared_ptr<robone::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
+std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
 
 std::vector<float> simJointPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+// std::vector<float> simJointVelocity = {0.0,0.0,0.0,0.0,0.0,0.0,0.0}; no velocity yet
 std::vector<float> simJointForce = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
 std::vector<float> simJointTargetPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
 std::vector<float> simJointTransformationMatrix = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};

@@ -20,6 +20,7 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/Geometry>
 
+#include "robone/flatbuffer/Geometry_generated.h"
 #include "robone/flatbuffer/VrepControlPoint_generated.h"
 #include "robone/flatbuffer/VrepPath_generated.h"
 #include "robone/AzmqFlatbuffer.hpp"

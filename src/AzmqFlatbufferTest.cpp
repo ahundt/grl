@@ -10,6 +10,9 @@
 //
 
 #include "robone/AzmqFlatbuffer.hpp"
+#include "robone/flatbuffer/Geometry_generated.h"
+#include "robone/flatbuffer/VrepControlPoint_generated.h"
+#include "robone/flatbuffer/VrepPath_generated.h"
 
 /// Send messages between a client and server asynchronously. 
 ///
@@ -132,6 +135,8 @@ int main(int argc, char* argv[])
 #endif
 	
 	io_service.run();
+    
+    t.join();
 	
 //  }
 //  catch (std::exception& e)
