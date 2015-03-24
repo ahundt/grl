@@ -40,7 +40,7 @@ public class FRI_Monitor extends RoboticsAPIApplication
         _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
 
         // async move with overlay ...
-        _lbr.moveAsync(ptp(Math.toRadians(-90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
+        _lbr.moveAsync(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(90), .0));
 
         // ... blending into sync move with overlay
         _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));

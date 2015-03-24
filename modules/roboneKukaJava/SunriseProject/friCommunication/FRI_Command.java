@@ -37,7 +37,7 @@ public class FRI_Command extends RoboticsAPIApplication
     {
         // configure and start FRI session
         FRIConfiguration friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
-        friConfiguration.setSendPeriodMilliSec(4);
+        friConfiguration.setSendPeriodMilliSec(50);
         FRISession friSession = new FRISession(friConfiguration);
 		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
 		
