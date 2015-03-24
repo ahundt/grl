@@ -17,7 +17,7 @@
 
 // Kuka include files
 #include "friClientIf.h"
-#include "friMessages.pb.h"
+#include "FRIMessages.pb.h"
 #include "friCommandMessageEncoder.h"
 #include "friMonitoringMessageDecoder.h"
 #include "robone/tags.hpp"
