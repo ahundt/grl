@@ -1,6 +1,8 @@
-#8 Milling Simulation of simple object
-#43 Integrate Simulations
-======================================
+===================================
+Milling Simulation of simple object
+===================================
+
+Issues: #8 #43
 
 1. Adding a path: 
 

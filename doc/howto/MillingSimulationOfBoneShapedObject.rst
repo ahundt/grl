@@ -1,4 +1,6 @@
-#9 Milling simulation of bone shaped object
+
+===========================================
+Milling simulation of bone shaped object
 ===========================================
 
 Link to Issue:

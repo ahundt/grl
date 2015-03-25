@@ -1,5 +1,8 @@
-#11 Implement Basic Java Setup
-==============================
+==========================
+Implement Basic Java Setup
+==========================
+
+Issue: #11 
 
 Connecting the KUKA to the computer using ethernet cable
  - Set IP for the ethernet
