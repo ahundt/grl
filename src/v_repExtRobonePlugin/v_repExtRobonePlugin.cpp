@@ -203,6 +203,8 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simRegisterCustomLuaFunction(LUA_GET_SENSOR_DATA_COMMAND,strConCat("number result,table data,number distance=",LUA_GET_SENSOR_DATA_COMMAND,"(number sensorIndex,table_3 floatParams,table_2 intParams)"),inArgs_getSensorData,LUA_GET_SENSOR_DATA_CALLBACK);
 	// ******************************************
 
+    BOOST_LOG_TRIVIAL(info) << "Robone plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
+
 	return(PLUGIN_VERSION); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
 }
 
@@ -259,32 +261,34 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 
 		if (sceneContentChanged)
 		{ // we actualize plugin objects for changes in the scene
-
-			//...
-			//////////////
-			// PUT MAIN CODE HERE
-			
-			/////////////
-			if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
-			{	
-				BOOST_LOG_TRIVIAL(info) << simGetSimulationTime() << std::endl;					// gets simulation time point
-			}
-			// make sure it is "right" (what does that mean?)
-			
-				
-			// find the v-rep C functions to do the following:
-			////////////////////////////////////////////////////
-			// Use handles that were found at the "start" of this simulation running
-
-			// next few Lines get the joint angles, torque, etc from the simulation
-			if (kukaPluginPG)// && kukaPluginPG->allHandlesSet == true // allHandlesSet now handled internally
-			{
-			
-              // run one loop synchronizing the arm and plugin
-              kukaPluginPG->run_one();
-			  
-			}
 			refreshDlgFlag=true; // always a good idea to trigger a refresh of this plugin's dialog here
+		}
+        
+
+
+		//...
+		//////////////
+		// PUT MAIN CODE HERE
+		
+		/////////////
+		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
+		{	
+			BOOST_LOG_TRIVIAL(info) << simGetSimulationTime() << std::endl;					// gets simulation time point
+		}
+		// make sure it is "right" (what does that mean?)
+		
+			
+		// find the v-rep C functions to do the following:
+		////////////////////////////////////////////////////
+		// Use handles that were found at the "start" of this simulation running
+
+		// next few Lines get the joint angles, torque, etc from the simulation
+		if (kukaPluginPG)// && kukaPluginPG->allHandlesSet == true // allHandlesSet now handled internally
+		{
+		
+          // run one loop synchronizing the arm and plugin
+          kukaPluginPG->run_one();
+		  
 		}
 	}
 
@@ -303,8 +307,9 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		/////////////////////
 		// simGetObjectHandle
         
-        
-            kukaPluginPG = std::make_shared<KukaVrepPlugin>();
+
+        BOOST_LOG_TRIVIAL(info) << "Starting Robone plugin connection to Kuka iiwa\n";
+        kukaPluginPG = std::make_shared<KukaVrepPlugin>();
 	}
 
 	if (message==sim_message_eventcallback_simulationended)
@@ -314,6 +319,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
+        BOOST_LOG_TRIVIAL(info) << "Ending Robone plugin connection to Kuka iiwa\n";
 		kukaPluginPG.reset();
 
 	}

@@ -12,6 +12,22 @@
 
 #include "v_repLib.h"
 
+
+
+template<typename T>
+inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
+{
+    out << "[";
+    size_t last = v.size() - 1;
+    for(size_t i = 0; i < v.size(); ++i) {
+        out << v[i];
+        if (i != last) 
+            out << ", ";
+    }
+    out << "]";
+    return out;
+}
+
 /// @todo separate out robone specific code from general kuka control code
 /// @todo Template on robot driver and create a driver that just reads/writes to/from the simulation, then pass the two templates so the simulation and the real driver can be selected.
 class KukaVrepPlugin : public std::enable_shared_from_this<KukaVrepPlugin> {
@@ -70,8 +86,8 @@ public:
                     "ImplantCutPath"         , // ImplantCutPathHandle,
                     "RemoveBallJoint"        , // RemoveBallJointPathHandle,
                     "FemurBone"              , // FemurBoneHandle
-                    "tcp://0.0.0.0:5563"     , // LocalZMQAddress
-                    "tcp://172.31.1.147:5563"  // RemoteZMQAddress
+                    "tcp://0.0.0.0:30010"     , // LocalZMQAddress
+                    "tcp://172.31.1.147:30010"  // RemoteZMQAddress
                 );
     }
 
@@ -84,6 +100,7 @@ KukaVrepPlugin (Params params = defaultParams())
   initHandles();
   
   	{
+        BOOST_LOG_TRIVIAL(trace) << "connecting zmq\n";
 		boost::system::error_code ec;
 		azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
 		socket.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
@@ -102,7 +119,8 @@ void run_one(){
   if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates."));
   getRealKukaAngles();
   getStateFromVrep();
-  updateVrepFromKuka();
+  /// @todo re-enable simulation feedback based on actual kuka state
+  //updateVrepFromKuka();
   sendSimulatedJointAnglesToKuka();
 
 }
@@ -153,6 +171,8 @@ void getRealKukaAngles() {
             // so we get the simulation based joint angles and update the arm
             
        });
+       
+       BOOST_LOG_TRIVIAL(trace) << "Real joint angles from FRI: " << realJointPosition << "\n";
 
        // run the async calls and update the state
        kukaFRIThreadSeparatorP->run_user();
@@ -170,25 +190,31 @@ void sendSimulatedJointAnglesToKuka(){
             /////////////////////////////////////////
             // Client sends to server asynchronously!
             
-            /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
-            std::vector<double> joints;
-            
-			auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-			
-            /// @todo should we use simJointTargetPosition here?
-            joints.clear();
-            boost::copy(simJointPosition, std::back_inserter(joints));
-            auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
-            /// @note we don't have a velocity right now, sending empty!
-            joints.clear();
-            //boost::copy(simJointVelocity, std::back_inserter(joints));
-            auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
-            joints.clear();
-            boost::copy(simJointForce, std::back_inserter(joints));
-            auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
-			auto jointState = robone::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
-			robone::FinishJointStateBuffer(*fbbP, jointState);
-			kukaJavaDriverP->async_send_flatbuffer(fbbP);
+            if(counterHack %9 ==0){
+                /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
+                std::vector<double> joints;
+                
+                auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+                
+                /// @todo should we use simJointTargetPosition here?
+                joints.clear();
+                boost::copy(simJointPosition, std::back_inserter(joints));
+                auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
+                
+                BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
+                
+                /// @note we don't have a velocity right now, sending empty!
+                joints.clear();
+                //boost::copy(simJointVelocity, std::back_inserter(joints));
+                auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
+                joints.clear();
+                boost::copy(simJointForce, std::back_inserter(joints));
+                auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
+                auto jointState = robone::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
+                robone::FinishJointStateBuffer(*fbbP, jointState);
+                kukaJavaDriverP->async_send_flatbuffer(fbbP);
+            }
+            counterHack++;
             
         } else {
             // create the command for the FRI
@@ -218,13 +244,13 @@ bool getStateFromVrep(){
 				simGetJointForce(jointHandle[i],&simJointForce[i]);	//retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled. 
 				simGetJointTargetPosition(jointHandle[i],&simJointTargetPosition[i]);  //retrieves the target position of a joint
 				simGetJointMatrix(jointHandle[i],&simJointTransformationMatrix[i]);   //retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
-				BOOST_LOG_TRIVIAL(info) << "simJointPostition[" << i << "] = " << simJointPosition[i] << std::endl;
-				BOOST_LOG_TRIVIAL(info) << "simJointForce[" << i << "] = " << simJointForce[i] << std::endl;
-				BOOST_LOG_TRIVIAL(info) << "simJointTargetPostition[" << i << "] = " << simJointTargetPosition[i] << std::endl;
-				BOOST_LOG_TRIVIAL(info) << "simJointTransformationMatrix[" << i << "] = " << simJointTransformationMatrix[i] << std::endl;
-				BOOST_LOG_TRIVIAL(info) << std::endl;
 
 			}
+            
+			BOOST_LOG_TRIVIAL(info) << "simJointPostition = " << simJointPosition << std::endl;
+			BOOST_LOG_TRIVIAL(info) << "simJointForce = " << simJointForce << std::endl;
+			BOOST_LOG_TRIVIAL(info) << "simJointTargetPostition = " << simJointTargetPosition << std::endl;
+			BOOST_LOG_TRIVIAL(info) << "simJointTransformationMatrix = " << simJointTransformationMatrix << std::endl;
 			
 			float simTipPosition[3];
 			float simTipOrientation[3];
@@ -285,11 +311,12 @@ int bone = -1;
 
 bool allHandlesSet = false;
 
-boost::asio::io_service vrep_owned_io_service;
+int counterHack = 0;
 boost::asio::io_service device_driver_io_service;
 std::unique_ptr<std::thread> driver_threadP;
 std::shared_ptr<robone::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
 std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
+//boost::asio::deadline_timer sendToJavaDelay;
 
 std::vector<float> simJointPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
 // std::vector<float> simJointVelocity = {0.0,0.0,0.0,0.0,0.0,0.0,0.0}; no velocity yet
