@@ -190,31 +190,28 @@ void sendSimulatedJointAnglesToKuka(){
             /////////////////////////////////////////
             // Client sends to server asynchronously!
             
-            if(counterHack %9 ==0){
-                /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
-                std::vector<double> joints;
-                
-                auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-                
-                /// @todo should we use simJointTargetPosition here?
-                joints.clear();
-                boost::copy(simJointPosition, std::back_inserter(joints));
-                auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
-                
-                BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
-                
-                /// @note we don't have a velocity right now, sending empty!
-                joints.clear();
-                //boost::copy(simJointVelocity, std::back_inserter(joints));
-                auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
-                joints.clear();
-                boost::copy(simJointForce, std::back_inserter(joints));
-                auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
-                auto jointState = robone::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
-                robone::FinishJointStateBuffer(*fbbP, jointState);
-                kukaJavaDriverP->async_send_flatbuffer(fbbP);
-            }
-            counterHack++;
+           /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
+           std::vector<double> joints;
+           
+           auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+           
+           /// @todo should we use simJointTargetPosition here?
+           joints.clear();
+           boost::copy(simJointPosition, std::back_inserter(joints));
+           auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
+           
+           BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
+           
+           /// @note we don't have a velocity right now, sending empty!
+           joints.clear();
+           //boost::copy(simJointVelocity, std::back_inserter(joints));
+           auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
+           joints.clear();
+           boost::copy(simJointForce, std::back_inserter(joints));
+           auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
+           auto jointState = robone::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
+           robone::FinishJointStateBuffer(*fbbP, jointState);
+           kukaJavaDriverP->async_send_flatbuffer(fbbP);
             
         } else {
             // create the command for the FRI
@@ -311,7 +308,6 @@ int bone = -1;
 
 bool allHandlesSet = false;
 
-int counterHack = 0;
 boost::asio::io_service device_driver_io_service;
 std::unique_ptr<std::thread> driver_threadP;
 std::shared_ptr<robone::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
