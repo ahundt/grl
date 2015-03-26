@@ -9,7 +9,8 @@ Feugiat ullamcorper id tempor id vitae. Mauris pretium aliquet, lectus tincidunt
 .. toctree::
     :maxdepth: 2
 
-    howto/ConfigureIpAddresses
+    howto/IPAddresses
+    howto/iiwaKukaRobotSetup
     howto/RunInDocker
     howto/MillingSimulationOfBoneShapedObject
     howto/MillingSimulationOfSimpleObject_IntegrateSimulations

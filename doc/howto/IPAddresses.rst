@@ -12,10 +12,10 @@ Robot IP
 
 172.31.1.147
 
-Ports available
----------------
+Ports
+-----
 
-The ports available for user code are:
+The IP address ports available for user code to communicate with outside machines are:
 
 30000-30010
 
@@ -34,6 +34,6 @@ Laptop IP
 Robot IP
 --------
 
-
+192.170.10.2
 
 
