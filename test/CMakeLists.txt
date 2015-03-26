@@ -75,5 +75,29 @@ endif ()
 # public tests
 # ============================================================================
 
+
+basis_set_property(SOURCE zmqFlatbuffersTest.cpp APPEND PROPERTY OBJECT_DEPENDS ${ROBONE_FLATBUFFERS_OUTPUTS})
+
+
+basis_add_executable(zmqFlatbuffersTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
+basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+
+
+basis_add_executable(AzmqFlatbufferTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
+basis_target_link_libraries(AzmqFlatbufferTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
 basis_add_executable(asioSocketTest.cpp)
 basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES})
+
+
+#TODO: THIS IS A HACK, fix it!
+if(MODULE_kuka_lwr_iiwa_fri)
+
+	#basis_include_directories(${kuka_lwr_iiwa_fri_PROJECT_INCLUDE_DIRS})
+	basis_add_executable(KukaFRITest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
+	basis_target_link_libraries(KukaFRITest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb ${CMAKE_THREAD_LIBS_INIT})
+
+	basis_add_executable(KukaFRIClientDataTest.cpp ${ROBONE_FLATBUFFERS_OUTPUTS})
+	basis_target_link_libraries(KukaFRIClientDataTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb ${CMAKE_THREAD_LIBS_INIT})
+endif()
+

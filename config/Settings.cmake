@@ -54,3 +54,30 @@ if(APPLE)
    #    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
    #endif()
 endif()
+
+
+# Configure flatbuffer components
+
+# list flatbuffer headers
+set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs JointState.fbs)
+# directory to include flatbuffers
+set(ROBONE_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include/robone/flatbuffer)
+# Generate flatbuffer message C++ headers
+flatbuffers_generate_c_headers(ROBONE_FLATBUFFERS ../include/robone/flatbuffer/  ${ROBONE_FLATBUFFERS_INCLUDE_DIR} ${RFB})
+basis_include_directories(${ROBONE_FLATBUFFERS_INCLUDE_DIR} )
+
+# TODO: This is a hack, fix it!
+if(MODULE_kuka_lwr_iiwa_fri)
+	# These directories are hard coded
+	# replace with relative reconfigurable directories
+	basis_include_directories(
+	   modules/kuka_lwr_iiwa_fri/include
+       modules/kuka_lwr_iiwa_fri/src/base
+       modules/kuka_lwr_iiwa_fri/src/protobuf
+       modules/kuka_lwr_iiwa_fri/src/protobuf_gen
+	   modules/kuka_lwr_iiwa_fri/src/nanopb-0.2.8
+	   #${NANOPB_INCLUDE_DIRS}
+    )
+endif()
+
+

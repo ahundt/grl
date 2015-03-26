@@ -15,8 +15,8 @@
 // This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
 
 
-#include "v_repExtRobonePlugin.h"
-#include "KukaVrepPlugin.hpp"
+#include "v_repExtKukaLBRiiwa.h"
+#include "KukaLBRiiwaVrepPlugin.hpp"
 
 
 #ifdef _WIN32
