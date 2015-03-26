@@ -32,9 +32,25 @@ Build Dependencies
 
 The following software has to be installed (if not optional).
 
-Package          | Version | Description
----------------- | ------- | --------------------------------------------------------
-[CMake BASIS][1] | >= 3.0  | A meta-project which makes it easy to create sharable software and libraries that work together.
+Package                    | Version    | Language |     Description
+-------------------------- | ---------- | -------- - ----------------------------------------------
+Sunrise Connectivity Suite | >= 3.0     | Java     | Provided by KUKA, Eclipse based Java platform
+-------------------------- | ---------- | -------- - ----------------------------------------------
+Fast Robot Interface SDK   | >= 3.0     | C++      | Provided by KUKA, drivers for fast robot control
+-------------------------- | ---------- | -------- - ----------------------------------------------
+[CMake BASIS][1]           | >= 3.0     | C++      | Meta-project which makes it easy to create sharable software and libraries that work together.
+-------------------------- | ---------- | -------- - ----------------------------------------------
+[Boost][4]                 | >= 1.54.0  | C++      | Collection of general use C++ libraries.
+-------------------------- | ---------- | -------- - ----------------------------------------------
+[ZeroMQ][6]                | >= 4.0     | C++      | High Performance Network Communication Library
+-------------------------- | ---------- | -------- - ----------------------------------------------
+[AZMQ][7]                  | >= 1.0     | C++      | [Boost.asio][5] based official ZeroMQ C++ Networking Library Interface
+-------------------------- | ---------- | -------- - ----------------------------------------------
+[JeroMQ][8]                | >= 3.0     | Java     | Official Pure Java implementation of ZeroMQ
+-------------------------- | ---------- | -------- - ----------------------------------------------
+[Google Flatbuffers][9]    | >= 1.0     | Java/C++ | High Performance Message Serialization Library
+-------------------------- | ---------- | -------- - ----------------------------------------------
+[V-REP][10]                | >= 3.2     | C++      | Recommended robot simulation library (Optional)
 
 
 
@@ -100,6 +116,13 @@ Advanced CMake Options
 
 
 <!-- REFERENCES -->
-[1]: http://opensource.andreasschuh.com/cmake-basis/
-[2]: http://opensource.andreasschuh.com/cmake-basis/howto/install.html
-[3]: http://opensource.andreasschuh.com/cmake-basis/howto/install.html#binary-distribution-package
+[1]:  http://opensource.andreasschuh.com/cmake-basis/
+[2]:  http://opensource.andreasschuh.com/cmake-basis/howto/install.html
+[3]:  http://opensource.andreasschuh.com/cmake-basis/howto/install.html#binary-distribution-package
+[4]:  http://www.boost.org
+[5]:  http://www.boost.org/libs/asio
+[6]:  http://www.zeromq.org/
+[7]:  https://github.com/zeromq/azmq
+[8]:  https://github.com/zeromq/jeromq
+[9]:  https://github.com/google/flatbuffers
+[10]: http://www.coppeliarobotics.com/index.html
