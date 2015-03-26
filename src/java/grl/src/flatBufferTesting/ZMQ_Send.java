@@ -1,11 +1,11 @@
-package flatbuffertesting;
+package flatBufferTesting;
 
 import java.util.concurrent.TimeUnit;
 import org.jeromq.ZMQ;
 import org.jeromq.ZMQ.Context;
 import org.jeromq.ZMQ.Socket;
  
-public class Pub {
+public class ZMQ_Send {
     static final String TOPIC = "topic1";
     static final int NUM_MSG = 10;
     public static void main(String[] args) throws Exception {

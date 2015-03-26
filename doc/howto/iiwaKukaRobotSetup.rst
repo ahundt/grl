@@ -30,8 +30,8 @@ See `IP Addresses<howto/IPAddresses>`_ for more detail on IP addresses.
 
  - Go to Control Panel > Network and Internet > Network Connections
    1. Right click on wifi icon on Windows task bar
-	 2. Select Open Network and Sharing Center
-	 3. Select Change Adapter Settings on the left side of the window
+   2. Select Open Network and Sharing Center
+   3. Select Change Adapter Settings on the left side of the window
  - Right click on ethernet icon and select Properties
  - Go to networking tab
  - Double click on Internet Protocol Version 4 (TCP/IPv4)
@@ -70,27 +70,7 @@ If you don't have any safety systems and you are just starting with the robot fo
  - Open SafetyConfiguration.sconf
  - Uncheck Row 1,2,3 "Emergency Stop External", "Operator Protection", "Protective Stop" respectively.
 
-Setup Java Driver Dependencies
-==============================
-
-.. todo:: @todo Add directions for setting up and installing JeroMQ and Google Flatbuffers
-
-Install `JeroMQ<https://github.com/zeromq/jeromq>`_ and `Google Flatbuffers<https://github.com/google/flatbuffers>`_. 
-
- 
- 
-Setup Java Driver Software
-==========================
- 
-Copy the folders in 
-
-.. code-block:: bash
-
-    ${ROBONE_DIR}/modules/roboneKukaJava/SunriseProject/
- 
-into the directory where you put your sunrise project.
-
-
+  
 Enable Required Software Modules
 ================================
 
@@ -109,7 +89,34 @@ If some of the modules are missing, you may not have the Sunrise Connectivity Su
     - Smart Servo Motion Extension
     - Fast Robot Interface
 
+	
+Setup Java Driver Software
+==========================
+ 
+Copy the folders in 
 
+.. code-block:: bash
+
+    ${ROBONE_DIR}/src/java/grl/
+ 
+into the directory where your Sunrise Project is located.
+
+Configure the grl repository settings
+ - Copy the KUKAJavaLib folder in your Sunrise Project and paste it into the grl folder
+ - With the Sunrise Workbench open:
+   - Import the grl project if it does not already appear in the Package Explorer on the left side
+     - File > Import
+	 - In the GUI, select General > Existing Projects into Workspace
+	 - Select Next
+	 - Select Browse next to Select Root Directory and find the grl folder
+	 - Finish
+   - Right Click on your Sunrise Project
+     - Select Build Path > Configure Build Path
+     - In the GUI, select the Projects tab 
+     - Select Add
+	 - In the GUI, check grl then OK and OK again
+
+	 
 Install Software onto KUKA Controller
 =====================================
 
@@ -148,7 +155,7 @@ Running and Stopping Applications
 .. todo:: @todo rename application PositionMoveTest to something more sensible.
 
 - Select the "Applications list"
-- Select your application such as "PositionMoveTest"
+- Select your application such as "ZMQ_SmartServoCommand"
 - Press the "green play" button on the left side of the tablet that is pointing right.
 
 Your application should be running.

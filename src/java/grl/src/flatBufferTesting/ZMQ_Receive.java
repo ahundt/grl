@@ -1,4 +1,4 @@
-package flatbuffertesting;
+package flatBufferTesting;
 
 import java.util.concurrent.TimeUnit;
  
@@ -7,7 +7,7 @@ import org.jeromq.ZMQ.Context;
 import org.jeromq.ZMQ.Socket;
  
 //https://github.com/miniway/jeromq/tree/master/src/test/java/guide
-public class Sub {
+public class ZMQ_Receive {
     static final int NUM_MSG = 10;
     static final String ADDRESS = "tcp://127.0.0.1:5563";
     public static void main(String[] args) throws Exception {
