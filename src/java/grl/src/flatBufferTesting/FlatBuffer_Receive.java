@@ -1,12 +1,15 @@
-package flatbuffertesting;
+package flatBufferTesting;
 
 import java.nio.ByteBuffer;
  
 import org.jeromq.ZMQ;
 import org.jeromq.ZMQ.Context;
 import org.jeromq.ZMQ.Socket;
+
+import flatbuffers.VrepControlPoint;
+import flatbuffers.Vector3d;
  
-public class ComTestC {
+public class FlatBuffer_Receive {
     static final int NUM_MSG = 10;
     static final String ADDRESS = "tcp://127.0.0.1:9998";
     public static void main(String[] args) throws Exception {

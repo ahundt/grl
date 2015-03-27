@@ -1,4 +1,4 @@
-package flatbuffertesting;
+package flatBufferTesting;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -8,9 +8,11 @@ import org.jeromq.ZMQ.Context;
 import org.jeromq.ZMQ.Socket;
 
 import com.google.flatbuffers.FlatBufferBuilder;
+import flatbuffers.VrepControlPoint;
+import flatbuffers.Vector3d;
  
-public class ComTestSend {
-    static final String ADDRESS = "tcp://0.0.0.0:5563";
+public class FlatBuffer_Send {
+    static final String ADDRESS = "tcp://127.0.0.1:5563";
     static final int NUM_MSG = 10;
     public static void main(String[] args) throws Exception {
         
