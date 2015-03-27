@@ -4,7 +4,7 @@
 #include <boost/units/physical_dimensions/plane_angle.hpp>
 #include <boost/units/physical_dimensions/torque.hpp>
 
-namespace robone {
+namespace grl {
 	
 	struct joint_tag{};
 	

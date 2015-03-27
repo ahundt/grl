@@ -1,7 +1,7 @@
 Introduction
 ============
 
-This document contains the build and installation instructions for Robone.
+This document contains the build and installation instructions for the Generic Robotics Library.
 
 For general build and installation instructions which apply to any software
 developed on top of the [CMake Build system And Software Implementation
@@ -93,7 +93,7 @@ of the [BASIS how-to guide on software installation][2].
 
 Please refer to this guide first if you are uncertain about above steps or
 have problems to build, test, or install the software on your system.
-If this guide does not help you resolve the issue, please contact <provider-name> <Robone@<vendor>.com>.
+If this guide does not help you resolve the issue, please contact Andrew Hundt <ATHundt@gmail.com>.
 In case of failing tests, please attach the output of the following command:
 
     $ ctest -V >& test.log

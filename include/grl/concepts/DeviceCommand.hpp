@@ -1,12 +1,12 @@
-#ifndef DEVICE_STATE_HPP_
-#define DEVICE_STATE_HPP_
+#ifndef DEVICE_COMMAND_HPP_
+#define DEVICE_COMMAND_HPP_
 
-namespace robone {
+namespace grl {
 namespace concept {
 
 
 template<typename Device>
-class DeviceState
+class DeviceCommand
 {
 #ifndef DOXYGEN_NO_CONCEPT_MEMBERS
   
@@ -17,7 +17,7 @@ class DeviceState
 
 
 template<typename Device>
-class ConstDeviceState
+class ConstDeviceCommand
 {
 #ifndef DOXYGEN_NO_CONCEPT_MEMBERS
     

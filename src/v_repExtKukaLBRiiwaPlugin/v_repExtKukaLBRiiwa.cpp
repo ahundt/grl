@@ -203,7 +203,7 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simRegisterCustomLuaFunction(LUA_GET_SENSOR_DATA_COMMAND,strConCat("number result,table data,number distance=",LUA_GET_SENSOR_DATA_COMMAND,"(number sensorIndex,table_3 floatParams,table_2 intParams)"),inArgs_getSensorData,LUA_GET_SENSOR_DATA_CALLBACK);
 	// ******************************************
 
-    BOOST_LOG_TRIVIAL(info) << "Robone plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
+    BOOST_LOG_TRIVIAL(info) << "KUKA LBR iiwa plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
 
 	return(PLUGIN_VERSION); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
 }
@@ -308,7 +308,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// simGetObjectHandle
         
 
-        BOOST_LOG_TRIVIAL(info) << "Starting Robone plugin connection to Kuka iiwa\n";
+        BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
         kukaPluginPG = std::make_shared<KukaVrepPlugin>();
 	}
 
@@ -319,7 +319,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
-        BOOST_LOG_TRIVIAL(info) << "Ending Robone plugin connection to Kuka iiwa\n";
+        BOOST_LOG_TRIVIAL(info) << "Ending KUKA LBR iiwa plugin connection to Kuka iiwa\n";
 		kukaPluginPG.reset();
 
 	}

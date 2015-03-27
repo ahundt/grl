@@ -86,7 +86,7 @@ Copy the folders in
 
 .. code-block:: bash
 
-    ${ROBONE_DIR}/modules/roboneKukaJava/SunriseProject/
+    ${GRL_DIR}/src/java/
  
 into the directory where you put your sunrise project.
 

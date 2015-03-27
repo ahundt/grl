@@ -6,9 +6,9 @@
 #include <thread>
 #include <boost/asio.hpp>
 #include <boost/circular_buffer.hpp>
-#include "robone/KukaFRI.hpp"
+#include "grl/KukaFRI.hpp"
 
-namespace robone {
+namespace grl {
 
 /// @brief Allows a thread to get data from a kuka device asynchronously without capturing the thread.
 ///
@@ -258,6 +258,6 @@ private:
     
 };
 
-} // namespace robone
+} // namespace grl
 
 #endif

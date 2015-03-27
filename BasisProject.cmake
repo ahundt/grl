@@ -82,22 +82,22 @@
 basis_project (
   # --------------------------------------------------------------------------
   # meta-data
-  NAME             "Robone"
+  NAME             "GRL"
   VERSION          "0.0.0"
   AUTHORS          "Andrew Hundt"
                    #<author>
-  DESCRIPTION      "Orthopaedic Surgery Assistive Robot Software"
+  DESCRIPTION      "Generic Robotics Library - Robotics software and drivers aiming to be implemented using generic programming"
   # Note: VENDOR will also be part of the default installation path
   VENDOR           #<vendor>
   PROVIDER_NAME    #<provider-name>
   PROVIDER_LOGO    #<provider-logo>
-  PROVIDER_WEBSITE "http://www.github.com/ahundt/robone"
+  PROVIDER_WEBSITE "http://www.github.com/ahundt/grl"
   DIVISION_NAME    #<division-name>
   DIVISION_LOGO    #<division-logo>
-  DIVISION_WEBSITE #<division-website>
-  COPYRIGHT        "2015 <provider-name>"
-  LICENSE          "See COPYING file for license information."
-  CONTACT          "<provider-name> <Robone@<vendor>.com>"
+  DIVISION_WEBSITE "http://www.github.com/ahundt/grl"
+  COPYRIGHT        "2015 Andrew Hundt, Alex Strickland, Shahriar Sefati"
+  LICENSE          "BSD license, See COPYING file for license information."
+  CONTACT          "Andrew Hundt <ATHundt@gmail.com>"
   TEMPLATE         "basis/1.1"
   
   # --------------------------------------------------------------------------
@@ -107,11 +107,11 @@ basis_project (
 	AZMQ
 	FlatBuffers
 	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log}
-	Eigen3
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
     Threads
+	Eigen3
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

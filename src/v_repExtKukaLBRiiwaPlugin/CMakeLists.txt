@@ -33,9 +33,11 @@
 
 # @todo THIS IF STATEMENT IS A HACK, FIX IT!
 if(MODULE_kuka_lwr_iiwa_fri)
+
 basis_add_library(v_repExtKukaLBRiiwa SHARED v_repExtKukaLBRiiwa.cpp v_repLib.cpp)
 basis_target_link_libraries(v_repExtKukaLBRiiwa ${Boost_LIBRARIES}  ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb ${CMAKE_THREAD_LIBS_INIT})
 target_include_directories(v_repExtKukaLBRiiwa SYSTEM PRIVATE "${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include")
+basis_add_dependencies(v_repExtKukaLBRiiwa grlflatbuffers)
 endif()
 
 

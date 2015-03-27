@@ -3,7 +3,7 @@
 
 include "VrepControlPoint.fbs";
 
-namespace robone;
+namespace grl.flatbuffer;
 
 table VrepPath {
   controlPoints:[VrepControlPoint];

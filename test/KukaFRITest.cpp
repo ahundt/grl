@@ -5,9 +5,9 @@
 #include <iostream>
 #include <memory>
 
-#include "robone/KukaFRIThreadSeparator.hpp"
-#include "robone/KukaFRI.hpp"
-#include "robone/KukaFriClientData.hpp"
+#include "grl/KukaFRIThreadSeparator.hpp"
+#include "grl/KukaFRI.hpp"
+#include "grl/KukaFriClientData.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
       std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
 
     boost::asio::io_service io_service;
-    auto kukaFRIThreadSeparator = std::make_shared<robone::KukaFRIThreadSeparator>(io_service);
+    auto kukaFRIThreadSeparator = std::make_shared<grl::KukaFRIThreadSeparator>(io_service);
 
 
     double delta = 0.0001;
@@ -68,10 +68,10 @@ int main(int argc, char* argv[])
                                << "the time it takes to go around the loop and change it. "
                                << "Current delta (radians/update): " << delta << "\n";
   
-    std::function<void(std::shared_ptr<robone::robot::arm::kuka::iiwa::MonitorState>)> update_fn;
+    std::function<void(std::shared_ptr<grl::robot::arm::kuka::iiwa::MonitorState>)> update_fn;
     
     // this implementation is a hack, not recommended for real code.
-    update_fn = [&delta,kukaFRIThreadSeparator,&update_fn](std::shared_ptr<robone::robot::arm::kuka::iiwa::MonitorState> updatedState){
+    update_fn = [&delta,kukaFRIThreadSeparator,&update_fn](std::shared_ptr<grl::robot::arm::kuka::iiwa::MonitorState> updatedState){
             // this is a hack so the test doesn't go crazy, not recommended for real code.
             if(updatedState.get()==nullptr){
               // If this is null there are already some calls waiting on results
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
         
             // get the joint angles from the monitorstate
             std::vector<double> jointAngles;
-            robone::robot::arm::copy(updatedState->get(), std::back_inserter(jointAngles), robone::revolute_joint_angle_open_chain_state_tag());
+            grl::robot::arm::copy(updatedState->get(), std::back_inserter(jointAngles), grl::revolute_joint_angle_open_chain_state_tag());
             
             // move the joint angles to test FRI commands
             /// @todo consider moving joint angles based on time
@@ -98,11 +98,11 @@ int main(int argc, char* argv[])
             if (jointAngles[6] < -1.5 && delta < 0) delta *=-1;
         
             /// @todo need to avoid reallocating the CommandState every time, probably with async_MakeCommandState
-            auto commandP = std::make_shared<robone::robot::arm::kuka::iiwa::CommandState>();
-            robone::robot::arm::set(*commandP, jointAngles, robone::revolute_joint_angle_open_chain_command_tag());
+            auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
+            grl::robot::arm::set(*commandP, jointAngles, grl::revolute_joint_angle_open_chain_command_tag());
             kukaFRIThreadSeparator->async_sendCommand(commandP);
-            auto connectionQ = robone::robot::arm::get(*updatedState,  KUKA::FRI::EConnectionQuality());
-            auto operationMode = robone::robot::arm::get(*updatedState,  KUKA::FRI::EOperationMode());
+            auto connectionQ = grl::robot::arm::get(*updatedState,  KUKA::FRI::EConnectionQuality());
+            auto operationMode = grl::robot::arm::get(*updatedState,  KUKA::FRI::EOperationMode());
             BOOST_LOG_TRIVIAL(trace) << "jointAngles: " << jointAngles << " connectionQuality: " << connectionQ << " operationMode: " << operationMode << "\n";;
         
             // return the state to the system

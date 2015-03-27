@@ -3,7 +3,7 @@
 
 include "Geometry.fbs";
 
-namespace robone;
+namespace grl.flatbuffer;
 
 
 table VrepControlPoint {

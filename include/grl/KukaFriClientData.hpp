@@ -2,9 +2,9 @@
 #define _KUKA_FRI_CLIENT_DATA
 
 #include "friClientData.h"
-#include "robone/KukaFRI.hpp"
+#include "grl/KukaFRI.hpp"
 
-namespace robone { namespace robot { namespace arm {
+namespace grl { namespace robot { namespace arm {
     // Decode message buffer (using nanopb decoder)
 void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
 
@@ -122,6 +122,6 @@ void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& f
     }
 }
 
-}}} // namespace robone::robot::arm
+}}} // namespace grl::robot::arm
 
 #endif

@@ -11,7 +11,7 @@
 ##############################################################################
 
 # set CTest/CDash project name
-set (CTEST_PROJECT_NAME "Robone")
+set (CTEST_PROJECT_NAME "grl")
 
 # start time of Nightly test model
 #

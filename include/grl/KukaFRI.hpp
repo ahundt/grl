@@ -20,8 +20,8 @@
 #include "FRIMessages.pb.h"
 #include "friCommandMessageEncoder.h"
 #include "friMonitoringMessageDecoder.h"
-#include "robone/tags.hpp"
-#include "robone/KukaNanopb.hpp"
+#include "grl/tags.hpp"
+#include "grl/KukaNanopb.hpp"
 
 namespace KUKA {
 	namespace LBRState {
@@ -34,7 +34,7 @@ namespace KUKA {
 	}
 }
 
-namespace robone { namespace robot { 
+namespace grl { namespace robot { 
 	    
 	
 	namespace arm {
@@ -198,7 +198,7 @@ namespace robone { namespace robot {
         
     
     template<typename Range>
-    static inline void set(FRICommandMessage & state, Range&& range, robone::revolute_joint_angle_open_chain_command_tag) {
+    static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        state.has_commandData = true;
        state.commandData.has_jointPosition = true;
        tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
@@ -407,7 +407,7 @@ namespace kuka {
           // copy the monitor data if we are not in a commanding state
           // note that this differs slightly form the implementation kuka provides!
           if(!command.commandMessage.has_commandData || (sessionState_ != KUKA::FRI::COMMANDING_WAIT) || (sessionState_ != KUKA::FRI::COMMANDING_ACTIVE)) {
-            set(command.commandMessage,lastMonitorJointAngles_,robone::revolute_joint_angle_open_chain_command_tag());
+            set(command.commandMessage,lastMonitorJointAngles_,grl::revolute_joint_angle_open_chain_command_tag());
           }
           // copy current joint position to commanded position
           
@@ -451,12 +451,12 @@ namespace kuka {
     
     // unwrap the monitor state when calling get()
     template<typename Range>
-    void set(kuka::iiwa::CommandState & state, Range range, robone::revolute_joint_angle_open_chain_command_tag tag){
+    void set(kuka::iiwa::CommandState & state, Range range, grl::revolute_joint_angle_open_chain_command_tag tag){
         set(state.get(),range,tag);
     }
 
 
-}}} // namespace robone::robot::arm
+}}} // namespace grl::robot::arm
 
 
 
@@ -495,7 +495,7 @@ namespace traits {
     template<typename T, typename Enable> struct coordinate_system; // forward declaration
     template <typename Geometry, std::size_t Dimension, typename Enable > struct access; // forward declaration
 	
-    template<typename Enable> struct tag<FRIMonitoringMessage, Enable > { typedef robone::device_state_tag type; };
+    template<typename Enable> struct tag<FRIMonitoringMessage, Enable > { typedef grl::device_state_tag type; };
     template<typename Enable> struct dimension<FRIMonitoringMessage, Enable > : boost::mpl::int_<KUKA::LBRState::NUM_DOF> {};
     template<typename Enable> struct coordinate_type<FRIMonitoringMessage, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
 
@@ -513,38 +513,38 @@ namespace traits {
     {
 	    // angle
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_open_chain_state_tag) {
-				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
+		get(FRIMonitoringMessage  const& monitoringMsg,grl::revolute_joint_angle_open_chain_state_tag) {
+				return grl::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
 		}
 		
 		// interpolated angle
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_interpolated_open_chain_state_tag) {
-				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg), monitoringMsg.ipoData.has_jointPosition);
+		get(FRIMonitoringMessage  const& monitoringMsg,grl::revolute_joint_angle_interpolated_open_chain_state_tag) {
+				return grl::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg), monitoringMsg.ipoData.has_jointPosition);
 		}
 		
 		// torque
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_open_chain_state_tag) {
-				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.measuredTorque.value.arg),monitoringMsg.monitorData.has_measuredTorque);
+		get(FRIMonitoringMessage  const& monitoringMsg,grl::revolute_joint_torque_open_chain_state_tag) {
+				return grl::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.measuredTorque.value.arg),monitoringMsg.monitorData.has_measuredTorque);
 		}
 		
 		// external torque
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_external_open_chain_state_tag) {
-				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.externalTorque.value.arg),monitoringMsg.monitorData.has_externalTorque);
+		get(FRIMonitoringMessage  const& monitoringMsg,grl::revolute_joint_torque_external_open_chain_state_tag) {
+				return grl::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.externalTorque.value.arg),monitoringMsg.monitorData.has_externalTorque);
 		}
 		
 		// commanded angle
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_angle_open_chain_command_tag) {
-				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg),monitoringMsg.ipoData.has_jointPosition);
+		get(FRIMonitoringMessage  const& monitoringMsg,grl::revolute_joint_angle_open_chain_command_tag) {
+				return grl::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.ipoData.jointPosition.value.arg),monitoringMsg.ipoData.has_jointPosition);
 		}
 		
 		// commanded torque
         const typename coordinate_type<FRIMonitoringMessage,Enable>::type
-		get(FRIMonitoringMessage  const& monitoringMsg,robone::revolute_joint_torque_open_chain_command_tag) {
-				return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedTorque.value.arg), monitoringMsg.monitorData.has_commandedTorque);
+		get(FRIMonitoringMessage  const& monitoringMsg,grl::revolute_joint_torque_open_chain_command_tag) {
+				return grl::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedTorque.value.arg), monitoringMsg.monitorData.has_commandedTorque);
 		}
 		
         //static inline void set(nrec::spatial::Coordinate<Dim,T,U> & p, typename nrec::spatial::Coordinate<Dim,T,U>::value_type const& value) { p.operator[](Index) = value; }
@@ -559,37 +559,37 @@ namespace traits {
 //	    // angle
 //        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_open_chain_state_tag,Enable>::type
 //		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_open_chain_state_tag) {
-//				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.commandedJointPosition.value.arg,monitoringMsg.monitorData.has_measuredJointPosition);
+//				return grl::robot::arm::kuka::get(monitoringMsg.monitorData.commandedJointPosition.value.arg,monitoringMsg.monitorData.has_measuredJointPosition);
 //		}
 //		
 //		// interpolated angle
 //        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_interpolated_open_chain_state_tag,Enable>::type
 //		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_interpolated_open_chain_state_tag) {
-//				return robone::robot::arm::kuka::get(monitoringMsg.ipoData.jointPosition.value.arg, monitoringMsg.ipoData.has_jointPosition);
+//				return grl::robot::arm::kuka::get(monitoringMsg.ipoData.jointPosition.value.arg, monitoringMsg.ipoData.has_jointPosition);
 //		}
 //		
 //		// torque
 //        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_open_chain_state_tag,Enable>::type
 //		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_open_chain_state_tag) {
-//				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.measuredTorque.value.arg,monitoringMsg.monitorData.has_measuredTorque);
+//				return grl::robot::arm::kuka::get(monitoringMsg.monitorData.measuredTorque.value.arg,monitoringMsg.monitorData.has_measuredTorque);
 //		}
 //		
 //		// external torque
 //        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_external_open_chain_state_tag,Enable>::type
 //		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_external_open_chain_state_tag) {
-//				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.externalTorque.value.arg,monitoringMsg.monitorData.has_externalTorque);
+//				return grl::robot::arm::kuka::get(monitoringMsg.monitorData.externalTorque.value.arg,monitoringMsg.monitorData.has_externalTorque);
 //		}
 //		
 //		// commanded angle
 //        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_open_chain_command_tag,Enable>::type
 //		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_open_chain_command_tag) {
-//				return robone::robot::arm::kuka::get(monitoringMsg.ipoData.jointPosition.value.arg,monitoringMsg.ipoData.has_jointPosition);
+//				return grl::robot::arm::kuka::get(monitoringMsg.ipoData.jointPosition.value.arg,monitoringMsg.ipoData.has_jointPosition);
 //		}
 //		
 //		// commanded torque
 //        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_torque_open_chain_command_tag,Enable>::type
 //		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_torque_open_chain_command_tag) {
-//				return robone::robot::arm::kuka::get(monitoringMsg.monitorData.commandedTorque.value.arg, monitoringMsg.monitorData.has_commandedTorque);
+//				return grl::robot::arm::kuka::get(monitoringMsg.monitorData.commandedTorque.value.arg, monitoringMsg.monitorData.has_commandedTorque);
 //		}
 //		
     };
@@ -607,7 +607,7 @@ namespace traits {
     
     
     
-    template<typename Enable> struct tag<FRICommandMessage, Enable > { typedef robone::device_command_tag type; };
+    template<typename Enable> struct tag<FRICommandMessage, Enable > { typedef grl::device_command_tag type; };
     template<typename Enable> struct dimension<FRICommandMessage, Enable > : boost::mpl::int_<1> {}; // each joint is 1 dimensional
     template<typename Enable> struct coordinate_type<FRICommandMessage, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
     
@@ -625,12 +625,12 @@ namespace traits {
     {
     // angle
 //    const typename coordinate_type<FRICommandMessage,Enable>::type
-//    get(FRICommandMessage  const& monitoringMsg,robone::revolute_joint_angle_open_chain_state_tag) {
-//        return robone::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
+//    get(FRICommandMessage  const& monitoringMsg,grl::revolute_joint_angle_open_chain_state_tag) {
+//        return grl::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
 //    }
     
     template<typename Range>
-    static inline void set(FRICommandMessage & state, Range&& range, robone::revolute_joint_angle_open_chain_command_tag) {
+    static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        state.has_commandData = true;
        state.commandData.has_jointPosition = true;
        tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;

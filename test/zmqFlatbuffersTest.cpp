@@ -20,10 +20,10 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/Geometry>
 
-#include "robone/flatbuffer/Geometry_generated.h"
-#include "robone/flatbuffer/VrepControlPoint_generated.h"
-#include "robone/flatbuffer/VrepPath_generated.h"
-#include "robone/AzmqFlatbuffer.hpp"
+#include "grl/flatbuffer/Geometry_generated.h"
+#include "grl/flatbuffer/VrepControlPoint_generated.h"
+#include "grl/flatbuffer/VrepPath_generated.h"
+#include "grl/AzmqFlatbuffer.hpp"
 
 
 namespace po = boost::program_options;
@@ -91,9 +91,9 @@ void bounce(azmq::socket & server, azmq::socket & client, bool send_only = true)
 		/////////////////////////
 		// Client sends to server
 		
-		robone::Vector3d rv(x,0,0);
-	    auto controlPoint = robone::CreateVrepControlPoint(fbb,&rv);
-		robone::FinishVrepControlPointBuffer(fbb, controlPoint);
+		grl::flatbuffer::Vector3d rv(x,0,0);
+	    auto controlPoint = grl::flatbuffer::CreateVrepControlPoint(fbb,&rv);
+		grl::flatbuffer::FinishVrepControlPointBuffer(fbb, controlPoint);
         client.send(boost::asio::buffer(fbb.GetBufferPointer(), fbb.GetSize()));
                 std::cout << "sent: " << rv.x() << "\n";
 		
@@ -102,10 +102,10 @@ void bounce(azmq::socket & server, azmq::socket & client, bool send_only = true)
 		if(! send_only) {
             auto size = server.receive(boost::asio::buffer(buf));
             auto verifier = flatbuffers::Verifier(buf.begin(),buf.size());
-            auto bufOK = robone::VerifyVrepControlPointBuffer(verifier);
+            auto bufOK = grl::flatbuffer::VerifyVrepControlPointBuffer(verifier);
             
             if(size == fbb.GetSize() && bufOK){
-                const robone::VrepControlPoint* VCPin = robone::GetVrepControlPoint(buf.begin());
+                const grl::flatbuffer::VrepControlPoint* VCPin = grl::flatbuffer::GetVrepControlPoint(buf.begin());
                 std::cout << "received: " << VCPin->position()->x() << "\n";
             } else {
                 std::cout << "wrong size or failed verification. size: "<< size <<" bufOk: " <<bufOK << "\n";

@@ -9,10 +9,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include "robone/AzmqFlatbuffer.hpp"
-#include "robone/flatbuffer/Geometry_generated.h"
-#include "robone/flatbuffer/VrepControlPoint_generated.h"
-#include "robone/flatbuffer/VrepPath_generated.h"
+#include "grl/AzmqFlatbuffer.hpp"
+#include "grl/flatbuffer/Geometry_generated.h"
+#include "grl/flatbuffer/VrepControlPoint_generated.h"
+#include "grl/flatbuffer/VrepPath_generated.h"
 
 /// Send messages between a client and server asynchronously. 
 ///
@@ -30,9 +30,9 @@ void bounce(std::shared_ptr<AzmqFlatbuffer> sendP, std::shared_ptr<AzmqFlatbuffe
 		{
 			auto fbbP = sendP->GetUnusedBufferBuilder();
 			
-			robone::Vector3d rv(x,0,0);
-			auto controlPoint = robone::CreateVrepControlPoint(*fbbP,&rv);
-			robone::FinishVrepControlPointBuffer(*fbbP, controlPoint);
+			grl::flatbuffer::Vector3d rv(x,0,0);
+			auto controlPoint = grl::flatbuffer::CreateVrepControlPoint(*fbbP,&rv);
+			grl::flatbuffer::FinishVrepControlPointBuffer(*fbbP, controlPoint);
 			sendP->async_send_flatbuffer(fbbP);
 		}
 		
@@ -42,10 +42,10 @@ void bounce(std::shared_ptr<AzmqFlatbuffer> sendP, std::shared_ptr<AzmqFlatbuffe
 			auto rbP = receiveP->get_back_receive_buffer_with_data();
 			auto rbPstart = &(rbP->begin()[0]);
 			auto verifier = flatbuffers::Verifier(rbPstart,rbP->size());
-			auto bufOK = robone::VerifyVrepControlPointBuffer(verifier);
+			auto bufOK = grl::flatbuffer::VerifyVrepControlPointBuffer(verifier);
 		
 			if(bufOK){
-				const robone::VrepControlPoint* VCPin = robone::GetVrepControlPoint(rbPstart);
+				const grl::flatbuffer::VrepControlPoint* VCPin = grl::flatbuffer::GetVrepControlPoint(rbPstart);
 				std::cout << "received: " << VCPin->position()->x() << "\n";
 			} else {
 				std::cout << "Failed verification. bufOk: " <<bufOK << "\n";

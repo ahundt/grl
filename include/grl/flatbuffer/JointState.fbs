@@ -1,5 +1,5 @@
 
-namespace robone;
+namespace grl.flatbuffer;
 
 table JointState {
   // @todo consider adding name string

@@ -5,8 +5,8 @@
 #include <iostream>
 #include <memory>
 
-#include "robone/KukaFRI.hpp"
-#include "robone/KukaFriClientData.hpp"
+#include "grl/KukaFRI.hpp"
+#include "grl/KukaFriClientData.hpp"
 #include <boost/log/trivial.hpp>
 
 //
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
 	s.connect(endpoint);
 	
 	KUKA::FRI::ClientData friData(7);
-	robone::robot::arm::KukaState state;
+	grl::robot::arm::KukaState state;
     /// @todo maybe there is a more convienient way to set this that is easier for users? perhaps initializeClientDataForiiwa()?
     friData.expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
 

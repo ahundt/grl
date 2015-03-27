@@ -61,15 +61,14 @@ if(APPLE)
 endif()
 
 
-# Configure flatbuffer components
-
 # list flatbuffer headers
 set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs JointState.fbs)
 # directory to include flatbuffers
-set(ROBONE_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include/robone/flatbuffer)
+set(GRL_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include)
 # Generate flatbuffer message C++ headers
-flatbuffers_generate_c_headers(ROBONE_FLATBUFFERS ../include/robone/flatbuffer/  ${ROBONE_FLATBUFFERS_INCLUDE_DIR} ${RFB})
-basis_include_directories(${ROBONE_FLATBUFFERS_INCLUDE_DIR} )
+flatbuffers_generate_c_headers(GRL_FLATBUFFERS include/grl/flatbuffer/  ${GRL_FLATBUFFERS_INCLUDE_DIR}/grl/flatbuffer ${RFB})
+add_custom_target(grlflatbuffers DEPENDS ${GRL_FLATBUFFERS_OUTPUTS})
+basis_include_directories(${GRL_FLATBUFFERS_INCLUDE_DIR} )
 
 # TODO: This is a hack, fix it!
 if(MODULE_kuka_lwr_iiwa_fri)

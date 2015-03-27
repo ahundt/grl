@@ -17,7 +17,7 @@
 
 #include <boost/geometry/geometries/concepts/point_concept.hpp>
 
-namespace robone { namespace concept {
+namespace grl { namespace concept {
 /*!
 \brief OpenChain concept
 \ingroup concepts

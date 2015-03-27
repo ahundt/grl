@@ -6,9 +6,9 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "robone/KukaFRIThreadSeparator.hpp"
-#include "robone/AzmqFlatbuffer.hpp"
-#include "robone/flatbuffer/JointState_generated.h"
+#include "grl/KukaFRIThreadSeparator.hpp"
+#include "grl/AzmqFlatbuffer.hpp"
+#include "grl/flatbuffer/JointState_generated.h"
 
 #include "v_repLib.h"
 
@@ -28,7 +28,7 @@ inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream
     return out;
 }
 
-/// @todo separate out robone specific code from general kuka control code
+/// @todo separate out grl specific code from general kuka control code
 /// @todo Template on robot driver and create a driver that just reads/writes to/from the simulation, then pass the two templates so the simulation and the real driver can be selected.
 class KukaVrepPlugin : public std::enable_shared_from_this<KukaVrepPlugin> {
 public:
@@ -94,7 +94,7 @@ public:
 /// @todo allow KukaFRIThreadSeparator parameters to be updated
 KukaVrepPlugin (Params params = defaultParams())
       :
-      kukaFRIThreadSeparatorP(new robone::KukaFRIThreadSeparator(device_driver_io_service)),
+      kukaFRIThreadSeparatorP(new grl::KukaFRIThreadSeparator(device_driver_io_service)),
       params_(params)
 {
   initHandles();
@@ -152,19 +152,19 @@ void initHandles() {
 void getRealKukaAngles() {
         BOOST_VERIFY(kukaFRIThreadSeparatorP);
 
-        kukaFRIThreadSeparatorP->async_getLatestState([this](std::shared_ptr<robone::robot::arm::kuka::iiwa::MonitorState> updatedState){
+        kukaFRIThreadSeparatorP->async_getLatestState([this](std::shared_ptr<grl::robot::arm::kuka::iiwa::MonitorState> updatedState){
         
             // We have the real kuka state read from the device now
             // update real joint angle data
             realJointPosition.clear();
-            robone::robot::arm::copy(updatedState->get(), std::back_inserter(realJointPosition), robone::revolute_joint_angle_open_chain_state_tag());
+            grl::robot::arm::copy(updatedState->get(), std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
             
             
             realJointForce.clear();
-            robone::robot::arm::copy(updatedState->get(), std::back_inserter(realJointForce), robone::revolute_joint_torque_open_chain_state_tag());
+            grl::robot::arm::copy(updatedState->get(), std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
             
             realJointPosition.clear();
-            robone::robot::arm::copy(updatedState->get(), std::back_inserter(realJointPosition), robone::revolute_joint_angle_open_chain_state_tag());
+            grl::robot::arm::copy(updatedState->get(), std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
             
             
             // here we expect the simulation to be slightly ahead of the arm
@@ -209,15 +209,15 @@ void sendSimulatedJointAnglesToKuka(){
            joints.clear();
            boost::copy(simJointForce, std::back_inserter(joints));
            auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
-           auto jointState = robone::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
-           robone::FinishJointStateBuffer(*fbbP, jointState);
+           auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
+           grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
            kukaJavaDriverP->async_send_flatbuffer(fbbP);
             
         } else {
             // create the command for the FRI
-            auto commandP = std::make_shared<robone::robot::arm::kuka::iiwa::CommandState>();
+            auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
             // Set the FRI to the simulated joint positions
-            robone::robot::arm::set(*commandP, simJointPosition, robone::revolute_joint_angle_open_chain_command_tag());
+            grl::robot::arm::set(*commandP, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
             // send the command
             this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
         }
@@ -310,7 +310,7 @@ bool allHandlesSet = false;
 
 boost::asio::io_service device_driver_io_service;
 std::unique_ptr<std::thread> driver_threadP;
-std::shared_ptr<robone::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
+std::shared_ptr<grl::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
 std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
 //boost::asio::deadline_timer sendToJavaDelay;
 
