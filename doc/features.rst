@@ -3,13 +3,12 @@
 Features
 ========
 
-**Lorem ipsum**
+**Drivers**
 
-- dolor sit amet, consectetur adipisicing elit . 
-- sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+- C++11 drivers for KUKA LBR iiwa Fast Robot Interface
 
-**Ut enim**
+**Simulation**
 
-- ad minim veniam, quis nostrud exercitation
-- ullamco laboris nisi ut aliquip ex ea commodo consequat
-- Duis aute irure dolor in reprehenderit
+- Hardware integration with `V-REP<http://http://www.coppeliarobotics.com/index.html>`_ robotics simulation software.
+
+

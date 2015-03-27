@@ -10,15 +10,17 @@ Software Development
 --------------------
 
 - Andrew Hundt
+- Alex Strickland
+- Shahriar Sefati
 
 
-Contributors
-------------
-
-- Names of the contributors
+.. Contributors
+.. ------------
+.. 
+.. - Names of the contributors
 
 
 Advisors
 --------
 
-- Name of the advisor
+- Dr. Peter Kazanzides

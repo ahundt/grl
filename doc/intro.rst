@@ -1,6 +1,6 @@
 
 .. meta::
-    :description: Orthopaedic Surgery Assistive Robot Software
+    :description: Generic Robotics Library
 
 .. raw:: latex
 
@@ -11,4 +11,4 @@
 Overview
 ========
 
-Orthopaedic Surgery Assistive Robot Software
+Generic Robotics Library

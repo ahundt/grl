@@ -1,14 +1,9 @@
 Introduction
 ============
 
-Introduce your software package here and describe its purpose. This section
-is very similar to an abstract of a scientific article. The focus here is,
-however, on the software, not the mathematics. Cite any of your publications
-which are related to this software package here as \[1] and add a reference
-to the References section at the end of this file.
+The Generic Robotics Library (GRL) has a long term goal of implementing robotics algorithms using generic programming in C++11.
 
-* \[1] Authors, Title, Journal (Year)
-* \[2] Authors, Title, Journal (Year)
+Currently GRL implements C++11 drivers for the new Kuka LBR iiwa arm and hardware integration with the [V-REP](http://http://www.coppeliarobotics.com/index.html) robotics simulation software.
 
 
 
@@ -16,7 +11,7 @@ to the References section at the end of this file.
 License
 =======
 
-Copyright (c) 2015 <provider-name> <br />
+Copyright (c) 2015 Andrew Hundt
 
 See COPYING file for license information.
 
