@@ -29,15 +29,11 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
-
-
-# @todo THIS IF STATEMENT IS A HACK, FIX IT!
-if(MODULE_kuka_lwr_iiwa_fri)
-
+if(FRI-Client-SDK_Cpp_FOUND)
+basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 basis_add_library(v_repExtKukaLBRiiwa SHARED v_repExtKukaLBRiiwa.cpp v_repLib.cpp)
-basis_target_link_libraries(v_repExtKukaLBRiiwa ${Boost_LIBRARIES}  ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb ${CMAKE_THREAD_LIBS_INIT})
-target_include_directories(v_repExtKukaLBRiiwa SYSTEM PRIVATE "${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include")
-basis_add_dependencies(v_repExtKukaLBRiiwa grlflatbuffers)
+basis_target_link_libraries(v_repExtKukaLBRiiwa ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Nanopb_LIBRARIES})
+basis_add_dependencies(v_repExtKukaLBRiiwa grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
 endif()
 
 

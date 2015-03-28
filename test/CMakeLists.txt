@@ -77,11 +77,11 @@ endif ()
 
 
 basis_add_executable(zmqFlatbuffersTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(zmqFlatbuffersTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+basis_target_link_libraries(zmqFlatbuffersTest ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 basis_add_dependencies(zmqFlatbuffersTest grlflatbuffers)
 
 basis_add_executable(AzmqFlatbufferTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(AzmqFlatbufferTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+basis_target_link_libraries(AzmqFlatbufferTest ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 basis_add_dependencies(AzmqFlatbufferTest grlflatbuffers)
 
 basis_add_executable(asioSocketTest.cpp)
@@ -89,14 +89,13 @@ basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES})
 
 
 
-#TODO: THIS IS A HACK, fix it!
-if(MODULE_kuka_lwr_iiwa_fri)
-
-	#basis_include_directories(${kuka_lwr_iiwa_fri_PROJECT_INCLUDE_DIRS})
+# For KUKA IIWA FRI Libraries
+if(FRI-Client-SDK_Cpp_FOUND)
+	basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS})
 	basis_add_executable(KukaFRITest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-	basis_target_link_libraries(KukaFRITest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb ${CMAKE_THREAD_LIBS_INIT})
+	basis_target_link_libraries(KukaFRITest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES} ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 	basis_add_executable(KukaFRIClientDataTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-	basis_target_link_libraries(KukaFRIClientDataTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} FRIClient nanopb ${CMAKE_THREAD_LIBS_INIT})
+	basis_target_link_libraries(KukaFRIClientDataTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 endif()
 

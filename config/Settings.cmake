@@ -30,11 +30,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR})
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64") 
-	ADD_DEFINITIONS(-fPIC)
-endif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-
 if(COMPILER_SUPPORTS_CXX11)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 elseif(COMPILER_SUPPORTS_CXX0X)
@@ -42,6 +37,11 @@ elseif(COMPILER_SUPPORTS_CXX0X)
 else()
         message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support, or our tests failed to detect it correctly. Please use a different C++ compiler or report this problem to the developers.")
 endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64") 
+	ADD_DEFINITIONS(-fPIC)
+endif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+
 
 # Link the boost.log library
 # @todo consider an alternative to always linking boost log
@@ -70,18 +70,13 @@ flatbuffers_generate_c_headers(GRL_FLATBUFFERS include/grl/flatbuffer/  ${GRL_FL
 add_custom_target(grlflatbuffers DEPENDS ${GRL_FLATBUFFERS_OUTPUTS})
 basis_include_directories(${GRL_FLATBUFFERS_INCLUDE_DIR} )
 
-# TODO: This is a hack, fix it!
-if(MODULE_kuka_lwr_iiwa_fri)
-	# These directories are hard coded
-	# replace with relative reconfigurable directories
-	basis_include_directories(
-	   modules/kuka_lwr_iiwa_fri/include
-       modules/kuka_lwr_iiwa_fri/src/base
-       modules/kuka_lwr_iiwa_fri/src/protobuf
-       modules/kuka_lwr_iiwa_fri/src/protobuf_gen
-	   modules/kuka_lwr_iiwa_fri/src/nanopb-0.2.8
-	   #${NANOPB_INCLUDE_DIRS}
-    )
-endif()
+# workaround so that compilation will work if FindFRI-Client-SDK_Cpp is a module
+# it may also be an external, see config/FindFRI-Client-SDK_Cpp 
+if(MODULE_FRI-Client-SDK_Cpp)
+    set(FRI-Client-SDK_Cpp_LIBRARIES  KukaFRIClient)
 
+    if(NOT Nanopb_FOUND)
+        set(Nanopb_LIBRARIES nanopb)
+    endif()
+endif()
 

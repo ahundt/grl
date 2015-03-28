@@ -82,7 +82,7 @@
 basis_project (
   # --------------------------------------------------------------------------
   # meta-data
-  NAME             "GRL"
+  NAME             "grl"
   VERSION          "0.0.0"
   AUTHORS          "Andrew Hundt"
                    #<author>
@@ -112,6 +112,8 @@ basis_project (
     #<optional-dependency>
     Threads
 	Eigen3
+    Nanopb
+    FRI-Client-SDK_Cpp # Kuka Fast Robot Interface Client SDK
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

@@ -11,19 +11,6 @@
 ##############################################################################
 
 
-#message(STATUS "kuka_lwr_iiwa_fri_INCLUDE_DIRS:${kuka_lwr_iiwa_fri_INCLUDE_DIRS}")
-#message(STATUS "KUKA_LWR_IIWA_FRI_INCLUDE_DIRS:${KUKA_LWR_IIWA_FRI_INCLUDE_DIRS}")
-#message(STATUS "kuka_lwr_iiwa_fri_INCLUDE_DIR:${kuka_lwr_iiwa_fri_INCLUDE_DIR}")
-#message(STATUS "KUKA_LWR_IIWA_FRI_INCLUDE_DIR:${KUKA_LWR_IIWA_FRI_INCLUDE_DIR}")
-#message(STATUS "MODULE_kuka_lwr_iiwa_fri_INCLUDE_DIRS:${kuka_lwr_iiwa_fri_INCLUDE_DIRS}")
-#message(STATUS "MODULE_KUKA_LWR_IIWA_FRI_INCLUDE_DIRS:${KUKA_LWR_IIWA_FRI_INCLUDE_DIRS}")
-#message(STATUS "MODULE_kuka_lwr_iiwa_fri_INCLUDE_DIR:${kuka_lwr_iiwa_fri_INCLUDE_DIR}")
-#message(STATUS "MODULE_KUKA_LWR_IIWA_FRI_INCLUDE_DIR:${KUKA_LWR_IIWA_FRI_INCLUDE_DIR}")
-#message(STATUS "KUKA_LWR_IIWA_FRI_PROJECT_INCLUDE_DIR:${KUKA_LWR_IIWA_FRI_PROJECT_INCLUDE_DIR}")
-#message(STATUS "kuka_lwr_iiwa_fri_PROJECT_INCLUDE_DIR:${kuka_lwr_iiwa_fri_PROJECT_INCLUDE_DIR}")
-#message(STATUS "MODULE_INCLUDE_DIRS:${MODULE_INCLUDE_DIRS}")
-
-
 # ============================================================================
 # library target(s)
 # ============================================================================
