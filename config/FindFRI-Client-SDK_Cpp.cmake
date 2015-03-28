@@ -50,5 +50,5 @@ if(NOT Nanopb_FOUND)
     find_package_handle_standard_args(Nanopb DEFAULT_MSG Nanopb_LIBRARIES Nanopb_INCLUDE_DIRS)
 endif(NOT Nanopb_FOUND)
 
-endif(FRI-Client-SDK_Cpp_URL)
+endif(EXISTS FRI-Client-SDK_Cpp_URL)
 
