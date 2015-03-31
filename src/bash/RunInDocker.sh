@@ -1,6 +1,6 @@
 
 ##################################################
-# Ubuntu Instructions to setup robone with Docker
+# Ubuntu Instructions to setup grl with Docker
 ##################################################
 
 # Install docker with the line below
@@ -138,8 +138,8 @@ docker run --user="root" sango/cpp-clang apt-get install -y cmake libtool autoco
 # source : https://maddigitiser.wordpress.com/2013/05/02/installing-zeromq-on-ubuntu-13-04/
 
 ########
-# robone
+# grl
 ########
 
 docker run --user="root" sango/cpp-clang /bin/sh -c 'git clone https://github.com/zeromq/azmq.git /root/azmq/ && cd azmq && mkdir build && cd build && cmake .. && make && make test && make install"
-docker run  --user="root" sango/cpp-clang git clone https://github.com/ahundt/robone.git  /root/robone
+docker run  --user="root" sango/cpp-clang git clone https://github.com/ahundt/grl.git  /root/grl

@@ -1,7 +1,7 @@
 .. title:: Release Notes
 
 .. meta::
-   :description: Summary of changes, new features, and bug fixes for each Robone release.
+   :description: Summary of changes, new features, and bug fixes for each grl release.
 
 =============
 Release Notes

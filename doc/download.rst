@@ -1,5 +1,5 @@
 .. meta::
-    :description: Download the Robone software and manual.
+    :description: Download the grl software and manual.
 
 
 ========
@@ -9,7 +9,7 @@ Download
 Source Code
 ===========
 
-The source code of the CMake BASIS package is hosted on `GitHub <https://github.com/schuhschuh/robone/>`__
+The source code of the CMake BASIS package is hosted on `GitHub <https://github.com/schuhschuh/grl/>`__
 from which all releases and latest development versions can be downloaded. See the :doc:`changelog` for a summary
 of changes in each release.
 
@@ -17,12 +17,12 @@ Either clone the Git repository:
 
 .. code-block:: bash
     
-    git clone https://github.com/schuhschuh/robone.git
+    git clone https://github.com/schuhschuh/grl.git
 
 or download a pre-packaged ``.tar.gz`` of the latest BASIS release:
 
-- `Download Robone v1.0.0 as .tar.gz <https://github.com/schuhschuh/robone/archive/v1.0.0.tar.gz>`__
-- `Download Robone v1.0.0 as .zip    <https://github.com/schuhschuh/robone/archive/v1.0.0.zip>`__
+- `Download grl v1.0.1 as .tar.gz <https://github.com/ahundt/grl/archive/v1.0.1.tar.gz>`__
+- `Download grl v1.0.1 as .zip    <https://github.com/ahundt/grl/archive/v1.0.1.zip>`__
 
 .. seealso:: The :doc:`Quick Start Guide <quickstart>` can help you get up and running.
 
@@ -48,8 +48,8 @@ Documentation
 
 .. only:: html
     
-    :download:`Robone Manual <Robone_Software_Manual.pdf>`: PDF version of software manual.
+    :download:`grl Manual <grl_Software_Manual.pdf>`: PDF version of software manual.
  
 .. only:: latex
     
-    `BASIS Manual <http://opensource.schuhschuh.com/robone/>`__: Online version of this manual
+    `BASIS Manual <http://opensource.schuhschuh.com/grl/>`__: Online version of this manual

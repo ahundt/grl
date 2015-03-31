@@ -1,6 +1,6 @@
 
-###############################################
-Ubuntu Instructions to setup robone with Docker
-###############################################
+#################
+Setup with Docker
+#################
 
 Follow the steps in **src/scripts/RunInDocker.sh**

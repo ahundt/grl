@@ -9,6 +9,6 @@ Features
 
 **Simulation**
 
-- Hardware integration with `V-REP<http://http://www.coppeliarobotics.com/index.html>`_ robotics simulation software.
+- Hardware integration with `V-REP <http://http://www.coppeliarobotics.com/index.html>`_ robotics simulation software.
 
 

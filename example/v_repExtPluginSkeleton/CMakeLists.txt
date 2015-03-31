@@ -25,7 +25,7 @@
 #
 # Note: Public modules written in a scripting language such as Python, Perl,
 #       MATLAB, or Bash which are intended for use by other packages should
-#       be placed in the lib/[<lang>/]Robone/ directory,
+#       be placed in the lib/[<lang>/]grl/ directory,
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
