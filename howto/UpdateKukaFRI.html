@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Enabling Kuka FRI &mdash; grl</title>
+    
+    <link rel="stylesheet" href="../_static/cmake-basis.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     'b2015.03.31 (05:42 UTC)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="grl" href="../index.html" />
+    <link rel="up" title="How-to Guides" href="../howto.html" />
+    <link rel="next" title="Reference" href="../reference.html" />
+    <link rel="prev" title="Ubuntu Instructions to setup grl with Docker" href="RunInDocker.html" />
+   
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+  
+  
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../reference.html" title="Reference"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="RunInDocker.html" title="Ubuntu Instructions to setup grl with Docker"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../sidebar.html">grl</a> &raquo;</li>
+          <li><a href="../howto.html" accesskey="U">How-to Guides</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="enabling-kuka-fri">
+<h1>Enabling Kuka FRI<a class="headerlink" href="#enabling-kuka-fri" title="Permalink to this headline">¶</a></h1>
+<p>Follow the instructions under <a href="#id1"><span class="problematic" id="id2">`howto/iiwaKukaRobotSetup.rst`_</span></a>, enabling FRI in the software settings tab and then building will generate FRI-Client-SDK_Cpp.zip. Copy this file into grl/data and it should automatically be picked up and patched to work with grl. Othwerwise, you can call cmake with</p>
+<p>to build the KUKA FRI components.</p>
+<p>The second option is to clone <a class="reference external" href="https://git.lcsr.jhu.edu/ahundt1/kuka_lwr_iiwa_fri">https://git.lcsr.jhu.edu/ahundt1/kuka_lwr_iiwa_fri</a> into /modules. If you don&#8217;t have access, consider requesting access to the repository from the authors. You must verify you have legitimate access to FRI-Client-SDK_Cpp.zip.</p>
+</div>
+<div class="section" id="updating-kuka-fri">
+<h1>Updating Kuka FRI<a class="headerlink" href="#updating-kuka-fri" title="Permalink to this headline">¶</a></h1>
+<p>If a new version of the FRI library becomes available, follow the steps below to update the Kuka FRI.</p>
+<p>Extract the files in  into two folders, FRI-Client-SDK_Cpp_base and FRI-Client-SDK_Cpp_patch.</p>
+<p>bash ..</p>
+<blockquote>
+<div>tar -xvzf FRI-Client-SDK_Cpp.zip -C FRI-Client-SDK_Cpp_base
+tar -xvzf FRI-Client-SDK_Cpp.zip -C FRI-Client-SDK_Cpp_patch
+cd FRI-Client-SDK_Cpp_patch
+patch -p1 &lt; ${CMAKE_CURRENT_SOURCE_DIR}/data/FRI-Client-SDK_Cpp.patch
+cd ..</div></blockquote>
+<p>Modify the patched version to work with the updated changes, then apply the line below to create a new patch.</p>
+<p>bash ..</p>
+<blockquote>
+<div>diff -ruN FRI-Client-SDK_Cpp_base/ FRI-Client-SDK_Cpp_patched/ &gt; FRI-Client-SDK_Cpp.patch</div></blockquote>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <p class="logo"><a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+  </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../contents.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../howto.html">How-to Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="IPAddresses.html">Kuka IP Addresses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iiwaKukaRobotSetup.html">Kuka LBR iiwa Java Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunInDocker.html">Ubuntu Instructions to setup grl with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MillingSimulationOfBoneShapedObject.html">Milling simulation of bone shaped object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MillingSimulationOfSimpleObject_IntegrateSimulations.html">Milling Simulation of simple object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunInDocker.html">Ubuntu Instructions to setup grl with Docker</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Enabling Kuka FRI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#updating-kuka-fri">Updating Kuka FRI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apidoc.html">API</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../download.html">Download</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../help.html">Getting Help</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="footer">
+    &copy; Copyright 2015 Andrew Hundt, Alex Strickland, Shahriar Sefati.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+  </div>
+  
+  </body>
+</html>

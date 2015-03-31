@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Milling Simulation of simple object &mdash; grl</title>
+    
+    <link rel="stylesheet" href="../_static/cmake-basis.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     'b2015.03.31 (05:42 UTC)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="grl" href="../index.html" />
+    <link rel="up" title="How-to Guides" href="../howto.html" />
+    <link rel="next" title="Setup with Docker" href="RunInDocker.html" />
+    <link rel="prev" title="Milling simulation of bone shaped object" href="MillingSimulationOfBoneShapedObject.html" />
+   
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+  
+  
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="RunInDocker.html" title="Setup with Docker"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="MillingSimulationOfBoneShapedObject.html" title="Milling simulation of bone shaped object"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../sidebar.html">grl</a> &raquo;</li>
+          <li><a href="../howto.html" accesskey="U">How-to Guides</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="milling-simulation-of-simple-object">
+<h1>Milling Simulation of simple object<a class="headerlink" href="#milling-simulation-of-simple-object" title="Permalink to this headline">¶</a></h1>
+<p>Issues: #8 #43</p>
+<ol class="arabic">
+<li><p class="first">Adding a path:</p>
+<blockquote>
+<div><p>-Right click anywhere on the screen
+-Select add
+-Select Segment Path for a general path.
+Or
+-Select Circle Path to obtain a circle path.</p>
+</div></blockquote>
+</li>
+<li><p class="first">Editing a path:</p>
+<blockquote>
+<div><p>-Select your path from the &#8220;Scene hierarchy&#8221; tab
+-Hit on the &#8220;Toggle path edit mode&#8221;.
+-To change the position or orientation of a point, select it when you are in the &#8220;Toggle path edit mode&#8221;.
+-Hit the &#8220;Object/Item Shift&#8221; or &#8220;Object/Item Rotate&#8221; buttons from the tool-bar located at the top of the screen.</p>
+</div></blockquote>
+</li>
+<li><p class="first">Following a path:</p>
+<blockquote>
+<div><p>-Right click anywhere on the screen, select add, select &#8220;Dummy&#8221;. You will need two dummies.
+-Make one dummy a child to your robot end_effector link, and the other one a child to your path.
+-Make these two dummies &#8220;Linked&#8221; by double clicking on one of these dummies icon on the &#8220;Scene hierarchy&#8221; tab, and selecting the other dummy in the &#8220;Linked dummy&#8221; option.</p>
+</div></blockquote>
+</li>
+</ol>
+<p>You have two options now:</p>
+<blockquote>
+<div><p>3.1. Using the &#8220;Inverse Kinematics&#8221; module:</p>
+<blockquote>
+<div><p>-Follow the instruction on how to use the &#8220;Inverse Kinematics&#8221; module from:
+<a class="reference external" href="http://www.coppeliarobotics.com/helpFiles/en/inverseKinematicsModule.htm">http://www.coppeliarobotics.com/helpFiles/en/inverseKinematicsModule.htm</a></p>
+<p>-Note that you will need to change the way the robot joints act. Double click on joints&#8217; icon in &#8220;Scene hierarchy&#8221; tab, and change the &#8220;Joint Mode&#8221; to &#8220;Joint in inverse kinematics mode&#8221;.
+This will enable the joint to follow the inverse kinematics module.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>3.2. Using the &#8220;Lua&#8221; commands from the scene &#8220;MillingRobot&#8221; and using some of :</dt>
+<dd><dl class="first last docutils">
+<dt>-Functions needed: (Follow the instructions on <a class="reference external" href="http://www.coppeliarobotics.com/helpFiles/en/apiFunctionListAlphabetical.htm">http://www.coppeliarobotics.com/helpFiles/en/apiFunctionListAlphabetical.htm</a>)</dt>
+<dd>-SimGetPositionOnPath
+-SimGetOrientationOnPath
+-SimGetObjectPosition
+-SimRMLMovetoPosition
+-SimFollowPath
+-SimGetObjectHandle</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+<ol class="arabic" start="4">
+<li><p class="first">Adding Mill:</p>
+<blockquote>
+<div><p>-Right click anywhere on the screen, select add, select &#8220;Mill&#8221; and choose type. Make the mill a child to the dummy which is a child to the robot end_effector.</p>
+</div></blockquote>
+</li>
+<li><p class="first">Adding Object:</p>
+<blockquote>
+<div><p>-Right click anywhere on the screen, select add, select &#8220;Primitive Shape&#8221;</p>
+</div></blockquote>
+</li>
+</ol>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <p class="logo"><a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+  </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../contents.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../howto.html">How-to Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="IPAddresses.html">Kuka IP Addresses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iiwaKukaRobotSetup.html">Kuka LBR iiwa Java Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunInDocker.html">Setup with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MillingSimulationOfBoneShapedObject.html">Milling simulation of bone shaped object</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Milling Simulation of simple object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunInDocker.html">Setup with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iiwaEnableKukaFRI.html">Enabling Kuka FRI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apidoc.html">API</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../download.html">Download</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../help.html">Getting Help</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="footer">
+    &copy; Copyright 2015 Andrew Hundt, Alex Strickland, Shahriar Sefati.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+  </div>
+  
+  </body>
+</html>

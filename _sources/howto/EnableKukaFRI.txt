@@ -1,0 +1,42 @@
+
+=================
+Enabling Kuka FRI
+=================
+
+Follow the instructions under `howto/iiwaKukaRobotSetup.rst`_, enabling FRI in the software settings tab and then building will generate FRI-Client-SDK_Cpp.zip. Copy this file into grl/data and it should automatically be picked up and patched to work with grl. Othwerwise, you can call cmake with
+
+.. code-block:: bash
+
+    cd path/to/grl
+    mkdir build
+    cd build
+    cmake .. -DFRI_CLIENT_SDK_CPP_URL=/path/to/FRI-Client-SDK_Cpp.zip
+
+to build the KUKA FRI components.
+
+The second option is to clone https://git.lcsr.jhu.edu/ahundt1/kuka_lwr_iiwa_fri into /modules. If you don't have access, consider requesting access to the repository from the authors. You must verify you have legitimate access to FRI-Client-SDK_Cpp.zip.
+
+
+=================
+Updating Kuka FRI
+=================
+
+If a new version of the FRI library becomes available, follow the steps below to update the Kuka FRI.
+
+Extract the files in  into two folders, FRI-Client-SDK_Cpp_base and FRI-Client-SDK_Cpp_patch. 
+
+.. code-block:: bash
+
+    tar -xvzf FRI-Client-SDK_Cpp.zip -C FRI-Client-SDK_Cpp_base
+    tar -xvzf FRI-Client-SDK_Cpp.zip -C FRI-Client-SDK_Cpp_patch
+    cd FRI-Client-SDK_Cpp_patch
+    patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/data/FRI-Client-SDK_Cpp.patch
+    cd ..
+
+Modify the patched version to work with the updated changes, then apply the line below to create a new patch.
+
+.. code-block:: bash
+
+    diff -ruN FRI-Client-SDK_Cpp_base/ FRI-Client-SDK_Cpp_patched/ > FRI-Client-SDK_Cpp.patch
+    
+    

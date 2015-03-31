@@ -1,0 +1,232 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta content="Build and installation instructions for grl." name="description" />
+
+    <title>Installation &mdash; grl</title>
+    
+    <link rel="stylesheet" href="_static/cmake-basis.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     'b2015.03.31 (05:42 UTC)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="grl" href="index.html" />
+    <link rel="next" title="Getting Help" href="help.html" />
+    <link rel="prev" title="Download" href="download.html" />
+   
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+  
+  
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="help.html" title="Getting Help"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="download.html" title="Download"
+             accesskey="P">previous</a> |</li>
+        <li><a href="sidebar.html">grl</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<p>See the <a class="reference external" href="http://opensource.andreasschuh.com/cmake-basis/howto/install.html">BASIS guide on software installation</a> for a complete list of build tools and
+detailed installation instructions.</p>
+<div class="section" id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<br /><table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="8%" />
+<col width="74%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Dependency</th>
+<th class="head">Version</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><a class="reference external" href="http://opensource.andreasschuh.com/cmake-basis/">BASIS</a></td>
+<td>3.0.0</td>
+<td>Utility to automate and standardize creating, documenting, and sharing software.</td>
+</tr>
+<tr class="row-odd"><td>Sunrise Connectivity</td>
+<td>&gt;= 3.0</td>
+<td>Java      Provided by KUKA, Eclipse based Java platform</td>
+</tr>
+<tr class="row-even"><td>Fast Robot Int. SDK</td>
+<td>&gt;= 3.0</td>
+<td>C++       Provided by KUKA, drivers for fast robot control</td>
+</tr>
+<tr class="row-odd"><td>[Boost][4]</td>
+<td>&gt;= 1.54.</td>
+<td>C++       Collection of general use C++ libraries.</td>
+</tr>
+<tr class="row-even"><td>[ZeroMQ][6]</td>
+<td>&gt;= 4.0</td>
+<td>C++       High Performance Network Communication Library</td>
+</tr>
+<tr class="row-odd"><td>[AZMQ][7]</td>
+<td>&gt;= 1.0</td>
+<td>C++       [Boost.asio][5] based official ZeroMQ C++ Networking Library Interface</td>
+</tr>
+<tr class="row-even"><td>[JeroMQ][8]</td>
+<td>&gt;= 3.0</td>
+<td>Java      Official Pure Java implementation of ZeroMQ</td>
+</tr>
+<tr class="row-odd"><td>[Google Flatbuf][9]</td>
+<td>&gt;= 1.0</td>
+<td>Java/C++  High Performance Message Serialization Library</td>
+</tr>
+<tr class="row-even"><td>[V-REP][10]</td>
+<td>&gt;= 3.2</td>
+<td>C++       Recommended robot simulation library (Optional)</td>
+</tr>
+</tbody>
+</table>
+<br /></div>
+<div class="section" id="configure">
+<h2>Configure<a class="headerlink" href="#configure" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">Extract source files:</p>
+<div class="highlight-python"><div class="highlight"><pre>tar -xzf grl-1.0.0-source.tar.gz
+</pre></div>
+</div>
+</li>
+<li><p class="first">Create build directory:</p>
+<div class="highlight-python"><div class="highlight"><pre>mkdir grl-1.0.0-build
+</pre></div>
+</div>
+</li>
+<li><p class="first">Change to build directory:</p>
+<div class="highlight-python"><div class="highlight"><pre>cd grl-1.0.0-build
+</pre></div>
+</div>
+</li>
+<li><p class="first">Run <a class="reference external" href="http://www.cmake.org/">CMake</a> to configure the build tree:</p>
+<div class="highlight-python"><div class="highlight"><pre>ccmake -DBASIS_DIR:PATH=/path/to/basis ../grl-1.0.0-source
+</pre></div>
+</div>
+<ul class="simple">
+<li>Press <tt class="docutils literal"><span class="pre">c</span></tt> to configure the build system and <tt class="docutils literal"><span class="pre">e</span></tt> to ignore warnings.</li>
+<li>Set <tt class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></tt> and other CMake variables and options.</li>
+<li>Continue pressing <tt class="docutils literal"><span class="pre">c</span></tt> until the option <tt class="docutils literal"><span class="pre">g</span></tt> is available.</li>
+<li>Then press <tt class="docutils literal"><span class="pre">g</span></tt> to generate the <a class="reference external" href="http://www.gnu.org/software/make/">GNU Make</a> configuration files.</li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="section" id="build">
+<h2>Build<a class="headerlink" href="#build" title="Permalink to this headline">¶</a></h2>
+<p>After the configuration of the build tree, the software can be build using <a class="reference external" href="http://www.gnu.org/software/make/">GNU Make</a>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">make</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="test">
+<h2>Test<a class="headerlink" href="#test" title="Permalink to this headline">¶</a></h2>
+<p>After the build of the software, optionally run the tests using the command:</p>
+<div class="highlight-python"><div class="highlight"><pre>make test
+</pre></div>
+</div>
+<p>In case of failing tests, re-run the tests, but this time by executing <a class="reference external" href="http://www.cmake.org/cmake/help/v2.8.8/ctest.html">CTest</a>
+directly with the <tt class="docutils literal"><span class="pre">-V</span></tt> option to enable verbose output and redirect the output
+to a text file:</p>
+<div class="highlight-bash"><div class="highlight"><pre>ctest -V &gt;<span class="p">&amp;</span> grl-test.log
+</pre></div>
+</div>
+<p>and attach the file <tt class="docutils literal"><span class="pre">grl-test.log</span></tt> to the issue report.</p>
+</div>
+<div class="section" id="install">
+<h2>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h2>
+<p>The final installation copies the built files and additional data and documentation
+files to the installation directory specified using the <tt class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></tt>
+option during the configuration of the build tree:</p>
+<div class="highlight-python"><div class="highlight"><pre>make install
+</pre></div>
+</div>
+<p>After the successful installation, the build directory can be removed again.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <p class="logo"><a href="index.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo"/>
+  </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="contents.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="howto.html">How-to Guides</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidoc.html">API</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configure">Configure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#build">Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#test">Test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#install">Install</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="help.html">Getting Help</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="footer">
+    &copy; Copyright 2015 Andrew Hundt, Alex Strickland, Shahriar Sefati.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+  </div>
+  
+  </body>
+</html>
