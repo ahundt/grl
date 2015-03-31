@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Quick Start &mdash; grl</title>
+    
+    <link rel="stylesheet" href="_static/cmake-basis.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     'b2015.03.31 (05:42 UTC)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="grl" href="index.html" />
+    <link rel="next" title="How-to Guides" href="howto.html" />
+    <link rel="prev" title="Overview" href="index.html" />
+   
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+  
+  
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="howto.html" title="How-to Guides"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="index.html" title="Overview"
+             accesskey="P">previous</a> |</li>
+        <li><a href="sidebar.html">grl</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="quick-start">
+<span id="quickstartguides"></span><h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="first-steps">
+<span id="firststeps"></span><h2>First Steps<a class="headerlink" href="#first-steps" title="Permalink to this headline">¶</a></h2>
+<p>The following steps will show you how to</p>
+<ul class="simple">
+<li>download and install grl on your system.</li>
+<li>use the installation to create an example.</li>
+<li>build and test the example project.</li>
+</ul>
+<p>You need to have a Unix-like operating system such as Linux or Mac OS X installed on your
+machine in order to follow these steps. At the moment, there is no separate tutorial
+available for Windows users, but you can install CygWin as an alternative.
+Note, however, that grl can also be installed and used on Windows.</p>
+<div class="section" id="install-grl">
+<h3>Install grl<a class="headerlink" href="#install-grl" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="get-a-copy-of-the-source-code">
+<h4>Get a copy of the source code<a class="headerlink" href="#get-a-copy-of-the-source-code" title="Permalink to this headline">¶</a></h4>
+<p>Clone the <a class="reference external" href="http://git-scm.com/">Git</a> repository from <a class="reference external" href="https://github.com/ahundt/grl/">GitHub</a> as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre>mkdir -p ~/local/src
+<span class="nb">cd</span> ~/local/src
+git clone https://github.com/ahundt/grl.git
+<span class="nb">cd </span>grl
+</pre></div>
+</div>
+<p>or <a class="reference internal" href="download.html"><em>Download</em></a> a pre-packaged <tt class="docutils literal"><span class="pre">.tar.gz</span></tt> of the latest release and unpack it using the following command:</p>
+<div class="highlight-bash"><div class="highlight"><pre>mkdir -p ~/local/src
+<span class="nb">cd</span> ~/local/src
+tar xzf /path/to/downloaded/grl-<span class="nv">$version</span>.tar.gz
+<span class="nb">cd </span>grl-<span class="nv">$version</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="configure-the-build">
+<h4>Configure the build<a class="headerlink" href="#configure-the-build" title="Permalink to this headline">¶</a></h4>
+<p>Configure the build system using CMake 2.8.4 or a more recent version:</p>
+<div class="highlight-bash"><div class="highlight"><pre>mkdir build <span class="o">&amp;&amp;</span> <span class="nb">cd </span>build
+ccmake ..
+</pre></div>
+</div>
+<ul class="simple">
+<li>Press <tt class="docutils literal"><span class="pre">c</span></tt> to configure the project.</li>
+<li>Change <tt class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></tt> to <tt class="docutils literal"><span class="pre">~/local</span></tt>.</li>
+<li>Set option <tt class="docutils literal"><span class="pre">BUILD_EXAMPLE</span></tt> to <tt class="docutils literal"><span class="pre">ON</span></tt>.</li>
+<li>Make sure that option <tt class="docutils literal"><span class="pre">BUILD_PROJECT_TOOL</span></tt> is enabled.</li>
+<li>Press <tt class="docutils literal"><span class="pre">g</span></tt> to generate the Makefiles.</li>
+</ul>
+</div>
+<div class="section" id="build-and-install-grl">
+<h4>Build and install grl<a class="headerlink" href="#build-and-install-grl" title="Permalink to this headline">¶</a></h4>
+<p>CMake has generated Makefiles for GNU Make. The build is thus triggered by the make command:</p>
+<div class="highlight-bash"><div class="highlight"><pre>make
+</pre></div>
+</div>
+<p>To install BASIS after the successful build, run the following command:</p>
+<div class="highlight-bash"><div class="highlight"><pre>make install
+</pre></div>
+</div>
+<p>As a result, CMake copies the built files into the installation tree as specified by the
+<tt class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></tt> variable.</p>
+</div>
+<div class="section" id="set-up-the-environment">
+<span id="gettingstartedenvironment"></span><h4>Set up the environment<a class="headerlink" href="#set-up-the-environment" title="Permalink to this headline">¶</a></h4>
+<p>For the following tutorial steps, set up your environment as follows. In general, however,
+only the change of the <tt class="docutils literal"><span class="pre">PATH</span></tt> environment variable is recommended. The other environment
+variables are only needed for the tutorial sessions.</p>
+<p>Using the C or TC shell (csh/tcsh):</p>
+<div class="highlight-bash"><div class="highlight"><pre>setenv PATH <span class="s2">&quot;~/local/bin:</span><span class="si">${</span><span class="nv">PATH</span><span class="si">}</span><span class="s2">&quot;</span>
+setenv grl_EXAMPLE_DIR <span class="s2">&quot;~/local/share/grl/example&quot;</span>
+</pre></div>
+</div>
+<p>Using the Bourne Again SHell (bash):</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;~/local/bin:</span><span class="si">${</span><span class="nv">PATH</span><span class="si">}</span><span class="s2"> &quot;</span>
+<span class="nb">export </span><span class="nv">grl_EXAMPLE_DIR</span><span class="o">=</span><span class="s2">&quot;~/local/share/basis/example&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="create-an-example">
+<h3>Create an Example<a class="headerlink" href="#create-an-example" title="Permalink to this headline">¶</a></h3>
+<p>Create an example using grl:</p>
+<div class="highlight-bash"><div class="highlight"><pre>voluptate --velit esse --cillum dolore --eu
+</pre></div>
+</div>
+<div class="section" id="test-the-example">
+<h4>Test the Example<a class="headerlink" href="#test-the-example" title="Permalink to this headline">¶</a></h4>
+<p>Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim
+id est laborum.</p>
+<div class="highlight-bash"><div class="highlight"><pre>ipsum --in molestie
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="next-steps">
+<h3>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this headline">¶</a></h3>
+<p>Congratulations! You just finished your first grl tutorial.</p>
+<p>Now check out the <a class="reference internal" href="#tutorials"><em>Advanced Tutorials</em></a> for more details regarding each of the
+above steps and in-depth information about the used commands if you like,
+or move on to the various <a class="reference internal" href="howto.html"><em>How-to Guides</em></a>.</p>
+</div>
+</div>
+<div class="section" id="advanced-tutorials">
+<span id="tutorials"></span><h2>Advanced Tutorials<a class="headerlink" href="#advanced-tutorials" title="Permalink to this headline">¶</a></h2>
+<p>The advanced tutorial slides give a more in-depth introduction to grl and
+its use including in-depth information and references to further documentation. For a less
+comprehensive tutorial-like introduction, please refer to the <a class="reference internal" href="#firststeps"><em>First Steps</em></a> above.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <p class="logo"><a href="index.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo"/>
+  </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="contents.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#first-steps">First Steps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#install-grl">Install grl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create-an-example">Create an Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#advanced-tutorials">Advanced Tutorials</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="howto.html">How-to Guides</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidoc.html">API</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="help.html">Getting Help</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="footer">
+    &copy; Copyright 2015 Andrew Hundt, Alex Strickland, Shahriar Sefati.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+  </div>
+  
+  </body>
+</html>

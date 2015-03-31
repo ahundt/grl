@@ -1,0 +1,344 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Kuka LBR iiwa Java Setup &mdash; grl</title>
+    
+    <link rel="stylesheet" href="../_static/cmake-basis.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     'b2015.03.31 (05:42 UTC)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="grl" href="../index.html" />
+    <link rel="up" title="How-to Guides" href="../howto.html" />
+    <link rel="next" title="Setup with Docker" href="RunInDocker.html" />
+    <link rel="prev" title="Kuka IP Addresses" href="IPAddresses.html" />
+   
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+  
+  
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="RunInDocker.html" title="Setup with Docker"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="IPAddresses.html" title="Kuka IP Addresses"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../sidebar.html">grl</a> &raquo;</li>
+          <li><a href="../howto.html" accesskey="U">How-to Guides</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="kuka-lbr-iiwa-java-setup">
+<h1>Kuka LBR iiwa Java Setup<a class="headerlink" href="#kuka-lbr-iiwa-java-setup" title="Permalink to this headline">¶</a></h1>
+<p>Note: currently Windows is required for the KUKA iiwa Sunrise Workbench</p>
+<div class="section" id="install-sunrise-connectivity-suite">
+<h2>Install Sunrise Connectivity Suite<a class="headerlink" href="#install-sunrise-connectivity-suite" title="Permalink to this headline">¶</a></h2>
+<p>It is important that you use the Sunrise Connectivity Suite, as this contains
+the high performance tools needed for this system. If your installer doesn&#8217;t
+have the word &#8220;Connectivity&#8221; in it ask KUKA to send you the Sunrise Connectivity suite.</p>
+<blockquote>
+<div><ul class="simple">
+<li>Install Sunrise Connectivity Suite using the SunriseWorkbench-1.5.1.8Connectivity-Setup.exe installer</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="connect-the-kuka-controller">
+<h2>Connect the KUKA Controller<a class="headerlink" href="#connect-the-kuka-controller" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li>use two ethernet cables</li>
+<li>First cable connects to standard Java ethernet port</li>
+<li>Second Cable to the KONI ethernet port</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="set-ip-address">
+<h2>Set IP Address<a class="headerlink" href="#set-ip-address" title="Permalink to this headline">¶</a></h2>
+<p>See <a href="#id1"><span class="problematic" id="id2">`IP Addresses&lt;howto/IPAddresses&gt;`_</span></a> for more detail on IP addresses.</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Go to Control Panel &gt; Network and Internet &gt; Network Connections
+1. Right click on wifi icon on Windows task bar
+2. Select Open Network and Sharing Center
+3. Select Change Adapter Settings on the left side of the window</p>
+</li>
+<li><p class="first">Right click on ethernet icon and select Properties</p>
+</li>
+<li><p class="first">Go to networking tab</p>
+</li>
+<li><p class="first">Double click on Internet Protocol Version 4 (TCP/IPv4)</p>
+</li>
+<li><p class="first">Change to Use the following IP address
+IP Address: 172.31.1.100</p>
+<blockquote>
+<div><p>Subnet mask: 255.255.255.0 (should automatically fill out)</p>
+</div></blockquote>
+</li>
+<li><p class="first">Select OK</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="launch-sunrise-workbench">
+<h2>Launch Sunrise Workbench<a class="headerlink" href="#launch-sunrise-workbench" title="Permalink to this headline">¶</a></h2>
+<p>Right click on the Sunrise Workbench desktop icon and click &#8220;Run as Administrator&#8221;.
+The application may not launch otherwise.</p>
+</div>
+<div class="section" id="create-a-new-sunrise-project">
+<h2>Create a new Sunrise Project<a class="headerlink" href="#create-a-new-sunrise-project" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li>If starting a new project then use the IP address: 172.31.1.147</li>
+<li>Select the arm you have (ours was LBR iiwa 14 R820), then next</li>
+<li>Select the end effector attachment you have &#8220;media flange&#8221;, then next
+- Ours had electrical connections on the end so we selected &#8220;Medien-Flansch elektrish&#8221;
+- If you have tubes on the end you should probably select &#8220;Medien-Flansch pneumatisch&#8221;</li>
+<li>Finish</li>
+<li>Name your project</li>
+<li>Finish</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="configure-safety-system-to-run-a-bare-robot">
+<h2>Configure safety System to run a bare robot<a class="headerlink" href="#configure-safety-system-to-run-a-bare-robot" title="Permalink to this headline">¶</a></h2>
+<p>Be aware that the following steps disable safety systems, and it is your responsibility to ensure safety of yourself and those around you.
+If you don&#8217;t have any safety systems and you are just starting with the robot for the first time do the following</p>
+<blockquote>
+<div><ul class="simple">
+<li>Open SafetyConfiguration.sconf</li>
+<li>Uncheck Row 1,2,3 &#8220;Emergency Stop External&#8221;, &#8220;Operator Protection&#8221;, &#8220;Protective Stop&#8221; respectively.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="enable-required-software-modules">
+<h2>Enable Required Software Modules<a class="headerlink" href="#enable-required-software-modules" title="Permalink to this headline">¶</a></h2>
+<p>If some of the modules are missing, you may not have the Sunrise Connectivity Suite. See the top of this guide for details.</p>
+<ul>
+<li><p class="first">Open StationSetup.cat</p>
+</li>
+<li><dl class="first docutils">
+<dt>On the bottom you will see tabs including:</dt>
+<dd><ul class="first last simple">
+<li>Topology, Software, Configuration, Installation</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">Select the &#8220;Software&#8221; tab</p>
+</li>
+<li><dl class="first docutils">
+<dt>Check &#8220;Install&#8221; for the following modules but don&#8217;t remove any that are already installed.</dt>
+<dd><ul class="first last simple">
+<li>Interface for Rendering Standalone(without plugin) implementation</li>
+<li>Tools and Models for Rendering.VREP</li>
+<li>Simple Tutorials for DirectServo (optional)</li>
+<li>Simple Tutorials for SmartServo (optional)</li>
+<li>Direct Servo Motion Extension</li>
+<li>Smart Servo Motion Extension</li>
+<li>Fast Robot Interface</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="setup-java-driver-software">
+<h2>Setup Java Driver Software<a class="headerlink" href="#setup-java-driver-software" title="Permalink to this headline">¶</a></h2>
+<p>Copy the folders in</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="si">${</span><span class="nv">ROBONE_DIR</span><span class="si">}</span>/src/java/grl/
+</pre></div>
+</div>
+<p>into the directory where your Sunrise Project is located.</p>
+<dl class="docutils">
+<dt>Configure the grl repository settings</dt>
+<dd><ul class="first last">
+<li><p class="first">Copy the KUKAJavaLib folder in your Sunrise Project and paste it into the grl folder</p>
+</li>
+<li><p class="first">With the Sunrise Workbench open:
+- Import the grl project if it does not already appear in the Package Explorer on the left side</p>
+<blockquote>
+<div><ul>
+<li><dl class="first docutils">
+<dt>File &gt; Import</dt>
+<dd><ul class="first last simple">
+<li>In the GUI, select General &gt; Existing Projects into Workspace</li>
+<li>Select Next</li>
+<li>Select Browse next to Select Root Directory and find the grl folder</li>
+<li>Finish</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<ul>
+<li><p class="first">Right Click on your Sunrise Project
+- Select Build Path &gt; Configure Build Path
+- In the GUI, select the Projects tab
+- Select Add</p>
+<blockquote>
+<div><ul class="simple">
+<li>In the GUI, check grl then OK and OK again</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="install-software-onto-kuka-controller">
+<h2>Install Software onto KUKA Controller<a class="headerlink" href="#install-software-onto-kuka-controller" title="Permalink to this headline">¶</a></h2>
+<p>This will install the software by syncing a git repository kuka automatically creates with the robot.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Installing and Syncing software are two separate steps!</p>
+</div>
+<ul>
+<li><p class="first">Open StationSetup.cat</p>
+</li>
+<li><dl class="first docutils">
+<dt>On the bottom you will see tabs including:</dt>
+<dd><ul class="first last simple">
+<li>Topology, Software, Configuration, Installation</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">Select the &#8220;Installation&#8221; tab</p>
+</li>
+<li><p class="first">Click Install</p>
+</li>
+</ul>
+</div>
+<div class="section" id="sync-software-onto-kuka-controller">
+<h2>Sync Software onto KUKA Controller<a class="headerlink" href="#sync-software-onto-kuka-controller" title="Permalink to this headline">¶</a></h2>
+<p>Make sure the software is already installed.</p>
+<p>Hit the Sync button, which is a gray box on the top row with an arrow pointing right and another pointing left.</p>
+</div>
+<div class="section" id="run-in-autonomous-mode">
+<h2>Run in Autonomous Mode<a class="headerlink" href="#run-in-autonomous-mode" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">You are responsible! This disables safety features, read KUKA&#8217;s documentation and be very aware of your robot and its surroundings.</p>
+</div>
+<ul class="simple">
+<li>Pick up the tablet for the KUKA iiwa</li>
+<li>Turn the black key horizontally</li>
+<li>Select &#8220;Aut&#8221; for autonomous mode</li>
+<li>Turn the black key vertically</li>
+</ul>
+</div>
+<div class="section" id="running-and-stopping-applications">
+<h2>Running and Stopping Applications<a class="headerlink" href="#running-and-stopping-applications" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Select the &#8220;Applications list&#8221;</li>
+<li>Select your application such as &#8220;ZMQ_SmartServoCommand&#8221;</li>
+<li>Press the &#8220;green play&#8221; button on the left side of the tablet that is pointing right.</li>
+</ul>
+<p>Your application should be running.</p>
+<ul class="simple">
+<li>The red square button pauses</li>
+<li>The picture of a page with an X kills the application.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <p class="logo"><a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+  </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../contents.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../howto.html">How-to Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="IPAddresses.html">Kuka IP Addresses</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Kuka LBR iiwa Java Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#install-sunrise-connectivity-suite">Install Sunrise Connectivity Suite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#connect-the-kuka-controller">Connect the KUKA Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#set-ip-address">Set IP Address</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#launch-sunrise-workbench">Launch Sunrise Workbench</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create-a-new-sunrise-project">Create a new Sunrise Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configure-safety-system-to-run-a-bare-robot">Configure safety System to run a bare robot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enable-required-software-modules">Enable Required Software Modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setup-java-driver-software">Setup Java Driver Software</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#install-software-onto-kuka-controller">Install Software onto KUKA Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sync-software-onto-kuka-controller">Sync Software onto KUKA Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#run-in-autonomous-mode">Run in Autonomous Mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-and-stopping-applications">Running and Stopping Applications</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RunInDocker.html">Setup with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MillingSimulationOfBoneShapedObject.html">Milling simulation of bone shaped object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MillingSimulationOfSimpleObject_IntegrateSimulations.html">Milling Simulation of simple object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunInDocker.html">Setup with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iiwaEnableKukaFRI.html">Enabling Kuka FRI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apidoc.html">API</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../download.html">Download</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../help.html">Getting Help</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="footer">
+    &copy; Copyright 2015 Andrew Hundt, Alex Strickland, Shahriar Sefati.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+  </div>
+  
+  </body>
+</html>
