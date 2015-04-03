@@ -85,7 +85,7 @@ basis_target_link_libraries(AzmqFlatbufferTest ${Boost_LIBRARIES} ${ZeroMQ_LIBRA
 basis_add_dependencies(AzmqFlatbufferTest grlflatbuffers)
 
 basis_add_executable(asioSocketTest.cpp)
-basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES})
+basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 
 

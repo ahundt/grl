@@ -59,7 +59,8 @@ int main(int argc, char* argv[])
       std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
 
     boost::asio::io_service io_service;
-    auto kukaFRIThreadSeparator = std::make_shared<grl::KukaFRIThreadSeparator>(io_service);
+    auto kukaFRIThreadSeparator = std::make_shared<grl::KukaFRIThreadSeparator>(io_service, 
+	std::make_tuple(localhost, localport, remotehost, remoteport));
 
 
     double delta = 0.0001;

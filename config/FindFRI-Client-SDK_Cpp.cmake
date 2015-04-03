@@ -11,7 +11,13 @@ else ()
   message(STATUS "Call cmake with -DFRI_CLIENT_SDK_CPP_URL=/path/to/FRI-Client-SDK_Cpp.zip to build KUKA FRI components")
 endif ()
 
-if(EXISTS FRI-Client-SDK_Cpp_URL)
+if(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64") 
+	ADD_DEFINITIONS(-fPIC)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+endif(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+
+if(EXISTS "${FRI-Client-SDK_Cpp_URL}")
 ExternalProject_Add (
   FRI-Client-SDK_Cpp
   URL              "${FRI-Client-SDK_Cpp_URL}"
@@ -50,5 +56,5 @@ if(NOT Nanopb_FOUND)
     find_package_handle_standard_args(Nanopb DEFAULT_MSG Nanopb_LIBRARIES Nanopb_INCLUDE_DIRS)
 endif(NOT Nanopb_FOUND)
 
-endif(EXISTS FRI-Client-SDK_Cpp_URL)
+endif(EXISTS "${FRI-Client-SDK_Cpp_URL}")
 
