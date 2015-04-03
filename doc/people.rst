@@ -1,5 +1,5 @@
 .. meta::
-    :description: Names of those who developed and contributed to Robone.
+    :description: Names of those who developed and contributed to grl.
 
 ======
 People

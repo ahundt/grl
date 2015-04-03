@@ -11,7 +11,7 @@
 #
 # @note The @USE_FILE@ file is automatically generated
 #       by BASIS from the template file ConfigUse.cmake.in which is part of
-#       the Robone package.
+#       the grl package.
 #
 # In the default package use file of BASIS, which can be included here using
 # the \@BASIS_USE\@ variable, the prefix used by the package configuration

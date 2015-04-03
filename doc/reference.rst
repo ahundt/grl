@@ -8,7 +8,7 @@ Package Overview
 ================
 
 
-In order to ease certain tasks, Robone also includes the following tools:
+In order to ease certain tasks, grl also includes the following tools:
 
 Mauris pretium aliquet, lectus tincidunt. Porttitor mollis imperdiet libero senectus pulvinar. 
 Etiam molestie mauris ligula laoreet, vehicula eleifend. Repellat orci erat et, sem cum, 
