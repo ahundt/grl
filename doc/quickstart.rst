@@ -12,30 +12,30 @@ First Steps
 
 The following steps will show you how to
 
-- download and install Robone on your system.
+- download and install grl on your system.
 - use the installation to create an example.
 - build and test the example project.
 
 You need to have a Unix-like operating system such as Linux or Mac OS X installed on your
 machine in order to follow these steps. At the moment, there is no separate tutorial
 available for Windows users, but you can install CygWin as an alternative.
-Note, however, that Robone can also be installed and used on Windows.
+Note, however, that grl can also be installed and used on Windows.
 
 
-Install Robone
+Install grl
 -----------------
 
 Get a copy of the source code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Clone the `Git <http://git-scm.com/>`__ repository from `GitHub <https://github.com/schuhschuh/robone/>`__ as follows:
+Clone the `Git <http://git-scm.com/>`__ repository from `GitHub <https://github.com/ahundt/grl/>`__ as follows:
 
 .. code-block:: bash
     
     mkdir -p ~/local/src
     cd ~/local/src
-    git clone https://github.com/schuhschuh/robone.git
-    cd robone
+    git clone https://github.com/ahundt/grl.git
+    cd grl
     
 or :doc:`download` a pre-packaged ``.tar.gz`` of the latest release and unpack it using the following command:
 
@@ -43,8 +43,8 @@ or :doc:`download` a pre-packaged ``.tar.gz`` of the latest release and unpack i
 
     mkdir -p ~/local/src
     cd ~/local/src
-    tar xzf /path/to/downloaded/robone-$version.tar.gz
-    cd robone-$version
+    tar xzf /path/to/downloaded/grl-$version.tar.gz
+    cd grl-$version
 
 
 Configure the build
@@ -63,7 +63,7 @@ Configure the build system using CMake 2.8.4 or a more recent version:
 - Make sure that option ``BUILD_PROJECT_TOOL`` is enabled.
 - Press ``g`` to generate the Makefiles.
 
-Build and install Robone
+Build and install grl
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 CMake has generated Makefiles for GNU Make. The build is thus triggered by the make command:
@@ -95,20 +95,20 @@ Using the C or TC shell (csh/tcsh):
 .. code-block:: bash
     
     setenv PATH "~/local/bin:${PATH}"
-    setenv Robone_EXAMPLE_DIR "~/local/share/robone/example"
+    setenv grl_EXAMPLE_DIR "~/local/share/grl/example"
 
 Using the Bourne Again SHell (bash):
 
 .. code-block:: bash
     
     export PATH="~/local/bin:${PATH} "
-    export Robone_EXAMPLE_DIR="~/local/share/basis/example"
+    export grl_EXAMPLE_DIR="~/local/share/basis/example"
 
 
 Create an Example
 -----------------
 
-Create an example using Robone:
+Create an example using grl:
 
 .. code-block:: bash
     
@@ -132,7 +132,7 @@ id est laborum.
 Next Steps
 ----------
 
-Congratulations! You just finished your first Robone tutorial.
+Congratulations! You just finished your first grl tutorial.
 
 Now check out the :ref:`Tutorials` for more details regarding each of the
 above steps and in-depth information about the used commands if you like,
@@ -144,7 +144,7 @@ or move on to the various :doc:`How-to Guides <howto>`.
 Advanced Tutorials
 ==================
 
-The advanced tutorial slides give a more in-depth introduction to Robone and
+The advanced tutorial slides give a more in-depth introduction to grl and
 its use including in-depth information and references to further documentation. For a less
 comprehensive tutorial-like introduction, please refer to the :ref:`FirstSteps` above.
 

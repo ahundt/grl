@@ -11,7 +11,7 @@
 #
 # @note The @CONFIG_FILE@ file is automatically generated
 #       by BASIS from the template file Config.cmake.in which is part of
-#       the Robone package.
+#       the grl package.
 #
 # Variables in this file have to be prefixed by the name of this package.
 # In the default package configuration file of BASIS, which can be included

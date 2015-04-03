@@ -146,9 +146,11 @@ int main(int argc, char* argv[])
   
 
 	for (std::size_t i = 0;;++i) {
-        try {
-		update_state(s,friData,state);
-        } catch(...){} // dangerous, fix this
+        	try {
+			update_state(s,friData,state);
+        	} catch(...){
+			BOOST_LOG_TRIVIAL(warning) << "CATCH EXP.. This should not happen!";
+		} // dangerous, fix this
 		if (i==0) {
 			startTime = state.timestamp;
 		}

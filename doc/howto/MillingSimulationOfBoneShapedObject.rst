@@ -4,7 +4,7 @@ Milling simulation of bone shaped object
 ===========================================
 
 Link to Issue:
-https://github.com/ahundt/robone/issues/9
+https://github.com/ahundt/grl/issues/9
 
 1. Download the triangular mesh of the CT femur bone from:
    https://jh.app.box.com/s/n1vhute9sbxjkr5oowu60r13jldxrs5b

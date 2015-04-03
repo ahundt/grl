@@ -4,7 +4,7 @@
 How-to Guides
 =============
 
-Feugiat ullamcorper id tempor id vitae. Mauris pretium aliquet, lectus tincidunt.
+The how to guides below introduce various tasks you may want to do with the library. 
 
 .. toctree::
     :maxdepth: 2
@@ -15,3 +15,4 @@ Feugiat ullamcorper id tempor id vitae. Mauris pretium aliquet, lectus tincidunt
     howto/MillingSimulationOfBoneShapedObject
     howto/MillingSimulationOfSimpleObject_IntegrateSimulations
     howto/RunInDocker
+    howto/iiwaEnableKukaFRI.rst

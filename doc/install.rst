@@ -1,5 +1,5 @@
 .. meta::
-    :description: Build and installation instructions for Robone.
+    :description: Build and installation instructions for grl.
 
 ============
 Installation
@@ -56,19 +56,19 @@ Configure
 
 1. Extract source files::
 
-    tar -xzf robone-1.0.0-source.tar.gz
+    tar -xzf grl-1.0.0-source.tar.gz
 
 2. Create build directory::
 
-    mkdir robone-1.0.0-build
+    mkdir grl-1.0.0-build
 
 3. Change to build directory::
 
-    cd robone-1.0.0-build
+    cd grl-1.0.0-build
 
 4. Run CMake_ to configure the build tree::
 
-    ccmake -DBASIS_DIR:PATH=/path/to/basis ../robone-1.0.0-source
+    ccmake -DBASIS_DIR:PATH=/path/to/basis ../grl-1.0.0-source
 
    - Press ``c`` to configure the build system and ``e`` to ignore warnings.
    - Set ``CMAKE_INSTALL_PREFIX`` and other CMake variables and options.
@@ -97,9 +97,9 @@ to a text file:
 
 .. code-block:: bash
 
-    ctest -V >& robone-test.log
+    ctest -V >& grl-test.log
 
-and attach the file ``robone-test.log`` to the issue report.
+and attach the file ``grl-test.log`` to the issue report.
 
 
 Install
