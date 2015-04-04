@@ -1,6 +1,5 @@
 package friCommunication;
 
-import static com.kuka.roboticsAPI.motionModel.BasicMotions.lin;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 import java.util.concurrent.TimeUnit;
@@ -42,8 +41,6 @@ public class FRI_Command extends RoboticsAPIApplication
         FRISession friSession = new FRISession(friConfiguration);
 		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
 
-        // move to start pose
-        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(90), .0));
         
         // wait until FRI session is ready to switch to command mode
         try
@@ -55,6 +52,8 @@ public class FRI_Command extends RoboticsAPIApplication
 
         }
 
+        // move to start pose
+        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(90), .0));
         
 	     for(int i = 0; i < 100; i++) {
 	         // async move with overlay ...
