@@ -32,7 +32,7 @@ namespace KUKA {
 		// Following from Kuka friLBRCommand.cpp
 		const int LBRCOMMANDMESSAGEID = 0x34001;
 	}
-}
+} // namespace KUKA
 
 namespace grl { namespace robot { 
 	    
@@ -61,7 +61,7 @@ namespace grl { namespace robot {
 				}
 				
 			}
-		}
+		} // namespace kuka
 	
     
 	/// copy measured joint angle to output iterator
