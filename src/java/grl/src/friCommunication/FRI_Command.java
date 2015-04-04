@@ -1,5 +1,6 @@
 package friCommunication;
 
+import static com.kuka.roboticsAPI.motionModel.BasicMotions.lin;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 import java.util.concurrent.TimeUnit;
@@ -37,10 +38,13 @@ public class FRI_Command extends RoboticsAPIApplication
     {
         // configure and start FRI session
         FRIConfiguration friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
-        friConfiguration.setSendPeriodMilliSec(50);
+        friConfiguration.setSendPeriodMilliSec(100);
         FRISession friSession = new FRISession(friConfiguration);
 		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
-		
+
+        // move to start pose
+        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(90), .0));
+        
         // wait until FRI session is ready to switch to command mode
         try
         {
@@ -51,25 +55,26 @@ public class FRI_Command extends RoboticsAPIApplication
 
         }
 
-        // move to start pose
-        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(90), .0));
         
 	     for(int i = 0; i < 100; i++) {
 	         // async move with overlay ...
 	         _lbr.moveAsync(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(90), .0)
-	                 .setJointVelocityRel(0.2)
+	                 //.setJointVelocityRel(0.0)
 	                 .addMotionOverlay(motionOverlay)
-	                 .setBlendingRel(0.1)
+	                 .setBlendingRel(0.0)
 	                 );
 
 	         // ... blending into sync move with overlay
-	         _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0)
-	                 .setJointVelocityRel(0.2)
+	         _lbr.moveAsync(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0)
+	                 //.setJointVelocityRel(0.0)
 	                 .addMotionOverlay(motionOverlay)
+	                 .setBlendingRel(0.0)
 	                 );
 	     }
 
-	    _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
+	    _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0)
+                .addMotionOverlay(motionOverlay)
+	    		);
         // done
         friSession.close();
     }

@@ -1,8 +1,41 @@
 #ifndef _KUKA_FRI_CLIENT_DATA
 #define _KUKA_FRI_CLIENT_DATA
 
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/algorithm/transform.hpp>
 #include "friClientData.h"
 #include "grl/KukaFRI.hpp"
+#include <boost/log/trivial.hpp>
+
+/// @todo move back to KukaFRIClientDataTest.cpp
+template<typename T,size_t N>
+std::ostream& operator<< (std::ostream& out, const boost::container::static_vector<T,N>& v) {
+    out << "[";
+    size_t last = v.size() - 1;
+    for(size_t i = 0; i < v.size(); ++i) {
+        out << v[i];
+        if (i != last) 
+            out << ", ";
+    }
+    out << "]";
+    return out;
+}
+
+/// @todo move back to KukaFRIClientDataTest.cpp
+template<typename T,std::size_t U>
+inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  boost::container::static_vector<T,U>& v)
+{
+    out << "[";
+    size_t last = v.size() - 1;
+    for(size_t i = 0; i < v.size(); ++i) {
+        out << v[i];
+        if (i != last) 
+            out << ", ";
+    }
+    out << "]";
+    return out;
+}
+
 
 namespace grl { namespace robot { namespace arm {
     // Decode message buffer (using nanopb decoder)
@@ -23,6 +56,8 @@ void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
 									);
         return;
     }
+    
+    friData.lastState = grl::robot::arm::get(friData.monitoringMsg,KUKA::FRI::ESessionState());
 }
 
 
@@ -43,6 +78,7 @@ struct KukaState {
 	joint_state commandedPosition;
 	joint_state commandedTorque;
 	joint_state ipoJointPosition;
+    joint_state ipoJointPositionOffsets;
 	KUKA::FRI::ESessionState      sessionState;
 	KUKA::FRI::EConnectionQuality connectionQuality;
 	KUKA::FRI::ESafetyState       safetyState;
@@ -89,13 +125,22 @@ std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
     friData.commandMsg.header.reflectedSequenceCounter = friData.monitoringMsg.header.sequenceCounter;
 
     // copy current joint position to commanded position
-    friData.commandMsg.has_commandData = true;
-    friData.commandMsg.commandData.has_jointPosition = true;
-    tRepeatedDoubleArguments *dest  = (tRepeatedDoubleArguments*)friData.commandMsg.commandData.jointPosition.value.arg;
-	if ((state.sessionState == KUKA::FRI::COMMANDING_WAIT) || (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE))
-	    std::copy(state.ipoJointPosition.begin(),state.ipoJointPosition.end(),dest->value);
-    else
-	    std::copy(state.commandedPosition.begin(),state.commandedPosition.end(),dest->value);
+	if ((state.ipoJointPosition.size() == KUKA::LBRState::NUM_DOF) &&
+        (((state.sessionState == KUKA::FRI::COMMANDING_WAIT)) || (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE))
+       ) {
+       
+         KukaState::joint_state jointStateToCommand;
+        
+        // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
+        boost::transform ( state.ipoJointPosition, state.ipoJointPositionOffsets, std::back_inserter(jointStateToCommand), std::plus<KukaState::joint_state::value_type>());
+        
+        // copy the commanded position into the command message
+        set(friData.commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
+        
+		BOOST_LOG_TRIVIAL(trace) << "ENCODE position: " << state.position << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << " jointStateToCommand: " << jointStateToCommand << "\n";
+    }else {
+        set(friData.commandMsg, state.commandedPosition, grl::revolute_joint_angle_open_chain_command_tag());
+    }
 	
 	int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
         if (!friData.encoder.encode(friData.sendBuffer, buffersize))
@@ -112,7 +157,13 @@ void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& f
     boost::asio::ip::udp::endpoint sender_endpoint;
 	std::size_t buf_size = socket.receive_from(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),sender_endpoint);
 	decode(friData,buf_size);
+    KukaState::joint_state ipoJointCommand;
+    
+    // copy state over
 	copy(friData.monitoringMsg,state);
+    
+    // todo: figure out if there is a better place/time to do this
+    //state.ipoJointPosition.clear();
 
     friData.lastSendCounter++;
     // Check whether to send a response
