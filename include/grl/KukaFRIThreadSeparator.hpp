@@ -6,9 +6,16 @@
 #include <thread>
 #include <boost/asio.hpp>
 #include <boost/circular_buffer.hpp>
+#include <boost/exception/all.hpp>
+
 #include "grl/KukaFRI.hpp"
 
 namespace grl {
+
+
+    /// @todo put this somewhere more appropriate.
+    /// @see http://stackoverflow.com/questions/12498001/adding-several-boosterror-infos-of-the-same-type-to-a-boostexception
+    typedef boost::error_info<struct tag_errmsg, std::string> errmsg_info;
 
 /// @brief Allows a thread to get data from a kuka device asynchronously without capturing the thread.
 ///
@@ -68,30 +75,38 @@ public:
     
     void construct(Params params = defaultParams()){
 
-        boost::asio::ip::udp::socket s(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(std::get<localhost>(params)), boost::lexical_cast<short>(std::get<localport>(params))));
+        try {
+            boost::asio::ip::udp::socket s(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(std::get<localhost>(params)), boost::lexical_cast<short>(std::get<localport>(params))));
 
-        boost::asio::ip::udp::resolver resolver(io_service_);
-        boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), std::get<remotehost>(params), std::get<remoteport>(params)});
-    	s.connect(endpoint);
+            boost::asio::ip::udp::resolver resolver(io_service_);
+            boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), std::get<remotehost>(params), std::get<remoteport>(params)});
+            s.connect(endpoint);
+            
+            iiwaP = std::make_shared<robot::arm::kuka::iiwa>(std::move(s));
+            
+            
+            for (int i = 0; i<default_circular_buffer_size; ++i) {
+               monitorStates.push_back(std::make_shared<robot::arm::kuka::iiwa::MonitorState>());
+               commandStates.push_back(std::make_shared<robot::arm::kuka::iiwa::CommandState>());
+             }
         
-        iiwaP = std::make_shared<robot::arm::kuka::iiwa>(std::move(s));
-        
-        
-        for (int i = 0; i<default_circular_buffer_size; ++i) {
-           monitorStates.push_back(std::make_shared<robot::arm::kuka::iiwa::MonitorState>());
-   	       commandStates.push_back(std::make_shared<robot::arm::kuka::iiwa::CommandState>());
-   	     }
-    
-        // start running the driver
-        io_service_.post(std::bind(&KukaFRIThreadSeparator::update_state,this));
+            // start running the driver
+            io_service_.post(std::bind(&KukaFRIThreadSeparator::update_state,this));
+            
+        } catch( boost::exception &e) {
+                e << errmsg_info("KukaFRIThreadSeparator: Unable to connect to Kuka FRI Koni UDP device using boost::asio::udp::socket configured with localhost:localport @ " +
+                                   std::get<localhost>(params) + ":" + std::get<localport>(params) + " and remotehost:remoteport @ " +
+                                   std::get<remotehost>(params) + ":" + std::get<remoteport>(params) + "\n");
+            throw;
+        }
         
     }
 	
 	~KukaFRIThreadSeparator(){
         if(driver_threadP){
 		  //workP.reset();
-          driver_threadP->join();
           io_service_.stop();
+          driver_threadP->join();
         }
 	}
 	

@@ -1,3 +1,4 @@
+
 # ============================================================================
 # Copyright (c) 2015 <provider-name>
 # All rights reserved.
@@ -91,11 +92,14 @@ basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${CMAKE_THREAD_LIB
 
 # For KUKA IIWA FRI Libraries
 if(FRI-Client-SDK_Cpp_FOUND)
-	basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS})
+    basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 	basis_add_executable(KukaFRITest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
 	basis_target_link_libraries(KukaFRITest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES} ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 	basis_add_executable(KukaFRIClientDataTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
 	basis_target_link_libraries(KukaFRIClientDataTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    
+    basis_add_test(KukaLBRiiwaVrepPluginTest.cpp)
+	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} v_repExtKukaLBRiiwa)
 endif()
 

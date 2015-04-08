@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <boost/log/trivial.hpp>
+#include <boost/exception/all.hpp>
 
 #include "grl/KukaFRIThreadSeparator.hpp"
 #include "grl/AzmqFlatbuffer.hpp"
@@ -12,8 +13,7 @@
 
 #include "v_repLib.h"
 
-
-
+/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
 template<typename T>
 inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
 {
@@ -28,6 +28,19 @@ inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream
     return out;
 }
 
+namespace grl {
+
+
+
+/// Creates a complete vrep plugin object
+/// usage:
+/// @code
+///    auto kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
+///    kukaPluginPG->construct();
+///    while(true) kukaPluginPG->run_one();
+/// @endcode
+///
+/// @todo this implementation is a bit hacky, redesign it
 /// @todo separate out grl specific code from general kuka control code
 /// @todo Template on robot driver and create a driver that just reads/writes to/from the simulation, then pass the two templates so the simulation and the real driver can be selected.
 class KukaVrepPlugin : public std::enable_shared_from_this<KukaVrepPlugin> {
@@ -44,11 +57,15 @@ public:
         RobotTipName,
         RobotTargetName,
         RobotTargetBaseName,
-        ImplantCutPathName,
-        RemoveBallJointPathName,
-        FemurBoneName,
+        // ImplantCutPathName,
+        // RemoveBallJointPathName,
+        // FemurBoneName,
         LocalZMQAddress,
-        RemoteZMQAddress
+        RemoteZMQAddress,
+        LocalHostKukaKoniUDPAddress,
+        LocalHostKukaKoniUDPPort,
+        RemoteHostKukaKoniUDPAddress,
+        RemoteHostKukaKoniUDPPort
     };
     
     /// @todo allow default params
@@ -60,6 +77,10 @@ public:
         std::string,
         std::string,
         std::string,
+        std::string,
+//        std::string,
+//        std::string,
+//        std::string,
         std::string,
         std::string,
         std::string,
@@ -73,44 +94,68 @@ public:
     
     static const Params defaultParams(){
         return std::make_tuple(
-                    "LBR_iiwa_14_R820_joint1", // Joint1Handle, 
-                    "LBR_iiwa_14_R820_joint2", // Joint2Handle, 
-                    "LBR_iiwa_14_R820_joint3", // Joint3Handle, 
-                    "LBR_iiwa_14_R820_joint4", // Joint4Handle, 
-                    "LBR_iiwa_14_R820_joint5", // Joint5Handle, 
-                    "LBR_iiwa_14_R820_joint6", // Joint6Handle, 
-                    "LBR_iiwa_14_R820_joint7", // Joint7Handle,
-                    "RobotTip#0"             , // RobotTipHandle,
-                    "RobotTarget#0"          , // RobotTargetHandle,
-                    "Robotiiwa"              , // RobotTargetBaseHandle,
-                    "ImplantCutPath"         , // ImplantCutPathHandle,
-                    "RemoveBallJoint"        , // RemoveBallJointPathHandle,
-                    "FemurBone"              , // FemurBoneHandle
+                    "LBR_iiwa_14_R820_joint1" , // Joint1Handle, 
+                    "LBR_iiwa_14_R820_joint2" , // Joint2Handle, 
+                    "LBR_iiwa_14_R820_joint3" , // Joint3Handle, 
+                    "LBR_iiwa_14_R820_joint4" , // Joint4Handle, 
+                    "LBR_iiwa_14_R820_joint5" , // Joint5Handle, 
+                    "LBR_iiwa_14_R820_joint6" , // Joint6Handle, 
+                    "LBR_iiwa_14_R820_joint7" , // Joint7Handle,
+                    "RobotTip#0"              , // RobotTipHandle,
+                    "RobotTarget#0"           , // RobotTargetHandle,
+                    "Robotiiwa"               , // RobotTargetBaseHandle,
+//                    "ImplantCutPath"          , // ImplantCutPathHandle,
+//                    "RemoveBallJoint"         , // RemoveBallJointPathHandle,
+//                    "FemurBone"               , // FemurBoneHandle
                     "tcp://0.0.0.0:30010"     , // LocalZMQAddress
-                    "tcp://172.31.1.147:30010"  // RemoteZMQAddress
+                    "tcp://172.31.1.147:30010", // RemoteZMQAddress
+                    "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
+                    "30200"                   , // LocalHostKukaKoniUDPPort,
+                    "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
+                    "30200"                     // RemoteHostKukaKoniUDPPort  
                 );
     }
 
 /// @todo allow KukaFRIThreadSeparator parameters to be updated
 KukaVrepPlugin (Params params = defaultParams())
       :
-      kukaFRIThreadSeparatorP(new grl::KukaFRIThreadSeparator(device_driver_io_service)),
+      kukaFRIThreadSeparatorP(
+          new grl::KukaFRIThreadSeparator(device_driver_io_service,
+          std::make_tuple(
+              std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
+              std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
+              std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
+              std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params))
+          )
+      )),
       params_(params)
 {
-  initHandles();
+/// @todo figure out how to re-enable when .so isn't loaded
+ // initHandles();
   
-  	{
+  	try {
         BOOST_LOG_TRIVIAL(trace) << "connecting zmq\n";
 		boost::system::error_code ec;
 		azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
 		socket.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
 		socket.connect(std::get<RemoteZMQAddress>            (params_).c_str()   );
 		kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
-	}
     
         // start up the driver thread
         /// @todo perhaps allow user to control this?
         driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
+	} catch( boost::exception &e) {
+            e << errmsg_info("KukaLBRiiwaVrepPlugin: Unable to connect to ZeroMQ Socket from " + 
+                               std::get<LocalZMQAddress>             (params_) + " to " + 
+                               std::get<RemoteZMQAddress>            (params_));
+        throw;
+    }
+}
+
+/// construct() function completes initialization of the plugin
+/// @todo move this into the actual constructor, but need to correctly handle or attach vrep shared libraries for unit tests.
+void construct(){
+  initHandles();
 }
 
 
@@ -123,6 +168,15 @@ void run_one(){
   //updateVrepFromKuka();
   sendSimulatedJointAnglesToKuka();
 
+}
+
+
+~KukaVrepPlugin(){
+    if(driver_threadP){
+	  //workP.reset();
+      device_driver_io_service.stop();
+      driver_threadP->join();
+    }
 }
 
 private:
@@ -143,9 +197,9 @@ void initHandles() {
 	robotTip       = simGetObjectHandle(std::get<RobotTipName>           (params_).c_str()   );					//Obtain RobotTip handle
 	target         = simGetObjectHandle(std::get<RobotTargetName>        (params_).c_str()   );
 	targetBase     = simGetObjectHandle(std::get<RobotTargetBaseName>    (params_).c_str()   );
-	ImplantCutPath = simGetObjectHandle(std::get<ImplantCutPathName>     (params_).c_str()   );
-	BallJointPath  = simGetObjectHandle(std::get<RemoveBallJointPathName>(params_).c_str()   );
-	bone           = simGetObjectHandle(std::get<FemurBoneName>          (params_).c_str()   );
+//	ImplantCutPath = simGetObjectHandle(std::get<ImplantCutPathName>     (params_).c_str()   );
+//	BallJointPath  = simGetObjectHandle(std::get<RemoveBallJointPathName>(params_).c_str()   );
+//	bone           = simGetObjectHandle(std::get<FemurBoneName>          (params_).c_str()   );
 	allHandlesSet  = true;
 }
 
@@ -297,14 +351,13 @@ bool updateVrepFromKuka() {
             return true;
 }
 
-
 std::vector<int> jointHandle = {-1,-1,-1,-1,-1,-1,-1};	//global variables defined
 int robotTip = -1;					//Obtain RobotTip handle
 int target = -1;
 int targetBase = -1;
-int ImplantCutPath = -1;
-int BallJointPath = -1;
-int bone = -1;
+//int ImplantCutPath = -1;
+//int BallJointPath = -1;
+//int bone = -1;
 
 bool allHandlesSet = false;
 
@@ -332,5 +385,7 @@ private:
 Params params_;
 
 };
+  
+}
 
 #endif

@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
             kukaFRIThreadSeparator->async_sendCommand(commandP);
             auto connectionQ = grl::robot::arm::get(*updatedState,  KUKA::FRI::EConnectionQuality());
             auto operationMode = grl::robot::arm::get(*updatedState,  KUKA::FRI::EOperationMode());
-            BOOST_LOG_TRIVIAL(trace) << "jointAngles: " << jointAngles << " connectionQuality: " << connectionQ << " operationMode: " << operationMode << "\n";;
+            //BOOST_LOG_TRIVIAL(trace) << "jointAngles: " << jointAngles << " connectionQuality: " << connectionQ << " operationMode: " << operationMode << "\n";;
         
             // return the state to the system
             kukaFRIThreadSeparator->async_addMonitorState(updatedState);
