@@ -27,33 +27,6 @@
 #include <iostream>
 
 
-template<typename T,size_t N>
-std::ostream& operator<< (std::ostream& out, const boost::container::static_vector<T,N>& v) {
-    out << "[";
-    size_t last = v.size() - 1;
-    for(size_t i = 0; i < v.size(); ++i) {
-        out << v[i];
-        if (i != last) 
-            out << ", ";
-    }
-    out << "]";
-    return out;
-}
-
-
-template<typename T,std::size_t U>
-inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  boost::container::static_vector<T,U>& v)
-{
-    out << "[";
-    size_t last = v.size() - 1;
-    for(size_t i = 0; i < v.size(); ++i) {
-        out << v[i];
-        if (i != last) 
-            out << ", ";
-    }
-    out << "]";
-    return out;
-}
 
 //
 //template<typename T,typename V>
@@ -132,13 +105,14 @@ int main(int argc, char* argv[])
 	
 	KUKA::FRI::ClientData friData(7);
 	grl::robot::arm::KukaState state;
+    state.ipoJointPositionOffsets = {0,0,0,0,0,0,0};
     /// @todo maybe there is a more convienient way to set this that is easier for users? perhaps initializeClientDataForiiwa()?
     friData.expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
 
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
   
     
-    double delta = 0.001;
+    double delta = -0.01;
     BOOST_LOG_TRIVIAL(warning) << "WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT "
                                << "if joint angle delta variable is too large with respect to "
                                << "the time it takes to go around the loop and change it. "
@@ -146,22 +120,33 @@ int main(int argc, char* argv[])
   
 
 	for (std::size_t i = 0;;++i) {
-        	try {
-			update_state(s,friData,state);
-        	} catch(...){
-			BOOST_LOG_TRIVIAL(warning) << "CATCH EXP.. This should not happen!";
-		} // dangerous, fix this
+    
+        update_state(s,friData,state);
+        
 		if (i==0) {
 			startTime = state.timestamp;
 		}
-		BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << "\n";
-            state.ipoJointPosition.clear();
-            boost::copy(state.position,std::back_inserter(state.ipoJointPosition));
-            /// consider moving joint angles based on time
-//            int joint_to_move = 3;
-//            state.ipoJointPosition[joint_to_move]+=delta;
-//            if (state.ipoJointPosition[joint_to_move] >  1.5 && delta > 0) delta *=-1;
-//            if (state.ipoJointPosition[joint_to_move] < -1.5 && delta < 0) delta *=-1;
+        
+        
+        /// consider moving joint angles based on time
+        int joint_to_move = 0;
+        
+        if(
+            (state.ipoJointPosition.size() == KUKA::LBRState::NUM_DOF) &&
+            (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE)
+          )
+        {
+            state.ipoJointPositionOffsets[joint_to_move]+=delta;
+            // swap directions when a half circle was completed
+            if (
+                 (state.ipoJointPositionOffsets[joint_to_move] >  0.2 && delta > 0) ||
+                 (state.ipoJointPositionOffsets[joint_to_move] < -0.2 && delta < 0)
+               )
+            {
+               delta *=-1;
+            }
+        }
+		BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << "\n";
 	}
   }
   catch (std::exception& e)

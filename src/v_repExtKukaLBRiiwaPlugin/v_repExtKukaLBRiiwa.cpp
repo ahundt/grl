@@ -16,7 +16,7 @@
 
 
 #include "v_repExtKukaLBRiiwa.h"
-#include "KukaLBRiiwaVrepPlugin.hpp"
+#include "grl/vrep/KukaLBRiiwaVrepPlugin.hpp"
 
 
 #ifdef _WIN32
@@ -41,7 +41,7 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 
 
 
-std::shared_ptr<KukaVrepPlugin> kukaPluginPG;
+std::shared_ptr<grl::KukaVrepPlugin> kukaPluginPG;
 
 /*int getPathPosVectorFromObjectPose(int objectHandle, float relativeDistance) //This might be helpful if we decide to implement all the code in the plugin (instead of the lua script
 {
@@ -273,7 +273,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		/////////////
 		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
 		{	
-			BOOST_LOG_TRIVIAL(info) << simGetSimulationTime() << std::endl;					// gets simulation time point
+			if(kukaPluginPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
 		
@@ -307,9 +307,16 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		/////////////////////
 		// simGetObjectHandle
         
-
-        BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
-        kukaPluginPG = std::make_shared<KukaVrepPlugin>();
+        try {
+            BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
+            kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
+            kukaPluginPG->construct();
+        } catch (boost::exception& e){
+            // log the error and print it to the screen, don't release the exception
+            std::string initerr("v_repExtKukaLBRiiwa plugin initialization error:\n" + boost::diagnostic_information(e));
+            simAddStatusbarMessage( initerr.c_str());
+            BOOST_LOG_TRIVIAL(error) <<  initerr;
+        }
 	}
 
 	if (message==sim_message_eventcallback_simulationended)
