@@ -81,6 +81,23 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
         });
 		
   }
+  
+  void shutdown(azmq::socket::shutdown_type sd,boost::system::error_code& ec){
+    socket_.shutdown(sd,ec);
+  }
+  
+  void cancel(){
+    socket_.cancel();
+  }
+  
+  /// destructor
+  /// @todo maybe do something useful with the error code from shutting down the socket?
+  ~AzmqFlatbuffer(){
+    boost::system::error_code ec;
+    socket_.cancel();
+    socket_.shutdown(azmq::socket::shutdown_type::send,ec);
+    socket_.shutdown(azmq::socket::shutdown_type::receive,ec);
+  }
 
   /// get a google FlatBufferBuilder object from the pool of unused objects
 	std::shared_ptr<flatbuffers::FlatBufferBuilder> GetUnusedBufferBuilder(){

@@ -84,7 +84,7 @@ public:
             
             iiwaP = std::make_shared<robot::arm::kuka::iiwa>(std::move(s));
             
-            
+            latest_commandState_ = std::make_shared<robot::arm::kuka::iiwa::CommandState>();
             for (int i = 0; i<default_circular_buffer_size; ++i) {
                monitorStates.push_back(std::make_shared<robot::arm::kuka::iiwa::MonitorState>());
                commandStates.push_back(std::make_shared<robot::arm::kuka::iiwa::CommandState>());
@@ -123,7 +123,8 @@ public:
 	void async_getLatestState(Handler handler){
         auto self(shared_from_this());
         
-		io_service_.post(strand_.wrap([this,self,handler](){
+		io_service_.post(//strand_.wrap(
+            [this,self,handler](){
 		    // now in io_service_ thread, can get latest state
             std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> monitorP;
             if(latest_monitorState_.get()!=nullptr){
@@ -132,17 +133,18 @@ public:
             }
             
             if(monitorStates.empty()) {
-               // @todo allocation here, make sure the user knows something is wrong!
+               // @todo allocation needed here, make sure the user knows something is wrong!
                // do nothing because this can be called a lot, user has to resupply
                monitorStates.push_back(std::make_shared<robot::arm::kuka::iiwa::MonitorState>());
             }
-
+            
             // don't need to wrap this one because it happens in the user thread
             user_io_service_.post([monitorP,handler](){
                 // now in user_io_service_thread, can pass the final result to the user
                 handler(monitorP);
             });
-		}));
+		}//)
+        );
 	}
     
     /// @todo maybe allow a handler so the user can get their commands back?
@@ -150,10 +152,14 @@ public:
     void async_sendCommand(std::shared_ptr<robot::arm::kuka::iiwa::CommandState> commandStateP){
         auto self (shared_from_this());
         
-		io_service_.post(strand_.wrap([this,self, commandStateP](){
+		io_service_.post(
+            //strand_.wrap(
+            [this,self, commandStateP](){
 		    // now in io_service_ thread, can set latest state
-            commandStates.push_front(commandStateP);
-		}));
+            if(latest_commandState_) commandStates.push_front(latest_commandState_);
+            latest_commandState_ = commandStateP;
+		}//)
+        );
         
     }
     
@@ -164,10 +170,12 @@ public:
     
         auto self (shared_from_this());
         
-		io_service_.post(strand_.wrap([this,self, monitorP](){
+		io_service_.post(//strand_.wrap(
+            [this,self, monitorP](){
 		    // now in io_service_ thread, can return monitorstate to the buffer
             monitorStates.push_back(monitorP);
-		}));
+		}//)
+        );
     }
     
     
@@ -179,7 +187,8 @@ public:
     void async_MakeCommandState(Handler handler){
         auto self(shared_from_this());
         
-		io_service_.post(strand_.wrap([this,self,handler](){
+		io_service_.post(//strand_.wrap(
+            [this,self,handler](){
 		    // now in io_service_ thread, can get latest state
             std::shared_ptr<robot::arm::kuka::iiwa::CommandState> commandStateP;
             // the most recent command should stay there
@@ -188,7 +197,7 @@ public:
                 commandStateP = commandStates.back();
                 commandStates.pop_front();
             } else {
-               // @todo allocation here, make sure the user knows something is wrong!
+               // @todo allocation here, using more CPU than necessary, need to figure out the source of the "leak" (not a real memory leak because data is automatically deallocated.)
                commandStateP = std::make_shared<robot::arm::kuka::iiwa::CommandState>();
             }
 
@@ -197,7 +206,8 @@ public:
                 // now in user_io_service_thread, can pass the final result to the user
                 handler(commandStateP);
             });
-		}));
+		}//)
+        );
       
     }
     
@@ -222,19 +232,33 @@ private:
     void update_state(){
         if(!io_service_.stopped()) {
             
-            BOOST_VERIFY(!monitorStates.empty()); // we should always keep at least one state available
+            
+            if(monitorStates.empty()) {
+               // @todo allocation needed here, make sure the user knows something is wrong!
+               // do nothing because this can be called a lot, user has to resupply
+               monitorStates.push_back(std::make_shared<robot::arm::kuka::iiwa::MonitorState>());
+            }
+            /// @todo add BOOST_VERIFY statements back when bug is found
+            //BOOST_VERIFY(!monitorStates.empty()); // we should always keep at least one state available
             BOOST_VERIFY(!commandStates.empty()); // we should always keep at least one state available
             std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> ms = monitorStates.front();
             monitorStates.pop_front();
-            std::shared_ptr<robot::arm::kuka::iiwa::CommandState> cs = commandStates.front();
-            commandStates.pop_front();
+            std::shared_ptr<robot::arm::kuka::iiwa::CommandState> cs = latest_commandState_;
+            
+            // cs and ms must exist
+            BOOST_VERIFY(cs);
+            BOOST_VERIFY(ms);
             
             auto self(shared_from_this());
-            
-            iiwaP->async_update(*ms,*cs,//strand_.wrap( /// @todo FIXME
-                [this,self,ms,cs](boost::system::error_code ec, std::size_t bytes_transferred){
+            auto update_handler = [this,self,ms,cs](boost::system::error_code ec, std::size_t bytes_transferred){
+                    if(!self) {
+                        std::cerr << "Error: KukaFRIThreadSeparator::update_state lambda function called when self object was destroyed\n";
+                        return;
+                    }
                     // new data available, if the old one wasn't taken send it back into the circular buffer
-                    if(latest_monitorState_) monitorStates.push_front(latest_monitorState_);
+                    if(latest_monitorState_) {
+                        monitorStates.push_front(latest_monitorState_);
+                    }
                     // put the latest state on the front and get the oldest from the back
                     latest_monitorState_ = ms;
                     // this command state is old, put it in back of the line
@@ -242,7 +266,10 @@ private:
                      
                     // run this function again *after* it returns
                     io_service_.post(std::bind(&KukaFRIThreadSeparator::update_state,this));
-                }
+                };
+            
+            iiwaP->async_update(*ms,*cs,//strand_.wrap( /// @todo FIXME
+                update_handler
              //) // wrap call ends here, needs to be fixed
              ); // end async_update call
         }
@@ -269,6 +296,7 @@ private:
     std::shared_ptr<robot::arm::kuka::iiwa::MonitorState> latest_monitorState_;
     boost::circular_buffer<std::shared_ptr<robot::arm::kuka::iiwa::MonitorState>> monitorStates;
     /// the front is the most recent state, the back is the oldest
+    std::shared_ptr<robot::arm::kuka::iiwa::CommandState> latest_commandState_;
     boost::circular_buffer<std::shared_ptr<robot::arm::kuka::iiwa::CommandState>> commandStates;
     
 };

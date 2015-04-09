@@ -311,6 +311,8 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
             BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
             kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
             kukaPluginPG->construct();
+            //kukaPluginPG->run_one();  // for debugging purposes only
+            //kukaPluginPG.reset();     // for debugging purposes only
         } catch (boost::exception& e){
             // log the error and print it to the screen, don't release the exception
             std::string initerr("v_repExtKukaLBRiiwa plugin initialization error:\n" + boost::diagnostic_information(e));
