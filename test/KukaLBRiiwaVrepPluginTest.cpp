@@ -1,5 +1,5 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE CISHW1Test
+#define BOOST_TEST_MODULE grlTest
 
 // system includes
 #include <boost/test/unit_test.hpp>
