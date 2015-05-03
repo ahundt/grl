@@ -15,8 +15,10 @@
 // This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
 
 
+#include "v_repExtHandEyeCalibration.h"
 #include "grl/vrep/HandEyeCalibrationVrepPlugin.hpp"
 
+#include "v_repLib.h"
 
 #ifdef _WIN32
 	#include <shlwapi.h>
@@ -217,7 +219,7 @@ VREP_DLLEXPORT void v_repEnd()
 		// close out as necessary
 		////////////////////
     
-    HandEyeCalibrationPG.reset();
+    handEyeCalibrationPG.reset();
 
 	unloadVrepLibrary(vrepLib); // release the library
 }
@@ -272,7 +274,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		/////////////
 		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
 		{	
-			if(HandEyeCalibrationPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
+			if(handEyeCalibrationPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
 		
@@ -282,11 +284,11 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// Use handles that were found at the "start" of this simulation running
 
 		// next few Lines get the joint angles, torque, etc from the simulation
-		if (HandEyeCalibrationPG)// && HandEyeCalibrationPG->allHandlesSet == true // allHandlesSet now handled internally
+		if (handEyeCalibrationPG)// && HandEyeCalibrationPG->allHandlesSet == true // allHandlesSet now handled internally
 		{
 		
           // run one loop synchronizing the arm and plugin
-          HandEyeCalibrationPG->run_one();
+          // handEyeCalibrationPG->run_one();
 		  
 		}
 	}
@@ -308,8 +310,8 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
         
         try {
             BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
-            HandEyeCalibrationPG = std::make_shared<grl::KukaVrepPlugin>();
-            HandEyeCalibrationPG->construct();
+            handEyeCalibrationPG = std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
+            handEyeCalibrationPG->construct();
             //HandEyeCalibrationPG->run_one();  // for debugging purposes only
             //HandEyeCalibrationPG.reset();     // for debugging purposes only
         } catch (boost::exception& e){
@@ -328,7 +330,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// close out as necessary
 		////////////////////
         BOOST_LOG_TRIVIAL(info) << "Ending KUKA LBR iiwa plugin connection to Kuka iiwa\n";
-		HandEyeCalibrationPG.reset();
+		handEyeCalibrationPG.reset();
 
 	}
 

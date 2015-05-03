@@ -8,6 +8,7 @@
 #include <boost/exception/all.hpp>
 
 #include "grl/vrep/Eigen.hpp"
+#include "grl/vrep/Vrep.hpp"
 #include "camodocal/calib/HandEyeCalibration.h"
 
 #include "v_repLib.h"
@@ -42,7 +43,7 @@ namespace grl {
 /// @todo this implementation is a bit hacky, redesign it
 /// @todo separate out grl specific code from general kuka control code
 /// @todo Template on robot driver and create a driver that just reads/writes to/from the simulation, then pass the two templates so the simulation and the real driver can be selected.
-class HandEyeCalibrationVrepPlugin : public std::enable_shared_from_this<KukaVrepPlugin> {
+class HandEyeCalibrationVrepPlugin : public std::enable_shared_from_this<HandEyeCalibrationVrepPlugin> {
 public:
 
     enum ParamIndex {
@@ -90,25 +91,25 @@ void construct(){
 }
 
 
-void run_one(){
+//void run_one(){
+//
+//  if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates."));
+//  getRealKukaAngles();
+//  getStateFromVrep();
+//  /// @todo re-enable simulation feedback based on actual kuka state
+//  //updateVrepFromKuka();
+//  sendSimulatedJointAnglesToKuka();
+//
+//}
 
-  if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates."));
-  getRealKukaAngles();
-  getStateFromVrep();
-  /// @todo re-enable simulation feedback based on actual kuka state
-  //updateVrepFromKuka();
-  sendSimulatedJointAnglesToKuka();
 
-}
-
-
-~HandEyeCalibrationVrepPlugin(){
-    if(driver_threadP){
-	  //workP.reset();
-      device_driver_io_service.stop();
-      driver_threadP->join();
-    }
-}
+//~HandEyeCalibrationVrepPlugin(){
+//    if(driver_threadP){
+//	  //workP.reset();
+//      device_driver_io_service.stop();
+//      driver_threadP->join();
+//    }
+//}
 
 private:
 
@@ -118,11 +119,11 @@ private:
 /// @todo throw an exception if any of the handles is -1
 void initHandles() {
 
-	robotTip        = getHandleFromParam<RobotTipName>              (params_);					//Obtain RobotTip handle
-	target          = getHandleFromParam<RobotTargetName>           (params_);
-	robotTargetBase = getHandleFromParam<RobotTargetBaseName>       (params_);
-	ImplantCutPath  = getHandleFromParam<OpticalTrackerBaseName>    (params_);
-	BallJointPath   = getHandleFromParam<HandEyeCalibrationFiducial>(params_);
+	robotTip             = getHandleFromParam<RobotTipName>              (params_);					//Obtain RobotTip handle
+	target               = getHandleFromParam<RobotTargetName>           (params_);
+	robotTargetBase      = getHandleFromParam<RobotTargetBaseName>       (params_);
+	opticalTrackerBase   = getHandleFromParam<OpticalTrackerBaseName>    (params_);
+	handEyeCalibFiducial = getHandleFromParam<HandEyeCalibrationFiducial>(params_);
     
 	allHandlesSet  = true;
 }
