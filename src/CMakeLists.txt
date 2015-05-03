@@ -29,7 +29,11 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
+basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
+basis_add_library(v_repLib v_repLib.cpp)
+
 add_subdirectory(v_repExtKukaLBRiiwaPlugin)
+add_subdirectory(v_repExtHandEyeCalibration)
 
 # ============================================================================
 # executable target(s)
