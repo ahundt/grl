@@ -32,8 +32,7 @@
 if(CAMODOCAL_FOUND)
 basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${camodocal_INCLUDE_DIRS})
 basis_add_library(v_repExtHandEyeCalibration SHARED v_repExtHandEyeCalibration.cpp )
-basis_target_link_libraries(v_repExtHandEyeCalibration ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}  v_repLib)
-basis_add_dependencies(v_repExtHandEyeCalibration camodocal_calib)
+basis_target_link_libraries(v_repExtHandEyeCalibration ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}  v_repLib camodocal_calib)
 endif()
 
 
