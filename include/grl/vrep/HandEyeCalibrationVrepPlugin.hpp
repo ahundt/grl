@@ -91,26 +91,41 @@ void construct(){
 }
 
 
-//void run_one(){
-//
-//  if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates."));
-//  getRealKukaAngles();
-//  getStateFromVrep();
-//  /// @todo re-enable simulation feedback based on actual kuka state
-//  //updateVrepFromKuka();
-//  sendSimulatedJointAnglesToKuka();
-//
-//}
+void addFrame() {
+    
+    auto robotTipInBaseRotAndTrans = getAxisAngleAndTranslation(robotTip,robotTargetBase);
+    rvecsArm.push_back(robotTipInBaseRotAndTrans.first);
+    tvecsArm.push_back(robotTipInBaseRotAndTrans.second);
+    
+    auto fiducialInCameraBaseRotAndTrans      = getAxisAngleAndTranslation(handEyeCalibFiducial,opticalTrackerBase);
+    rvecsFiducial.push_back(fiducialInCameraBaseRotAndTrans.first);
+    tvecsFiducial.push_back(fiducialInCameraBaseRotAndTrans.second);
+}
 
+/// @todo probably want to run at least part of this in a separate thread.
+void estimateHandEyeScrew(){
+  
+  Eigen::Affine3d transformEstimate;
+  handEyeCalib.estimateHandEyeScrew(
+      rvecsArm,
+      tvecsArm,
+      rvecsFiducial,
+      tvecsFiducial,
+      transformEstimate.matrix()
+      );
 
-//~HandEyeCalibrationVrepPlugin(){
-//    if(driver_threadP){
-//	  //workP.reset();
-//      device_driver_io_service.stop();
-//      driver_threadP->join();
-//    }
-//}
-
+   Eigen::Quaterniond eq(transformEstimate.rotation());
+   std::array<float,4> vq = EigenToVrepQuaternion(eq);
+  
+   simSetObjectQuaternion(handEyeCalibFiducial,robotTip,vq.begin());
+   
+   std::array<float,3> vp = EigenToVrepPosition(transformEstimate.translation());
+   simSetObjectPosition(handEyeCalibFiducial,robotTip,vp.begin());
+      /// @todo set camera position based on this, print out estimate,
+    
+   BOOST_LOG_TRIVIAL(info) << "Hand Eye Screw Estimate quat wxyz: " << eq.w() << " " << eq.x() << " " << eq.y() << " " << eq.z() << " " << " translation xyz: " << transformEstimate.translation().x() << " " << transformEstimate.translation().y() << " " << transformEstimate.translation().z() << " " << std::endl;
+  
+}
 private:
 
 
@@ -128,32 +143,6 @@ void initHandles() {
 	allHandlesSet  = true;
 }
 
-void getFrame() {
-    if(!allHandlesSet) return false;
-    
-    auto robotTipInBaseRotAndTrans = getAxisAngleAndTranslation(robotTip,robotTargetBase);
-    rvecsArm.push_back(robotTipInBaseRotAndTrans.first);
-    tvecsArm.push_back(robotTipInBaseRotAndTrans.second);
-    
-    auto fiducialInCameraBase      = getAxisAngleAndTranslation(handEyeCalibFiducial,opticalTrackerBase);
-
-}
-
-/// @todo probably want to run at least part of this in a separate thread.
-void estimateHandEyeScrew(){
-  
-  Eigen::Matrix4d transformEstimate;
-  handEyeCalib.estimateHandEyeScrew(
-      rvecsArm,
-      tvecsArm,
-      rvecsFiducial,
-      tvecsFiducial,
-      transformEstimate
-      );
-
-      /// @todo set camera position based on this, print out estimate,
-  
-}
 
 camodocal::HandEyeCalibration handEyeCalib;
 std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > rvecsArm;
