@@ -93,13 +93,13 @@ void construct(){
 
 void addFrame() {
     
-    auto robotTipInBaseRotAndTrans = getAxisAngleAndTranslation(robotTip,robotTargetBase);
-    rvecsArm.push_back(robotTipInBaseRotAndTrans.first);
-    tvecsArm.push_back(robotTipInBaseRotAndTrans.second);
+    auto robotTipInRobotTargetBaseRotAndTrans = getAxisAngleAndTranslation(robotTip,robotTargetBase);
+    rvecsArm.push_back(robotTipInRobotTargetBaseRotAndTrans.first);
+    tvecsArm.push_back(robotTipInRobotTargetBaseRotAndTrans.second);
     
-    auto fiducialInCameraBaseRotAndTrans      = getAxisAngleAndTranslation(handEyeCalibFiducial,opticalTrackerBase);
-    rvecsFiducial.push_back(fiducialInCameraBaseRotAndTrans.first);
-    tvecsFiducial.push_back(fiducialInCameraBaseRotAndTrans.second);
+    auto fiducialInOpticalTrackerBaseRotAndTrans = getAxisAngleAndTranslation(handEyeCalibFiducial,opticalTrackerBase);
+    rvecsFiducial.push_back(fiducialInOpticalTrackerBaseRotAndTrans.first);
+    tvecsFiducial.push_back(fiducialInOpticalTrackerBaseRotAndTrans.second);
 }
 
 /// @todo probably want to run at least part of this in a separate thread.
@@ -113,17 +113,31 @@ void estimateHandEyeScrew(){
       tvecsFiducial,
       transformEstimate.matrix()
       );
+    
+    std::array<float,3> simTipPosition;
+    std::array<float,4> simTipQuaternion;
+    
+    int ret = simGetObjectPosition(opticalTrackerBase, handEyeCalibFiducial, simTipPosition.begin());
+    if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get position"));
+    ret = simGetObjectQuaternion(opticalTrackerBase, handEyeCalibFiducial, simTipQuaternion.begin());
+    if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get quaternion"));
 
-   Eigen::Quaterniond eq(transformEstimate.rotation());
-   std::array<float,4> vq = EigenToVrepQuaternion(eq);
+   Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
+   std::array<float,4> vrepQuat = EigenToVrepQuaternion(eigenQuat);
   
-   simSetObjectQuaternion(handEyeCalibFiducial,robotTip,vq.begin());
+   simSetObjectQuaternion(handEyeCalibFiducial,robotTip,vrepQuat.begin());
    
-   std::array<float,3> vp = EigenToVrepPosition(transformEstimate.translation());
-   simSetObjectPosition(handEyeCalibFiducial,robotTip,vp.begin());
+   std::array<float,3> vrepPos = EigenToVrepPosition(transformEstimate.translation());
+   simSetObjectPosition(handEyeCalibFiducial,robotTip,vrepPos.begin());
       /// @todo set camera position based on this, print out estimate,
     
-   BOOST_LOG_TRIVIAL(info) << "Hand Eye Screw Estimate quat wxyz: " << eq.w() << " " << eq.x() << " " << eq.y() << " " << eq.z() << " " << " translation xyz: " << transformEstimate.translation().x() << " " << transformEstimate.translation().y() << " " << transformEstimate.translation().z() << " " << std::endl;
+    simSetObjectPosition(opticalTrackerBase, handEyeCalibFiducial, simTipPosition.begin());
+    simSetObjectOrientation(opticalTrackerBase, handEyeCalibFiducial, simTipQuaternion.begin());
+   
+    
+   BOOST_LOG_TRIVIAL(info) << "Hand Eye Screw Estimate quat wxyz: " << eigenQuat.w() << " " << eigenQuat.x() << " " << eigenQuat.y() << " " << eigenQuat.z() << " " << " translation xyz: " << transformEstimate.translation().x() << " " << transformEstimate.translation().y() << " " << transformEstimate.translation().z() << " " << std::endl;
+    
+    BOOST_LOG_TRIVIAL(info) << "Optical Tracker Base Estimate quat wxyz: " << simTipQuaternion[0] << " " << simTipQuaternion[1] << " " << simTipQuaternion[2] << " " << simTipQuaternion[3] << " " << " translation xyz: " << simTipPosition[0] << " " << simTipPosition[1] << " " << simTipPosition[2] << " " << std::endl;
   
 }
 private:
