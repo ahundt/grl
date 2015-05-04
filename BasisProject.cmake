@@ -118,4 +118,7 @@ basis_project (
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
     #<optional-test-dependency>
+  INCLUDE_DIRS
+    include
+    include/thirdparty/vrep/include
 )
