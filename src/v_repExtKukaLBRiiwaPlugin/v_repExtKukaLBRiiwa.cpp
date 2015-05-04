@@ -43,26 +43,23 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 
 std::shared_ptr<grl::KukaVrepPlugin> kukaPluginPG;
 
-/*int getPathPosVectorFromObjectPose(int objectHandle, float relativeDistance) //This might be helpful if we decide to implement all the code in the plugin (instead of the lua script
-{
-	float positionOnPath[3];
-	float eulerAngles[3];
-
-	simGetPositionOnPath(objectHandle, relativeDistance, positionOnPath);
-	simGetOrientationOnPath(objectHandle, eulerAngles);
-	int o = getQuaternionFromEulerAngle(positionOnPath, eulerAngles);
-	return (p,o);
-}
-*/
-
-void LUA_GET_REAL_KUKA_STATE_CALLBACK(SLuaCallBack* p)
+void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
   // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
-}
-
-void LUA_SET_SIM_KUKA_IDENTIFIERS_CALLBACK(SLuaCallBack* p)
-{
-	// Here we need the ineger "Handle" identifiers for the arm itself, and for each joint
+  
+  try {
+      if (!kukaPluginPG) {
+        BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
+        kukaPluginPG=std::make_shared<grl::KukaVrepPlugin>();
+        kukaPluginPG->construct();
+      }
+  
+  } catch (boost::exception& e){
+      // log the error and print it to the screen, don't release the exception
+      std::string initerr("v_repExtKukaLBRiiwa plugin initialization error:\n" + boost::diagnostic_information(e));
+      simAddStatusbarMessage( initerr.c_str());
+      BOOST_LOG_TRIVIAL(error) <<  initerr;
+  }
 }
 
 
@@ -196,6 +193,12 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 
 	// Register the new Lua command "simExtSkeleton_getSensorData":
 	// ******************************************
+    
+	int inArgs1[]={0}; // no input arguments
+	simRegisterCustomLuaFunction("simExtKukaLBRiiwaStart","number result=simExtKukaLBRiiwaStart()",inArgs1,LUA_SIM_EXT_KUKA_LBR_IIWA_START);
+    
+    
+    
 	// Expected input arguments are: int sensorIndex, float floatParameters[3], int intParameters[2]
 	int inArgs_getSensorData[]={3,sim_lua_arg_int,sim_lua_arg_float|sim_lua_arg_table,sim_lua_arg_int|sim_lua_arg_table}; // this says we expect 3 arguments (1 integer, a table of floats, and a table of ints)
 	// Return value can change on the fly, so no need to specify them here, except for the calltip.
@@ -307,18 +310,18 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		/////////////////////
 		// simGetObjectHandle
         
-        try {
-            BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
-            kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
-            kukaPluginPG->construct();
-            //kukaPluginPG->run_one();  // for debugging purposes only
-            //kukaPluginPG.reset();     // for debugging purposes only
-        } catch (boost::exception& e){
-            // log the error and print it to the screen, don't release the exception
-            std::string initerr("v_repExtKukaLBRiiwa plugin initialization error:\n" + boost::diagnostic_information(e));
-            simAddStatusbarMessage( initerr.c_str());
-            BOOST_LOG_TRIVIAL(error) <<  initerr;
-        }
+//        try {
+//            BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
+//            kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
+//            kukaPluginPG->construct();
+//            //kukaPluginPG->run_one();  // for debugging purposes only
+//            //kukaPluginPG.reset();     // for debugging purposes only
+//        } catch (boost::exception& e){
+//            // log the error and print it to the screen, don't release the exception
+//            std::string initerr("v_repExtKukaLBRiiwa plugin initialization error:\n" + boost::diagnostic_information(e));
+//            simAddStatusbarMessage( initerr.c_str());
+//            BOOST_LOG_TRIVIAL(error) <<  initerr;
+//        }
 	}
 
 	if (message==sim_message_eventcallback_simulationended)

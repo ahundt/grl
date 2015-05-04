@@ -13,6 +13,28 @@ Eigen::Quaterniond vrepToEigenQuaternion(InputIterator vrepQuat){
     return quat;
 }
 
+template<typename Q>
+std::array<float,4> EigenToVrepQuaternion(const Q& q){
+  std::array<float,4> qa;
+  // vrep is ordered xyzw, eigen is ordered wxyz
+  qa[0] = q.x();
+  qa[1] = q.y();
+  qa[2] = q.z();
+  qa[3] = q.w();
+  
+  return qa;
+}
+
+template<typename P>
+std::array<float,3> EigenToVrepPosition(const P& p){
+   std::array<float,3> qv;
+   qv[0] = p.x();
+   qv[1] = p.y();
+   qv[2] = p.z();
+   
+   return qv;
+}
+
 template<typename InputIterator>
 Eigen::Vector3d vrepQuatToEigenVector3dAngleAxis(InputIterator vrepQuat){
     Eigen::AngleAxisd ax3d(vrepToEigenQuaternion(vrepQuat));

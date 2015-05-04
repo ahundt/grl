@@ -56,92 +56,30 @@ std::shared_ptr<grl::HandEyeCalibrationVrepPlugin> handEyeCalibrationPG;
 }
 */
 
-void LUA_GET_REAL_KUKA_STATE_CALLBACK(SLuaCallBack* p)
+void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
   // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
+  if (!handEyeCalibrationPG) {
+    handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
+    handEyeCalibrationPG->construct();
+}
 }
 
-void LUA_SET_SIM_KUKA_IDENTIFIERS_CALLBACK(SLuaCallBack* p)
-{
-	// Here we need the ineger "Handle" identifiers for the arm itself, and for each joint
-}
-
-
-void LUA_GET_SENSOR_DATA_CALLBACK(SLuaCallBack* p)
+void LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
-
-	// Check the function v_repStart to see how this callback is registered
-
-	bool commandWasSuccessful=false;
-
-	if (p->inputArgCount>=3)
-	{ // Ok, we have at least 2 input argument. We are expecting an integer, a table with at least 3 floats, and a table with at least 2 ints:
-		if ( (p->inputArgTypeAndSize[0*2+0]==sim_lua_arg_int) && // the integer value
-			(p->inputArgTypeAndSize[1*2+0]==(sim_lua_arg_float|sim_lua_arg_table))&&(p->inputArgTypeAndSize[1*2+1]>=3) && // the table value with at least 3 floats
-			(p->inputArgTypeAndSize[2*2+0]==(sim_lua_arg_int|sim_lua_arg_table))&&(p->inputArgTypeAndSize[2*2+1]>=2) ) // the table value with at least 2 ints
-		{ // Ok, we have all required arguments
-			int intArgInd=0;
-			int floatArgInd=0;
-
-			// the first argument:
-			int sensorIndex=p->inputInt[intArgInd++]; 
-
-			// the second argument:
-			float floatParams[3];
-			floatParams[0]=p->inputFloat[floatArgInd++];
-			floatParams[1]=p->inputFloat[floatArgInd++];
-			floatParams[2]=p->inputFloat[floatArgInd++];
-
-			// the third argument:
-			int intParams[2];
-			intParams[0]=p->inputInt[intArgInd++];
-			intParams[1]=p->inputInt[intArgInd++];
-
-			// Now do something with above's arguments!!
-			commandWasSuccessful=true;
-		}
-		else
-			simSetLastError(LUA_GET_SENSOR_DATA_COMMAND,"Wrong argument type/size."); // output an error
-	}
-	else
-		simSetLastError(LUA_GET_SENSOR_DATA_COMMAND,"Not enough arguments."); // output an error
-
-
-	// Now prepare the return values:
-	if (!commandWasSuccessful)
-		p->outputArgCount=0; // Command failed, we do not return anything!
-	else
-	{ // Command succeeded, we return 3 values: result (integer), data (float table of size 10), distance (float)
-		int result=1; // an integer
-		float data[10]; // a float table
-		for (int i=0;i<10;i++)
-			data[i]=float(i);
-		float distance=0.0; // a float
-
-		p->outputArgCount=3; // 3 return values
-		p->outputArgTypeAndSize=(simInt*)simCreateBuffer(p->outputArgCount*2*sizeof(simInt)); // x return values takes x*2 simInt for the type and size buffer
-
-		p->outputArgTypeAndSize[0*2+0]=sim_lua_arg_int;	// The first return value is an int
-		p->outputArgTypeAndSize[0*2+1]=1;				// Not used (table size if the return value was a table)
-
-		p->outputArgTypeAndSize[1*2+0]=sim_lua_arg_float|sim_lua_arg_table;	// The second return value is a float table
-		p->outputArgTypeAndSize[1*2+1]=10;				// The table size is 10
-
-		p->outputArgTypeAndSize[2*2+0]=sim_lua_arg_float;	// The third return value is a float
-		p->outputArgTypeAndSize[2*2+1]=1;				// Not used (table size if the return value was a table)
-
-		// Now create the int buffer and populate it:
-		p->outputInt=(simInt*)simCreateBuffer(1*sizeof(int)); // We have a total of 1 int return value
-		p->outputInt[0]=result; // This is the int value we want to return
-
-		// Now create the float buffer and populate it:
-		p->outputFloat=(simFloat*)simCreateBuffer(11*sizeof(float)); // We have a total of 11 float return values
-		int floatInd=0;
-		for (int i=0;i<10;i++)
-			p->outputFloat[floatInd++]=data[i]; 
-		p->outputFloat[floatInd++]=distance;
-	}
+  // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
+  if (handEyeCalibrationPG) {
+    handEyeCalibrationPG->addFrame();
 }
+}
+
+void LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM(SLuaCallBack* p)
+{
+  if (handEyeCalibrationPG) {
+    handEyeCalibrationPG->estimateHandEyeScrew();
+}
+}
+
 
 
 // This is the plugin start routine (called just once, just after the plugin was loaded):
@@ -198,13 +136,26 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	// Register the new Lua command "simExtSkeleton_getSensorData":
 	// ******************************************
 	// Expected input arguments are: int sensorIndex, float floatParameters[3], int intParameters[2]
-	int inArgs_getSensorData[]={3,sim_lua_arg_int,sim_lua_arg_float|sim_lua_arg_table,sim_lua_arg_int|sim_lua_arg_table}; // this says we expect 3 arguments (1 integer, a table of floats, and a table of ints)
+	//int inArgs_getSensorData[]={3,sim_lua_arg_int,sim_lua_arg_float|sim_lua_arg_table,sim_lua_arg_int|sim_lua_arg_table}; // this says we expect 3 arguments (1 integer, a table of floats, and a table of ints)
 	// Return value can change on the fly, so no need to specify them here, except for the calltip.
 	// Now register the callback:
-	simRegisterCustomLuaFunction(LUA_GET_SENSOR_DATA_COMMAND,strConCat("number result,table data,number distance=",LUA_GET_SENSOR_DATA_COMMAND,"(number sensorIndex,table_3 floatParams,table_2 intParams)"),inArgs_getSensorData,LUA_GET_SENSOR_DATA_CALLBACK);
+	//simRegisterCustomLuaFunction(LUA_GET_SENSOR_DATA_COMMAND,strConCat("number result,table data,number distance=",LUA_GET_SENSOR_DATA_COMMAND,"(number sensorIndex,table_3 floatParams,table_2 intParams)"),inArgs_getSensorData,LUA_GET_SENSOR_DATA_CALLBACK);
+    
+    
+	int inArgs1[]={0}; // no input arguments
+	simRegisterCustomLuaFunction("simExtHandEyeCalibStart","number result=simExtHandEyeCalibStart()",inArgs1,LUA_SIM_EXT_HAND_EYE_CALIB_START);
+
+	int inArgs2[]={0}; // no input arguments
+	simRegisterCustomLuaFunction("simExtHandEyeCalibAddFrame","number result=simExtHandEyeCalibAddFrame()",inArgs2,LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME);
+    
+    
+	int inArgs3[]={0}; // no input arguments
+	simRegisterCustomLuaFunction("simExtHandEyeCalibFindTransform","number result=simExtHandEyeCalibFindTransform()",inArgs3,LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM);
+    
+    
 	// ******************************************
 
-    BOOST_LOG_TRIVIAL(info) << "KUKA LBR iiwa plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
+    BOOST_LOG_TRIVIAL(info) << "Hand Eye Calibration plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
 
 	return(PLUGIN_VERSION); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
 }
@@ -310,8 +261,8 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
         
         try {
             BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
-            handEyeCalibrationPG = std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
-            handEyeCalibrationPG->construct();
+            //handEyeCalibrationPG = std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
+            //handEyeCalibrationPG->construct();
             //HandEyeCalibrationPG->run_one();  // for debugging purposes only
             //HandEyeCalibrationPG.reset();     // for debugging purposes only
         } catch (boost::exception& e){
