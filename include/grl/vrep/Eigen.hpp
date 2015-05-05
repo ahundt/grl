@@ -74,7 +74,7 @@ template<typename T>
 void setObjectTransform(int objectHandle, int relativeToObjectHandle, T& transform){
 
    // get quaternion between end effector and
-   Eigen::Quaterniond eigenQuat(transform.rotation());
+   Eigen::Quaternion<typename T::Scalar> eigenQuat(transform.rotation());
    std::array<float,4> vrepQuat = EigenToVrepQuaternion(eigenQuat);
    simSetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
    
