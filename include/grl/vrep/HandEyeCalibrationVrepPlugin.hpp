@@ -66,11 +66,11 @@ public:
     
     static const Params defaultParams(){
         return std::make_tuple(
-                    "RobotTip#0"              , // RobotTipHandle,
-                    "Robot_ee"           , // RobotTargetHandle,
+                    "RobotFlangeTip"              , // RobotTipHandle,
+                    "RobotFlangeTipTarget"        , // RobotTargetHandle,
                     "Robotiiwa"               , // RobotTargetBaseHandle,
                     "OpticalTrackerBase#0"    , // RobotTargetBaseHandle,
-                    "Fiducial#55"               // FiducialArmTip
+                    "Fiducial#22"               // FiducialArmTip
                 );
     }
 
@@ -97,7 +97,7 @@ void addFrame() {
     rvecsArm.push_back(robotTipInRobotTargetBaseRotAndTrans.first);
     tvecsArm.push_back(robotTipInRobotTargetBaseRotAndTrans.second);
     
-    auto fiducialInOpticalTrackerBaseRotAndTrans = getAxisAngleAndTranslation(handEyeCalibFiducial,opticalTrackerBase);
+    auto fiducialInOpticalTrackerBaseRotAndTrans = getAxisAngleAndTranslation(handEyeCalibFiducial,robotTargetBase);
     rvecsFiducial.push_back(fiducialInOpticalTrackerBaseRotAndTrans.first);
     tvecsFiducial.push_back(fiducialInOpticalTrackerBaseRotAndTrans.second);
 }
@@ -110,10 +110,10 @@ void estimateHandEyeScrew(){
   // estimate transform between end effector and fiducial
   Eigen::Affine3d transformEstimate;
   handEyeCalib.estimateHandEyeScrew(
-      rvecsArm,
-      tvecsArm,
       rvecsFiducial,
       tvecsFiducial,
+      rvecsArm,
+      tvecsArm,
       transformEstimate.matrix()
       );
     
