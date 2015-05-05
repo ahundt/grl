@@ -52,13 +52,13 @@ Eigen::Vector3d vrepToEigenVector3d(InputIterator vrepVec){
 std::pair<Eigen::Vector3d,Eigen::Vector3d> getAxisAngleAndTranslation(int ObjectHandle, int BaseFrameObjectHandle){
 	
 	std::array<float,3> simTipPosition;
-	std::array<float,3> simTipOrientation;
+	//std::array<float,3> simTipOrientation;
     std::array<float,4> simTipQuaternion;
 
 	int ret = simGetObjectPosition(ObjectHandle, BaseFrameObjectHandle, simTipPosition.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get position"));
-	ret = simGetObjectOrientation(ObjectHandle, BaseFrameObjectHandle, simTipOrientation.begin());
-    if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get orientation"));
+	//ret = simGetObjectOrientation(ObjectHandle, BaseFrameObjectHandle, simTipOrientation.begin());
+    //if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get orientation"));
     ret = simGetObjectQuaternion(ObjectHandle, BaseFrameObjectHandle, simTipQuaternion.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get quaternion"));
 	
@@ -68,6 +68,72 @@ std::pair<Eigen::Vector3d,Eigen::Vector3d> getAxisAngleAndTranslation(int Object
     
     
     return std::make_pair(simTipAngleAxis,simTipVec);
+}
+
+template<typename T>
+void setObjectTransform(int objectHandle, int relativeToObjectHandle, T& transform){
+
+   // get quaternion between end effector and
+   Eigen::Quaterniond eigenQuat(transform.rotation());
+   std::array<float,4> vrepQuat = EigenToVrepQuaternion(eigenQuat);
+   simSetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
+   
+   std::array<float,3> vrepPos = EigenToVrepPosition(transform.translation());
+   simSetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   
+}
+
+Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle){
+
+   std::array<float,4> vrepQuat;
+   simGetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
+   Eigen::Quaterniond eigenQuat(vrepToEigenQuaternion(vrepQuat));
+   
+   std::array<float,3> vrepPos;
+   simGetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   Eigen::Vector3d eigenPos(vrepToEigenVector3d(vrepPos));
+   
+   Eigen::Affine3d transform;
+   
+   transform = eigenQuat;
+   transform.translation() = eigenPos;
+   
+   return transform;
+}
+
+static std::string poseString(const Eigen::Affine3d& pose, const std::string& pfx = "")
+{
+  std::stringstream ss;
+  ss.precision(3);
+  for (int y=0;y<4;y++)
+  {
+    ss << pfx;
+    for (int x=0;x<4;x++)
+    {
+      ss << std::setw(8) << pose(y,x) << " ";
+    }
+    ss << std::endl;
+  }
+  return ss.str();
+}
+
+
+//---------
+//posString
+//---------
+static std::string posString(const Eigen::Vector3d& pos, const std::string& pfx = "(", const std::string& sfx = ")")
+{
+  std::stringstream ss;
+  ss.precision(3);
+  ss << pfx;
+  for (int x=0;x<3;x++)
+  {
+    if (x)
+      ss << ", ";
+    ss << std::setw(8) << pos(x);
+  }
+  ss << sfx;
+  return ss.str();
 }
 
 
