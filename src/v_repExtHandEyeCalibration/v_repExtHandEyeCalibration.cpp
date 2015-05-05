@@ -60,6 +60,8 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
   // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
   if (!handEyeCalibrationPG) {
+  
+    BOOST_LOG_TRIVIAL(info) << "v_repExtHandEyeCalibration Starting Hand Eye Calibration Plugin Data Collection\n";
     handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
     handEyeCalibrationPG->construct();
 }
@@ -260,14 +262,13 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// simGetObjectHandle
         
         try {
-            BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
             //handEyeCalibrationPG = std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
             //handEyeCalibrationPG->construct();
             //HandEyeCalibrationPG->run_one();  // for debugging purposes only
             //HandEyeCalibrationPG.reset();     // for debugging purposes only
         } catch (boost::exception& e){
             // log the error and print it to the screen, don't release the exception
-            std::string initerr("v_repExtKukaLBRiiwa plugin initialization error:\n" + boost::diagnostic_information(e));
+            std::string initerr("v_repExtHandEyeCalibration plugin initialization error:\n" + boost::diagnostic_information(e));
             simAddStatusbarMessage( initerr.c_str());
             BOOST_LOG_TRIVIAL(error) <<  initerr;
         }
@@ -280,7 +281,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
-        BOOST_LOG_TRIVIAL(info) << "Ending KUKA LBR iiwa plugin connection to Kuka iiwa\n";
+        BOOST_LOG_TRIVIAL(info) << "Ending v_repExtHandEyeCalibration plugin\n";
 		handEyeCalibrationPG.reset();
 
 	}
