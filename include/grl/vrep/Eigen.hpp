@@ -1,3 +1,5 @@
+/// @file Eigen.hpp
+/// @todo convert to use template metaprgramming to define simple functions that simplify and automate the necessary conversions
 #ifndef _VREP_EIGEN_HPP_
 #define _VREP_EIGEN_HPP_
 
@@ -35,9 +37,15 @@ std::array<float,3> EigenToVrepPosition(const P& p){
    return qv;
 }
 
-template<typename InputIterator>
-Eigen::Vector3d vrepQuatToEigenVector3dAngleAxis(InputIterator vrepQuat){
+template<typename Input>
+Eigen::Vector3d vrepQuatToEigenVector3dAngleAxis(Input vrepQuat){
     Eigen::AngleAxisd ax3d(vrepToEigenQuaternion(vrepQuat));
+    return ax3d.axis()*ax3d.angle();
+}
+
+template<typename Input>
+Eigen::Vector3d eigenRotToEigenVector3dAngleAxis(Input eigenQuat){
+    Eigen::AngleAxisd ax3d(eigenQuat);
     return ax3d.axis()*ax3d.angle();
 }
 

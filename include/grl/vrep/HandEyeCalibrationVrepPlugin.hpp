@@ -77,6 +77,8 @@ public:
 /// @todo allow KukaFRIThreadSeparator parameters to be updated
 HandEyeCalibrationVrepPlugin (Params params = defaultParams())
       :
+      isFirstFrame(false),
+      frameCount(0),
       params_(params)
 {
 /// @todo figure out how to re-enable when .so isn't loaded
@@ -92,19 +94,32 @@ void construct(){
 
 
 void addFrame() {
+   BOOST_LOG_TRIVIAL(trace) << "Adding hand eye calibration frame #" << ++frameCount << std::endl;
     
-    auto robotTipInRobotTargetBaseRotAndTrans = getAxisAngleAndTranslation(robotTip,robotTargetBase);
-    rvecsArm.push_back(robotTipInRobotTargetBaseRotAndTrans.first);
-    tvecsArm.push_back(robotTipInRobotTargetBaseRotAndTrans.second);
+    auto robotTipInRobotTargetBase    = getObjectTransform(robotTip,robotTargetBase);
+    auto fiducialInOpticalTrackerBase = getObjectTransform(handEyeCalibFiducial,robotTargetBase);
     
-    auto fiducialInOpticalTrackerBaseRotAndTrans = getAxisAngleAndTranslation(handEyeCalibFiducial,robotTargetBase);
-    rvecsFiducial.push_back(fiducialInOpticalTrackerBaseRotAndTrans.first);
-    tvecsFiducial.push_back(fiducialInOpticalTrackerBaseRotAndTrans.second);
+    if(isFirstFrame){
+      firstRobotTipInRobotTargetBaseInverse       = robotTipInRobotTargetBase.inverse();
+      firstFiducialInOpticalTrackerBaseInverse    = fiducialInOpticalTrackerBase.inverse();
+    }
+    
+    auto robotTipInFirstTipBase      = robotTipInRobotTargetBase   *firstRobotTipInRobotTargetBaseInverse;
+    auto fiducialInFirstFiducialBase = fiducialInOpticalTrackerBase*firstFiducialInOpticalTrackerBaseInverse;
+    
+    rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation()        ));
+    tvecsArm.push_back(                                      robotTipInFirstTipBase.translation()     );
+    
+    rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
+    tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
 }
 
 /// @todo probably want to run at least part of this in a separate thread.
 void estimateHandEyeScrew(){
   
+   BOOST_LOG_TRIVIAL(trace) << "Running Hand Eye Screw Estimate with the follwing numbers of entries in each category:  rvecsFiducial" << rvecsFiducial.size()
+   << " tvecsFiducial: " << tvecsFiducial.size() << " rvecsArm: " << rvecsArm.size() << " tvecsArm: " << tvecsArm.size() << std::endl;
+   
   static const bool debug = true;
   
   // estimate transform between end effector and fiducial
@@ -172,6 +187,10 @@ std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > tvecsAr
 std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > rvecsFiducial;
 std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > tvecsFiducial;
 
+bool isFirstFrame;
+std::size_t frameCount;
+Eigen::Affine3d firstRobotTipInRobotTargetBaseInverse;
+Eigen::Affine3d firstFiducialInOpticalTrackerBaseInverse;
 
 int robotTip = -1;					//Obtain RobotTip handle
 int target = -1;
@@ -188,6 +207,8 @@ bool allHandlesSet = false;
 private:
 Params params_;
 
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
   
 }
