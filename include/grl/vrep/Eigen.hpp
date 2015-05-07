@@ -8,21 +8,37 @@
 #include <array>
 #include "v_repLib.h"
 
+namespace vrepquat {
+    enum vrep_quat {
+       x,
+       y,
+       z,
+       w
+    };
+}
+
 template<typename InputIterator>
 Eigen::Quaterniond vrepToEigenQuaternion(InputIterator vrepQuat){
-    // vrep is ordered xyzw, eigen is ordered wxyz
-    Eigen::Quaterniond quat(vrepQuat[1],vrepQuat[2],vrepQuat[3],vrepQuat[0]);
+
+  //                  0123
+  //  vrep is ordered xyzw,
+  // eigen is ordered wxyz
+  
+    Eigen::Quaterniond quat(vrepQuat[vrepquat::w],vrepQuat[vrepquat::x],vrepQuat[vrepquat::y],vrepQuat[vrepquat::z]);
     return quat;
 }
 
 template<typename Q>
 std::array<float,4> EigenToVrepQuaternion(const Q& q){
   std::array<float,4> qa;
-  // vrep is ordered xyzw, eigen is ordered wxyz
-  qa[0] = q.x();
-  qa[1] = q.y();
-  qa[2] = q.z();
-  qa[3] = q.w();
+  
+  //                  0123
+  //  vrep is ordered xyzw,
+  // eigen is ordered wxyz
+  qa[vrepquat::x] = q.x();
+  qa[vrepquat::y] = q.y();
+  qa[vrepquat::z] = q.z();
+  qa[vrepquat::w] = q.w();
   
   return qa;
 }
