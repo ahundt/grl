@@ -109,7 +109,8 @@ Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle)
    return transform;
 }
 
-static std::string poseString(const Eigen::Affine3d& pose, const std::string& pfx = "")
+template<typename T>
+static std::string poseString(const Eigen::Transform<T,3,Eigen::Affine>& pose, const std::string& pfx = "")
 {
   std::stringstream ss;
   ss.precision(3);
