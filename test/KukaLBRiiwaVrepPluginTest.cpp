@@ -14,9 +14,9 @@
 BOOST_AUTO_TEST_SUITE(KukaLBRiiwaVrepPluginTest)
 
 BOOST_AUTO_TEST_CASE(initialization){
-
-BOOST_CHECK_THROW (std::make_shared<grl::KukaVrepPlugin>(),boost::exception);
-
+auto plugin = std::make_shared<grl::KukaVrepPlugin>();
+//BOOST_CHECK_THROW (std::make_shared<grl::KukaVrepPlugin>(),boost::exception);
+// plugin->construct() // shouldn't work, because vrep isn't around to get handles
 //// uncomment to test error output
 //        try {
 //            BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
