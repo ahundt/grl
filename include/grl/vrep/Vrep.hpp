@@ -2,6 +2,7 @@
 #define GRL_VREP_HPP_
 
 #include <string>
+#include "v_repLib.h"
 
 template<std::size_t I, typename Param>
 int getHandleFromParam(const Param& params_){

@@ -10,6 +10,7 @@
 #include "grl/KukaFRIThreadSeparator.hpp"
 #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
+#include "grl/vrep/Vrep.hpp"
 
 #include "v_repLib.h"
 
@@ -187,19 +188,16 @@ private:
 /// @todo throw an exception if any of the handles is -1
 void initHandles() {
 
-	jointHandle[0] = simGetObjectHandle(std::get<Joint1Name>             (params_).c_str()   );	//Obtain Joint Handles
-	jointHandle[1] = simGetObjectHandle(std::get<Joint2Name>             (params_).c_str()   );
-	jointHandle[2] = simGetObjectHandle(std::get<Joint3Name>             (params_).c_str()   );
-	jointHandle[3] = simGetObjectHandle(std::get<Joint4Name>             (params_).c_str()   );
-	jointHandle[4] = simGetObjectHandle(std::get<Joint5Name>             (params_).c_str()   );
-	jointHandle[5] = simGetObjectHandle(std::get<Joint6Name>             (params_).c_str()   );
-	jointHandle[6] = simGetObjectHandle(std::get<Joint7Name>             (params_).c_str()   );
-	robotTip       = simGetObjectHandle(std::get<RobotTipName>           (params_).c_str()   );					//Obtain RobotTip handle
-	target         = simGetObjectHandle(std::get<RobotTargetName>        (params_).c_str()   );
-	targetBase     = simGetObjectHandle(std::get<RobotTargetBaseName>    (params_).c_str()   );
-//	ImplantCutPath = simGetObjectHandle(std::get<ImplantCutPathName>     (params_).c_str()   );
-//	BallJointPath  = simGetObjectHandle(std::get<RemoveBallJointPathName>(params_).c_str()   );
-//	bone           = simGetObjectHandle(std::get<FemurBoneName>          (params_).c_str()   );
+	jointHandle[0] = getHandleFromParam<Joint1Name>             (params_);	//Obtain Joint Handles
+	jointHandle[1] = getHandleFromParam<Joint2Name>             (params_);
+	jointHandle[2] = getHandleFromParam<Joint3Name>             (params_);
+	jointHandle[3] = getHandleFromParam<Joint4Name>             (params_);
+	jointHandle[4] = getHandleFromParam<Joint5Name>             (params_);
+	jointHandle[5] = getHandleFromParam<Joint6Name>             (params_);
+	jointHandle[6] = getHandleFromParam<Joint7Name>             (params_);
+	robotTip       = getHandleFromParam<RobotTipName>           (params_);					//Obtain RobotTip handle
+	target         = getHandleFromParam<RobotTargetName>        (params_);
+	targetBase     = getHandleFromParam<RobotTargetBaseName>    (params_);
 	allHandlesSet  = true;
 }
 
@@ -208,6 +206,13 @@ void getRealKukaAngles() {
 
         kukaFRIThreadSeparatorP->async_getLatestState([this](std::shared_ptr<grl::robot::arm::kuka::iiwa::MonitorState> updatedState){
         
+            if (updatedState) {
+                this->m_haveReceivedRealData = true;
+            } else {
+                /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
+                // if we didn't actually get anything don't try and update
+                return;
+            }
             // We have the real kuka state read from the device now
             // update real joint angle data
             realJointPosition.clear();
@@ -235,8 +240,9 @@ void getRealKukaAngles() {
 }
 
 void sendSimulatedJointAnglesToKuka(){
-
+    
         BOOST_VERIFY(kukaFRIThreadSeparatorP);
+        if(!allHandlesSet || !m_haveReceivedRealData) return;
     
 /// @todo make this handled by template driver implementations/extensions
 
@@ -359,7 +365,8 @@ int targetBase = -1;
 //int BallJointPath = -1;
 //int bone = -1;
 
-bool allHandlesSet = false;
+volatile bool allHandlesSet = false;
+volatile bool m_haveReceivedRealData = false;
 
 boost::asio::io_service device_driver_io_service;
 std::unique_ptr<std::thread> driver_threadP;
