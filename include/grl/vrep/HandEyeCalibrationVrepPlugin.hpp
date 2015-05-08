@@ -97,15 +97,15 @@ void addFrame() {
    BOOST_LOG_TRIVIAL(trace) << "Adding hand eye calibration frame #" << ++frameCount << std::endl;
     
     auto robotTipInRobotTargetBase    = getObjectTransform(robotTip,robotTargetBase);
-    auto fiducialInOpticalTrackerBase = getObjectTransform(handEyeCalibFiducial,robotTargetBase);
+    auto fiducialInOpticalTrackerBase = getObjectTransform(handEyeCalibFiducial,opticalTrackerBase);
     
     if(isFirstFrame){
       firstRobotTipInRobotTargetBaseInverse       = robotTipInRobotTargetBase.inverse();
       firstFiducialInOpticalTrackerBaseInverse    = fiducialInOpticalTrackerBase.inverse();
     }
     
-    auto robotTipInFirstTipBase      = robotTipInRobotTargetBase   *firstRobotTipInRobotTargetBaseInverse;
-    auto fiducialInFirstFiducialBase = fiducialInOpticalTrackerBase*firstFiducialInOpticalTrackerBaseInverse;
+    auto robotTipInFirstTipBase      = firstRobotTipInRobotTargetBaseInverse * robotTipInRobotTargetBase;
+    auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;
     
     rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation()        ));
     tvecsArm.push_back(                                      robotTipInFirstTipBase.translation()     );
@@ -136,9 +136,9 @@ void estimateHandEyeScrew(){
     std::array<float,4> simTipQuaternion;
     
     // get fiducial in optical tracker base frame
-    int ret = simGetObjectPosition(opticalTrackerBase, handEyeCalibFiducial, simTipPosition.begin());
+    int ret = simGetObjectPosition(handEyeCalibFiducial, opticalTrackerBase, simTipPosition.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get position"));
-    ret = simGetObjectQuaternion(opticalTrackerBase, handEyeCalibFiducial, simTipQuaternion.begin());
+    ret = simGetObjectQuaternion(handEyeCalibFiducial, opticalTrackerBase, simTipQuaternion.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get quaternion"));
 
    if(debug){
