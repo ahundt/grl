@@ -1,6 +1,6 @@
 // This file is part of V-REP, the Virtual Robot Experimentation Platform.
 // 
-// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
+// Copyright 2006-2015 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
 // 
@@ -27,13 +27,13 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
+// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
 
 #if !defined(V_REPCONST_INCLUDED_)
 #define V_REPCONST_INCLUDED_
 
-#define VREP_PROGRAM_VERSION_NB 30200
-#define VREP_PROGRAM_VERSION "3.2.0."
+#define VREP_PROGRAM_VERSION_NB 30201
+#define VREP_PROGRAM_VERSION "3.2.1."
 
 #define VREP_PROGRAM_REVISION_NB 1
 #define VREP_PROGRAM_REVISION "(rev. 1)"
@@ -265,6 +265,11 @@ enum { /* Check the documentation instead of comments below!! */
 
 		sim_message_eventcallback_beforerendering, /* called just before the scene is rendered. From the main SIM thread! */
 
+		sim_message_eventcallback_raytracing_start,
+		sim_message_eventcallback_raytracing_light,
+		sim_message_eventcallback_raytracing_mesh,
+		sim_message_eventcallback_raytracing_stop,
+
 		sim_message_simulation_start_resume_request=0x1000,
 		sim_message_simulation_pause_request,
 		sim_message_simulation_stop_request
@@ -292,7 +297,15 @@ enum {
 		sim_displayattribute_thickEdges				=0x10000,
 		sim_displayattribute_dynamiccontentonly		=0x20000,
 		sim_displayattribute_mirror					=0x40000,
-		sim_displayattribute_useauxcomponent		=0x80000
+		sim_displayattribute_useauxcomponent		=0x80000,
+		sim_displayattribute_ignorerenderableflag	=0x100000,
+		sim_displayattribute_noopenglcallbacks		=0x200000,
+		sim_displayattribute_forraytracingvisionsensor	=0x400000,
+		sim_displayattribute_noghosts				=0x800000,
+		sim_displayattribute_nopointclouds			=0x1000000,
+		sim_displayattribute_nodrawingobjects		=0x2000000,
+		sim_displayattribute_noparticles			=0x4000000,
+		sim_displayattribute_colorcodedtriangles	=0x8000000
 };
 
 enum { /* Scene object properties. Combine with the | operator */
@@ -321,7 +334,9 @@ enum { /* type of arguments (input and output) for custom lua commands */
 	sim_lua_arg_string,
 	sim_lua_arg_invalid,
 	sim_lua_arg_charbuff,
+	sim_lua_arg_double,
 	sim_lua_arg_table=8
+	/* SIM_LUA_ARG_NIL_ALLOWED=65536 is defined and used in CLuaFunctionData.h. This flag is reserved here. */
 };
 
 enum { /* custom user interface properties. Values are serialized. */
@@ -446,11 +461,17 @@ enum { /* Threaded script resume location */
 
 enum { /* General callback IDs */
 	sim_callbackid_rossubscriber			=1,
+	sim_callbackid_dynstep					=2,
 	sim_callbackid_userdefined				=1000
 };
 
 
 enum { /* API call error messages */
+	sim_api_error_report =1,
+	sim_api_error_output =2,
+	sim_api_warning_output =4,
+
+	/* for backward compatibility */
 	sim_api_errormessage_ignore	=0,	/* does not memorize nor output errors */
 	sim_api_errormessage_report	=1,	/* memorizes errors (default for C-API calls) */
 	sim_api_errormessage_output	=2  /* memorizes and outputs errors (default for Lua-API calls) */
@@ -471,8 +492,10 @@ enum { /* special argument of some functions: */
 };
 
 enum { /* special handle flags: */
-	sim_handleflag_assembly				=0x400000,
-	sim_handleflag_model				=0x800000
+	sim_handleflag_assembly				=0x00400000,
+	sim_handleflag_togglevisibility		=0x00400000,
+	sim_handleflag_model				=0x00800000,
+	sim_handleflag_rawvalue				=0x01000000
 };
 
 enum { /* distance calculation methods: (serialized) */
@@ -636,7 +659,11 @@ enum { /* Boolean parameters: */
 	sim_boolparam_objectshift_toolbarbutton_enabled,
 	sim_boolparam_objectrotate_toolbarbutton_enabled,
 	sim_boolparam_force_calcstruct_all_visible,
-	sim_boolparam_force_calcstruct_all
+	sim_boolparam_force_calcstruct_all,
+	sim_boolparam_exit_request,
+	sim_boolparam_play_toolbarbutton_enabled,
+	sim_boolparam_pause_toolbarbutton_enabled,
+	sim_boolparam_stop_toolbarbutton_enabled
 };
 
 enum { /* Integer parameters: */
@@ -674,7 +701,8 @@ enum { /* Integer parameters: */
 	sim_intparam_mouse_buttons, /* can only be read */
 	sim_intparam_dynamic_warning_disabled_mask,
 	sim_intparam_simulation_warning_disabled_mask,
-	sim_intparam_scene_index /* can be used to switch to a different instance programmatically */
+	sim_intparam_scene_index, /* can be used to switch to a different instance programmatically */
+	sim_intparam_motionplanning_seed
 };
 
 enum { /* Float parameters: */
@@ -706,7 +734,8 @@ enum { /* Array parameters: */
 	sim_arrayparam_fog_color,
 	sim_arrayparam_background_color1,
 	sim_arrayparam_background_color2,
-	sim_arrayparam_ambient_light
+	sim_arrayparam_ambient_light,
+	sim_arrayparam_random_euler
 };
 
 enum { /* User interface elements: */
@@ -877,7 +906,7 @@ Remote API constants:
 *******************************************
 *******************************************/
 
-#define SIMX_VERSION 8  /* max is 255!!! */
+#define SIMX_VERSION 9  /* max is 255!!! */
 /* version to 6 for release 3.1.2 */
 /* version to 7 for release 3.1.3 */
 /* version to 8 for release AFTER 3.1.3 */

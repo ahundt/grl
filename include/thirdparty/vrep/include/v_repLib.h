@@ -1,6 +1,6 @@
 // This file is part of V-REP, the Virtual Robot Experimentation Platform.
 // 
-// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
+// Copyright 2006-2015 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
 // 
@@ -27,9 +27,9 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
+// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
 
-// Use this header to dynamically load and bind v_rep.dll and its functions (call loadVrepLibrary, unloadVrepLibrary and getVrepProcAddresses)
+// Use this header to dynamically load and bind v_rep.dll and its functions (call loadVrepLibrary and unloadVrepLibrary)
 
 #if !defined(V_REPLIB_INCLUDED_)
 #define V_REPLIB_INCLUDED_
@@ -440,6 +440,15 @@ typedef simInt (__cdecl *ptrSimSetScriptAttribute)(simInt scriptHandle,simInt at
 typedef simInt (__cdecl *ptrSimGetScriptAttribute)(simInt scriptHandle,simInt attributeID,simFloat* floatVal,simInt* intOrBoolVal);
 typedef simInt (__cdecl *ptrSimReorientShapeBoundingBox)(simInt shapeHandle,simInt relativeToHandle,simInt reservedSetToZero);
 typedef simInt (__cdecl *ptrSimSwitchThread)();
+typedef simInt (__cdecl *ptrSimCreateIkGroup)(simInt options,const simInt* intParams,const simFloat* floatParams,const simVoid* reserved);
+typedef simInt (__cdecl *ptrSimRemoveIkGroup)(simInt ikGroupHandle);
+typedef simInt (__cdecl *ptrSimCreateIkElement)(simInt ikGroupHandle,simInt options,const simInt* intParams,const simFloat* floatParams,const simVoid* reserved);
+typedef simInt (__cdecl *ptrSimCreateMotionPlanning)(simInt jointCnt,const simInt* jointHandles,const simInt* jointRangeSubdivisions,const simFloat* jointMetricWeights,simInt options,const simInt* intParams,const simFloat* floatParams,const simVoid* reserved);
+typedef simInt (__cdecl *ptrSimRemoveMotionPlanning)(simInt motionPlanningHandle);
+typedef simInt (__cdecl *ptrSimCreateCollection)(const simChar* collectionName,simInt options);
+typedef simInt (__cdecl *ptrSimAddObjectToCollection)(simInt collectionHandle,simInt objectHandle,simInt what,simInt options);
+typedef simInt (__cdecl *ptrSimSaveImage)(const simUChar* image,const simInt* resolution,simInt options,const simChar* filename,simInt quality,simVoid* reserved);
+
 
 
 
@@ -924,9 +933,14 @@ extern ptrSimSetScriptAttribute simSetScriptAttribute;
 extern ptrSimGetScriptAttribute simGetScriptAttribute;
 extern ptrSimReorientShapeBoundingBox simReorientShapeBoundingBox;
 extern ptrSimSwitchThread simSwitchThread;
-
-
-
+extern ptrSimCreateIkGroup simCreateIkGroup;
+extern ptrSimRemoveIkGroup simRemoveIkGroup;
+extern ptrSimCreateIkElement simCreateIkElement;
+extern ptrSimCreateMotionPlanning simCreateMotionPlanning;
+extern ptrSimRemoveMotionPlanning simRemoveMotionPlanning;
+extern ptrSimCreateCollection simCreateCollection;
+extern ptrSimAddObjectToCollection simAddObjectToCollection;
+extern ptrSimSaveImage simSaveImage;
 
 
 
