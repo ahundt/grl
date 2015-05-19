@@ -1,6 +1,6 @@
 // This file is part of V-REP, the Virtual Robot Experimentation Platform.
 // 
-// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
+// Copyright 2006-2015 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
 // 
@@ -27,7 +27,7 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
+// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
 
 #if !defined(V_REPTYPES_INCLUDED_)
 #define V_REPTYPES_INCLUDED_
@@ -61,6 +61,8 @@ struct SLuaCallBack
 	simChar* inputCharBuff;
 	simChar* outputCharBuff;
 	simInt scriptID;
+	simDouble* inputDouble;
+	simDouble* outputDouble;
 };
 
 typedef int (*contactCallback)(int,int,int,int*,float*);
