@@ -10,6 +10,7 @@
 #include "grl/vrep/Eigen.hpp"
 #include "grl/vrep/Vrep.hpp"
 #include "camodocal/calib/HandEyeCalibration.h"
+#include "camodocal/calib/CamOdoCalibration.h"
 
 #include "v_repLib.h"
 
@@ -46,6 +47,8 @@ namespace grl {
 class HandEyeCalibrationVrepPlugin : public std::enable_shared_from_this<HandEyeCalibrationVrepPlugin> {
 public:
 
+  static const bool debug = false;
+
     enum ParamIndex {
         RobotTipName,
         RobotTargetName,
@@ -77,7 +80,7 @@ public:
 /// @todo allow KukaFRIThreadSeparator parameters to be updated
 HandEyeCalibrationVrepPlugin (Params params = defaultParams())
       :
-      isFirstFrame(false),
+      isFirstFrame(true),
       frameCount(0),
       params_(params)
 {
@@ -102,35 +105,53 @@ void addFrame() {
     if(isFirstFrame){
       firstRobotTipInRobotTargetBaseInverse       = robotTipInRobotTargetBase.inverse();
       firstFiducialInOpticalTrackerBaseInverse    = fiducialInOpticalTrackerBase.inverse();
+      isFirstFrame = false;
     }
     
-    auto robotTipInFirstTipBase      = firstRobotTipInRobotTargetBaseInverse * robotTipInRobotTargetBase;
-    auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;
+    auto robotTipInFirstTipBase      = firstRobotTipInRobotTargetBaseInverse * robotTipInRobotTargetBase;        // A_0_Inv * A_i
+    auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;  // B_0_Inv * B_i
+    
     
     rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation()        ));
     tvecsArm.push_back(                                      robotTipInFirstTipBase.translation()     );
     
     rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
     tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
+    
+    
+   if(debug){
+   
+     std::cout << "\nrobotTipInRobotTargetBase:\n" << poseString(robotTipInRobotTargetBase) << "\n";
+     std::cout << "\nfiducialInOpticalTrackerBase:\n" << poseString(fiducialInOpticalTrackerBase) << "\n";
+     
+     std::cout << "\nrobotTipInFirstTipBase:\n" << poseString(robotTipInFirstTipBase) << "\n";
+     std::cout << "\nfiducialInFirstFiducialBase:\n" << poseString(fiducialInFirstFiducialBase) << "\n";
+   
+     // print simulation transfrom from tip to fiducial
+     Eigen::Affine3d RobotTipToFiducial = getObjectTransform(handEyeCalibFiducial,robotTip);
+     BOOST_LOG_TRIVIAL(info) << "\n" << poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): ") << std::endl;
+     
+     BOOST_VERIFY(robotTipInFirstTipBase.translation().norm() - fiducialInFirstFiducialBase.translation().norm() < 0.1);
+   }
 }
 
 /// @todo probably want to run at least part of this in a separate thread.
 void estimateHandEyeScrew(){
   
-   BOOST_LOG_TRIVIAL(trace) << "Running Hand Eye Screw Estimate with the follwing numbers of entries in each category:  rvecsFiducial" << rvecsFiducial.size()
+   BOOST_LOG_TRIVIAL(trace) << "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial" << rvecsFiducial.size()
    << " tvecsFiducial: " << tvecsFiducial.size() << " rvecsArm: " << rvecsArm.size() << " tvecsArm: " << tvecsArm.size() << std::endl;
    
-  static const bool debug = true;
   
   // estimate transform between end effector and fiducial
   Eigen::Affine3d transformEstimate;
+  
   handEyeCalib.estimateHandEyeScrew(
-      rvecsFiducial,
-      tvecsFiducial,
       rvecsArm,
       tvecsArm,
+      rvecsFiducial,
+      tvecsFiducial,
       transformEstimate.matrix()
-      );
+  );
     
     std::array<float,3> simTipPosition;
     std::array<float,4> simTipQuaternion;
@@ -144,10 +165,10 @@ void estimateHandEyeScrew(){
    if(debug){
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d RobotTipToFiducial = getObjectTransform(handEyeCalibFiducial,robotTip);
-     BOOST_LOG_TRIVIAL(info) << poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only):") << std::endl;
+     BOOST_LOG_TRIVIAL(info) << "\n" << poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): ") << std::endl;
    }
 
-   BOOST_LOG_TRIVIAL(info) << poseString(transformEstimate,"estimated RobotTipToFiducial:") << std::endl;
+   BOOST_LOG_TRIVIAL(info) << "\n" << poseString(transformEstimate,"estimated RobotTipToFiducial:") << std::endl;
    // set transform between end effector and fiducial
    setObjectTransform(handEyeCalibFiducial, robotTip, transformEstimate);
    
@@ -158,9 +179,9 @@ void estimateHandEyeScrew(){
    
    // print results
    Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
-   BOOST_LOG_TRIVIAL(info) << "Hand Eye Screw Estimate quat wxyz: " << eigenQuat.w() << " " << eigenQuat.x() << " " << eigenQuat.y() << " " << eigenQuat.z() << " " << " translation xyz: " << transformEstimate.translation().x() << " " << transformEstimate.translation().y() << " " << transformEstimate.translation().z() << " " << std::endl;
+   BOOST_LOG_TRIVIAL(info) << "Hand Eye Screw Estimate quat wxyz\n: " << eigenQuat.w() << " " << eigenQuat.x() << " " << eigenQuat.y() << " " << eigenQuat.z() << " " << " translation xyz: " << transformEstimate.translation().x() << " " << transformEstimate.translation().y() << " " << transformEstimate.translation().z() << " " << std::endl;
     
-    BOOST_LOG_TRIVIAL(info) << "Optical Tracker Base Estimate quat wxyz: " << simTipQuaternion[0] << " " << simTipQuaternion[1] << " " << simTipQuaternion[2] << " " << simTipQuaternion[3] << " " << " translation xyz: " << simTipPosition[0] << " " << simTipPosition[1] << " " << simTipPosition[2] << " " << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Optical Tracker Base Measured quat wxyz\n: " << simTipQuaternion[0] << " " << simTipQuaternion[1] << " " << simTipQuaternion[2] << " " << simTipQuaternion[3] << " " << " translation xyz: " << simTipPosition[0] << " " << simTipPosition[1] << " " << simTipPosition[2] << " " << std::endl;
   
 }
 private:

@@ -56,13 +56,13 @@ std::array<float,3> EigenToVrepPosition(const P& p){
 template<typename Input>
 Eigen::Vector3d vrepQuatToEigenVector3dAngleAxis(Input vrepQuat){
     Eigen::AngleAxisd ax3d(vrepToEigenQuaternion(vrepQuat));
-    return ax3d.axis()*ax3d.angle();
+    return ax3d.angle()*ax3d.axis();
 }
 
 template<typename Input>
 Eigen::Vector3d eigenRotToEigenVector3dAngleAxis(Input eigenQuat){
     Eigen::AngleAxisd ax3d(eigenQuat);
-    return ax3d.axis()*ax3d.angle();
+    return ax3d.angle()*ax3d.axis();
 }
 
 
@@ -160,6 +160,5 @@ static std::string posString(const Eigen::Vector3d& pos, const std::string& pfx 
   ss << sfx;
   return ss.str();
 }
-
 
 #endif
