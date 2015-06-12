@@ -29,7 +29,7 @@ public class FRI_Command extends RoboticsAPIApplication
         // **********************************************************************
         // *** change next line to the FRIClient's IP address                 ***
         // **********************************************************************
-        _hostName = "192.170.10.100";
+        _hostName =  "192.170.10.100";
     }
 
     @Override
@@ -37,7 +37,7 @@ public class FRI_Command extends RoboticsAPIApplication
     {
         // configure and start FRI session
         FRIConfiguration friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
-        friConfiguration.setSendPeriodMilliSec(100);
+        friConfiguration.setSendPeriodMilliSec(10);
         FRISession friSession = new FRISession(friConfiguration);
 		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
 
@@ -49,7 +49,7 @@ public class FRI_Command extends RoboticsAPIApplication
         }
         catch (final TimeoutException e)
         {
-
+        	return;
         }
 
         // move to start pose
