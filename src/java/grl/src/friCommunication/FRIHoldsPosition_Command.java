@@ -4,6 +4,7 @@ import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import com.kuka.connectivity.fri.FRIConfiguration;
 import com.kuka.connectivity.fri.FRIJointOverlay;
@@ -42,7 +43,14 @@ public class FRIHoldsPosition_Command extends RoboticsAPIApplication
         friConfiguration.setSendPeriodMilliSec(4);
         FRISession friSession = new FRISession(friConfiguration);
 		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
-		
+		 try {
+			friSession.await(10, TimeUnit.SECONDS);
+		} catch (TimeoutException e) {
+			// TODO Automatisch generierter Erfassungsblock
+			e.printStackTrace();
+			friSession.close();
+			return;
+		}
 		CartesianImpedanceControlMode controlMode = new CartesianImpedanceControlMode();
 		controlMode.parametrize(CartDOF.X).setStiffness(1000.0);
 		controlMode.parametrize(CartDOF.ALL).setDamping(0.7);
