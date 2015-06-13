@@ -52,21 +52,14 @@ void bounce(std::shared_ptr<azmq::socket> sendP, std::shared_ptr<azmq::socket> r
 		/////////////////////////////////////////
 		// Client sends to server asynchronously!
 		{
-            	
-	 sendP->async_send(boost::asio::buffer(&x, 4), [x,&sendP,&send_count] (boost::system::error_code const& ec, size_t bytes_transferred) {
-			if(ec) std::cout << "SendFlatBuffer error! todo: figure out how to handle this\n";
-            else {
-              std::cout << "sent: " << x << "\n";
-              send_count++;
-            }
+             sendP->async_send(boost::asio::buffer(&x, 4), [x,&sendP,&send_count] (boost::system::error_code const& ec, size_t bytes_transferred) {
+                    if(ec) std::cout << "SendFlatBuffer error! todo: figure out how to handle this\n";
+                    else {
+                      std::cout << "sent: " << x << "\n";
+                      send_count++;
+                    }
 
-        });
-//			auto fbbP = sendP->GetUnusedBufferBuilder();
-			
-//			grl::flatbuffer::Vector3d rv(x,0,0);
-//			auto controlPoint = grl::flatbuffer::CreateVrepControlPoint(*fbbP,&rv);
-//			grl::flatbuffer::FinishVrepControlPointBuffer(*fbbP, controlPoint);
-//			sendP->async_send_flatbuffer(fbbP);
+                });
 		}
 		
 		//////////////////////////////////////////////
@@ -76,16 +69,18 @@ void bounce(std::shared_ptr<azmq::socket> sendP, std::shared_ptr<azmq::socket> r
             BOOST_VERIFY(*recvBufP == 0);
             receiveP->async_receive(boost::asio::buffer(recvBufP.get(),sizeof(*recvBufP)), [recvBufP,receiveP,&recv_count, messagesToSend](boost::system::error_code const ec, size_t bytes_transferred) {
             
-			if(ec) std::cout << "start_async_receive_buffers error! todo: figure out how to handle this\n";
-			else std::cout << "received: " << *recvBufP << " recv_count:" << recv_count << "\n";
-            // make rbp the size of the actual amount of data read
-			recv_count++;
-		});
+                if(ec) std::cout << "start_async_receive_buffers error! todo: figure out how to handle this\n";
+                else std::cout << "received: " << *recvBufP << " recv_count:" << recv_count << "\n";
+                // make rbp the size of the actual amount of data read
+                recv_count++;
+            });
 			
 		}
 		
 		//std::this_thread::sleep_for( std::chrono::milliseconds(1) );
     }
+    sendP.reset();
+    receiveP.reset();
 }
 
 
@@ -127,22 +122,22 @@ int main(int argc, char* argv[])
     if(shouldReceive) std::cout <<  localhost << " " << localport << " ";
     std::cout <<  remotehost << " " << remoteport << "\n";
     boost::asio::io_service io_service;
-	
+    std::thread thr;
 	
     // Register signal handlers so that the daemon may be shut down when a signal is received.
     boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
     signals.async_wait( std::bind(&boost::asio::io_service::stop, &io_service));
 
-	std::shared_ptr<azmq::socket> socket = std::make_shared<azmq::socket>(io_service, ZMQ_DEALER);
-	socket->bind("tcp://" + localhost + ":" + localport);
-	socket->connect("tcp://"+ remotehost + ":" + remoteport);
+    std::shared_ptr<azmq::socket> socket = std::make_shared<azmq::socket>(io_service, ZMQ_DEALER);
+    socket->bind("tcp://" + localhost + ":" + localport);
+    socket->connect("tcp://"+ remotehost + ":" + remoteport);
 
-	// Will run until signal is received, using one object for both send and receive
-    std::thread t(bounce,socket,socket,shouldReceive);
+    // Will run until signal is received, using one object for both send and receive
+    thr = std::thread(bounce,socket,socket,shouldReceive);
 	
 	io_service.run();
     
-    t.join();
+    thr.join();
 	
 //  }
 //  catch (std::exception& e)
