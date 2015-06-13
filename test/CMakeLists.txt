@@ -85,6 +85,9 @@ basis_add_executable(AzmqFlatbufferTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
 basis_target_link_libraries(AzmqFlatbufferTest ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 basis_add_dependencies(AzmqFlatbufferTest grlflatbuffers)
 
+basis_add_executable(AzmqTest.cpp)
+basis_target_link_libraries(AzmqTest ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
 basis_add_executable(asioSocketTest.cpp)
 basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
