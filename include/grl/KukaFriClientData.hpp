@@ -137,7 +137,7 @@ std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
         // copy the commanded position into the command message
         set(friData.commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
         
-		BOOST_LOG_TRIVIAL(trace) << "ENCODE position: " << state.position << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << " jointStateToCommand: " << jointStateToCommand << "\n";
+		//BOOST_LOG_TRIVIAL(trace) << "ENCODE position: " << state.position << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << " jointStateToCommand: " << jointStateToCommand << "\n";
     }else {
         set(friData.commandMsg, state.commandedPosition, grl::revolute_joint_angle_open_chain_command_tag());
     }
