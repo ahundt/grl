@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 	std::make_tuple(localhost, localport, remotehost, remoteport));
 
 
-    double delta = 0.0001;
+    double delta = 0.001;
     BOOST_LOG_TRIVIAL(warning) << "WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT "
                                << "if joint angle delta variable is too large with respect to "
                                << "the time it takes to go around the loop and change it. "

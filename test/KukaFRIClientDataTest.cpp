@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
   
     
-    double delta = -0.01;
+    double delta = -0.001;
     BOOST_LOG_TRIVIAL(warning) << "WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT "
                                << "if joint angle delta variable is too large with respect to "
                                << "the time it takes to go around the loop and change it. "
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
         
         
         /// consider moving joint angles based on time
-        int joint_to_move = 0;
+        int joint_to_move = 6;
         
         if(
             (state.ipoJointPosition.size() == KUKA::LBRState::NUM_DOF) &&
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
                delta *=-1;
             }
         }
-		BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << "\n";
+		//BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << "\n";
 	}
   }
   catch (std::exception& e)
