@@ -60,6 +60,11 @@ if(APPLE)
    #endif()
 endif()
 
+if(OpenCV_FOUND)
+    if(NOT ${OpenCV_VERSION} VERSION_LESS 3.0.0)
+        add_definitions(-DHAVE_OPENCV3)
+    endif()
+endif()
 
 # list flatbuffer headers
 set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs JointState.fbs)
