@@ -24,7 +24,6 @@ namespace grl {
 /// all async calls are done in a separate user thread
 /// you must call the async calls then call run_user()
 /// to call the corresponding handlers
-/// @todo Either rename this to be FRI specific, or maybe have one FRIKuka class, one JavaKuka class, and one new class that should have the KukaFRIThreadSeparator name combining the two.
 /// @todo generalize this if possible to work for multiple devices beyond the kuka
 //template<template <typename> Allocator = std::allocator>
 /// @todo consider making this an asio io_service, see asio logger C++03 example https://github.com/boostorg/asio/tree/master/example/cpp03/services
@@ -108,10 +107,6 @@ public:
           io_service_.stop();
           driver_threadP->join();
         }
-	}
-	
-	void sendControlPointToJava(){
-		
 	}
 	
     
