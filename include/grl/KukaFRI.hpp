@@ -122,6 +122,36 @@ namespace grl { namespace robot {
 	}
 	
 	
+	KUKA::FRI::EControlMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EControlMode) {
+		KUKA::FRI::EControlMode state = KUKA::FRI::EControlMode::NO_CONTROL;
+	    if (monitoringMsg.has_robotInfo) {
+	        if (monitoringMsg.robotInfo.has_controlMode)
+	            state = static_cast<KUKA::FRI::EControlMode>(monitoringMsg.robotInfo.controlMode);
+	    }
+		return state;
+	}
+	
+	
+	KUKA::FRI::EClientCommandMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EClientCommandMode) {
+		KUKA::FRI::EClientCommandMode state = KUKA::FRI::EClientCommandMode::NO_COMMAND_MODE;
+	    if (monitoringMsg.has_ipoData) {
+	        if (monitoringMsg.ipoData.has_clientCommandMode)
+	            state = static_cast<KUKA::FRI::EClientCommandMode>(monitoringMsg.ipoData.clientCommandMode);
+	    }
+		return state;
+	}
+	
+	
+	KUKA::FRI::EOverlayType get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EOverlayType) {
+		KUKA::FRI::EOverlayType state = KUKA::FRI::EOverlayType::NO_OVERLAY;
+	    if (monitoringMsg.has_ipoData) {
+	        if (monitoringMsg.ipoData.has_overlayType)
+	            state = static_cast<KUKA::FRI::EOverlayType>(monitoringMsg.ipoData.overlayType);
+	    }
+		return state;
+	}
+	
+	
 	KUKA::FRI::EDriveState get(const FRIMonitoringMessage& _message, const KUKA::FRI::EDriveState)
 	{
 	   tRepeatedIntArguments *values =
@@ -197,6 +227,12 @@ namespace grl { namespace robot {
 	}
         
     
+      /**
+       * \brief Set the joint positions for the current interpolation step.
+       * 
+       * This method is only effective when the client is in a commanding state.
+       * @param range Array with the new joint positions (in radians)
+       */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        state.has_commandData = true;
@@ -204,6 +240,54 @@ namespace grl { namespace robot {
        tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
        boost::copy(range, dest->value);
      }
+     
+      /**
+       * \brief Set the applied joint torques for the current interpolation step.
+       * 
+       * This method is only effective when the client is in a commanding state.
+       * The ControlMode of the robot has to be joint impedance control mode. The
+       * Client Command Mode has to be torque.
+       * 
+       * @param torques Array with the applied torque values (in Nm)
+       */
+    template<typename Range>
+    static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
+       state.has_commandData = true;
+       state.commandData.has_jointTorque = true;
+       tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointTorque.value.arg;
+       boost::copy(range, dest->value);
+     }
+    
+      
+      /**
+       * \brief Set the applied wrench vector of the current interpolation step.
+       * 
+       * The wrench vector consists of:
+       * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
+       * 
+       * F ... forces (in N) applied along the Cartesian axes of the 
+       * currently used motion center.
+       * tau ... torques (in Nm) applied along the orientation angles 
+       * (Euler angles A, B, C) of the currently used motion center.
+       *  
+       * This method is only effective when the client is in a commanding state.
+       * The ControlMode of the robot has to be Cartesian impedance control mode. The
+       * Client Command Mode has to be wrench.
+       * 
+       * @param FRICommandMessage object storing the command data that will be sent to the physical device
+       * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
+       *
+       * @todo perhaps support some specific more useful data layouts
+       * @note copies only the elements that will fit
+       */
+    template<typename Range>
+    static inline void set(FRICommandMessage & state, Range&& range, grl::cartesian_wrench_command_tag) {
+       state.has_commandData = true;
+       state.commandData.has_cartesianWrenchFeedForward = true;
+       std::copy_n(std::begin(range),std::min(std::distance(range),state.commandData.cartesianWrenchFeedForward.element_count), &state.commandData.cartesianWrenchFeedForward.element[0]);
+     }
+     
+     
 	
 	
 namespace kuka {
@@ -269,7 +353,7 @@ namespace kuka {
 	/// @endcode
 	explicit iiwa(boost::asio::ip::udp::socket socket):
       sequenceCounter_(0),
-      lastSendCounter_(0),
+      receivesSinceLastSendCounter_(0),
       strand_(socket.get_io_service()),
       socket_(std::move(socket))
       {}
@@ -296,14 +380,15 @@ namespace kuka {
 			   monitor.decoder.decode(reinterpret_cast<char*>(&(monitor.buf_[0])),bytes_transferred);
 				 
              
-               lastSendCounter_++;
+               receivesSinceLastSendCounter_++;
                lastMonitorSequenceCounter_ = monitor.monitoringMessage.header.sequenceCounter;
                lastMonitorJointAngles_.clear();
+               sessionState_ = get(monitor.get(),KUKA::FRI::ESessionState());
+               receiveMultiplier_ = get(monitor.get(),receive_multiplier());
                copy(monitor.monitoringMessage, std::back_inserter(lastMonitorJointAngles_), revolute_joint_angle_open_chain_command_tag());
+               copy(monitor.monitoringMessage, std::back_inserter(lastMonitorJointTorques_), revolute_joint_torque_open_chain_command_tag());
              
 			   /// @todo make sure this matches up with the synchronous version and Dr. Kazanzides' version
-			   /// @todo need to update the state now that the data is received and set up a new data "send"
-			   /// @todo however, some thought needs to go into when the async_send data is actually supplied, because the user needs to be able to send it.
 			   /// @todo also wrap these calls in a strand so there aren't threading issues. That should still be fast enough, but it can be adjusted if further improvement is needed.
              
              
@@ -395,11 +480,11 @@ namespace kuka {
 	private:
     
     bool isCommandReadyToSend(){
-       return lastSendCounter_ >= receiveMultiplier_;
+       return receivesSinceLastSendCounter_ >= receiveMultiplier_;
     }
     
     std::size_t encode(CommandState& command){
-          lastSendCounter_ = 0;
+          receivesSinceLastSendCounter_ = 0;
           sequenceCounter_++;
           command.commandMessage.header.sequenceCounter = sequenceCounter_;
           command.commandMessage.header.reflectedSequenceCounter = lastMonitorSequenceCounter_;
@@ -408,6 +493,7 @@ namespace kuka {
           // note that this differs slightly form the implementation kuka provides!
           if(!command.commandMessage.has_commandData || (sessionState_ != KUKA::FRI::COMMANDING_WAIT) || (sessionState_ != KUKA::FRI::COMMANDING_ACTIVE)) {
             set(command.commandMessage,lastMonitorJointAngles_,grl::revolute_joint_angle_open_chain_command_tag());
+            set(command.commandMessage,lastMonitorJointTorques_,grl::revolute_joint_torque_open_chain_command_tag());
           }
           // copy current joint position to commanded position
           
@@ -418,12 +504,13 @@ namespace kuka {
           return buffersize;
       }
 		
-	    uint32_t sequenceCounter_; //!< sequence counter for command messages
-        uint32_t lastMonitorSequenceCounter_;
-	    uint32_t lastSendCounter_; //!< steps since last send command
-        uint32_t receiveMultiplier_;
-        KUKA::FRI::ESessionState sessionState_;
+	    std::atomic<uint32_t> sequenceCounter_; //!< sequence counter for command messages
+        std::atomic<uint32_t> lastMonitorSequenceCounter_;
+	    std::atomic<uint32_t> receivesSinceLastSendCounter_; //!< steps since last send command
+        std::atomic<uint32_t> receiveMultiplier_;
+        std::atomic<KUKA::FRI::ESessionState> sessionState_;
         boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> lastMonitorJointAngles_;
+        boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> lastMonitorJointTorques_;
         boost::asio::ip::udp::endpoint sender_endpoint_;
     
         boost::asio::io_service::strand strand_;
@@ -450,8 +537,8 @@ namespace kuka {
     
     
     // unwrap the monitor state when calling get()
-    template<typename Range>
-    void set(kuka::iiwa::CommandState & state, Range range, grl::revolute_joint_angle_open_chain_command_tag tag){
+    template<typename Range, typename Tag>
+    void set(kuka::iiwa::CommandState & state, Range range, Tag tag){
         set(state.get(),range,tag);
     }
 

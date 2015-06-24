@@ -278,6 +278,7 @@ void sendSimulatedJointAnglesToKuka(){
             auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
             // Set the FRI to the simulated joint positions
             grl::robot::arm::set(*commandP, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+            grl::robot::arm::set(*commandP, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
             // send the command
             this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
         }

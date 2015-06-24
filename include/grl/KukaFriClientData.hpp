@@ -64,6 +64,7 @@ void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
 /// @todo replace with something generic
 struct KukaState {
 	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
+    typedef boost::container::static_vector<double,6> cartesian_state;
     
 //    KukaState()
 //    :
@@ -73,12 +74,14 @@ struct KukaState {
 //    commandedTorque(0,KUKA::LBRState::NUM_DOF),
 //    ipoJointPosition(0,KUKA::LBRState::NUM_DOF){}
     
-	joint_state position;
-	joint_state torque;
-	joint_state commandedPosition;
-	joint_state commandedTorque;
-	joint_state ipoJointPosition;
-    joint_state ipoJointPositionOffsets;
+	joint_state     position;
+	joint_state     torque;
+	joint_state     commandedPosition;
+    cartesian_state commandedCartesianWrenchFeedForward;
+	joint_state     commandedTorque;
+    
+	joint_state     ipoJointPosition;
+    joint_state     ipoJointPositionOffsets;
 	KUKA::FRI::ESessionState      sessionState;
 	KUKA::FRI::EConnectionQuality connectionQuality;
 	KUKA::FRI::ESafetyState       safetyState;
