@@ -44,6 +44,7 @@ namespace grl {
 /// @todo this implementation is a bit hacky, redesign it
 /// @todo separate out grl specific code from general kuka control code
 /// @todo Template on robot driver and create a driver that just reads/writes to/from the simulation, then pass the two templates so the simulation and the real driver can be selected.
+///
 class KukaVrepPlugin : public std::enable_shared_from_this<KukaVrepPlugin> {
 public:
 
@@ -58,15 +59,13 @@ public:
         RobotTipName,
         RobotTargetName,
         RobotTargetBaseName,
-        // ImplantCutPathName,
-        // RemoveBallJointPathName,
-        // FemurBoneName,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
-        RemoteHostKukaKoniUDPPort
+        RemoteHostKukaKoniUDPPort,
+        KukaCommandMode
     };
     
     /// @todo allow default params
@@ -79,9 +78,7 @@ public:
         std::string,
         std::string,
         std::string,
-//        std::string,
-//        std::string,
-//        std::string,
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -102,22 +99,28 @@ public:
                     "LBR_iiwa_14_R820_joint5" , // Joint5Handle, 
                     "LBR_iiwa_14_R820_joint6" , // Joint6Handle, 
                     "LBR_iiwa_14_R820_joint7" , // Joint7Handle,
-                    "RobotMillTip"              , // RobotTipHandle,
-                    "RobotMillTipTarget"           , // RobotTargetHandle,
+                    "RobotMillTip"            , // RobotTipHandle,
+                    "RobotMillTipTarget"      , // RobotTargetHandle,
                     "Robotiiwa"               , // RobotTargetBaseHandle,
-//                    "ImplantCutPath"          , // ImplantCutPathHandle,
-//                    "RemoveBallJoint"         , // RemoveBallJointPathHandle,
-//                    "FemurBone"               , // FemurBoneHandle
                     "tcp://0.0.0.0:30010"     , // LocalZMQAddress
                     "tcp://172.31.1.147:30010", // RemoteZMQAddress
                     "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
-                    "30200"                     // RemoteHostKukaKoniUDPPort  
+                    "30200"                   , // RemoteHostKukaKoniUDPPort
+                    "JAVA"                      // KukaCommandMode (options are FRI, JAVA)
                 );
     }
 
 /// @todo allow KukaFRIThreadSeparator parameters to be updated
+/// @param params a tuple containing all of the parameter strings needed to configure the device.
+///
+/// The KukaCommandMode parameters supports the options "FRI" and "JAVA". This configures how commands will
+/// be sent to the arm itself. "FRI" mode is via a direct "Fast Robot Interface" "KUKA KONI"
+/// ethernet connection which provides substantially higher performance and response time,
+//  but is extremely sensitive to delays, and any delay will halt the robot and require a manual reset.
+//  "JAVA" mode sends the command to the Java application installed on the KUKA robot, which then submits
+//  it to the arm itself to execute. This is a much more forgiving mode of communication, but it is subject to delays.
 KukaVrepPlugin (Params params = defaultParams())
       :
       kukaFRIThreadSeparatorP(
