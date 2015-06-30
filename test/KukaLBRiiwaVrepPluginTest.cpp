@@ -39,18 +39,16 @@ BOOST_AUTO_TEST_CASE(connectToFake){
                     "LBR_iiwa_14_R820_joint5", // Joint5Handle, 
                     "LBR_iiwa_14_R820_joint6", // Joint6Handle, 
                     "LBR_iiwa_14_R820_joint7", // Joint7Handle,
-                    "RobotMillTip"             , // RobotTipHandle,
-                    "RobotMillTipTarget"          , // RobotTargetHandle,
+                    "RobotMillTip"           , // RobotTipHandle,
+                    "RobotMillTipTarget"     , // RobotTargetHandle,
                     "Robotiiwa"              , // RobotTargetBaseHandle,
-//                    "ImplantCutPath"         , // ImplantCutPathHandle,
-//                    "RemoveBallJoint"        , // RemoveBallJointPathHandle,
-//                    "FemurBone"              , // FemurBoneHandle
                     "tcp://127.0.0.1:9998"   , // LocalZMQAddress
                     "tcp://127.0.0.1:9998"   , // RemoteZMQAddress
                     "127.0.0.1"              , // LocalHostKukaKoniUDPAddress,
                     "30200"                  , // LocalHostKukaKoniUDPPort,
                     "127.0.0.1"              , // RemoteHostKukaKoniUDPAddress,
-                    "30200"                     // RemoteHostKukaKoniUDPPort
+                    "30200"                  , // RemoteHostKukaKoniUDPPort
+                    "JAVA"                     // KukaCommandMode ("JAVA" or "FRI")
                 );
 auto plugin = std::make_shared<grl::KukaVrepPlugin>(config);
 }

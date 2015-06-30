@@ -14,7 +14,7 @@
 //
 // This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
 
-
+#include "luaFunctionData.h"
 #include "v_repExtKukaLBRiiwa.h"
 #include "grl/vrep/KukaLBRiiwaVrepPlugin.hpp"
 
@@ -38,10 +38,34 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 #define CONCAT(x,y,z) x y z
 #define strConCat(x,y,z)	CONCAT(x,y,z)
 #define LUA_GET_SENSOR_DATA_COMMAND "simExtSkeleton_getSensorData"
+#define LUA_KUKA_LBR_IIWA_START_COMMAND "simExtKukaLBRiiwaStart"
 
 
 
 std::shared_ptr<grl::KukaVrepPlugin> kukaPluginPG;
+
+const int inArgs_KUKA_LBR_IIWA_START[]={
+ 17,                   //   Example Value              // Parameter name  
+ sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint1Handle 
+ sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint2Handle 
+ sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint3Handle 
+ sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint4Handle 
+ sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint5Handle 
+ sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint6Handle 
+ sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint7Handle 
+ sim_lua_arg_string,0, //  "RobotMillTip"            , // RobotTipHandle,
+ sim_lua_arg_string,0, //  "RobotMillTipTarget"      , // RobotTargetHandle,
+ sim_lua_arg_string,0, //  "Robotiiwa"               , // RobotTargetBaseHandle,
+ sim_lua_arg_string,0, //  "tcp://0.0.0.0:30010"     , // LocalZMQAddress
+ sim_lua_arg_string,0, //  "tcp://172.31.1.147:30010", // RemoteZMQAddress
+ sim_lua_arg_string,0, //  "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
+ sim_lua_arg_string,0, //  "30200"                   , // LocalHostKukaKoniUDPPort,
+ sim_lua_arg_string,0, //  "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
+ sim_lua_arg_string,0, //  "30200"                   , // RemoteHostKukaKoniUDPPort
+ sim_lua_arg_string,0, //  "JAVA"                      // KukaCommandMode (options are "JAVA", "FRI")
+};
+
+std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaStart(string Joint1Handle , string Joint2Handle , string Joint3Handle , string Joint4Handle , string Joint5Handle , string Joint6Handle , string Joint7Handle , string RobotTipHandle, string RobotTargetHandle, string RobotTargetBaseHandle, string LocalZMQAddress, string RemoteZMQAddress, string LocalHostKukaKoniUDPAddress, string LocalHostKukaKoniUDPPort, string RemoteHostKukaKoniUDPAddress, string RemoteHostKukaKoniUDPPort, string KukaCommandMode options are JAVA and FRI)");
 
 void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
@@ -50,8 +74,64 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
   try {
       if (!kukaPluginPG) {
         BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
-        kukaPluginPG=std::make_shared<grl::KukaVrepPlugin>();
-        kukaPluginPG->construct();
+
+    	CLuaFunctionData data;
+
+    	if (data.readDataFromLua(p,inArgs_KUKA_LBR_IIWA_START,inArgs_KUKA_LBR_IIWA_START[0],LUA_KUKA_LBR_IIWA_START_COMMAND))
+        {
+
+    		std::vector<CLuaFunctionDataItem>* inData=data.getInDataPtr();
+            std::string Joint1Handle                        (inData->at(0 ).stringData[0]);
+            std::string Joint2Handle                        (inData->at(1 ).stringData[0]);
+            std::string Joint3Handle                        (inData->at(2 ).stringData[0]);
+            std::string Joint4Handle                        (inData->at(3 ).stringData[0]);
+            std::string Joint5Handle                        (inData->at(4 ).stringData[0]);
+            std::string Joint6Handle                        (inData->at(5 ).stringData[0]);
+            std::string Joint7Handle                        (inData->at(6 ).stringData[0]);
+            std::string RobotTipHandle                      (inData->at(7 ).stringData[0]); 
+            std::string RobotTargetHandle                   (inData->at(8 ).stringData[0]);
+            std::string RobotTargetBaseHandle               (inData->at(9 ).stringData[0]);
+            std::string LocalZMQAddress                     (inData->at(10).stringData[0]);
+            std::string RemoteZMQAddress                    (inData->at(11).stringData[0]);
+            std::string LocalHostKukaKoniUDPAddress         (inData->at(12).stringData[0]);
+            std::string LocalHostKukaKoniUDPPort            (inData->at(13).stringData[0]);
+            std::string RemoteHostKukaKoniUDPAddress        (inData->at(14).stringData[0]);
+            std::string RemoteHostKukaKoniUDPPort           (inData->at(15).stringData[0]);
+            std::string KukaCommandMode                     (inData->at(16).stringData[0]);
+            
+        
+            kukaPluginPG=std::make_shared<grl::KukaVrepPlugin>(
+                std::make_tuple(
+                    Joint1Handle                  ,
+                    Joint2Handle                  ,
+                    Joint3Handle                  ,
+                    Joint4Handle                  ,
+                    Joint5Handle                  ,
+                    Joint6Handle                  ,
+                    Joint7Handle                  ,
+                    RobotTipHandle                ,
+                    RobotTargetHandle             ,
+                    RobotTargetBaseHandle         ,
+                    LocalZMQAddress               ,
+                    RemoteZMQAddress              ,
+                    LocalHostKukaKoniUDPAddress   ,
+                    LocalHostKukaKoniUDPPort      ,
+                    RemoteHostKukaKoniUDPAddress  ,
+                    RemoteHostKukaKoniUDPPort     ,
+                    KukaCommandMode               
+                )
+            );
+            kukaPluginPG->construct();
+        } else {
+            /// @todo report an error?
+            // use default params
+            kukaPluginPG=std::make_shared<grl::KukaVrepPlugin>();
+            kukaPluginPG->construct();
+        }
+        
+        
+        
+        
       }
   
   } catch (boost::exception& e){
@@ -60,83 +140,6 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
       simAddStatusbarMessage( initerr.c_str());
       BOOST_LOG_TRIVIAL(error) <<  initerr;
   }
-}
-
-
-void LUA_GET_SENSOR_DATA_CALLBACK(SLuaCallBack* p)
-{ // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
-
-	// Check the function v_repStart to see how this callback is registered
-
-	bool commandWasSuccessful=false;
-
-	if (p->inputArgCount>=3)
-	{ // Ok, we have at least 2 input argument. We are expecting an integer, a table with at least 3 floats, and a table with at least 2 ints:
-		if ( (p->inputArgTypeAndSize[0*2+0]==sim_lua_arg_int) && // the integer value
-			(p->inputArgTypeAndSize[1*2+0]==(sim_lua_arg_float|sim_lua_arg_table))&&(p->inputArgTypeAndSize[1*2+1]>=3) && // the table value with at least 3 floats
-			(p->inputArgTypeAndSize[2*2+0]==(sim_lua_arg_int|sim_lua_arg_table))&&(p->inputArgTypeAndSize[2*2+1]>=2) ) // the table value with at least 2 ints
-		{ // Ok, we have all required arguments
-			int intArgInd=0;
-			int floatArgInd=0;
-
-			// the first argument:
-			int sensorIndex=p->inputInt[intArgInd++]; 
-
-			// the second argument:
-			float floatParams[3];
-			floatParams[0]=p->inputFloat[floatArgInd++];
-			floatParams[1]=p->inputFloat[floatArgInd++];
-			floatParams[2]=p->inputFloat[floatArgInd++];
-
-			// the third argument:
-			int intParams[2];
-			intParams[0]=p->inputInt[intArgInd++];
-			intParams[1]=p->inputInt[intArgInd++];
-
-			// Now do something with above's arguments!!
-			commandWasSuccessful=true;
-		}
-		else
-			simSetLastError(LUA_GET_SENSOR_DATA_COMMAND,"Wrong argument type/size."); // output an error
-	}
-	else
-		simSetLastError(LUA_GET_SENSOR_DATA_COMMAND,"Not enough arguments."); // output an error
-
-
-	// Now prepare the return values:
-	if (!commandWasSuccessful)
-		p->outputArgCount=0; // Command failed, we do not return anything!
-	else
-	{ // Command succeeded, we return 3 values: result (integer), data (float table of size 10), distance (float)
-		int result=1; // an integer
-		float data[10]; // a float table
-		for (int i=0;i<10;i++)
-			data[i]=float(i);
-		float distance=0.0; // a float
-
-		p->outputArgCount=3; // 3 return values
-		p->outputArgTypeAndSize=(simInt*)simCreateBuffer(p->outputArgCount*2*sizeof(simInt)); // x return values takes x*2 simInt for the type and size buffer
-
-		p->outputArgTypeAndSize[0*2+0]=sim_lua_arg_int;	// The first return value is an int
-		p->outputArgTypeAndSize[0*2+1]=1;				// Not used (table size if the return value was a table)
-
-		p->outputArgTypeAndSize[1*2+0]=sim_lua_arg_float|sim_lua_arg_table;	// The second return value is a float table
-		p->outputArgTypeAndSize[1*2+1]=10;				// The table size is 10
-
-		p->outputArgTypeAndSize[2*2+0]=sim_lua_arg_float;	// The third return value is a float
-		p->outputArgTypeAndSize[2*2+1]=1;				// Not used (table size if the return value was a table)
-
-		// Now create the int buffer and populate it:
-		p->outputInt=(simInt*)simCreateBuffer(1*sizeof(int)); // We have a total of 1 int return value
-		p->outputInt[0]=result; // This is the int value we want to return
-
-		// Now create the float buffer and populate it:
-		p->outputFloat=(simFloat*)simCreateBuffer(11*sizeof(float)); // We have a total of 11 float return values
-		int floatInd=0;
-		for (int i=0;i<10;i++)
-			p->outputFloat[floatInd++]=data[i]; 
-		p->outputFloat[floatInd++]=distance;
-	}
 }
 
 
@@ -167,12 +170,12 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	vrepLib=loadVrepLibrary(temp.c_str());
 	if (vrepLib==NULL)
 	{
-		BOOST_LOG_TRIVIAL(error) << "Error, could not find or correctly load the V-REP library. Cannot start 'PluginSkeleton' plugin.\n";
+		BOOST_LOG_TRIVIAL(error) << "Error, could not find or correctly load the V-REP library. Cannot start 'v_repExtKukaLBRiiwa' plugin.\n";
 		return(0); // Means error, V-REP will unload this plugin
 	}
 	if (getVrepProcAddresses(vrepLib)==0)
 	{
-		BOOST_LOG_TRIVIAL(error) << "Error, could not find all required functions in the V-REP library. Cannot start 'PluginSkeleton' plugin.\n";
+		BOOST_LOG_TRIVIAL(error) << "Error, could not find all required functions in the V-REP library. Cannot start 'v_repExtKukaLBRiiwa' plugin.\n";
 		unloadVrepLibrary(vrepLib);
 		return(0); // Means error, V-REP will unload this plugin
 	}
@@ -184,7 +187,7 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simGetIntegerParameter(sim_intparam_program_version,&vrepVer);
 	if (vrepVer<20604) // if V-REP version is smaller than 2.06.04
 	{
-		BOOST_LOG_TRIVIAL(error) << "Sorry, your V-REP copy is somewhat old. Cannot start 'PluginSkeleton' plugin.\n";
+		BOOST_LOG_TRIVIAL(error) << "Sorry, your V-REP copy is somewhat old. Cannot start 'v_repExtKukaLBRiiwa' plugin.\n";
 		unloadVrepLibrary(vrepLib);
 		return(0); // Means error, V-REP will unload this plugin
 	}
@@ -194,16 +197,15 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	// Register the new Lua command "simExtSkeleton_getSensorData":
 	// ******************************************
     
-	int inArgs1[]={0}; // no input arguments
-	simRegisterCustomLuaFunction("simExtKukaLBRiiwaStart","number result=simExtKukaLBRiiwaStart()",inArgs1,LUA_SIM_EXT_KUKA_LBR_IIWA_START);
+	simRegisterCustomLuaFunction(LUA_KUKA_LBR_IIWA_START_COMMAND,LUA_KUKA_LBR_IIWA_START_CALL_TIP.c_str(),&inArgs_KUKA_LBR_IIWA_START[0],LUA_SIM_EXT_KUKA_LBR_IIWA_START);
     
     
     
 	// Expected input arguments are: int sensorIndex, float floatParameters[3], int intParameters[2]
-	int inArgs_getSensorData[]={3,sim_lua_arg_int,sim_lua_arg_float|sim_lua_arg_table,sim_lua_arg_int|sim_lua_arg_table}; // this says we expect 3 arguments (1 integer, a table of floats, and a table of ints)
+	//int inArgs_getSensorData[]={3,sim_lua_arg_int,sim_lua_arg_float|sim_lua_arg_table,sim_lua_arg_int|sim_lua_arg_table}; // this says we expect 3 arguments (1 integer, a table of floats, and a table of ints)
 	// Return value can change on the fly, so no need to specify them here, except for the calltip.
 	// Now register the callback:
-	simRegisterCustomLuaFunction(LUA_GET_SENSOR_DATA_COMMAND,strConCat("number result,table data,number distance=",LUA_GET_SENSOR_DATA_COMMAND,"(number sensorIndex,table_3 floatParams,table_2 intParams)"),inArgs_getSensorData,LUA_GET_SENSOR_DATA_CALLBACK);
+	//simRegisterCustomLuaFunction(LUA_GET_SENSOR_DATA_COMMAND,strConCat("number result,table data,number distance=",LUA_GET_SENSOR_DATA_COMMAND,"(number sensorIndex,table_3 floatParams,table_2 intParams)"),inArgs_getSensorData,LUA_GET_SENSOR_DATA_CALLBACK);
 	// ******************************************
 
     BOOST_LOG_TRIVIAL(info) << "KUKA LBR iiwa plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
