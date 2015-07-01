@@ -9,13 +9,9 @@
 #include <boost/exception/all.hpp>
 
 #include "grl/KukaFRI.hpp"
+#include "grl/exception.hpp"
 
 namespace grl {
-
-
-    /// @todo put this somewhere more appropriate.
-    /// @see http://stackoverflow.com/questions/12498001/adding-several-boosterror-infos-of-the-same-type-to-a-boostexception
-    typedef boost::error_info<struct tag_errmsg, std::string> errmsg_info;
 
 /// @brief Allows a thread to get data from a kuka device asynchronously without capturing the thread.
 ///

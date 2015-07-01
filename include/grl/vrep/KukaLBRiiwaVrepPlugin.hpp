@@ -6,6 +6,7 @@
 
 #include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "grl/KukaFRIThreadSeparator.hpp"
 #include "grl/AzmqFlatbuffer.hpp"
@@ -249,7 +250,7 @@ void sendSimulatedJointAnglesToKuka(){
     
 /// @todo make this handled by template driver implementations/extensions
 
-        if(kukaJavaDriverP){
+        if(kukaJavaDriverP && boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA"))){
             /////////////////////////////////////////
             // Client sends to server asynchronously!
             
@@ -276,7 +277,7 @@ void sendSimulatedJointAnglesToKuka(){
            grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
            kukaJavaDriverP->async_send_flatbuffer(fbbP);
             
-        } else {
+        } else if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI"))) {
             // create the command for the FRI
             auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
             // Set the FRI to the simulated joint positions
@@ -284,6 +285,8 @@ void sendSimulatedJointAnglesToKuka(){
             grl::robot::arm::set(*commandP, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
             // send the command
             this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
+        } else {
+            BOOST_THROW_EXCEPTION(std::runtime_error(std::string("KukaVrepPlugin: Selected KukaCommandMode ")+std::get<KukaCommandMode>(params_)+" does not exist! Options are JAVA and FRI"));
         }
     
         kukaFRIThreadSeparatorP->run_user();
