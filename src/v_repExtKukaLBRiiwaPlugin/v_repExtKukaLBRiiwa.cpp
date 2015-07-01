@@ -148,7 +148,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
       kukaPluginPG.reset();
   } catch (...){
       // log the error and print it to the screen, don't release the exception
-      std::string initerr("v_repExtKukaLBRiiwa plugin encountered an unknown error and will disable itself. Please debug this issue! file and line:" + __FILE__ + " " + __LINE__ + "\n");
+      std::string initerr("v_repExtKukaLBRiiwa plugin encountered an unknown error and will disable itself. Please debug this issue! file and line:" + std::string(__FILE__) + " " + boost::lexical_cast<std::string>(__LINE__) + "\n");
       simAddStatusbarMessage( initerr.c_str());
       BOOST_LOG_TRIVIAL(error) <<  initerr;
       kukaPluginPG.reset();
