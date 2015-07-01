@@ -65,7 +65,7 @@ const int inArgs_KUKA_LBR_IIWA_START[]={
  sim_lua_arg_string,0, //  "JAVA"                      // KukaCommandMode (options are "JAVA", "FRI")
 };
 
-std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaStart(string Joint1Handle , string Joint2Handle , string Joint3Handle , string Joint4Handle , string Joint5Handle , string Joint6Handle , string Joint7Handle , string RobotTipHandle, string RobotTargetHandle, string RobotTargetBaseHandle, string LocalZMQAddress, string RemoteZMQAddress, string LocalHostKukaKoniUDPAddress, string LocalHostKukaKoniUDPPort, string RemoteHostKukaKoniUDPAddress, string RemoteHostKukaKoniUDPPort, string KukaCommandMode options are JAVA and FRI)");
+std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaStart(string Joint1Handle , string Joint2Handle , string Joint3Handle , string Joint4Handle , string Joint5Handle , string Joint6Handle , string Joint7Handle , string RobotTipHandle, string RobotTargetHandle, string RobotTargetBaseHandle, string LocalZMQAddress, string RemoteZMQAddress, string LocalHostKukaKoniUDPAddress, string LocalHostKukaKoniUDPPort, string RemoteHostKukaKoniUDPAddress, string RemoteHostKukaKoniUDPPort, string KukaCommandMode) -- KukaCommandMode options are JAVA and FRI");
 
 void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
@@ -134,11 +134,24 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
         
       }
   
-  } catch (boost::exception& e){
+  } catch (const boost::exception& e){
       // log the error and print it to the screen, don't release the exception
-      std::string initerr("v_repExtKukaLBRiiwa plugin initialization error:\n" + boost::diagnostic_information(e));
+      std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
       simAddStatusbarMessage( initerr.c_str());
       BOOST_LOG_TRIVIAL(error) <<  initerr;
+      kukaPluginPG.reset();
+  } catch (const std::exception& e){
+      // log the error and print it to the screen, don't release the exception
+      std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
+      simAddStatusbarMessage( initerr.c_str());
+      BOOST_LOG_TRIVIAL(error) <<  initerr;
+      kukaPluginPG.reset();
+  } catch (...){
+      // log the error and print it to the screen, don't release the exception
+      std::string initerr("v_repExtKukaLBRiiwa plugin encountered an unknown error and will disable itself. Please debug this issue! file and line:" + __FILE__ + " " + __LINE__ + "\n");
+      simAddStatusbarMessage( initerr.c_str());
+      BOOST_LOG_TRIVIAL(error) <<  initerr;
+      kukaPluginPG.reset();
   }
 }
 
