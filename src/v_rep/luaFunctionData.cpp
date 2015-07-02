@@ -88,7 +88,7 @@ bool CLuaFunctionData::readDataFromLua(const SLuaCallBack* p,const int* expected
 			if (p->inputArgTypeAndSize[i*2+0]!=((expectedArguments[1+i*2+0]|SIM_LUA_ARG_NIL_ALLOWED)-SIM_LUA_ARG_NIL_ALLOWED))
 			{
 				std::ostringstream str;
-				str << "Argument " << i+1 << " is not correct.";
+				str << "Argument " << i+1 << " is not correct, expected type#" << expectedArguments[1+i*2+0] << " and got type#" << p->inputArgTypeAndSize[i*2+0] << ".";
 				simSetLastError(functionName,str.str().c_str());
 				return(false);
 			}
