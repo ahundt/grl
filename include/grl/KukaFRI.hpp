@@ -383,6 +383,7 @@ namespace kuka {
                receivesSinceLastSendCounter_++;
                lastMonitorSequenceCounter_ = monitor.monitoringMessage.header.sequenceCounter;
                lastMonitorJointAngles_.clear();
+               lastMonitorJointTorques_.clear();
                sessionState_ = get(monitor.get(),KUKA::FRI::ESessionState());
                receiveMultiplier_ = get(monitor.get(),receive_multiplier());
                copy(monitor.monitoringMessage, std::back_inserter(lastMonitorJointAngles_), revolute_joint_angle_open_chain_command_tag());
@@ -419,11 +420,12 @@ namespace kuka {
           
 		  auto self(shared_from_this());
 		  command.buf_.resize(command.buf_.capacity());
-          
-          socket_.get_io_service().post(
-            /// @todo FIXME strand wrap disabled
-            //strand_.wrap( // serialize receive and send in a single thread
-            [this,self,&command,handler](){
+
+// porbably not worth the time to post this simple function
+//          socket_.get_io_service().post(
+//            /// @todo FIXME strand wrap disabled
+//            //strand_.wrap( // serialize receive and send in a single thread
+//            [this,self,&command,handler](){
               if (isCommandReadyToSend()){
                   command.buf_.resize(command.buf_.capacity());
                   std::size_t buf_size = encode(command);
@@ -443,9 +445,9 @@ namespace kuka {
                 // there is no error and no bytes were transferred
                 handler(boost::system::error_code(),0);
               }
-           }
+//           }
            //)
-           );
+//           );
       }
     
       /// This is the recommended mechanism to communicate with the FRI
@@ -461,9 +463,9 @@ namespace kuka {
            [this,&command,self,handler](boost::system::error_code const ec, std::size_t bytes_transferred){
              if(!ec && isCommandReadyToSend()){
                // send the new command (if appropriate)
-               async_send(command, handler);
+               async_send(command, std::bind(handler,ec,bytes_transferred,std::placeholders::_1,std::placeholders::_2));
              } else {
-               handler(ec,bytes_transferred);
+               handler(ec,bytes_transferred,boost::system::error_code(),0);
              }
            
            }/// ) /// @todo FIXME
