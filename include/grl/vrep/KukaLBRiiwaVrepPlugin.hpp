@@ -109,7 +109,7 @@ public:
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
                     "30200"                   , // RemoteHostKukaKoniUDPPort
-                    "JAVA"                      // KukaCommandMode (options are FRI, JAVA)
+                    "FRI"                      // KukaCommandMode (options are FRI, JAVA)
                 );
     }
 
@@ -130,7 +130,8 @@ KukaVrepPlugin (Params params = defaultParams())
               std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
               std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
               std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
-              std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params))
+              std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
+              grl::KukaFRIThreadSeparator::run_automatically
           )
       )),
       params_(params)
@@ -207,8 +208,10 @@ void initHandles() {
 
 void getRealKukaAngles() {
         BOOST_VERIFY(kukaFRIThreadSeparatorP);
-
-        kukaFRIThreadSeparatorP->async_getLatestState([this](std::shared_ptr<grl::robot::arm::kuka::iiwa::MonitorState> updatedState){
+        std::shared_ptr<grl::robot::arm::kuka::iiwa::MonitorState> updatedState;
+        boost::system::error_code send_ec,recv_ec;
+        std::size_t send_bytes, recv_bytes;
+        kukaFRIThreadSeparatorP->async_getLatestState(updatedState,recv_ec,recv_bytes,send_ec,send_bytes);
         
             if (updatedState) {
                 this->m_haveReceivedRealData = true;
@@ -232,13 +235,10 @@ void getRealKukaAngles() {
             
             // here we expect the simulation to be slightly ahead of the arm
             // so we get the simulation based joint angles and update the arm
-            
-       });
+    
        
        BOOST_LOG_TRIVIAL(trace) << "Real joint angles from FRI: " << realJointPosition << "\n";
 
-       // run the async calls and update the state
-       kukaFRIThreadSeparatorP->run_user();
 
 
 }
@@ -289,7 +289,6 @@ void sendSimulatedJointAnglesToKuka(){
             BOOST_THROW_EXCEPTION(std::runtime_error(std::string("KukaVrepPlugin: Selected KukaCommandMode ")+std::get<KukaCommandMode>(params_)+" does not exist! Options are JAVA and FRI"));
         }
     
-        kukaFRIThreadSeparatorP->run_user();
 }
 
 /// @todo if there aren't real limits set via the kuka model already then implement me

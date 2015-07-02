@@ -392,9 +392,6 @@ namespace kuka {
 			   /// @todo make sure this matches up with the synchronous version and Dr. Kazanzides' version
 			   /// @todo also wrap these calls in a strand so there aren't threading issues. That should still be fast enough, but it can be adjusted if further improvement is needed.
              
-             
-               /// @todo should we pass bytes_transferred?
-               /// @todo FIXME
                handler(ec,bytes_transferred);
                //socket_.get_io_service().post(std::bind(handler,ec,bytes_transferred));
 			  
@@ -411,11 +408,10 @@ namespace kuka {
       /// The CommandState is expected to be set so that it has command data when you make the call.
       /// If you do not set the command data, it will be assumed that you simply wish to monitor.
       ///
-      /// @todo should we pass bytes_transferred as well to f(boost::system::error_code,bytes_transferred)?
+      /// The handler has the signature @code void f(boost::system::error_code, std::size_t bytes_transferred) @endcode
       /// @note the user is responsible for keeping the MonitorState valid for the duration of the asynchronous call
       template<typename Handler>
       void async_send(CommandState& command, Handler handler){
-          /// @todo convert commandState_ to a parameter
           // Check whether to send a response
           
 		  auto self(shared_from_this());
@@ -435,11 +431,13 @@ namespace kuka {
                   
                   socket_.async_send_to(
                       boost::asio::buffer(&command.buf_[0],buf_size),sender_endpoint_,
-                      strand_.wrap( // serialize receive and send in a single thread
+                      //strand_.wrap( // serialize receive and send in a single thread
                       [this,self,&command,handler](boost::system::error_code const ec, std::size_t bytes_transferred)
                       {
                           handler(ec,bytes_transferred);
-                      }));
+                      }
+                      //)
+                      );
               } else {
                 // didn't need to send data at this time
                 // there is no error and no bytes were transferred
@@ -451,7 +449,9 @@ namespace kuka {
       }
     
       /// This is the recommended mechanism to communicate with the FRI
-      /// @todo may need to differentiate between async_receive failing and asying_send failing
+      /// the handler should have the following signature:
+      /// void handler(boost::system::error_code,std::size_t,boost::system::error_code,std::size_t);
+      /// these correspond to the monitor state, and the command state respectively
       template<typename Handler>
       void async_update(MonitorState& monitor, CommandState& command, Handler handler){
       
@@ -476,8 +476,6 @@ namespace kuka {
 	  boost::asio::ip::udp::socket& socket(){
 	    return socket_;
 	  }
-    
-    /// @todo provide a way for users to send commands (and not send commands) over FRI
     
 	private:
     

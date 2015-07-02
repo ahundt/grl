@@ -111,8 +111,13 @@ int main(int argc, char* argv[])
     std::thread printstateThread(printState);
     
     boost::asio::io_service io_service;
-    auto kukaFRIThreadSeparator = std::make_shared<grl::KukaFRIThreadSeparator>( 
-	std::make_tuple(localhost, localport, remotehost, remoteport));
+    auto kukaFRIThreadSeparator =
+      std::make_shared<grl::KukaFRIThreadSeparator>(
+        io_service,
+	    std::make_tuple(localhost, localport, remotehost, remoteport,grl::KukaFRIThreadSeparator::run_manually)
+      );
+    
+    //std::thread secondDriverThread([&io_service](){io_service.run();});
 
 
     double delta = 0.001;
@@ -171,7 +176,7 @@ int main(int argc, char* argv[])
                 if (jointAngles[6] < -1.5 && delta < 0) delta *=-1;
             
                 /// @todo need to avoid reallocating the CommandState every time, probably with async_MakeCommandState
-                auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
+                auto commandP = kukaFRIThreadSeparator->makeCommandState();
                 grl::robot::arm::set(*commandP, jointAngles, grl::revolute_joint_angle_open_chain_command_tag());
                 kukaFRIThreadSeparator->async_sendCommand(commandP);
                 auto connectionQ = grl::robot::arm::get(*updatedStateP,  KUKA::FRI::EConnectionQuality());
@@ -202,8 +207,12 @@ int main(int argc, char* argv[])
         kukaFRIThreadSeparator->async_getLatestState(update_fn);
   
         // create work so it will block forever but not chew cpu or memory
-        auto work = boost::asio::io_service::work(kukaFRIThreadSeparator->get_user_io_service());
-        kukaFRIThreadSeparator->run_user();
+        //auto work = boost::asio::io_service::work(kukaFRIThreadSeparator->get_io_service());
+        kukaFRIThreadSeparator->run();
+        
+//        // create work so it will block forever but not chew cpu or memory
+//        auto work = boost::asio::io_service::work(kukaFRIThreadSeparator->get_user_io_service());
+//        kukaFRIThreadSeparator->run_user();
 
         stop = true;
 		
