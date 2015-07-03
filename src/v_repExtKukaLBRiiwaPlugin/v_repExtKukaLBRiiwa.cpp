@@ -210,7 +210,16 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	// Register the new Lua command "simExtSkeleton_getSensorData":
 	// ******************************************
     
-	simRegisterCustomLuaFunction(LUA_KUKA_LBR_IIWA_START_COMMAND,LUA_KUKA_LBR_IIWA_START_CALL_TIP.c_str(),&inArgs_KUKA_LBR_IIWA_START[0],LUA_SIM_EXT_KUKA_LBR_IIWA_START);
+    std::vector<int> inArgs;
+    
+    CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_KUKA_LBR_IIWA_START,inArgs);
+	simRegisterCustomLuaFunction
+    (
+        LUA_KUKA_LBR_IIWA_START_COMMAND,
+        LUA_KUKA_LBR_IIWA_START_CALL_TIP.c_str(),
+        &inArgs[0],
+        LUA_SIM_EXT_KUKA_LBR_IIWA_START
+    );
     
     
     

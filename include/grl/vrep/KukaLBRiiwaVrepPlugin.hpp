@@ -109,7 +109,7 @@ public:
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
                     "30200"                   , // RemoteHostKukaKoniUDPPort
-                    "FRI"                      // KukaCommandMode (options are FRI, JAVA)
+                    "JAVA"                      // KukaCommandMode (options are FRI, JAVA)
                 );
     }
 
