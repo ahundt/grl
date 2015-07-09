@@ -6,7 +6,7 @@
 #include <mach/mach_time.h>
 #include <mach/mach_init.h>
 #include <mach/thread_policy.h>
-#include <mach/sched.h>
+//#include <mach/sched.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <err.h>
@@ -60,7 +60,7 @@ inline int set_realtime(int period, int computation, int constraint, bool preemp
     
 	if (kret != KERN_SUCCESS) {
 		warnx("Could not get timebase info %d", kret);
-		return;
+		return 0;
 	}
     
     thread_port_t threadport = pthread_mach_thread_np(pthread_self());
