@@ -36,9 +36,9 @@ namespace grl {
 /// Creates a complete vrep plugin object
 /// usage:
 /// @code
-///    auto kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
-///    kukaPluginPG->construct();
-///    while(true) kukaPluginPG->run_one();
+///    auto handEyeCalib = std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
+///    handEyeCalib->construct();
+///    // move objects to new position
 /// @endcode
 ///
 /// @todo this implementation is a bit hacky, redesign it
@@ -50,16 +50,14 @@ public:
   static const bool debug = false;
 
     enum ParamIndex {
-        RobotTipName,
-        RobotTargetName,
-        RobotTargetBaseName,
-        OpticalTrackerBaseName,
-        HandEyeCalibrationFiducial
+        RobotBaseName,             ///<  V-REP handle string for the base of the first known transform, often a robot base
+        RobotTipName,              ///<  V-REP handle string for the tip of the first known transform, often a robot tip
+        OpticalTrackerBaseName,    ///<  V-REP handle string for the tip of the first known transform, often a robot tip
+        OpticalTrackerDetectedObjectName
     };
     
     /// @todo allow default params
     typedef std::tuple<
-        std::string,
         std::string,
         std::string,
         std::string,
@@ -69,10 +67,9 @@ public:
     
     static const Params defaultParams(){
         return std::make_tuple(
-                    "RobotFlangeTip"              , // RobotTipHandle,
-                    "RobotFlangeTipTarget"        , // RobotTargetHandle,
-                    "Robotiiwa"               , // RobotTargetBaseHandle,
-                    "OpticalTrackerBase#0"    , // RobotTargetBaseHandle,
+                    "Robotiiwa"               , // RobotBaseHandle,
+                    "RobotFlangeTip"          , // RobotTipHandle,
+                    "OpticalTrackerBase#0"    , // OpticalTrackerBaseName,
                     "Fiducial#22"               // FiducialArmTip
                 );
     }
@@ -93,22 +90,25 @@ HandEyeCalibrationVrepPlugin (Params params = defaultParams())
 /// @todo move this into the actual constructor, but need to correctly handle or attach vrep shared libraries for unit tests.
 void construct(){
   initHandles();
+  
+  // set the current transformEstimate to the initial estimate already in vrep
+  if(allHandlesSet) transformEstimate = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
 }
 
 
 void addFrame() {
    BOOST_LOG_TRIVIAL(trace) << "Adding hand eye calibration frame #" << ++frameCount << std::endl;
     
-    auto robotTipInRobotTargetBase    = getObjectTransform(robotTip,robotTargetBase);
-    auto fiducialInOpticalTrackerBase = getObjectTransform(handEyeCalibFiducial,opticalTrackerBase);
+    auto robotTipInRobotBase    = getObjectTransform(robotTip,robotBase);
+    auto fiducialInOpticalTrackerBase = getObjectTransform(opticalTrackerDetectedObjectName,opticalTrackerBase);
     
     if(isFirstFrame){
-      firstRobotTipInRobotTargetBaseInverse       = robotTipInRobotTargetBase.inverse();
+      firstRobotTipInRobotBaseInverse             = robotTipInRobotBase.inverse();
       firstFiducialInOpticalTrackerBaseInverse    = fiducialInOpticalTrackerBase.inverse();
       isFirstFrame = false;
     }
     
-    auto robotTipInFirstTipBase      = firstRobotTipInRobotTargetBaseInverse * robotTipInRobotTargetBase;        // A_0_Inv * A_i
+    auto robotTipInFirstTipBase      = firstRobotTipInRobotBaseInverse * robotTipInRobotBase;        // A_0_Inv * A_i
     auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;  // B_0_Inv * B_i
     
     
@@ -121,29 +121,33 @@ void addFrame() {
     
    if(debug){
    
-     std::cout << "\nrobotTipInRobotTargetBase:\n" << poseString(robotTipInRobotTargetBase) << "\n";
+     std::cout << "\nrobotTipInRobotBase:\n" << poseString(robotTipInRobotBase) << "\n";
      std::cout << "\nfiducialInOpticalTrackerBase:\n" << poseString(fiducialInOpticalTrackerBase) << "\n";
      
      std::cout << "\nrobotTipInFirstTipBase:\n" << poseString(robotTipInFirstTipBase) << "\n";
      std::cout << "\nfiducialInFirstFiducialBase:\n" << poseString(fiducialInFirstFiducialBase) << "\n";
    
      // print simulation transfrom from tip to fiducial
-     Eigen::Affine3d RobotTipToFiducial = getObjectTransform(handEyeCalibFiducial,robotTip);
+     Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
      BOOST_LOG_TRIVIAL(info) << "\n" << poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): ") << std::endl;
      
      BOOST_VERIFY(robotTipInFirstTipBase.translation().norm() - fiducialInFirstFiducialBase.translation().norm() < 0.1);
    }
 }
 
+/// @brief run solver to estimate the unknown transform and set the simulation to the estimated value
+///
+/// after calling addFrame a number of times in different positions and orientations
+///
 /// @todo probably want to run at least part of this in a separate thread.
+/// @todo evaluate if applyEstimate should not be called by this
 void estimateHandEyeScrew(){
   
    BOOST_LOG_TRIVIAL(trace) << "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial" << rvecsFiducial.size()
    << " tvecsFiducial: " << tvecsFiducial.size() << " rvecsArm: " << rvecsArm.size() << " tvecsArm: " << tvecsArm.size() << std::endl;
-   
+
+   BOOST_VERIFY(allHandlesSet);
   
-  // estimate transform between end effector and fiducial
-  Eigen::Affine3d transformEstimate;
   
   handEyeCalib.estimateHandEyeScrew(
       rvecsArm,
@@ -153,37 +157,58 @@ void estimateHandEyeScrew(){
       transformEstimate.matrix()
   );
     
-    std::array<float,3> simTipPosition;
-    std::array<float,4> simTipQuaternion;
     
     // get fiducial in optical tracker base frame
-    int ret = simGetObjectPosition(handEyeCalibFiducial, opticalTrackerBase, simTipPosition.begin());
+    int ret = simGetObjectPosition(opticalTrackerDetectedObjectName, opticalTrackerBase, detectedObjectPosition.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get position"));
-    ret = simGetObjectQuaternion(handEyeCalibFiducial, opticalTrackerBase, simTipQuaternion.begin());
+    ret = simGetObjectQuaternion(opticalTrackerDetectedObjectName, opticalTrackerBase, detectedObjectQuaternion.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get quaternion"));
 
    if(debug){
      // print simulation transfrom from tip to fiducial
-     Eigen::Affine3d RobotTipToFiducial = getObjectTransform(handEyeCalibFiducial,robotTip);
+     Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
      BOOST_LOG_TRIVIAL(info) << "\n" << poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): ") << std::endl;
    }
 
    BOOST_LOG_TRIVIAL(info) << "\n" << poseString(transformEstimate,"estimated RobotTipToFiducial:") << std::endl;
-   // set transform between end effector and fiducial
-   setObjectTransform(handEyeCalibFiducial, robotTip, transformEstimate);
    
-    
-   // set real optical tracker position and orientation relative to the robot fiducial
-   simSetObjectPosition(opticalTrackerBase, handEyeCalibFiducial, simTipPosition.begin());
-   simSetObjectQuaternion(opticalTrackerBase, handEyeCalibFiducial, simTipQuaternion.begin());
+   applyEstimate();
    
    // print results
    Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
    BOOST_LOG_TRIVIAL(info) << "Hand Eye Screw Estimate quat wxyz\n: " << eigenQuat.w() << " " << eigenQuat.x() << " " << eigenQuat.y() << " " << eigenQuat.z() << " " << " translation xyz: " << transformEstimate.translation().x() << " " << transformEstimate.translation().y() << " " << transformEstimate.translation().z() << " " << std::endl;
     
-    BOOST_LOG_TRIVIAL(info) << "Optical Tracker Base Measured quat wxyz\n: " << simTipQuaternion[0] << " " << simTipQuaternion[1] << " " << simTipQuaternion[2] << " " << simTipQuaternion[3] << " " << " translation xyz: " << simTipPosition[0] << " " << simTipPosition[1] << " " << simTipPosition[2] << " " << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Optical Tracker Base Measured quat wxyz\n: " << detectedObjectQuaternion[0] << " " << detectedObjectQuaternion[1] << " " << detectedObjectQuaternion[2] << " " << detectedObjectQuaternion[3] << " " << " translation xyz: " << detectedObjectPosition[0] << " " << detectedObjectPosition[1] << " " << detectedObjectPosition[2] << " " << std::endl;
   
 }
+
+/// @brief  Will apply the stored estimate to the v-rep simulation value
+///
+/// A default transform is saved when construct() was called
+/// so if no estimate has been found that will be used.
+void applyEstimate(){
+
+   // set transform between end effector and fiducial
+   setObjectTransform(opticalTrackerDetectedObjectName, robotTip, transformEstimate);
+}
+
+Eigen::Affine3d getEstimate(){
+   return transformEstimate;
+}
+
+
+/// @brief Correct modified transform for measured optical tracker data
+///
+/// If real time transform measurements are happening applyEstimate will move the measured object
+/// relative to the sensor and this puts the transform measurement back so the object
+/// appears in its real position. However, if running in simulation only
+/// the sensor will be in the correct position, so you don't want to call this.
+void restoreSensorPosition(){
+   // set real optical tracker position and orientation relative to the robot fiducial
+   simSetObjectPosition  (opticalTrackerBase, opticalTrackerDetectedObjectName, detectedObjectPosition.begin());
+   simSetObjectQuaternion(opticalTrackerBase, opticalTrackerDetectedObjectName, detectedObjectQuaternion.begin());
+}
+
 private:
 
 
@@ -192,11 +217,10 @@ private:
 /// @todo throw an exception if any of the handles is -1
 void initHandles() {
 
-	robotTip             = getHandleFromParam<RobotTipName>              (params_);					//Obtain RobotTip handle
-	target               = getHandleFromParam<RobotTargetName>           (params_);
-	robotTargetBase      = getHandleFromParam<RobotTargetBaseName>       (params_);
-	opticalTrackerBase   = getHandleFromParam<OpticalTrackerBaseName>    (params_);
-	handEyeCalibFiducial = getHandleFromParam<HandEyeCalibrationFiducial>(params_);
+	robotTip                         = getHandleFromParam<RobotTipName>                    (params_);					//Obtain RobotTip handle
+	robotBase                        = getHandleFromParam<RobotBaseName>                   (params_);
+	opticalTrackerBase               = getHandleFromParam<OpticalTrackerBaseName>          (params_);
+	opticalTrackerDetectedObjectName = getHandleFromParam<OpticalTrackerDetectedObjectName>(params_);
     
 	allHandlesSet  = true;
 }
@@ -210,13 +234,18 @@ std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > tvecsFi
 
 bool isFirstFrame;
 std::size_t frameCount;
-Eigen::Affine3d firstRobotTipInRobotTargetBaseInverse;
+Eigen::Affine3d firstRobotTipInRobotBaseInverse;
 Eigen::Affine3d firstFiducialInOpticalTrackerBaseInverse;
 
+///
+std::array<float,3> detectedObjectPosition;
+std::array<float,4> detectedObjectQuaternion;
+/// estimate transform between end effector and fiducial
+Eigen::Affine3d transformEstimate;
+
 int robotTip = -1;					//Obtain RobotTip handle
-int target = -1;
-int robotTargetBase = -1;
-int handEyeCalibFiducial = -1;
+int robotBase = -1;
+int opticalTrackerDetectedObjectName = -1;
 int opticalTrackerBase = -1;
 //int ImplantCutPath = -1;
 //int BallJointPath = -1;

@@ -57,29 +57,65 @@ std::shared_ptr<grl::HandEyeCalibrationVrepPlugin> handEyeCalibrationPG;
 */
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
-{ // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
-  // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
+{
   if (!handEyeCalibrationPG) {
   
     BOOST_LOG_TRIVIAL(info) << "v_repExtHandEyeCalibration Starting Hand Eye Calibration Plugin Data Collection\n";
     handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
     handEyeCalibrationPG->construct();
+  }
 }
+
+void LUA_SIM_EXT_HAND_EYE_CALIB_RESET(SLuaCallBack* p)
+{
+    BOOST_LOG_TRIVIAL(info) << "v_repExtHandEyeCalibration Starting Hand Eye Calibration Plugin Data Collection\n";
+    handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
+    handEyeCalibrationPG->construct();
+}
+
+void LUA_SIM_EXT_HAND_EYE_CALIB_STOP(SLuaCallBack* p)
+{
+    
+    BOOST_LOG_TRIVIAL(info) << "Ending v_repExtHandEyeCalibration plugin\n";
+	handEyeCalibrationPG.reset();
 }
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME(SLuaCallBack* p)
-{ // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
-  // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
+{
   if (handEyeCalibrationPG) {
     handEyeCalibrationPG->addFrame();
-}
+  }
 }
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM(SLuaCallBack* p)
 {
   if (handEyeCalibrationPG) {
     handEyeCalibrationPG->estimateHandEyeScrew();
+  }
 }
+
+
+void LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM(SLuaCallBack* p)
+{
+  if (handEyeCalibrationPG) {
+    handEyeCalibrationPG->applyEstimate();
+  }
+}
+
+
+void LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION(SLuaCallBack* p)
+{
+  if (handEyeCalibrationPG) {
+    handEyeCalibrationPG->restoreSensorPosition();
+  }
+}
+
+/// @todo implement and connect up this function
+/// Returns the current transform estimate in a format that vrep understands
+void LUA_SIM_EXT_HAND_EYE_CALIB_GET_TRANSFORM(SLuaCallBack* p)
+{
+  if (handEyeCalibrationPG) {
+  }
 }
 
 
@@ -133,26 +169,16 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 		return(0); // Means error, V-REP will unload this plugin
 	}
 	// ******************************************
-
-
-	// Register the new Lua command "simExtSkeleton_getSensorData":
-	// ******************************************
-	// Expected input arguments are: int sensorIndex, float floatParameters[3], int intParameters[2]
-	//int inArgs_getSensorData[]={3,sim_lua_arg_int,sim_lua_arg_float|sim_lua_arg_table,sim_lua_arg_int|sim_lua_arg_table}; // this says we expect 3 arguments (1 integer, a table of floats, and a table of ints)
-	// Return value can change on the fly, so no need to specify them here, except for the calltip.
-	// Now register the callback:
-	//simRegisterCustomLuaFunction(LUA_GET_SENSOR_DATA_COMMAND,strConCat("number result,table data,number distance=",LUA_GET_SENSOR_DATA_COMMAND,"(number sensorIndex,table_3 floatParams,table_2 intParams)"),inArgs_getSensorData,LUA_GET_SENSOR_DATA_CALLBACK);
     
     
-	int inArgs1[]={0}; // no input arguments
-	simRegisterCustomLuaFunction("simExtHandEyeCalibStart","number result=simExtHandEyeCalibStart()",inArgs1,LUA_SIM_EXT_HAND_EYE_CALIB_START);
-
-	int inArgs2[]={0}; // no input arguments
-	simRegisterCustomLuaFunction("simExtHandEyeCalibAddFrame","number result=simExtHandEyeCalibAddFrame()",inArgs2,LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME);
-    
-    
-	int inArgs3[]={0}; // no input arguments
-	simRegisterCustomLuaFunction("simExtHandEyeCalibFindTransform","number result=simExtHandEyeCalibFindTransform()",inArgs3,LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM);
+	int noArgs[]={0}; // no input arguments
+	simRegisterCustomLuaFunction("simExtHandEyeCalibStart","number result=simExtHandEyeCalibStart()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_START);
+	simRegisterCustomLuaFunction("simExtHandEyeCalibStop","number result=simExtHandEyeCalibStop()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_STOP);
+	simRegisterCustomLuaFunction("simExtHandEyeCalibReset","number result=simExtHandEyeCalibReset()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESET);
+	simRegisterCustomLuaFunction("simExtHandEyeCalibAddFrame","number result=simExtHandEyeCalibAddFrame()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME);
+	simRegisterCustomLuaFunction("simExtHandEyeCalibFindTransform","number result=simExtHandEyeCalibFindTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM);
+	simRegisterCustomLuaFunction("simExtHandEyeCalibApplyTransform","number result=simExtHandEyeCalibApplyTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM);
+	simRegisterCustomLuaFunction("simExtHandEyeCalibRestoreSensorPosition","number result=simExtHandEyeCalibRestoreSensorPosition()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION);
     
     
 	// ******************************************
@@ -281,8 +307,6 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
-        BOOST_LOG_TRIVIAL(info) << "Ending v_repExtHandEyeCalibration plugin\n";
-		handEyeCalibrationPG.reset();
 
 	}
 
