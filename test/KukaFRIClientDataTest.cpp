@@ -9,15 +9,6 @@
 #include "grl/KukaFriClientData.hpp"
 #include <boost/log/trivial.hpp>
 
-//
-// blocking_udp_echo_client.cpp
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//
-// Copyright (c) 2003-2014 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
 
 #include <cstdlib>
 #include <cstring>
@@ -104,8 +95,6 @@ int main(int argc, char* argv[])
 	s.connect(endpoint);
 	
 	KUKA::FRI::ClientData friData(7);
-	grl::robot::arm::KukaState state;
-    state.ipoJointPositionOffsets = {0,0,0,0,0,0,0};
     /// @todo maybe there is a more convienient way to set this that is easier for users? perhaps initializeClientDataForiiwa()?
     friData.expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
 
@@ -118,34 +107,46 @@ int main(int argc, char* argv[])
                                << "the time it takes to go around the loop and change it. "
                                << "Current delta (radians/update): " << delta << "\n";
   
+    std::vector<double> initialJointPos;
+    std::vector<double> offsetFromInitialJointPos(7,0); // length 7, value 0
 
 	for (std::size_t i = 0;;++i) {
-    
-        update_state(s,friData,state);
+        boost::system::error_code send_ec, recv_ec;
+        std::size_t send_bytes_transferred, recv_bytes_transferred;
+        grl::robot::arm::update_state(s,friData,send_ec,send_bytes_transferred, recv_ec, recv_bytes_transferred);
         
-		if (i==0) {
-			startTime = state.timestamp;
-		}
-        
+        // if data didn't arrive correctly, skip and try again
+        if(send_ec || recv_ec) continue;
         
         /// consider moving joint angles based on time
         int joint_to_move = 6;
         
+        if(i == 0 || initialJointPos.empty()){
+            grl::robot::arm::copy(friData.monitoringMsg,std::back_inserter(initialJointPos),grl::revolute_joint_angle_open_chain_state_tag());
+        }
+        
         if(
-            (state.ipoJointPosition.size() == KUKA::LBRState::NUM_DOF) &&
-            (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE)
+            (initialJointPos.size() == KUKA::LBRState::NUM_DOF) &&
+            (grl::robot::arm::get(friData.monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
           )
         {
-            state.ipoJointPositionOffsets[joint_to_move]+=delta;
+            offsetFromInitialJointPos[joint_to_move]+=delta;
             // swap directions when a half circle was completed
             if (
-                 (state.ipoJointPositionOffsets[joint_to_move] >  0.2 && delta > 0) ||
-                 (state.ipoJointPositionOffsets[joint_to_move] < -0.2 && delta < 0)
+                 (offsetFromInitialJointPos[joint_to_move] >  0.2 && delta > 0) ||
+                 (offsetFromInitialJointPos[joint_to_move] < -0.2 && delta < 0)
                )
             {
                delta *=-1;
             }
         }
+        
+        // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
+        /// @todo should we take the current joint state into consideration?
+        std::vector<double> jointStateToCommand;
+        boost::transform ( initialJointPos, offsetFromInitialJointPos, std::back_inserter(jointStateToCommand), std::plus<double>());
+        grl::robot::arm::set(friData.commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
+        
 		//BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << "\n";
 	}
   }
