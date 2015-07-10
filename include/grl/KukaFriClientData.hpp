@@ -111,12 +111,11 @@ std::size_t encode(KUKA::FRI::ClientData& friData,boost::system::error_code& ec)
 	return buffersize;
 }
 
-
+/// @pre socket must already have the endpoint resolved and "connected". While udp is technically stateless the asio socket supports the connection api components for convenience.
 void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, boost::system::error_code& receive_ec,std::size_t& receive_bytes_transferred, boost::system::error_code& send_ec, std::size_t& send_bytes_transferred){
     
-    boost::asio::ip::udp::endpoint sender_endpoint;
     int message_flags = 0;
-	receive_bytes_transferred = socket.receive_from(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),sender_endpoint,message_flags,receive_ec);
+	receive_bytes_transferred = socket.receive(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),message_flags,receive_ec);
 	decode(friData,receive_bytes_transferred);
 
     friData.lastSendCounter++;
@@ -124,7 +123,7 @@ void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& f
     if (friData.lastSendCounter >= friData.monitoringMsg.connectionInfo.receiveMultiplier){
     	send_bytes_transferred = encode(friData,send_ec);
         if(send_ec) return;
-		socket.send_to(boost::asio::buffer(friData.sendBuffer,send_bytes_transferred), sender_endpoint, message_flags, send_ec);
+		socket.send(boost::asio::buffer(friData.sendBuffer,send_bytes_transferred), message_flags, send_ec);
     }
 }
 
@@ -139,14 +138,6 @@ void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& f
 struct KukaState {
 	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
     typedef boost::container::static_vector<double,6> cartesian_state;
-    
-//    KukaState()
-//    :
-//    position(0,KUKA::LBRState::NUM_DOF),
-//    torque(0,KUKA::LBRState::NUM_DOF),
-//    commandedPosition(0,KUKA::LBRState::NUM_DOF),
-//    commandedTorque(0,KUKA::LBRState::NUM_DOF),
-//    ipoJointPosition(0,KUKA::LBRState::NUM_DOF){}
     
 	joint_state     position;
 	joint_state     torque;
