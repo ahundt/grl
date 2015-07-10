@@ -376,9 +376,16 @@ namespace kuka {
              //strand_.wrap( // serialize receive and send in a single thread
              [this,self,&monitor,handler](boost::system::error_code const ec, std::size_t bytes_transferred)
 			 {
+               if(ec) {
+                 handler(ec,bytes_transferred);
+                 return;
+               }
+             
 			   monitor.buf_.resize(bytes_transferred);
-			   monitor.decoder.decode(reinterpret_cast<char*>(&(monitor.buf_[0])),bytes_transferred);
-				 
+               // The decoder was given a pointer to the monitoringMessage at initialization
+			   if(!monitor.decoder.decode(reinterpret_cast<char*>(&(monitor.buf_[0])),bytes_transferred)){
+                  handler(boost::system::errc::make_error_code(boost::system::errc::bad_message),bytes_transferred);
+               }
              
                receivesSinceLastSendCounter_++;
                lastMonitorSequenceCounter_ = monitor.monitoringMessage.header.sequenceCounter;
