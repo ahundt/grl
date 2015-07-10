@@ -9,6 +9,7 @@
 #include "grl/KukaFRI.hpp"
 #include "grl/KukaFriClientData.hpp"
 #include "grl/stattimer.hpp"
+#include "grl/realtime.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
@@ -205,6 +206,17 @@ int main(int argc, char* argv[])
         };
     
         kukaFRIThreadSeparator->async_getLatestState(update_fn);
+
+#ifdef HAVE_REALTIME
+#ifdef __APPLE__
+        int msToNS = 1000000, period = 1*msToNS, computation = 0.1*msToNS, constraint = 0.5*msToNS;
+         bool preemptible = false;
+        if(set_realtime( period,  computation,  constraint,  preemptible)){
+           std::cout << "realtime mode successfully enabled!\n";
+        };
+#endif // __APPLE__
+#endif // HAVE_REALTIME
+    
   
         // create work so it will block forever but not chew cpu or memory
         //auto work = boost::asio::io_service::work(kukaFRIThreadSeparator->get_io_service());
