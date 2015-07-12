@@ -237,8 +237,8 @@ private:
     void update() {
        try {
             // initialize all of the states
-            latestStateP_ = make_shared_valid_LatestState();
-            nextStateP_ = make_shared_valid_LatestState();
+            latestStateP_     = make_shared_valid_LatestState();
+            nextStateP_       = make_shared_valid_LatestState();
             userThreadStateP_ = make_shared_valid_LatestState();
 
             // run the primary update loop in a separate thread
@@ -276,19 +276,21 @@ private:
     typedef std::tuple<std::shared_ptr<KUKA::FRI::ClientData>,boost::system::error_code, std::size_t,boost::system::error_code, std::size_t>
     LatestState;
     
+    /// Creates a default LatestState Object
     /// @todo num_dof should not be a magic number
     /// @note the clientData will never be null
-    static LatestState make_LatestState(std::shared_ptr<KUKA::FRI::ClientData> clientData = std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF)){
+    static LatestState make_LatestState(std::shared_ptr<KUKA::FRI::ClientData> clientData){
       return std::make_tuple(clientData,boost::system::error_code(), std::size_t(),boost::system::error_code(), std::size_t());
     }
     
+    /// Initialize valid shared ptr to LatestState object with a valid allocated friData
     static std::shared_ptr<LatestState> make_shared_valid_LatestState(std::shared_ptr<KUKA::FRI::ClientData> friData = std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF)){
         
         std::shared_ptr<LatestState> tempLatestStateP;
         
         if(friData.get()==nullptr)
         {
-          tempLatestStateP = std::make_shared<LatestState>(make_LatestState());
+          tempLatestStateP = std::make_shared<LatestState>(make_LatestState(std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF)));
         }
         else
         {
