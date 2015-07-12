@@ -25,6 +25,7 @@
 
 namespace KUKA {
 	namespace LBRState {
+        /// @todo replace all instances of this with the getter now provided
 		const int NUM_DOF = 7;
 		const int LBRMONITORMESSAGEID = 0x245142;
 	}
@@ -492,8 +493,7 @@ namespace kuka {
     
     std::size_t encode(CommandState& command){
           receivesSinceLastSendCounter_ = 0;
-          sequenceCounter_++;
-          command.commandMessage.header.sequenceCounter = sequenceCounter_;
+          command.commandMessage.header.sequenceCounter = sequenceCounter_++;
           command.commandMessage.header.reflectedSequenceCounter = lastMonitorSequenceCounter_;
         
           // copy the monitor data if we are not in a commanding state
