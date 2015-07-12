@@ -13,25 +13,7 @@
 
 namespace grl {
 
-/// @brief Allows a thread to get data from a kuka device asynchronously without capturing the thread.
-///
-/// Interface for threads that have special status so cannot be mixed with other threads.
-/// Examples of this problem can be found in Qt and V-Rep plugins, for example.
-/// all async calls are done in a separate user thread
-/// you must call the async calls then call run_user()
-/// to call the corresponding handlers
-/// @todo generalize this if possible to work for multiple devices beyond the kuka
-//template<template <typename> Allocator = std::allocator>
-/// @todo consider making this an asio io_service, see asio logger C++03 example https://github.com/boostorg/asio/tree/master/example/cpp03/services
-///
-/// One important aspect of this design is the is_running_automatically flag. If you are unsure,
-/// the suggested default is run_automatically (true/enabled). When it is enabled,
-/// the driver will create a thread internally and run the event loop (io_service) itself.
-/// If run manually, you are expected to call io_service.run() on the io_service you provide,
-/// or on the run() member function. When running manually you are also expected to call
-/// async_getLatestState(handler) frequently enought that the 5ms response requirement of the KUKA
-/// FRI interface is met.
-class KukaFRIThreadSeparator : public std::enable_shared_from_this<KukaFRIThreadSeparator> {
+class KukaFRI {
     
 public:
 
@@ -55,6 +37,53 @@ public:
         return std::make_tuple(std::string("192.170.10.100"),std::string("30200"),std::string("192.170.10.2"),std::string("30200"),run_automatically);
     }
     
+    
+    /// Advanced functionality, do not use without a great reason
+    static boost::asio::ip::udp::socket connect(Params& params, boost::asio::io_service& io_service_){
+            boost::asio::ip::udp::socket s(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(std::get<localhost>(params)), boost::lexical_cast<short>(std::get<localport>(params))));
+
+            boost::asio::ip::udp::resolver resolver(io_service_);
+            boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), std::get<remotehost>(params), std::get<remoteport>(params)});
+            s.connect(endpoint);
+        
+            return std::move(s);
+    }
+    
+    static void add_details_to_connection_error(boost::exception& e, Params& params){
+                e << errmsg_info("KukaFRIThreadSeparator: Unable to connect to Kuka FRI Koni UDP device using boost::asio::udp::socket configured with localhost:localport @ " +
+                                   std::get<localhost>(params) + ":" + std::get<localport>(params) + " and remotehost:remoteport @ " +
+                                   std::get<remotehost>(params) + ":" + std::get<remoteport>(params) + "\n");
+    }
+
+};
+
+/// @brief Allows a thread to get data from a kuka device asynchronously without capturing the thread.
+///
+/// Interface for threads that have special status so cannot be mixed with other threads.
+/// Examples of this problem can be found in Qt and V-Rep plugins, for example.
+/// all async calls are done in a separate user thread
+/// you must call the async calls then call run_user()
+/// to call the corresponding handlers
+/// @todo generalize this if possible to work for multiple devices beyond the kuka
+//template<template <typename> Allocator = std::allocator>
+/// @todo consider making this an asio io_service, see asio logger C++03 example https://github.com/boostorg/asio/tree/master/example/cpp03/services
+///
+/// One important aspect of this design is the is_running_automatically flag. If you are unsure,
+/// the suggested default is run_automatically (true/enabled). When it is enabled,
+/// the driver will create a thread internally and run the event loop (io_service) itself.
+/// If run manually, you are expected to call io_service.run() on the io_service you provide,
+/// or on the run() member function. When running manually you are also expected to call
+/// async_getLatestState(handler) frequently enought that the 5ms response requirement of the KUKA
+/// FRI interface is met.
+class KukaFRIThreadSeparator : public std::enable_shared_from_this<KukaFRIThreadSeparator>, public KukaFRI {
+    
+public:
+
+    using KukaFRI::ParamIndex;
+    using KukaFRI::ThreadingRunMode;
+    using KukaFRI::Params;
+    using KukaFRI::defaultParams;
+    
 	KukaFRIThreadSeparator(boost::asio::io_service& ios, Params params = defaultParams())
         :
         io_service_(ios),
@@ -75,21 +104,16 @@ public:
         // start up the driver thread since the io_service_ is internal only
         if(std::get<is_running_automatically>(params))
         {
-          driver_threadP.reset(new std::thread([&]{ io_service_.run(); }));
+          driver_threadP_.reset(new std::thread([&]{ io_service_.run(); }));
         }
 	}
     
-    
+    /// Call this to initialize the object
     void construct(Params params = defaultParams()){
 
         try {
-            boost::asio::ip::udp::socket s(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(std::get<localhost>(params)), boost::lexical_cast<short>(std::get<localport>(params))));
-
-            boost::asio::ip::udp::resolver resolver(io_service_);
-            boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), std::get<remotehost>(params), std::get<remoteport>(params)});
-            s.connect(endpoint);
-            
-            iiwaP = std::make_shared<robot::arm::kuka::iiwa>(std::move(s));
+        
+            iiwaP = std::make_shared<robot::arm::kuka::iiwa>(KukaFRI::connect(params,io_service_));
             
             latest_commandState_ = std::make_shared<robot::arm::kuka::iiwa::CommandState>();
         
@@ -97,9 +121,7 @@ public:
             io_service_.post(std::bind(&KukaFRIThreadSeparator::update_state,this));
             
         } catch( boost::exception &e) {
-                e << errmsg_info("KukaFRIThreadSeparator: Unable to connect to Kuka FRI Koni UDP device using boost::asio::udp::socket configured with localhost:localport @ " +
-                                   std::get<localhost>(params) + ":" + std::get<localport>(params) + " and remotehost:remoteport @ " +
-                                   std::get<remotehost>(params) + ":" + std::get<remoteport>(params) + "\n");
+            add_details_to_connection_error(e,params);
             throw;
         }
         
@@ -107,10 +129,10 @@ public:
 	
     /// @todo properly stop the sockets and other state so that the object can be destroyed cleanly. https://github.com/zeromq/azmq/issues/73
 	~KukaFRIThreadSeparator(){
-        if(driver_threadP){
+        if(driver_threadP_){
 		  //workP.reset();
           io_service_.stop();
-          driver_threadP->join();
+          driver_threadP_->join();
         }
 	}
 	
@@ -268,8 +290,8 @@ private:
           )
     {
                     
-                    // new data available, if the old one wasn't taken send it back into the circular buffer
-                    // put the latest state on the front and get the oldest from the back
+                    // new data available
+                    /// @todo if there is a spare use that
                     std::shared_ptr<LatestState> latestState = std::make_shared<LatestState>(std::make_tuple(ms, recv_ec,  receive_bytes_transferred, send_ec,  send_bytes_transferred));
                     std::atomic_exchange(&latest_state_,latestState);
 
@@ -328,7 +350,7 @@ private:
     boost::asio::io_service::strand strand_;
     std::shared_ptr<robot::arm::kuka::iiwa> iiwaP;
     //std::unique_ptr<boost::asio::io_service::work> workP;
-    std::unique_ptr<std::thread> driver_threadP;
+    std::unique_ptr<std::thread> driver_threadP_;
     
     
     enum LatestStateIndex{
