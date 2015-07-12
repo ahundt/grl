@@ -287,7 +287,6 @@ void getRealKukaAngles() {
 
 void sendSimulatedJointAnglesToKuka(){
     
-        BOOST_VERIFY(kukaFRIThreadSeparatorP);
         if(!allHandlesSet || !m_haveReceivedRealData) return;
     
 /// @todo make this handled by template driver implementations/extensions
@@ -363,6 +362,7 @@ void sendSimulatedJointAnglesToKuka(){
         }
         else if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC")))
         {
+            BOOST_VERIFY(kukaFRIThreadSeparatorP);
             // create the command for the FRI
             auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
             // Set the FRI to the simulated joint positions
