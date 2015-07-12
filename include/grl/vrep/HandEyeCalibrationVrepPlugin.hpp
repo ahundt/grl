@@ -217,10 +217,10 @@ private:
 /// @todo throw an exception if any of the handles is -1
 void initHandles() {
 
-	robotTip                         = getHandleFromParam<RobotTipName>                    (params_);					//Obtain RobotTip handle
-	robotBase                        = getHandleFromParam<RobotBaseName>                   (params_);
-	opticalTrackerBase               = getHandleFromParam<OpticalTrackerBaseName>          (params_);
-	opticalTrackerDetectedObjectName = getHandleFromParam<OpticalTrackerDetectedObjectName>(params_);
+	robotTip                         = grl::vrep::getHandleFromParam<RobotTipName>                    (params_);					//Obtain RobotTip handle
+	robotBase                        = grl::vrep::getHandleFromParam<RobotBaseName>                   (params_);
+	opticalTrackerBase               = grl::vrep::getHandleFromParam<OpticalTrackerBaseName>          (params_);
+	opticalTrackerDetectedObjectName = grl::vrep::getHandleFromParam<OpticalTrackerDetectedObjectName>(params_);
     
 	allHandlesSet  = true;
 }

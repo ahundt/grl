@@ -14,7 +14,7 @@
 BOOST_AUTO_TEST_SUITE(KukaLBRiiwaVrepPluginTest)
 
 BOOST_AUTO_TEST_CASE(initialization){
-auto plugin = std::make_shared<grl::KukaVrepPlugin>();
+auto plugin = std::make_shared<grl::vrep::KukaVrepPlugin>();
 //BOOST_CHECK_THROW (std::make_shared<grl::KukaVrepPlugin>(),boost::exception);
 // plugin->construct() // shouldn't work, because vrep isn't around to get handles
 //// uncomment to test error output
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(connectToFake){
                     "30200"                  , // RemoteHostKukaKoniUDPPort
                     "JAVA"                     // KukaCommandMode ("JAVA" or "FRI")
                 );
-auto plugin = std::make_shared<grl::KukaVrepPlugin>(config);
+auto plugin = std::make_shared<grl::vrep::KukaVrepPlugin>(config);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

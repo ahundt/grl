@@ -187,7 +187,9 @@ public:
     /// @param[in,out] friData the pointer to update with new state and optional input state.
     ///
     /// @pre If friData!=nullptr it is assumed valid for use and this class will take control of the object.
-    void update_state(std::shared_ptr<KUKA::FRI::ClientData>& friData, boost::system::error_code& receive_ec,std::size_t& receive_bytes_transferred, boost::system::error_code& send_ec, std::size_t& send_bytes_transferred){
+    ///
+    /// @return false if everything is ok, true otherwise (simplifies checking all the ec and bytes_transferred when there isn't a problem)
+    bool update_state(std::shared_ptr<KUKA::FRI::ClientData>& friData, boost::system::error_code& receive_ec,std::size_t& receive_bytes_transferred, boost::system::error_code& send_ec, std::size_t& send_bytes_transferred){
        
         
         // ensure we have valid data for future updates
@@ -211,6 +213,8 @@ public:
         {
           std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = LatestState();
         }
+        
+        return !(receive_bytes_transferred > 0 && !receive_ec && !send_ec); // note send_bytes_transferred can be 0 without any problems
     }
 
     void destruct(){
