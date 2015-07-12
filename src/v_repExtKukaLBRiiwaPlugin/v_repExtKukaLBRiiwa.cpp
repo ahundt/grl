@@ -42,7 +42,7 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 
 
 
-std::shared_ptr<grl::KukaVrepPlugin> kukaPluginPG;
+std::shared_ptr<grl::vrep::KukaVrepPlugin> kukaPluginPG;
 
 const int inArgs_KUKA_LBR_IIWA_START[]={
  17,                   //   Example Value              // Parameter name  
@@ -100,7 +100,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
             std::string KukaCommandMode                     (inData->at(16).stringData[0]);
             
         
-            kukaPluginPG=std::make_shared<grl::KukaVrepPlugin>(
+            kukaPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>(
                 std::make_tuple(
                     Joint1Handle                  ,
                     Joint2Handle                  ,
@@ -125,7 +125,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
         } else {
             /// @todo report an error?
             // use default params
-            kukaPluginPG=std::make_shared<grl::KukaVrepPlugin>();
+            kukaPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>();
             kukaPluginPG->construct();
         }
         
