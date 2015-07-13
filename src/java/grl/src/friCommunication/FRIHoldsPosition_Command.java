@@ -52,17 +52,20 @@ public class FRIHoldsPosition_Command extends RoboticsAPIApplication
 			return;
 		}
 		CartesianImpedanceControlMode controlMode = new CartesianImpedanceControlMode();
-		controlMode.parametrize(CartDOF.X).setStiffness(1000.0);
+		controlMode.parametrize(CartDOF.X).setStiffness(100.0);
 		controlMode.parametrize(CartDOF.ALL).setDamping(0.7);
-        // move to start pose
-        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
+        
+        // TODO: remove default start pose
+        // move to default start pose
+        _lbr.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
 
         // sync move for infinite time with overlay ...
 		_lbr.move(positionHold(controlMode, -1, TimeUnit.SECONDS).addMotionOverlay(motionOverlay));
         //_lbr.moveAsync(ptp(Math.toRadians(-90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
-
-        // ... blending into sync move with overlay
-        _lbr.move(ptp(Math.toRadians(90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
+        
+        // TODO: remove default start pose
+        // move to default start pose
+        _lbr.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
 
         // done
         friSession.close();
