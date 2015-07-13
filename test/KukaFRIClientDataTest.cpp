@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
                                << "the time it takes to go around the loop and change it. "
                                << "Current delta (radians/update): " << delta << "\n";
   
-    std::vector<double> ipoJointPos;
+    std::vector<double> ipoJointPos(7,0);
     std::vector<double> offsetFromipoJointPos(7,0); // length 7, value 0
     std::vector<double> jointStateToCommand(7,0);
 
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
     
         /// use the interpolated joint position from the previous update as the base
         /// @todo why is this?
-        grl::robot::arm::copy(friData.monitoringMsg,std::back_inserter(ipoJointPos),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+        grl::robot::arm::copy(friData.monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
         
         /// perform the update step, receiving and sending data to/from the arm
         boost::system::error_code send_ec, recv_ec;
@@ -127,11 +127,6 @@ int main(int argc, char* argv[])
         
         /// consider moving joint angles based on time
         int joint_to_move = 6;
-        
-        if(i == 0 || ipoJointPos.empty()){
-        }
-        
-
         
         
         if
