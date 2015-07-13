@@ -49,18 +49,18 @@ namespace grl { namespace robot { namespace arm {
 void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
     // The decoder was given a pointer to the monitoringMessage at initialization
     if (!friData.decoder.decode(friData.receiveBuffer, msg_size)) {
-        throw std::runtime_error( "Error decoding received data");
+        BOOST_THROW_EXCEPTION(std::runtime_error( "Error decoding received data"));
     }
 	
 
     // check message type
     if (friData.expectedMonitorMsgID != friData.monitoringMsg.header.messageIdentifier)
     {
-		throw std::invalid_argument(std::string("KukaFRI.hpp: Problem reading buffer, id code: ") +
+		BOOST_THROW_EXCEPTION( std::invalid_argument(std::string("KukaFRI.hpp: Problem reading buffer, id code: ") +
 			                         boost::lexical_cast<std::string>(static_cast<int>(friData.monitoringMsg.header.messageIdentifier)) + 
 									std::string(" does not match expected id code: ") +
 				                    boost::lexical_cast<std::string>(static_cast<int>(friData.expectedMonitorMsgID)) + std::string("\n")
-									);
+									));
         return;
     }
     
@@ -97,6 +97,30 @@ std::size_t encode(KUKA::FRI::ClientData& friData,boost::system::error_code& ec)
     // set sequence counters
     friData.commandMsg.header.sequenceCounter = friData.sequenceCounter++;
     friData.commandMsg.header.reflectedSequenceCounter = friData.monitoringMsg.header.sequenceCounter;
+    
+    KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData.monitoringMsg,KUKA::FRI::ESessionState());
+        // copy current joint position to commanded position
+	if (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE)
+    {
+           /// @todo check that the user set things, if not, copy from the monitormessage
+       
+//         KukaState::joint_state jointStateToCommand;
+//        
+//        // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
+//        boost::transform ( state.ipoJointPosition, state.ipoJointPositionOffsets, std::back_inserter(jointStateToCommand), std::plus<KukaState::joint_state::value_type>());
+//
+//        // copy the commanded position into the command message
+//        set(friData.commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
+//        
+//		//BOOST_LOG_TRIVIAL(trace) << "ENCODE position: " << state.position << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << " jointStateToCommand: " << jointStateToCommand << "\n";
+    } else {
+        /// @todo allow copying of data directly between commandmsg and monitoringMsg
+        std::vector<double> msg;
+        copy(friData.monitoringMsg,std::back_inserter(msg),revolute_joint_angle_open_chain_command_tag());
+        // copy the previously recorded command over
+        set(friData.commandMsg,msg, grl::revolute_joint_angle_open_chain_command_tag());
+    }
+    
 	
 	int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
     if (!friData.encoder.encode(friData.sendBuffer, buffersize)){
@@ -332,7 +356,7 @@ private:
 
 /// @brief don't use this
 /// @todo replace with something generic
-/// @deprecated
+/// @deprecated this is an old implemenation that will be removed in the future
 struct KukaState {
 	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
     typedef boost::container::static_vector<double,6> cartesian_state;
@@ -364,7 +388,7 @@ struct KukaState {
 
 
 /// @brief don't use this
-/// @deprecated
+/// @deprecated this is an old implemenation that will be removed in the future
 void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
     state.clear();
 	copy(monitoringMsg,std::back_inserter(state.position),revolute_joint_angle_open_chain_state_tag());
@@ -381,6 +405,68 @@ void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
 	/// @todo fill out missing state update steps
 	
 }
+
+
+/// @deprecated this is an old implemenation that will be removed in the future
+/// encode data in the class into the send buffer
+/// @todo update the statements in here to run on the actual data types available
+std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
+    // Check whether to send a response
+    friData.lastSendCounter = 0;
+  
+    // set sequence counters
+    friData.commandMsg.header.sequenceCounter = friData.sequenceCounter++;
+    friData.commandMsg.header.reflectedSequenceCounter = friData.monitoringMsg.header.sequenceCounter;
+
+    // copy current joint position to commanded position
+	if ((state.ipoJointPosition.size() == KUKA::LBRState::NUM_DOF) &&
+        (((state.sessionState == KUKA::FRI::COMMANDING_WAIT)) || (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE))
+       ) {
+       
+         KukaState::joint_state jointStateToCommand;
+        
+        // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
+        boost::transform ( state.ipoJointPosition, state.ipoJointPositionOffsets, std::back_inserter(jointStateToCommand), std::plus<KukaState::joint_state::value_type>());
+        
+        // copy the commanded position into the command message
+        set(friData.commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
+        
+		//BOOST_LOG_TRIVIAL(trace) << "ENCODE position: " << state.position << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << " jointStateToCommand: " << jointStateToCommand << "\n";
+    }else {
+        set(friData.commandMsg, state.commandedPosition, grl::revolute_joint_angle_open_chain_command_tag());
+    }
+	
+	int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
+        if (!friData.encoder.encode(friData.sendBuffer, buffersize))
+            return 0;
+	
+	return buffersize;
+}
+
+/// @deprecated this is an old implemenation that will be removed in the future
+/// @todo implment async version of this, probably in a small class
+/// @todo implement sending state
+void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, KukaState& state){
+    
+    boost::asio::ip::udp::endpoint sender_endpoint;
+	std::size_t buf_size = socket.receive_from(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),sender_endpoint);
+	decode(friData,buf_size);
+    KukaState::joint_state ipoJointCommand;
+    
+    // copy state over
+	copy(friData.monitoringMsg,state);
+    
+    // todo: figure out if there is a better place/time to do this
+    //state.ipoJointPosition.clear();
+
+    friData.lastSendCounter++;
+    // Check whether to send a response
+    if (friData.lastSendCounter >= friData.monitoringMsg.connectionInfo.receiveMultiplier){
+    	buf_size = encode(friData,state);
+		socket.send(boost::asio::buffer(friData.sendBuffer,buf_size));
+    }
+}
+
 
 }}} // namespace grl::robot::arm
 
