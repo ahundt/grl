@@ -269,7 +269,13 @@ void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& f
 }
 
 
-
+/// @todo make command and monitor data transfer to and from robot easy and correct
+/// We likely want the update_state loop to go around fast twice, once getting the new state, and the second time
+/// to send the new command based on available data. Does having to send and receive simultaneously
+/// make this more difficult?
+/// how to deal with the discrepancy between the latest state received and the monitor state to be sent?
+/// since the one to be sent is likely outdated we need to receive, apply some changes, then send...
+/// the current full swap of send and received data means the commanded actions are based on outdated info
 class KukaFRIClientDataDriver : public std::enable_shared_from_this<KukaFRIClientDataDriver>, public KukaFRI {
     
 public:
@@ -341,7 +347,7 @@ public:
     bool update_state(std::shared_ptr<KUKA::FRI::ClientData>& friData, boost::system::error_code& receive_ec,std::size_t& receive_bytes_transferred, boost::system::error_code& send_ec, std::size_t& send_bytes_transferred){
        
        if(exceptionPtr) {
-         // note: this exception most likely came from the update() call initializing opticalTrackerP
+         /// @note this exception most likely came from the update() call running the kuka driver
          std::rethrow_exception(exceptionPtr);
        }
         // ensure we have valid data for future updates
@@ -400,7 +406,7 @@ private:
 
             boost::asio::ip::udp::endpoint sender_endpoint;
             boost::asio::ip::udp::socket socket(connect(params_, io_service_,sender_endpoint));
-            KukaState kukastate;
+            KukaState kukastate; ///< @todo remove this line when new api works completely since old one is deprecated
             // run the primary update loop in a separate thread
             while (!m_shouldStop)
             {
@@ -410,11 +416,14 @@ private:
                 grl::robot::arm::update_state  (
                                                 socket
                                                 ,*std::get<latest_receive_monitor_state>(*nextStateP_)
+#if 0 // use old deprecated api
                                                 ,kukastate
-//                                                ,std::get<latest_receive_ec>(*nextStateP_)
-//                                                ,std::get<latest_receive_bytes_transferred>(*nextStateP_)
-//                                                ,std::get<latest_send_ec>(*nextStateP_)
-//                                                ,std::get<latest_send_bytes_transferred>(*nextStateP_)
+#else // use new api
+                                                ,std::get<latest_receive_ec>(*nextStateP_)
+                                                ,std::get<latest_receive_bytes_transferred>(*nextStateP_)
+                                                ,std::get<latest_send_ec>(*nextStateP_)
+                                                ,std::get<latest_send_bytes_transferred>(*nextStateP_)
+#endif
                                                );
                 isConnectionEstablished_ = true;
                 if(isUserUpdateAvailable_)

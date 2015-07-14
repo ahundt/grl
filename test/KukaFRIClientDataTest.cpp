@@ -102,10 +102,12 @@ int main(int argc, char* argv[])
   
     
     double delta = -0.001;
+    /// consider moving joint angles based on time
+    int joint_to_move = 6;
     BOOST_LOG_TRIVIAL(warning) << "WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT "
                                << "if joint angle delta variable is too large with respect to "
                                << "the time it takes to go around the loop and change it. "
-                               << "Current delta (radians/update): " << delta << "\n";
+                               << "Current delta (radians/update): " << delta << " Joint to move: " << joint_to_move << "\n";
   
     std::vector<double> ipoJointPos(7,0);
     std::vector<double> offsetFromipoJointPos(7,0); // length 7, value 0
@@ -124,9 +126,6 @@ int main(int argc, char* argv[])
         
         // if data didn't arrive correctly, skip and try again
         if(send_ec || recv_ec) continue;
-        
-        /// consider moving joint angles based on time
-        int joint_to_move = 6;
         
         
         if
