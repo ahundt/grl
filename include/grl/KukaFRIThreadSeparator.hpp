@@ -39,12 +39,21 @@ public:
     
     
     /// Advanced functionality, do not use without a great reason
-    static boost::asio::ip::udp::socket connect(Params& params, boost::asio::io_service& io_service_){
-            boost::asio::ip::udp::socket s(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(std::get<localhost>(params)), boost::lexical_cast<short>(std::get<localport>(params))));
+    template<typename T>
+    static boost::asio::ip::udp::socket connect(T& params, boost::asio::io_service& io_service_,boost::asio::ip::udp::endpoint& sender_endpoint){
+              std::string localhost(std::get<localhost>(params));
+              std::string lp(std::get<localport>(params));
+              short localport = boost::lexical_cast<short>(lp);
+              std::string remotehost(std::get<remotehost>(params));
+              std::string rp(std::get<remoteport>(params));
+              short remoteport = boost::lexical_cast<short>(rp);
+              std::cout << "using: "<< " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
+        
+            boost::asio::ip::udp::socket s(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(localhost), localport));
 
             boost::asio::ip::udp::resolver resolver(io_service_);
-            boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), std::get<remotehost>(params), std::get<remoteport>(params)});
-            s.connect(endpoint);
+            sender_endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), remotehost, rp});
+            s.connect(sender_endpoint);
         
             return std::move(s);
     }
@@ -112,8 +121,8 @@ public:
     void construct(Params params = defaultParams()){
 
         try {
-        
-            iiwaP = std::make_shared<robot::arm::kuka::iiwa>(KukaFRI::connect(params,io_service_));
+            boost::asio::ip::udp::endpoint sender_endpoint;
+            iiwaP = std::make_shared<robot::arm::kuka::iiwa>(KukaFRI::connect(params,io_service_,sender_endpoint));
             
             latest_commandState_ = std::make_shared<robot::arm::kuka::iiwa::CommandState>();
         
