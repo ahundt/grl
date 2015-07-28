@@ -9,6 +9,11 @@
 #include <boost/exception/all.hpp>
 #include <boost/config.hpp>
 
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+#include <boost/thread.hpp>
+#endif
+
+
 #include "grl/KukaFRI.hpp"
 #include "grl/exception.hpp"
 
@@ -204,8 +209,8 @@ public:
         std::shared_ptr<LatestState> latestStateP;
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
         {
-        std::lock_guard<std::mutex> lock(ptrMutex_);
-        std::swap(latestStateP,latest_state_);
+        boost::lock_guard<boost::mutex> lock(ptrMutex_);
+        boost::swap(latestStateP,latest_state_);
         }
 #else
         std::atomic_exchange(&latestStateP,latest_state_);
@@ -225,7 +230,7 @@ public:
     
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
             {
-            std::lock_guard<std::mutex> lock(ptrMutex_);
+            boost::lock_guard<boost::mutex> lock(ptrMutex_);
             std::swap(commandStateP,latest_commandState_);
             std::swap(commandStateP,spare_commandState_);
             }
@@ -268,7 +273,7 @@ public:
             
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
             {
-            std::lock_guard<std::mutex> lock(ptrMutex_);
+            boost::lock_guard<boost::mutex> lock(ptrMutex_);
             std::swap(commandStateP,spare_commandState_);
             }
 #else
@@ -305,7 +310,7 @@ private:
     void get_cs_ms(std::shared_ptr<robot::arm::kuka::iiwa::CommandState>& cs,std::shared_ptr<robot::arm::kuka::iiwa::MonitorState>& ms){
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
             {
-            std::lock_guard<std::mutex> lock(ptrMutex_);
+            boost::lock_guard<boost::mutex> lock(ptrMutex_);
             std::swap(ms,spare_monitorState_);
             }
 #else
@@ -337,7 +342,7 @@ private:
                     
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
                     {
-                    std::lock_guard<std::mutex> lock(ptrMutex_);
+                    boost::lock_guard<boost::mutex> lock(ptrMutex_);
                     std::swap(latest_state_,latestState);
                     }
 #else
@@ -351,7 +356,15 @@ private:
                        spare_monitorState_.get() == nullptr
                       )
                     {
-                      std::atomic_exchange(&spare_monitorState_,std::get<latest_receive_monitor_state>(*latestState));
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+                        {
+                        boost::lock_guard<boost::mutex> lock(ptrMutex_);
+                        std::swap(spare_monitorState_,std::get<latest_receive_monitor_state>(*latestState));
+                        }
+#else
+                        std::atomic_exchange(&spare_monitorState_,std::get<latest_receive_monitor_state>(*latestState));
+#endif
+
                     }
     
     }
@@ -422,7 +435,7 @@ private:
     std::shared_ptr<robot::arm::kuka::iiwa::CommandState> latest_commandState_;
     std::shared_ptr<robot::arm::kuka::iiwa::CommandState> spare_commandState_;
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
-    std::mutex ptrMutex_;
+    boost::mutex ptrMutex_;
 #endif
     
 };
