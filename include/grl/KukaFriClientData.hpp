@@ -3,6 +3,7 @@
 
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
+#include <boost/config.hpp>
 #include "friClientData.h"
 #include "grl/KukaFRI.hpp"
 #include "grl/KukaFRIThreadSeparator.hpp"
@@ -360,13 +361,27 @@ public:
         {
           tempFriData = friData;
         }
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+        {
+        std::lock_guard<std::mutex> lock(ptrMutex_);
+        std::swap(userThreadStateP_,latestStateP_);
+        }
+#else
         std::atomic_exchange(&userThreadStateP_,latestStateP_);
+#endif
         isUserUpdateAvailable_ = true;
         
         if(userThreadStateP_.get()!=nullptr)
         {
           std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = *userThreadStateP_;
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+          {
+          std::lock_guard<std::mutex> lock(ptrMutex_);
+          std::swap(std::get<latest_receive_monitor_state>(*userThreadStateP_),tempFriData);
+          }
+#else
           std::atomic_exchange(&std::get<latest_receive_monitor_state>(*userThreadStateP_),tempFriData);
+#endif
         }
         else
         {
@@ -429,7 +444,14 @@ private:
                 if(isUserUpdateAvailable_)
                 {
                     isUserUpdateAvailable_ = false;
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+                      {
+                      std::lock_guard<std::mutex> lock(ptrMutex_);
+                      std::swap(latestStateP_,nextStateP_);
+                      }
+#else
                     std::atomic_exchange(&latestStateP_,nextStateP_);
+#endif
                 }
             }
            
@@ -498,6 +520,9 @@ private:
 	// - load up a configuration file with ip address to send to, etc.
 	boost::asio::io_service& io_service_;
     std::unique_ptr<std::thread> driver_threadP_;
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+    std::mutex ptrMutex_;
+#endif
 };
 
 }}} // namespace grl::robot::arm
