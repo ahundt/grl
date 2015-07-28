@@ -4,6 +4,11 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
 #include <boost/config.hpp>
+
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+#include <boost/thread.hpp>
+#endif
+
 #include "friClientData.h"
 #include "grl/KukaFRI.hpp"
 #include "grl/KukaFRIThreadSeparator.hpp"
@@ -363,7 +368,7 @@ public:
         }
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
         {
-        std::lock_guard<std::mutex> lock(ptrMutex_);
+        boost::lock_guard<boost::mutex> lock(ptrMutex_);
         std::swap(userThreadStateP_,latestStateP_);
         }
 #else
@@ -376,7 +381,7 @@ public:
           std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = *userThreadStateP_;
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
           {
-          std::lock_guard<std::mutex> lock(ptrMutex_);
+          boost::lock_guard<boost::mutex> lock(ptrMutex_);
           std::swap(std::get<latest_receive_monitor_state>(*userThreadStateP_),tempFriData);
           }
 #else
@@ -446,7 +451,7 @@ private:
                     isUserUpdateAvailable_ = false;
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
                       {
-                      std::lock_guard<std::mutex> lock(ptrMutex_);
+                      boost::lock_guard<boost::mutex> lock(ptrMutex_);
                       std::swap(latestStateP_,nextStateP_);
                       }
 #else
@@ -521,7 +526,7 @@ private:
 	boost::asio::io_service& io_service_;
     std::unique_ptr<std::thread> driver_threadP_;
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
-    std::mutex ptrMutex_;
+    boost::mutex ptrMutex_;
 #endif
 };
 
