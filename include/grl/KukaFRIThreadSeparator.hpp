@@ -7,6 +7,7 @@
 #include <boost/asio.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/exception/all.hpp>
+#include <boost/config.hpp>
 
 #include "grl/KukaFRI.hpp"
 #include "grl/exception.hpp"
@@ -201,7 +202,14 @@ public:
                     boost::system::error_code& send_ec,std::size_t& send_bytes_transferred){
                     
         std::shared_ptr<LatestState> latestStateP;
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+        {
+        std::lock_guard<std::mutex> lock(ptrMutex_);
+        std::swap(latestStateP,latest_state_);
+        }
+#else
         std::atomic_exchange(&latestStateP,latest_state_);
+#endif
         
           if(latestStateP.get()!=nullptr) {
             std::tie(latestState,recv_ec,recv_bytes_transferred,send_ec,send_bytes_transferred) = *latestStateP;
@@ -214,8 +222,17 @@ public:
     /// Send a command to the arm.
     /// @todo change this to accept a unique_ptr (may be easier with C++14
     void async_sendCommand(std::shared_ptr<robot::arm::kuka::iiwa::CommandState> commandStateP){
+    
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+            {
+            std::lock_guard<std::mutex> lock(ptrMutex_);
+            std::swap(commandStateP,latest_commandState_);
+            std::swap(commandStateP,spare_commandState_);
+            }
+#else
             std::atomic_exchange(&commandStateP,latest_commandState_);
             std::atomic_exchange(&commandStateP,spare_commandState_);
+#endif
     }
     
     
@@ -248,7 +265,15 @@ public:
     /// @note IMPORTANT: WRITE ONLY! The command you get may contain no data or old data
     std::shared_ptr<robot::arm::kuka::iiwa::CommandState> makeCommandState(){
             std::shared_ptr<robot::arm::kuka::iiwa::CommandState> commandStateP;
+            
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+            {
+            std::lock_guard<std::mutex> lock(ptrMutex_);
+            std::swap(commandStateP,spare_commandState_);
+            }
+#else
             std::atomic_exchange(&commandStateP,spare_commandState_);
+#endif
             if(commandStateP.get()==nullptr){
               commandStateP = std::make_shared<robot::arm::kuka::iiwa::CommandState>();
             }
@@ -278,7 +303,14 @@ private:
 
     /// gets the commandstate and the monitorstate utilizing existing data if possible
     void get_cs_ms(std::shared_ptr<robot::arm::kuka::iiwa::CommandState>& cs,std::shared_ptr<robot::arm::kuka::iiwa::MonitorState>& ms){
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+            {
+            std::lock_guard<std::mutex> lock(ptrMutex_);
+            std::swap(ms,spare_monitorState_);
+            }
+#else
             std::atomic_exchange(&ms,spare_monitorState_);
+#endif
             if (ms.get()==nullptr) {
                 ms = std::make_shared<robot::arm::kuka::iiwa::MonitorState>();
             }
@@ -302,7 +334,15 @@ private:
                     // new data available
                     /// @todo if there is a spare use that
                     std::shared_ptr<LatestState> latestState = std::make_shared<LatestState>(std::make_tuple(ms, recv_ec,  receive_bytes_transferred, send_ec,  send_bytes_transferred));
+                    
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+                    {
+                    std::lock_guard<std::mutex> lock(ptrMutex_);
+                    std::swap(latest_state_,latestState);
+                    }
+#else
                     std::atomic_exchange(&latest_state_,latestState);
+#endif
 
                     // save the monitor state as a spare if it is possible
                     if(
@@ -381,6 +421,9 @@ private:
     /// the front is the most recent state, the back is the oldest
     std::shared_ptr<robot::arm::kuka::iiwa::CommandState> latest_commandState_;
     std::shared_ptr<robot::arm::kuka::iiwa::CommandState> spare_commandState_;
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+    std::mutex ptrMutex_;
+#endif
     
 };
 
