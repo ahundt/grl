@@ -197,7 +197,8 @@ void run_one(){
 
   if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates."));
   getRealKukaAngles();
-  getStateFromVrep();
+  bool isError = getStateFromVrep(); // true if there is an error
+  allHandlesSet = !isError;
   /// @todo re-enable simulation feedback based on actual kuka state
   //updateVrepFromKuka();
   sendSimulatedJointAnglesToKuka();
@@ -237,11 +238,13 @@ void initHandles() {
             std::get<RobotTargetBaseName>    (params_)
         )
     );
+    /// @todo remove this assumption
 	allHandlesSet  = true;
 }
 
 void getRealKukaAngles() {
-
+      /// @todo DANGEROUS HACK!!!! REMOVE ME AFTER DEBUGGING
+      m_haveReceivedRealData = true;
     
     if(kukaFRIThreadSeparatorP)
     {
@@ -383,14 +386,15 @@ void setArmLimits(){
 
 }
 
+/// @return isError - true if there is an error, false if there is no Error
 bool getStateFromVrep(){
             if(!allHandlesSet || !vrepRobotArmDriverP_) return false;
 			
             VrepRobotArmDriver::State armState;
     
-            bool error = vrepRobotArmDriverP_->getState(armState);
+            bool isError = vrepRobotArmDriverP_->getState(armState);
     
-            if(error) return false;
+            if(isError) return isError;
     
             simJointPosition             = std::get<VrepRobotArmDriver::JointPosition>      (armState);
             simJointForce                = std::get<VrepRobotArmDriver::JointForce>         (armState);
@@ -424,7 +428,7 @@ bool getStateFromVrep(){
 //
 //			}
 			// Send updated position to the real arm based on simulation
-            return true;
+            return false;
 }
 
 /// @todo reenable this component
@@ -457,7 +461,7 @@ bool updateVrepFromKuka() {
 				//simSetJointTargetVelocity(jointHandle[i],realJointTargetVelocity[i]);  //Sets the intrinsic target velocity of a non-spherical joint. This command makes only sense when the joint mode is: (a) motion mode: the joint's motion handling feature must be enabled (simHandleJoint must be called (is called by default in the main script), and the joint motion properties must be set in the joint settings dialog), (b) torque/force mode: the dynamics functionality and the joint motor have to be enabled (position control should however be disabled)
 			}
     
-            return true;
+            return false;
 }
 
 volatile bool allHandlesSet = false;

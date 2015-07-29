@@ -87,6 +87,7 @@ public:
     VrepRobotArmDriver(Params params = defaultParams())
     : params_(params)
     {
+      construct();
     }
     
 /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
@@ -101,7 +102,7 @@ void construct() {
 }
 
 
-
+/// @return 0 if ok 1 if problem
 bool getState(State& state){
             if(!allHandlesSet) return false;
     
@@ -138,7 +139,7 @@ bool getState(State& state){
 //
 //			}
 			// Send updated position to the real arm based on simulation
-            return true;
+            return false;
 }
 
 
@@ -179,7 +180,7 @@ private:
 
 Params params_;
 
-std::vector<int> jointHandle = {-1,-1,-1,-1,-1,-1,-1};	//global variables defined
+std::vector<int> jointHandle = {}; // {-1,-1,-1,-1,-1,-1,-1};	//global variables defined
 int robotTip = -1;					//Obtain RobotTip handle
 int target = -1;
 int targetBase = -1;

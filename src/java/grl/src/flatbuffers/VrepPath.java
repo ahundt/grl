@@ -7,15 +7,14 @@ import java.lang.*;
 import java.util.*;
 import com.google.flatbuffers.*;
 
-@SuppressWarnings("unused")
 public class VrepPath extends Table {
-  public static VrepPath getRootAsVrepPath(ByteBuffer _bb) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (new VrepPath()).__init(_bb.getInt(_bb.position()) + _bb.position(), _bb); }
+  public static VrepPath getRootAsVrepPath(ByteBuffer _bb) { return getRootAsVrepPath(_bb, new VrepPath()); }
+  public static VrepPath getRootAsVrepPath(ByteBuffer _bb, VrepPath obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public VrepPath __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
   public VrepControlPoint controlPoints(int j) { return controlPoints(new VrepControlPoint(), j); }
   public VrepControlPoint controlPoints(VrepControlPoint obj, int j) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
   public int controlPointsLength() { int o = __offset(4); return o != 0 ? __vector_len(o) : 0; }
-  public ByteBuffer controlPointsAsByteBuffer() { return __vector_as_bytebuffer(4, 4); }
 
   public static int createVrepPath(FlatBufferBuilder builder,
       int controlPoints) {

@@ -7,9 +7,9 @@ import java.lang.*;
 import java.util.*;
 import com.google.flatbuffers.*;
 
-@SuppressWarnings("unused")
 public class VrepControlPoint extends Table {
-  public static VrepControlPoint getRootAsVrepControlPoint(ByteBuffer _bb) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (new VrepControlPoint()).__init(_bb.getInt(_bb.position()) + _bb.position(), _bb); }
+  public static VrepControlPoint getRootAsVrepControlPoint(ByteBuffer _bb) { return getRootAsVrepControlPoint(_bb, new VrepControlPoint()); }
+  public static VrepControlPoint getRootAsVrepControlPoint(ByteBuffer _bb, VrepControlPoint obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public VrepControlPoint __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
   public Vector3d position() { return position(new Vector3d()); }

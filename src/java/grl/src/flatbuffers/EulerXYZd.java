@@ -7,7 +7,6 @@ import java.lang.*;
 import java.util.*;
 import com.google.flatbuffers.*;
 
-@SuppressWarnings("unused")
 public class EulerXYZd extends Struct {
   public EulerXYZd __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
