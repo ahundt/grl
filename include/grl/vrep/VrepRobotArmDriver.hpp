@@ -87,13 +87,12 @@ public:
     VrepRobotArmDriver(Params params = defaultParams())
     : params_(params)
     {
-      construct();
     }
     
 /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
 /// @todo throw an exception if any of the handles is -1
 void construct() {
-
+    jointHandle.clear();
     getHandleFromParam<JointNames>(params_,std::back_inserter(jointHandle)); //Obtain Joint Handles
 	robotTip       = getHandleFromParam<RobotTipName>           (params_);					//Obtain RobotTip handle
 	target         = getHandleFromParam<RobotTargetName>        (params_);

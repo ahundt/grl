@@ -168,7 +168,9 @@ KukaVrepPlugin (Params params = defaultParams())
   }
   
   	try {
-        BOOST_LOG_TRIVIAL(trace) << "connecting zmq\n";
+        BOOST_LOG_TRIVIAL(trace) << "KukaLBRiiwaVrepPlugin: Connecting ZeroMQ Socket from " <<
+                               std::get<LocalZMQAddress>             (params_) << " to " <<
+                               std::get<RemoteZMQAddress>            (params_);
 		boost::system::error_code ec;
 		azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
 		socket.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
@@ -238,6 +240,7 @@ void initHandles() {
             std::get<RobotTargetBaseName>    (params_)
         )
     );
+    vrepRobotArmDriverP_->construct();
     /// @todo remove this assumption
 	allHandlesSet  = true;
 }
