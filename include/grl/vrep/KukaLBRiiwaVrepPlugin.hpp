@@ -134,10 +134,21 @@ KukaVrepPlugin (Params params = defaultParams())
       :
       params_(params)
 {
+}
+
+void construct(){construct(params_);}
+
+/// construct() function completes initialization of the plugin
+/// @todo move this into the actual constructor, but need to correctly handle or attach vrep shared libraries for unit tests.
+void construct(Params params){
+  params_ = params;
+  // keep driver threads from exiting immediately after creation, because they have work to do!
+  device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
+  
 /// @todo figure out how to re-enable when .so isn't loaded
  // initHandles();
- if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC")) ||
-     boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA"))
+ if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC"))
+     // || boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")) /// @todo enable if driver isn't working
  )
  {
      kukaFRIThreadSeparatorP.reset(
@@ -188,11 +199,6 @@ KukaVrepPlugin (Params params = defaultParams())
                                std::get<RemoteZMQAddress>            (params_));
         throw;
     }
-}
-
-/// construct() function completes initialization of the plugin
-/// @todo move this into the actual constructor, but need to correctly handle or attach vrep shared libraries for unit tests.
-void construct(){
   initHandles();
 }
 
@@ -211,8 +217,9 @@ void run_one(){
 
 
 ~KukaVrepPlugin(){
+	device_driver_workP_.reset();
+    
     if(driver_threadP){
-	  //workP.reset();
       device_driver_io_service.stop();
       driver_threadP->join();
     }
@@ -248,7 +255,7 @@ void initHandles() {
 }
 
 void getRealKukaAngles() {
-      /// @todo DANGEROUS HACK!!!! REMOVE ME AFTER DEBUGGING
+      /// @todo m_haveReceivedRealData = true is a DANGEROUS HACK!!!! REMOVE ME AFTER DEBUGGING
       m_haveReceivedRealData = true;
     
     if(kukaFRIThreadSeparatorP)
@@ -332,16 +339,18 @@ void sendSimulatedJointAnglesToKuka(){
         {
             // note: this one sends *and* receives the joint data!
             BOOST_VERIFY(kukaFRIClientDataDriverP_.get()!=nullptr);
-            std::shared_ptr<KUKA::FRI::ClientData> friData;
+            /// @todo use runtime calculation of NUM_JOINTS instead of constant
+            if(!friData_) friData_ = std::make_shared<KUKA::FRI::ClientData>(7);
             
             // Set the FRI to the simulated joint positions
-            grl::robot::arm::set(friData->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-            grl::robot::arm::set(friData->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+            grl::robot::arm::set(friData_->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+            grl::robot::arm::set(friData_->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+        
         
         
             boost::system::error_code send_ec,recv_ec;
             std::size_t send_bytes, recv_bytes;
-            bool error = kukaFRIClientDataDriverP_->update_state(friData,recv_ec,recv_bytes,send_ec,send_bytes);
+            bool error = kukaFRIClientDataDriverP_->update_state(friData_,recv_ec,recv_bytes,send_ec,send_bytes);
         
             if(!error)
             {
@@ -357,14 +366,14 @@ void sendSimulatedJointAnglesToKuka(){
             // We have the real kuka state read from the device now
             // update real joint angle data
             realJointPosition.clear();
-            grl::robot::arm::copy(friData->monitoringMsg, std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
             
             
             realJointForce.clear();
-            grl::robot::arm::copy(friData->monitoringMsg, std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
             
             realJointPosition.clear();
-            grl::robot::arm::copy(friData->monitoringMsg, std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
         
         
         }
@@ -473,6 +482,7 @@ volatile bool allHandlesSet = false;
 volatile bool m_haveReceivedRealData = false;
 
 boost::asio::io_service device_driver_io_service;
+std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
 std::unique_ptr<std::thread> driver_threadP;
 std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver> kukaFRIClientDataDriverP_;
 std::shared_ptr<grl::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
@@ -497,7 +507,8 @@ std::vector<float> realJointForce           = { 0, 0, 0, 0, 0, 0, 0 };
 
 private:
 Params params_;
-
+/// for use in FRI clientdata mode
+std::shared_ptr<KUKA::FRI::ClientData> friData_;
 };
   
 }} // grl::vrep
