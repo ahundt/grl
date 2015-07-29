@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
   
     BOOST_VERIFY(friData);
   
-    double delta = -0.0001;
+    double delta = -0.0005;
     /// consider moving joint angles based on time
     int joint_to_move = 6;
     BOOST_LOG_TRIVIAL(warning) << "WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT "
@@ -120,6 +120,9 @@ int main(int argc, char* argv[])
         std::size_t send_bytes_transferred = 0, recv_bytes_transferred = 0;
         driver.update_state(friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
         
+        /// use the interpolated joint position from the previous update as the base
+        /// @todo why is this?
+        if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
         // if data didn't arrive correctly, skip and try again
         if(send_ec || recv_ec || recv_bytes_transferred == 0){
@@ -132,7 +135,7 @@ int main(int argc, char* argv[])
         
         if (grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
         {
-#if 0 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it seems to cause motion jumps which has lead to the arm being inoperable with errors.
+#if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it seems to cause motion jumps which has lead to the arm being inoperable with errors.
             /// @todo make these settings directly time based, not loop based!
             offsetFromipoJointPos[joint_to_move]+=delta;
             // swap directions when a half circle was completed
