@@ -250,9 +250,11 @@ std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
 	return buffersize;
 }
 
+
 /// @deprecated this is an old implemenation that will be removed in the future
-/// @todo implment async version of this, probably in a small class
 /// @todo implement sending state
+///
+/// @see void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, boost::system::error_code& receive_ec,std::size_t& receive_bytes_transferred, boost::system::error_code& send_ec, std::size_t& send_bytes_transferred, boost::asio::ip::udp::endpoint sender_endpoint = boost::asio::ip::udp::endpoint())
 void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, KukaState& state, boost::asio::ip::udp::endpoint sender_endpoint = boost::asio::ip::udp::endpoint()){
     
     boost::system::error_code receive_ec;
@@ -343,7 +345,14 @@ public:
 
     /// @brief Updates the passed friData shared pointer to a pointer to newly updated data, plus any errors that occurred.
     ///
-    /// @note This function is not thread safe cannot be called simultaneously from multiple threads.
+    /// This function is designed for single threaded use to quickly receive and send "non-blocking" updates to the robot.
+    /// It is not thread safe cannot be called simultaneously from multiple threads.
+    ///
+    /// @note { An error code is set if update_state is called with no new data available.
+    ///         In this special case, all error codes and bytes_transferred are 0, because
+    ///         there was no new data available for the user.
+    ///       }
+    ///
     ///
     /// @param[in,out] friData the pointer to update with new state and optional input state.
     ///
@@ -374,7 +383,8 @@ public:
 #else
         std::atomic_exchange(&userThreadStateP_,latestStateP_);
 #endif
-        isUserUpdateAvailable_ = true;
+        // the user has provided new data to send to the device
+        isUserUpdateForDeviceAvailable_ = true;
         
         if(userThreadStateP_.get()!=nullptr)
         {
@@ -446,9 +456,9 @@ private:
 #endif
                                                );
                 isConnectionEstablished_ = true;
-                if(isUserUpdateAvailable_)
+                if(isUserUpdateForDeviceAvailable_)
                 {
-                    isUserUpdateAvailable_ = false;
+                    isUserUpdateForDeviceAvailable_ = false;
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
                       {
                       boost::lock_guard<boost::mutex> lock(ptrMutex_);
@@ -514,7 +524,8 @@ private:
     std::atomic<bool> m_shouldStop;
     std::exception_ptr exceptionPtr;
     std::atomic<bool> isConnectionEstablished_;
-    std::atomic<bool> isUserUpdateAvailable_;
+    /// the user has provided new data to send to the device
+    std::atomic<bool> isUserUpdateForDeviceAvailable_;
 
     /// may be null, allows the user to choose if they want to provide an io_service
     std::unique_ptr<boost::asio::io_service> optional_internal_io_service_P;
