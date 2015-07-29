@@ -136,7 +136,9 @@ KukaVrepPlugin (Params params = defaultParams())
 {
 /// @todo figure out how to re-enable when .so isn't loaded
  // initHandles();
- if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC")))
+ if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC")) ||
+     boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA"))
+ )
  {
      kukaFRIThreadSeparatorP.reset(
         new grl::KukaFRIThreadSeparator(
