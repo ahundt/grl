@@ -58,10 +58,37 @@
 
 using boost::asio::ip::udp;
 
+#include <chrono>
+
+/// @see https://stackoverflow.com/questions/2808398/easily-measure-elapsed-time
+template<typename TimeT = std::chrono::milliseconds>
+struct periodic
+{
+    periodic():start(std::chrono::system_clock::now()){};
+
+    template<typename F, typename ...Args>
+    typename TimeT::rep execution(F func, Args&&... args)
+    {
+        auto duration = std::chrono::duration_cast< TimeT> 
+                            (std::chrono::system_clock::now() - start);
+        auto count = duration.count();
+        if(count > previous_count) func(std::forward<Args>(args)...);
+        previous_count = count;
+        return count;
+    }
+    
+    std::chrono::time_point<std::chrono::system_clock> start;
+    std::size_t previous_count;
+};
+
+
 enum { max_length = 1024 };
 
 int main(int argc, char* argv[])
 {
+
+  periodic<> callIfMinPeriodPassed;
+
   try
   {
     std::string localhost("192.170.10.100");
@@ -93,7 +120,7 @@ int main(int argc, char* argv[])
   
     BOOST_VERIFY(friData);
   
-    double delta = -0.0005;
+    double delta = -0.0001;
     /// consider moving joint angles based on time
     int joint_to_move = 6;
     BOOST_LOG_TRIVIAL(warning) << "WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT "
@@ -118,34 +145,46 @@ int main(int argc, char* argv[])
         /// perform the update step, receiving and sending data to/from the arm
         boost::system::error_code send_ec, recv_ec;
         std::size_t send_bytes_transferred = 0, recv_bytes_transferred = 0;
-        driver.update_state(friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
+        bool haveNewData = !driver.update_state(friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
+        
+        // if data didn't arrive correctly, skip and try again
+        if(send_ec || recv_ec )
+        {
+           std::cout  << "receive error: " << recv_ec << "receive bytes: " << recv_bytes_transferred << " send error: " << send_ec << " send bytes: " << send_bytes_transferred <<  " iteration: "<< i << "\n";
+           std::this_thread::sleep_for(std::chrono::milliseconds(1));
+           continue;
+        }
+        
+        // If we didn't receive anything new that is normal behavior,
+        // but we can't process the new data so try updating again immediately.
+        if(!haveNewData)
+        {
+           std::this_thread::sleep_for(std::chrono::milliseconds(1));
+           continue;
+        }
         
         /// use the interpolated joint position from the previous update as the base
         /// @todo why is this?
         if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
-
-        // if data didn't arrive correctly, skip and try again
-        if(send_ec || recv_ec || recv_bytes_transferred == 0){
-           std::cout  << "receive error: " << recv_ec << "receive bytes: " << recv_bytes_transferred << " send error: " << send_ec << " send bytes: " << send_bytes_transferred <<  " iteration: "<< i << "\n";
-           std::this_thread::sleep_for(std::chrono::milliseconds(10));
-           continue;
-         }
         
         
         
         if (grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
         {
-#if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it seems to cause motion jumps which has lead to the arm being inoperable with errors.
-            /// @todo make these settings directly time based, not loop based!
-            offsetFromipoJointPos[joint_to_move]+=delta;
-            // swap directions when a half circle was completed
-            if (
-                 (offsetFromipoJointPos[joint_to_move] >  0.2 && delta > 0) ||
-                 (offsetFromipoJointPos[joint_to_move] < -0.2 && delta < 0)
-               )
+#if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
+            callIfMinPeriodPassed.execution( [&offsetFromipoJointPos,&delta,joint_to_move]()
             {
-               delta *=-1;
-            }
+                    offsetFromipoJointPos[joint_to_move]+=delta;
+                    // swap directions when a half circle was completed
+                    if (
+                         (offsetFromipoJointPos[joint_to_move] >  0.2 && delta > 0) ||
+                         (offsetFromipoJointPos[joint_to_move] < -0.2 && delta < 0)
+                       )
+                    {
+                       delta *=-1;
+                    }
+            });
+        
 #endif
         }
         
