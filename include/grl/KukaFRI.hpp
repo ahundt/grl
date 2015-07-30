@@ -289,6 +289,39 @@ namespace grl { namespace robot {
      }
      
      
+    /// set the left destination FRICommandMessage state to be equal to the right source FRICommandMessage state
+    static inline void set(FRICommandMessage & state, FRICommandMessage& sourceState, grl::command_tag) {
+       state.has_commandData = sourceState.has_commandData;
+       
+       // cartesianWrench
+       state.commandData.has_cartesianWrenchFeedForward = state.commandData.has_cartesianWrenchFeedForward;
+       std::copy_n(&state.commandData.cartesianWrenchFeedForward.element[0],std::min(state.commandData.cartesianWrenchFeedForward.element_count,sourceState.commandData.cartesianWrenchFeedForward.element_count), &state.commandData.cartesianWrenchFeedForward.element[0]);
+       
+       // for joint copying
+       tRepeatedDoubleArguments *dest;
+       tRepeatedDoubleArguments *source;
+       
+       
+       
+       // jointTorque
+       state.commandData.has_jointTorque = state.commandData.has_jointTorque;
+       dest   =  (tRepeatedDoubleArguments*)state.commandData.jointTorque.value.arg;
+       source =  (tRepeatedDoubleArguments*)sourceState.commandData.jointTorque.value.arg;
+       std::copy_n(source->value,std::min(source->size,dest->size), dest->value);
+       
+       
+       // jointPosition
+       state.commandData.has_jointPosition = state.commandData.has_jointPosition;
+       dest   =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
+       source =  (tRepeatedDoubleArguments*)sourceState.commandData.jointPosition.value.arg;
+       std::copy_n(source->value,std::min(source->size,dest->size), dest->value);
+       
+     }
+     
+     
+    static inline void set(FRICommandMessage & state, FRICommandMessage& sourceState) {
+       set(state,sourceState, grl::command_tag());
+    }
 	
 	
 namespace kuka {
