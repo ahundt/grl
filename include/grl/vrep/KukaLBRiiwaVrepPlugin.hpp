@@ -350,9 +350,9 @@ void sendSimulatedJointAnglesToKuka(){
         
             boost::system::error_code send_ec,recv_ec;
             std::size_t send_bytes, recv_bytes;
-            bool error = kukaFRIClientDataDriverP_->update_state(friData_,recv_ec,recv_bytes,send_ec,send_bytes);
+            bool haveNewData = !kukaFRIClientDataDriverP_->update_state(friData_,recv_ec,recv_bytes,send_ec,send_bytes);
         
-            if(!error)
+            if(haveNewData)
             {
               this->m_haveReceivedRealData = true;
             }
