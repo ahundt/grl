@@ -290,7 +290,7 @@ namespace grl { namespace robot {
      
      
     /// set the left destination FRICommandMessage state to be equal to the right source FRICommandMessage state
-    static inline void set(FRICommandMessage & state, FRICommandMessage& sourceState, grl::command_tag) {
+    static inline void set(FRICommandMessage & state, const FRICommandMessage& sourceState, grl::command_tag) {
        state.has_commandData = sourceState.has_commandData;
        
        // cartesianWrench
@@ -319,7 +319,7 @@ namespace grl { namespace robot {
      }
      
      
-    static inline void set(FRICommandMessage & state, FRICommandMessage& sourceState) {
+    static inline void set(FRICommandMessage & state, const FRICommandMessage& sourceState) {
        set(state,sourceState, grl::command_tag());
     }
 	
