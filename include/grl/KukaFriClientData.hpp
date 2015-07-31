@@ -291,7 +291,8 @@ public:
             ///////////
             // initialize all of the states
             latestStateForUser_      = make_valid_LatestState();
-            spareState_              = make_valid_LatestState();
+            spareStates_.emplace_back(std::move(make_valid_LatestState()));
+            spareStates_.emplace_back(std::move(make_valid_LatestState()));
             
             // start up the driver thread since the io_service_ is internal only
             if(std::get<is_running_automatically>(params))
@@ -344,7 +345,7 @@ public:
        
        bool haveNewData = false;
        
-       if(!std::get<latest_receive_monitor_state>(latestStateForUser_))
+       if(!isConnectionEstablished_ || !std::get<latest_receive_monitor_state>(latestStateForUser_))
        {
           // no new data, so immediately return results accordingly
           std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = make_LatestState(friData);
@@ -368,6 +369,10 @@ public:
             }
             // newCommandForDriver_ is finalized
         
+            if(spareStates_.size() < spareStates_.capacity() && std::get<latest_receive_monitor_state>(validFriDataLatestState))
+            {
+               spareStates_.emplace_back(std::move(validFriDataLatestState));
+            }
         
             if(std::get<latest_receive_monitor_state>(latestStateForUser_))
             {
@@ -375,20 +380,10 @@ public:
                 std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = std::move(latestStateForUser_);
                 haveNewData = true;
             }
-            else
+            else if(std::get<latest_receive_monitor_state>(validFriDataLatestState))
             {
-                if(!std::get<latest_receive_monitor_state>(spareState_))
-                {
-                   spareState_ = std::move(validFriDataLatestState);
-                   // we have nothing new but need the spare, so set everything to null
-                   std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = LatestState();
-                }
-                else
-                {
-                   // all storage is full, return the spare data to the user
-                   std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = validFriDataLatestState;
-                }
-            
+                // all storage is full, return the spare data to the user
+                std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = validFriDataLatestState;
             }
         
         }
@@ -438,8 +433,9 @@ private:
             {
                 /// @todo maybe there is a more convienient way to set this that is easier for users? perhaps initializeClientDataForiiwa()?
             
-                // nextState should never be null
+                // nextState and latestCommandBackup should never be null
                 BOOST_VERIFY(std::get<latest_receive_monitor_state>(nextState));
+                BOOST_VERIFY(std::get<latest_receive_monitor_state>(latestCommandBackup));
             
                 // set the flag that must always be there
                 std::get<latest_receive_monitor_state>(nextState)->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
@@ -495,9 +491,9 @@ private:
                        {
                           nextState = std::move(newCommandForDriver_);
                        }
-                       else if(!std::get<latest_receive_monitor_state>(spareState_))
+                       else if(!(spareStates_.size()==spareStates_.capacity()))
                        {
-                          spareState_ = std::move(newCommandForDriver_);
+                          spareStates_.emplace_back(std::move(newCommandForDriver_));
                        }
                        else
                        {
@@ -509,14 +505,16 @@ private:
                     // issues to be resolved:
                     // nextState: may be null right now, and it should be valid
                     // newCommandForDriver_: needs to be cleared with 100% certainty
-                    BOOST_VERIFY(std::get<latest_receive_monitor_state>(spareState_) || std::get<latest_receive_monitor_state>(nextState));
+                    BOOST_VERIFY(spareStates_.size()>0);
                     
                     if(
                        !std::get<latest_receive_monitor_state>(nextState)
-                       && std::get<latest_receive_monitor_state>(spareState_)
+                       && spareStates_.size()
                       )
                     {
-                      nextState = std::move(spareState_);
+                      // move the last element out and shorten the vector
+                      nextState = std::move(*(spareStates_.end()-1));
+                      spareStates_.pop_back();
                     }
                     
                     BOOST_VERIFY(std::get<latest_receive_monitor_state>(nextState));
@@ -633,7 +631,7 @@ private:
     LatestState newCommandForDriver_;
     
     /// should always be valid, never null
-    LatestState spareState_;
+    boost::container::static_vector<LatestState,2> spareStates_;
     
     std::atomic<bool> m_shouldStop;
     std::exception_ptr exceptionPtr;
