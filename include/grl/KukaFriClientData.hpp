@@ -47,9 +47,6 @@ namespace grl { namespace robot { namespace arm {
 
 
 
-
-
-
     // Decode message buffer (using nanopb decoder)
 void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
     // The decoder was given a pointer to the monitoringMessage at initialization
@@ -75,25 +72,6 @@ void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
 
 
 
-/////////////////////////////////
-//  moving out to user code
-//    // copy current joint position to commanded position
-//	if ((state.ipoJointPosition.size() == KUKA::LBRState::NUM_DOF) &&
-//        (((friData.sessionState == KUKA::FRI::COMMANDING_WAIT)) || (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE))
-//       ) {
-//
-//         KukaState::joint_state jointStateToCommand;
-//        // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
-//        boost::transform ( state.ipoJointPosition, state.ipoJointPositionOffsets, std::back_inserter(jointStateToCommand), std::plus<KukaState::joint_state::value_type>());
-//        
-//        // copy the commanded position into the command message
-//        set(friData.commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
-//        
-//		//BOOST_LOG_TRIVIAL(trace) << "ENCODE position: " << state.position << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << " jointStateToCommand: " << jointStateToCommand << "\n";
-//    }else {
-//        set(friData.commandMsg, state.commandedPosition, grl::revolute_joint_angle_open_chain_command_tag());
-//    }
-
 /// encode data in the class into the send buffer
 std::size_t encode(KUKA::FRI::ClientData& friData,boost::system::error_code& ec){
     // reset send counter
@@ -106,22 +84,10 @@ std::size_t encode(KUKA::FRI::ClientData& friData,boost::system::error_code& ec)
     KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData.monitoringMsg,KUKA::FRI::ESessionState());
         // copy current joint position to commanded position
 	if (
-        friData.commandMsg.has_commandData &&
-        (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE)
+        !(friData.commandMsg.has_commandData &&
+        (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE))
        )
     {
-           /// @todo check that the user set things, if not, copy from the monitormessage
-       
-//         KukaState::joint_state jointStateToCommand;
-//        
-//        // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
-//        boost::transform ( state.ipoJointPosition, state.ipoJointPositionOffsets, std::back_inserter(jointStateToCommand), std::plus<KukaState::joint_state::value_type>());
-//
-//        // copy the commanded position into the command message
-//        set(friData.commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
-//        
-//		//BOOST_LOG_TRIVIAL(trace) << "ENCODE position: " << state.position << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << " jointStateToCommand: " << jointStateToCommand << "\n";
-    } else {
         /// @todo allow copying of data directly between commandmsg and monitoringMsg
         std::vector<double> msg;
         copy(friData.monitoringMsg,std::back_inserter(msg),revolute_joint_angle_open_chain_command_tag());
@@ -276,11 +242,8 @@ void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& f
     }
 }
 
-
-/// @todo make command and monitor data transfer to and from robot easy and correct
-/// We likely want the update_state loop to go around fast twice, once getting the new state, and the second time
-/// to send the new command based on available data. Does having to send and receive simultaneously
-/// make this more difficult?
+/// @brief Simple driver to communicate over the Kuka iiwa FRI interface
+///
 /// how to deal with the discrepancy between the latest state received and the monitor state to be sent?
 /// since the one to be sent is likely outdated we need to receive, apply some changes, then send...
 /// the current full swap of send and received data means the commanded actions are based on outdated info
@@ -327,8 +290,8 @@ public:
         
             ///////////
             // initialize all of the states
-            latestStateForUserP_      = make_shared_valid_LatestState();
-            spareStateP_              = make_shared_valid_LatestState();
+            latestStateForUser_      = make_valid_LatestState();
+            spareState_              = make_valid_LatestState();
             
             // start up the driver thread since the io_service_ is internal only
             if(std::get<is_running_automatically>(params))
@@ -344,7 +307,7 @@ public:
     }
     
     /// @brief blocking call to communicate with the robot continuously
-    /// @pre construct() should
+    /// @pre construct() should be called before run()
     void run(){
       update();
     }
@@ -365,6 +328,7 @@ public:
     ///         there was no new data available for the user.
     ///       }
     ///
+    /// @warning Do not pound this call continuously in a very tight loop, because then the driver won't be able to acquire the lock and send updates to the robot.
     ///
     /// @param[in,out] friData supply a new command, receive a new update of the robot state. Pointer is null if no new data is available.
     ///
@@ -380,7 +344,7 @@ public:
        
        bool haveNewData = false;
        
-       if(!latestStateForUserP_)
+       if(!std::get<latest_receive_monitor_state>(latestStateForUser_))
        {
           // no new data, so immediately return results accordingly
           std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = make_LatestState(friData);
@@ -390,7 +354,7 @@ public:
         // ensure we have valid data for future updates
         // need to copy this over because friData will be set as an output value later
         // and allocate/initialize data if null
-        auto validFriDataLatestStateP = make_shared_valid_LatestState(friData);
+        auto validFriDataLatestState = make_valid_LatestState(friData);
         
         // get the latest state from the driver thread
         {
@@ -398,31 +362,31 @@ public:
             
             // get the update if one is available
             // the user has provided new data to send to the device
-            if(std::get<latest_receive_monitor_state>(*validFriDataLatestStateP)->commandMsg.has_commandData)
+            if(std::get<latest_receive_monitor_state>(validFriDataLatestState)->commandMsg.has_commandData)
             {
-                  std::swap(validFriDataLatestStateP,newCommandForDriverP_);
+                  std::swap(validFriDataLatestState,newCommandForDriver_);
             }
-            // newCommandForDriverP_ is finalized
+            // newCommandForDriver_ is finalized
         
         
-            if(latestStateForUserP_)
+            if(std::get<latest_receive_monitor_state>(latestStateForUser_))
             {
                 // return the latest state to the caller
-                std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = *std::move(latestStateForUserP_);
+                std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = std::move(latestStateForUser_);
                 haveNewData = true;
             }
             else
             {
-                if(!spareStateP_)
+                if(!std::get<latest_receive_monitor_state>(spareState_))
                 {
-                   spareStateP_ = std::move(validFriDataLatestStateP);
+                   spareState_ = std::move(validFriDataLatestState);
                    // we have nothing new but need the spare, so set everything to null
                    std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = LatestState();
                 }
                 else
                 {
                    // all storage is full, return the spare data to the user
-                   std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = *validFriDataLatestStateP;
+                   std::tie(friData,receive_ec,receive_bytes_transferred,send_ec,send_bytes_transferred) = validFriDataLatestState;
                 }
             
             }
@@ -454,14 +418,15 @@ public:
 
 private:
     /// Reads data off of the real kuka fri device in a separate thread
+    /// @todo consider switching to single producer single consumer queue to avoid locking overhead, but keep latency in mind https://github.com/facebook/folly/blob/master/folly/docs/ProducerConsumerQueue.md
     void update() {
        try
        {
 
-            /// nextStateP is the object currently being loaded with data off the network
+            /// nextState is the object currently being loaded with data off the network
             /// the driver thread should access this exclusively in update()
-            auto nextStateP           = make_shared_valid_LatestState();
-            auto latestCommandBackupP = make_shared_valid_LatestState();
+            LatestState nextState           = make_valid_LatestState();
+            LatestState latestCommandBackup = make_valid_LatestState();
 
             boost::asio::ip::udp::endpoint sender_endpoint;
             boost::asio::ip::udp::socket socket(connect(params_, io_service_,sender_endpoint));
@@ -473,29 +438,32 @@ private:
             {
                 /// @todo maybe there is a more convienient way to set this that is easier for users? perhaps initializeClientDataForiiwa()?
             
-                // nextStateP should never be null
-                BOOST_VERIFY(nextStateP);
+                // nextState should never be null
+                BOOST_VERIFY(std::get<latest_receive_monitor_state>(nextState));
             
                 // set the flag that must always be there
-                std::get<latest_receive_monitor_state>(*nextStateP)->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
+                std::get<latest_receive_monitor_state>(nextState)->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
             
                 // actually talk over the network to receive an update and send out a new command
                 grl::robot::arm::update_state  (
                                                 socket
-                                                ,*std::get<latest_receive_monitor_state>(*nextStateP)
+                                                ,*std::get<latest_receive_monitor_state>(nextState)
 #if 0 // use old deprecated api
                                                 ,kukastate
 #else // use new api
-                                                ,std::get<latest_receive_ec>(*nextStateP)
-                                                ,std::get<latest_receive_bytes_transferred>(*nextStateP)
-                                                ,std::get<latest_send_ec>(*nextStateP)
-                                                ,std::get<latest_send_bytes_transferred>(*nextStateP)
+                                                ,std::get<latest_receive_ec>(nextState)
+                                                ,std::get<latest_receive_bytes_transferred>(nextState)
+                                                ,std::get<latest_send_ec>(nextState)
+                                                ,std::get<latest_send_bytes_transferred>(nextState)
 #endif
                                                );
             
-                    /// @todo use atomics to eliminate mutex lock
-                { // lock the mutex to communicate with the user thread
-                    boost::lock_guard<boost::mutex> lock(ptrMutex_);
+                /// @todo use atomics to eliminate the global mutex lock for this object
+                // lock the mutex to communicate with the user thread
+                // if it cannot lock, simply send the previous message
+                // again
+                if (ptrMutex_.try_lock())
+                {
                     
                     //////////////////////////////////////////////
                     // right now this is the state of everything:
@@ -503,78 +471,82 @@ private:
                     //
                     // Always Valid:
                     //
-                    //     nextStateP: valid, contains the latest update
-                    //     latestCommandBackupP: should always be valid (though hasCommand might be false)
+                    //     nextState: valid, contains the latest update
+                    //     latestCommandBackup: should always be valid (though hasCommand might be false)
                     //
                     // Either Valid or Null:
-                    //    latestStateForUserP_ : null if the user took data out, valid otherwise
-                    //    newCommandForDriverP_: null if there is no new command data from the user, vaild otherwise
+                    //    latestStateForUser_ : null if the user took data out, valid otherwise
+                    //    newCommandForDriver_: null if there is no new command data from the user, vaild otherwise
                     
                     
                     // 1) set the outgoing latest state for the user to pick up
-                    //    latestStateForUserP_ is finalized
-                    std::swap(latestStateForUserP_, nextStateP);
+                    //    latestStateForUser_ is finalized
+                    std::swap(latestStateForUser_, nextState);
                     
                     // 2) get a new incoming command if available and set incoming command variable to null
-                    if(newCommandForDriverP_)
+                    if(std::get<latest_receive_monitor_state>(newCommandForDriver_))
                     {
                        // 3) back up the new incoming command
-                       // latestCommandBackupP is finalized, newCommandForDriverP_ needs to be cleared out
-                       std::swap(latestCommandBackupP,newCommandForDriverP_);
+                       // latestCommandBackup is finalized, newCommandForDriver_ needs to be cleared out
+                       std::swap(latestCommandBackup,newCommandForDriver_);
                     
-                       // nextStateP may be null
-                       if(!nextStateP)
+                       // nextState may be null
+                       if(!std::get<latest_receive_monitor_state>(nextState))
                        {
-                          nextStateP = std::move(newCommandForDriverP_);
+                          nextState = std::move(newCommandForDriver_);
                        }
-                       else if(!spareStateP_)
+                       else if(!std::get<latest_receive_monitor_state>(spareState_))
                        {
-                          spareStateP_ = std::move(newCommandForDriverP_);
+                          spareState_ = std::move(newCommandForDriver_);
                        }
                        else
                        {
-                         newCommandForDriverP_.reset();
+                         std::get<latest_receive_monitor_state>(newCommandForDriver_).reset();
                        }
                     }
                     
-                    // finalized: latestStateForUserP_, latestCommandBackupP,  newCommandForDriverP_ is definitely null
+                    // finalized: latestStateForUser_, latestCommandBackup,  newCommandForDriver_ is definitely null
                     // issues to be resolved:
-                    // nextStateP: may be null right now, and it should be valid
-                    // newCommandForDriverP_: needs to be cleared with 100% certainty
-                    BOOST_VERIFY(spareStateP_ || nextStateP);
+                    // nextState: may be null right now, and it should be valid
+                    // newCommandForDriver_: needs to be cleared with 100% certainty
+                    BOOST_VERIFY(std::get<latest_receive_monitor_state>(spareState_) || std::get<latest_receive_monitor_state>(nextState));
                     
-                    if(!nextStateP && spareStateP_)
+                    if(
+                       !std::get<latest_receive_monitor_state>(nextState)
+                       && std::get<latest_receive_monitor_state>(spareState_)
+                      )
                     {
-                      nextStateP = std::move(spareStateP_);
+                      nextState = std::move(spareState_);
                     }
                     
-                    BOOST_VERIFY(nextStateP);
+                    BOOST_VERIFY(std::get<latest_receive_monitor_state>(nextState));
                     
-                    auto & nextClientData = *std::get<latest_receive_monitor_state>(*nextStateP);
-                    auto & latestClientData = *std::get<latest_receive_monitor_state>(*latestStateForUserP_);
+                    KUKA::FRI::ClientData& nextClientData = *std::get<latest_receive_monitor_state>(nextState);
+                    KUKA::FRI::ClientData& latestClientData = *std::get<latest_receive_monitor_state>(latestStateForUser_);
                     
-                    // copy essential data from latestStateForUserP_ to nextStateP
+                    // copy essential data from latestStateForUser_ to nextState
                     nextClientData.lastState            = latestClientData.lastState;
                     nextClientData.sequenceCounter      = latestClientData.sequenceCounter;
                     nextClientData.lastSendCounter      = latestClientData.lastSendCounter;
                     nextClientData.expectedMonitorMsgID = latestClientData.expectedMonitorMsgID;
                     
-                    // copy command from latestCommandBackup to nextStateP aka nextClientData
-                    auto & latestCommandBackup = *std::get<latest_receive_monitor_state>(*latestCommandBackupP);
-                    set(nextClientData.commandMsg, latestCommandBackup.commandMsg);
+                    // copy command from latestCommandBackup to nextState aka nextClientData
+                    KUKA::FRI::ClientData& latestCommandBackupClientData = *std::get<latest_receive_monitor_state>(latestCommandBackup);
+                    set(nextClientData.commandMsg, latestCommandBackupClientData.commandMsg);
                     
                     
                     // if there are no error codes and we have received data,
                     // then we can consider the connection established!
                     /// @todo perhaps data should always send too?
-                    if(!std::get<latest_receive_ec>(*nextStateP) &&
-                       !std::get<latest_send_ec>(*nextStateP)    &&
-                       std::get<latest_receive_bytes_transferred>(*nextStateP)
+                    if(!std::get<latest_receive_ec>(nextState) &&
+                       !std::get<latest_send_ec>(nextState)    &&
+                       std::get<latest_receive_bytes_transferred>(nextState)
                       )
                     {
                         isConnectionEstablished_ = true;
                     }
                 
+                    ptrMutex_.unlock();
                 }
             
             
@@ -598,12 +570,17 @@ private:
      latest_send_bytes_transferred
     };
     
-    typedef std::tuple<std::shared_ptr<KUKA::FRI::ClientData>,boost::system::error_code, std::size_t,boost::system::error_code, std::size_t>
+    typedef std::tuple
+            <
+                std::shared_ptr<KUKA::FRI::ClientData>
+               ,boost::system::error_code
+               ,std::size_t
+               ,boost::system::error_code
+               ,std::size_t
+            >
     LatestState;
     
     /// Creates a default LatestState Object
-    /// @todo num_dof should not be a magic number
-    /// @note the clientData will never be null
     static LatestState
     make_LatestState(std::shared_ptr<KUKA::FRI::ClientData>& clientData)
     {
@@ -633,36 +610,30 @@ private:
     }
     
     /// Initialize valid shared ptr to LatestState object with a valid allocated friData
-    static std::shared_ptr<LatestState>
-    make_shared_valid_LatestState(std::shared_ptr<KUKA::FRI::ClientData>& friData)
+    static LatestState
+    make_valid_LatestState(std::shared_ptr<KUKA::FRI::ClientData>& friData)
     {
-        
-        std::shared_ptr<LatestState> tempLatestStateP;
-        
         if(!friData) friData = make_shared_valid_ClientData();
-    
-        /// @todo this is actually pretty expensive. Consider an alternative without allocations
-        tempLatestStateP = std::make_shared<LatestState>(make_LatestState(friData));
         
-        return tempLatestStateP;
+        return make_LatestState(friData);
     }
     
-    static std::shared_ptr<LatestState>
-    make_shared_valid_LatestState()
+    static LatestState
+    make_valid_LatestState()
     {
-      std::shared_ptr<KUKA::FRI::ClientData> friData = std::shared_ptr<KUKA::FRI::ClientData>();
-      return make_shared_valid_LatestState(friData);
+      std::shared_ptr<KUKA::FRI::ClientData> friData;
+      return make_valid_LatestState(friData);
     }
     
     Params params_;
 
     /// @todo replace with unique_ptr
     /// the latest state we have available to give to the user
-    std::shared_ptr<LatestState> latestStateForUserP_;
-    std::shared_ptr<LatestState> newCommandForDriverP_;
+    LatestState latestStateForUser_;
+    LatestState newCommandForDriver_;
     
     /// should always be valid, never null
-    std::shared_ptr<LatestState> spareStateP_;
+    LatestState spareState_;
     
     std::atomic<bool> m_shouldStop;
     std::exception_ptr exceptionPtr;
