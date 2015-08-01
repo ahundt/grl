@@ -312,10 +312,31 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// next few Lines get the joint angles, torque, etc from the simulation
 		if (kukaPluginPG)// && kukaPluginPG->allHandlesSet == true // allHandlesSet now handled internally
 		{
-		
-          // run one loop synchronizing the arm and plugin
-          kukaPluginPG->run_one();
-		  
+              try
+              {
+                  // run one loop synchronizing the arm and plugin
+                  kukaPluginPG->run_one();
+          
+              } catch (const boost::exception& e){
+                  // log the error and print it to the screen, don't release the exception
+                  std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
+                  simAddStatusbarMessage( initerr.c_str());
+                  BOOST_LOG_TRIVIAL(error) <<  initerr;
+                  kukaPluginPG.reset();
+              } catch (const std::exception& e){
+                  // log the error and print it to the screen, don't release the exception
+                  std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
+                  simAddStatusbarMessage( initerr.c_str());
+                  BOOST_LOG_TRIVIAL(error) <<  initerr;
+                  kukaPluginPG.reset();
+              } catch (...){
+                  // log the error and print it to the screen, don't release the exception
+                  std::string initerr("v_repExtKukaLBRiiwa plugin encountered an unknown error and will disable itself. Please debug this issue! file and line:" + std::string(__FILE__) + " " + boost::lexical_cast<std::string>(__LINE__) + "\n");
+                  simAddStatusbarMessage( initerr.c_str());
+                  BOOST_LOG_TRIVIAL(error) <<  initerr;
+                  kukaPluginPG.reset();
+              }
+                      
 		}
 	}
 
