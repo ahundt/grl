@@ -16,7 +16,7 @@
 
 
 #include "v_repExtGrlInverseKinematics.h"
-#include "grl/vrep/HandEyeCalibrationVrepPlugin.hpp"
+#include "grl/cisst/VrepVFController.hpp"
 
 #include "v_repLib.h"
 
