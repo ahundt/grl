@@ -30,9 +30,9 @@
 #       BASIS will automatically add a library build target for these modules.
 
 
-#TODO: add cisst-saw found flag
-if(CAMODOCAL_FOUND)
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${camodocal_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+#TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
+if(CISST_SAW_FOUND)
+basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${CISST_SAW_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 basis_add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
 basis_target_link_libraries(v_repExtGrlInverseKinematics ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}  v_repLib camodocal_calib)
 endif()

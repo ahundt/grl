@@ -1,20 +1,29 @@
 #ifndef _VREP_VF_CONTROLLER_
 #define _VREP_VF_CONTROLLER_
 
-#include "sawConstraintController/mtsVFController.h"
+#include <string>
+#include <tuple>
+#include <boost/format.hpp>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
+#include <sawConstraintController/mtsVFController.h>
+
+#include <grl/cisst/GrlVFController.hpp>
+
+/// This handles a whole vrep path object
 class DesiredKinematicsPath {
   
     enum  VrepVFControllerParamsIndex {
         DesiredKinematicsObjectName
     };
     
-    std::tuple<
+    typedef std::tuple<
             std::string // DesiredKinematicsObjectName
         > VrepVFControllerParams;
     
     
-    construct()
+    void construct()
     {
         
     }
@@ -24,6 +33,7 @@ class DesiredKinematicsPath {
     }
 };
 
+/// This handles a specific vrep pose
 class DesiredKinematicsObject {
   
     enum  VrepVFControllerParamsIndex {
@@ -32,9 +42,9 @@ class DesiredKinematicsObject {
     
     std::tuple<
             std::string // DesiredKinematicsObjectName
-        > VrepVFControllerParams;
+        > Params;
     
-    construct()
+    void construct()
     {
         
     }
@@ -55,14 +65,14 @@ class VrepVFController : GrlVFController {
         IKGroupName
     };
     
-    std::tuple<
+    typedef std::tuple<
             std::string // IKGroupName
-            std::string // DesiredKinematicsObjectName
-        > VrepVFControllerParams;
+            ,std::string // DesiredKinematicsObjectName
+        > Params;
     
-    VrepVFControllerParams defaultParams();
+    Params defaultParams();
     
-    construct(Params params){
+    void construct(Params params){
         // get kinematics group name
         // get number of joints
         ikGroupHandle_ = simGetIkGroupHandle(std::get<IKGroupName>(params));
@@ -80,7 +90,8 @@ class VrepVFController : GrlVFController {
     }
     
     /// check out sawConstraintController
-    updateKinematics(){
+    void updateKinematics(){
+        std::string str;
         float jacobianSize[2];
         float* jacobian=simGetIkGroupMatrix(ikGroupHandle_,0,jacobianSize);
 
@@ -102,7 +113,7 @@ class VrepVFController : GrlVFController {
             {
                 if (str.size()==0)
                     str+=", ";
-                str+=boost::str(boost::format("%.1e") % jacobian[j*jacobianSize[0]+i]);
+                str+=boost::str(boost::format("%.1e") % jacobian[static_cast<int>(j*jacobianSize[0]+i)]);
             }
             printf(str.c_str());
         }
@@ -115,7 +126,7 @@ class VrepVFController : GrlVFController {
     
     /// may not need this it is in the base class
     /// blocking call, call in separate thread, just allocates memory
-    updateOptimizer(){
+    void updateOptimizer(){
         // this 
     }
     
@@ -124,7 +135,7 @@ class VrepVFController : GrlVFController {
     /// this will have output
     /// blocking call, call in separate thread, just allocates memory
     /// this runs the actual optimization algorithm
-    solve(){
+    void solve(){
         
     }
     
