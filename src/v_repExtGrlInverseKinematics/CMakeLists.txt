@@ -29,12 +29,14 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 
-add_subdirectory(v_rep)
-add_subdirectory(v_repExtKukaLBRiiwaPlugin)
-add_subdirectory(v_repExtHandEyeCalibration)
-add_subdirectory(v_repExtGrlInverseKinematics)
+#TODO: add cisst-saw found flag
+if(CAMODOCAL_FOUND)
+basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${camodocal_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+basis_add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
+basis_target_link_libraries(v_repExtGrlInverseKinematics ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}  v_repLib camodocal_calib)
+endif()
+
 
 # ============================================================================
 # executable target(s)
