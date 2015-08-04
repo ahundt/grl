@@ -1,14 +1,21 @@
+/// @author Andrew Hundt <athundt@gmail.com>
+
 #ifndef _GRL_VF_CONTROLLER_
 #define _GRL_VF_CONTROLLER_
 
-#include "sawConstraintController/mtsVFController.h"
+#include <tuple>
+#include <string>
+#include <sawConstraintController/mtsVFController.h>
+#include <sawConstraintController/mtsVFDataJointLimits.h>
 
+namespace grl {
 
 /// create the data object and put the data inside
 /// @todo move to own header with no vrep dependencies
 /// @todo figure out how the interface for following the motion will work
-struct GrlVFController : mtsVFController {
-    
+/// VFControlller stands for "virtual fixtures" controller
+struct InverseKinematicsController : public mtsVFController {
+public:
     typedef mtsVFController parent_type;
   
     enum  GrlVFControllerParamsIndex {
@@ -22,7 +29,7 @@ struct GrlVFController : mtsVFController {
         JointPositionNumRows
     };
     
-    std::tuple<
+    typedef std::tuple<
         std::string // currentKinematicsName
         ,std::string // desiredKinematicsName
         ,std::string // followVFName
@@ -31,23 +38,23 @@ struct GrlVFController : mtsVFController {
         ,std::size_t // JointVelocityLimitsVFNumRows
         ,std::string // JointPositionVFName
         ,std::size_t  // JointPositionNumRows
-        > GrlVFControllerParams;
+        > Params;
     
     
     /// @todo maybe parameterize this somehow
     static const std::size_t totalRows = 6;
     
-    defaultParams (){
-        
-    }
-  
-    grlVFController():
-    
+    Params defaultParams()
     {
         
     }
-    (
-    construct(){
+  
+    InverseKinematicsController()
+    {
+        
+    }
+    
+    void construct(){
     }
     
     /// This will hold the Jacobian
@@ -61,12 +68,13 @@ struct GrlVFController : mtsVFController {
     std::unique_ptr<mtsVFDataBase> followVFP_;
     
     /// need velocity limits for the joints
-    std::unique_ptr<mtsVfDataJointLimits> jointVelocityLimitsVFP_;
+    std::unique_ptr<mtsVFDataJointLimits> jointVelocityLimitsVFP_;
     /// joints cannot go to certain position
-    std::unique_ptr<mtsVfDataJointLimits> jointPositionLimitsVFP_;
+    std::unique_ptr<mtsVFDataJointLimits> jointPositionLimitsVFP_;
+    
     
 };
 
-
+} // namespace grl
 
 #endif

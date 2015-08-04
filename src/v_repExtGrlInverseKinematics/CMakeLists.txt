@@ -32,9 +32,20 @@
 
 #TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
 if(CISST_SAW_FOUND)
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${CISST_SAW_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-basis_add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
-basis_target_link_libraries(v_repExtGrlInverseKinematics ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}  v_repLib camodocal_calib)
+    #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
+    #@see https://github.com/schuhschuh/cmake-basis/issues/442
+    #basis_
+    include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${CISST_SAW_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+    #basis_
+    add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
+    #basis_
+    target_link_libraries(v_repExtGrlInverseKinematics 
+                    ${Boost_LIBRARIES}  
+                    ${Boost_LIBRARIES} 
+                    ${CMAKE_THREAD_LIBS_INIT}
+                    ${CISST_SAW_LIBRARIES}
+                    v_repLib
+                )
 endif()
 
 
