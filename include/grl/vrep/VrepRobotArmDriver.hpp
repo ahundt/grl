@@ -62,12 +62,15 @@ public:
     struct JointStateTag{};
     
     enum JointStateIndex {
-       JointPosition,
-       JointForce,
-       JointTargetPosition,
-       JointMatrix,
-       JointStateTagIndex
+        JointPosition,
+        JointForce,
+        JointTargetPosition,
+        JointLowerPositionLimit,
+        JointUpperPositionLimit,
+        JointMatrix,
+        JointStateTagIndex
     };
+    
     
     typedef std::vector<float>               JointScalar;
     
@@ -80,6 +83,8 @@ public:
     //  JointScalar             // JointVelocity  // no velocity yet
         JointScalar,            // jointForce
         JointScalar,            // jointTargetPosition
+        JointScalar,            // JointLowerPositionLimit
+        JointScalar,            // JointUpperPositionLimit
         TransformationMatrices, // jointTransformation
         JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
     > State;
@@ -103,6 +108,7 @@ void construct() {
 
 
 /// @return 0 if ok 1 if problem
+/// @todo handle cyclic joints (see isCyclic below & simGetJointInterval)
 bool getState(State& state){
             if(!allHandlesSet) return false;
     
@@ -110,6 +116,15 @@ bool getState(State& state){
             std::get<JointForce>         (state).resize(jointHandle.size());
             std::get<JointTargetPosition>(state).resize(jointHandle.size());
             std::get<JointMatrix>        (state).resize(jointHandle.size());
+    
+            enum limit {
+              lower
+              ,upper
+              ,numLimits
+              };
+              
+            simBool isCyclic;
+            float jointAngleInterval[2]; // min,max
 			
 			for (int i=0 ; i < jointHandle.size() ; i++)
 			{	
@@ -118,6 +133,9 @@ bool getState(State& state){
 				simGetJointForce(currentJointHandle,&std::get<JointForce>(state)[i]);	//retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled.
 				simGetJointTargetPosition(currentJointHandle,&std::get<JointTargetPosition>(state)[i]);  //retrieves the target position of a joint
 				simGetJointMatrix(currentJointHandle,&std::get<JointMatrix>(state)[i][0]);   //retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
+                simGetJointInterval(currentJointHandle,&isCyclic,jointAngleInterval);
+                std::get<JointLowerPositionLimit>(state)[i] = jointAngleInterval[lower];
+                std::get<JointUpperPositionLimit>(state)[i] = jointAngleInterval[upper];
 
 			}
             
@@ -175,6 +193,13 @@ bool setState(State& state) {
     
             return true;
 }
+
+
+const std::vector<int>& getJointHandles()
+{
+  return jointHandle;
+}
+
 
 private:
 
