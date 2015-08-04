@@ -1,3 +1,5 @@
+/// @author Andrew Hundt <athundt@gmail.com>
+
 #ifndef _VREP_VF_CONTROLLER_
 #define _VREP_VF_CONTROLLER_
 
@@ -9,7 +11,11 @@
 
 #include <sawConstraintController/mtsVFController.h>
 
-#include <grl/cisst/GrlVFController.hpp>
+#include "grl/cisst/GrlVFController.hpp"
+#include "grl/vrep/Vrep.hpp"
+#include "grl/vrep/VrepRobotArmDriver.hpp"
+
+namespace grl {
 
 /// This handles a whole vrep path object
 class DesiredKinematicsPath {
@@ -55,10 +61,13 @@ class DesiredKinematicsObject {
     }
 };
 
-template<typename DesiredKinematics = DesiredKinematicsObject>
-class VrepVFController : GrlVFController {
+//template<typename DesiredKinematics = DesiredKinematicsObject>
+class VrepInverseKinematicsController : public grl::InverseKinematicsController {
+public:
+    typedef InverseKinematicsController parent_type;
     
-    typedef GrlVFController parent_type;
+    //using parent_type::currentKinematicsStateP_;
+    //using parent_type::parent_type::InitializeKinematicsState;
   
     enum  VrepVFControllerParamsIndex {
         DesiredKinematicsObjectName,
@@ -70,21 +79,25 @@ class VrepVFController : GrlVFController {
             ,std::string // DesiredKinematicsObjectName
         > Params;
     
-    Params defaultParams();
+    static Params defaultParams()
+    {
+       return std::make_tuple("IK_Group1_iiwa","RobotMillTipTarget");
+    }
     
-    void construct(Params params){
+    void construct(Params params = defaultParams()){
         // get kinematics group name
         // get number of joints
-        ikGroupHandle_ = simGetIkGroupHandle(std::get<IKGroupName>(params));
+        VrepRobotArmDriverP_ = std::make_shared<vrep::VrepRobotArmDriver>();
+        ikGroupHandle_ = simGetIkGroupHandle(std::get<IKGroupName>(params).c_str());
         simSetExplicitHandling(ikGroupHandle_,1); // enable explicit handling for the ik
         std::size_t numJoints;
 
-        currentKinematicsStateP_.reset(new prmKinematicsState());
-        currentKinematicsStateP_->Name = std::get<IKGroupName>(params);
+        this->currentKinematicsStateP_.reset(new prmKinematicsState());
+        this->currentKinematicsStateP_->Name = std::get<IKGroupName>(params);
         
         
         /// @todo verify object lifetimes
-        parent_t::paren_t::InitializeKinematicsState(currentKinematicsStateP_)
+        //parent_type::parent_type::InitializeKinematicsState(this->currentKinematicsStateP_)
             
             // for each virtual fixture need names and number of rows
     }
@@ -92,7 +105,7 @@ class VrepVFController : GrlVFController {
     /// check out sawConstraintController
     void updateKinematics(){
         std::string str;
-        float jacobianSize[2];
+        int jacobianSize[2];
         float* jacobian=simGetIkGroupMatrix(ikGroupHandle_,0,jacobianSize);
 
         // jacobianSize[0] represents the row count of the Jacobian 
@@ -115,7 +128,7 @@ class VrepVFController : GrlVFController {
                     str+=", ";
                 str+=boost::str(boost::format("%.1e") % jacobian[static_cast<int>(j*jacobianSize[0]+i)]);
             }
-            printf(str.c_str());
+            std::cout << str;
         }
         
         // call setKinematics with the new kinematics
@@ -140,6 +153,9 @@ class VrepVFController : GrlVFController {
     }
     
     int ikGroupHandle_;
+    std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverP_;
 };
+
+} // namespace grl
 
 #endif

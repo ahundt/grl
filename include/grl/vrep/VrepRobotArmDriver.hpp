@@ -25,6 +25,7 @@ public:
         RobotTipName,
         RobotTargetName,
         RobotTargetBaseName,
+        RobotIkGroup
     };
     
     /// @todo allow default params

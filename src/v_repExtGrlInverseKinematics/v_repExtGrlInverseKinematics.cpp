@@ -14,7 +14,9 @@
 //
 // This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
 
-
+#include <memory>
+#include <boost/log/trivial.hpp>
+#include <boost/exception/diagnostic_information.hpp> 
 #include "v_repExtGrlInverseKinematics.h"
 #include "grl/cisst/VrepVFController.hpp"
 
@@ -42,7 +44,7 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 
 
 
-std::shared_ptr<grl::HandEyeCalibrationVrepPlugin> handEyeCalibrationPG;
+std::shared_ptr<grl::VrepInverseKinematicsController> InverseKinematicsControllerPG;
 
 /*int getPathPosVectorFromObjectPose(int objectHandle, float relativeDistance) //This might be helpful if we decide to implement all the code in the plugin (instead of the lua script
 {
@@ -58,55 +60,55 @@ std::shared_ptr<grl::HandEyeCalibrationVrepPlugin> handEyeCalibrationPG;
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
 {
-  if (!handEyeCalibrationPG) {
+  if (!InverseKinematicsControllerPG) {
   
-    BOOST_LOG_TRIVIAL(info) << "v_repExtHandEyeCalibration Starting Hand Eye Calibration Plugin Data Collection\n";
-    handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
-    handEyeCalibrationPG->construct();
+    BOOST_LOG_TRIVIAL(info) << "v_repExtInverseKinematicsController Starting Hand Eye Calibration Plugin Data Collection\n";
+    InverseKinematicsControllerPG=std::make_shared<grl::VrepInverseKinematicsController>();
+    InverseKinematicsControllerPG->construct();
   }
 }
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_RESET(SLuaCallBack* p)
 {
-    BOOST_LOG_TRIVIAL(info) << "v_repExtHandEyeCalibration Starting Hand Eye Calibration Plugin Data Collection\n";
-    handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
-    handEyeCalibrationPG->construct();
+    BOOST_LOG_TRIVIAL(info) << "v_repExtInverseKinematicsController Starting Hand Eye Calibration Plugin Data Collection\n";
+    InverseKinematicsControllerPG=std::make_shared<grl::VrepInverseKinematicsController>();
+    InverseKinematicsControllerPG->construct();
 }
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_STOP(SLuaCallBack* p)
 {
     
-    BOOST_LOG_TRIVIAL(info) << "Ending v_repExtHandEyeCalibration plugin\n";
-	handEyeCalibrationPG.reset();
+    BOOST_LOG_TRIVIAL(info) << "Ending v_repExtInverseKinematicsController plugin\n";
+	InverseKinematicsControllerPG.reset();
 }
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME(SLuaCallBack* p)
 {
-  if (handEyeCalibrationPG) {
-    handEyeCalibrationPG->addFrame();
+  if (InverseKinematicsControllerPG) {
+    //InverseKinematicsControllerPG->addFrame();
   }
 }
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM(SLuaCallBack* p)
 {
-  if (handEyeCalibrationPG) {
-    handEyeCalibrationPG->estimateHandEyeScrew();
+  if (InverseKinematicsControllerPG) {
+    //InverseKinematicsControllerPG->estimateHandEyeScrew();
   }
 }
 
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM(SLuaCallBack* p)
 {
-  if (handEyeCalibrationPG) {
-    handEyeCalibrationPG->applyEstimate();
+  if (InverseKinematicsControllerPG) {
+    //InverseKinematicsControllerPG->applyEstimate();
   }
 }
 
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION(SLuaCallBack* p)
 {
-  if (handEyeCalibrationPG) {
-    handEyeCalibrationPG->restoreSensorPosition();
+  if (InverseKinematicsControllerPG) {
+    //InverseKinematicsControllerPG->restoreSensorPosition();
   }
 }
 
@@ -114,7 +116,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION(SLuaCallBack* p)
 /// Returns the current transform estimate in a format that vrep understands
 void LUA_SIM_EXT_HAND_EYE_CALIB_GET_TRANSFORM(SLuaCallBack* p)
 {
-  if (handEyeCalibrationPG) {
+  if (InverseKinematicsControllerPG) {
   }
 }
 
@@ -172,13 +174,13 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
     
     
 	int noArgs[]={0}; // no input arguments
-	simRegisterCustomLuaFunction("simExtHandEyeCalibStart","number result=simExtHandEyeCalibStart()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_START);
-	simRegisterCustomLuaFunction("simExtHandEyeCalibStop","number result=simExtHandEyeCalibStop()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_STOP);
-	simRegisterCustomLuaFunction("simExtHandEyeCalibReset","number result=simExtHandEyeCalibReset()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESET);
-	simRegisterCustomLuaFunction("simExtHandEyeCalibAddFrame","number result=simExtHandEyeCalibAddFrame()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME);
-	simRegisterCustomLuaFunction("simExtHandEyeCalibFindTransform","number result=simExtHandEyeCalibFindTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM);
-	simRegisterCustomLuaFunction("simExtHandEyeCalibApplyTransform","number result=simExtHandEyeCalibApplyTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM);
-	simRegisterCustomLuaFunction("simExtHandEyeCalibRestoreSensorPosition","number result=simExtHandEyeCalibRestoreSensorPosition()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStart","number result=simExtGrlInverseKinematicsStart()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_START);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStop","number result=simExtGrlInverseKinematicsStop()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_STOP);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsReset","number result=simExtGrlInverseKinematicsReset()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESET);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsAddFrame","number result=simExtGrlInverseKinematicsAddFrame()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsFindTransform","number result=simExtGrlInverseKinematicsFindTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsApplyTransform","number result=simExtGrlInverseKinematicsApplyTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsRestoreSensorPosition","number result=simExtGrlInverseKinematicsRestoreSensorPosition()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION);
     
     
 	// ******************************************
@@ -198,7 +200,7 @@ VREP_DLLEXPORT void v_repEnd()
 		// close out as necessary
 		////////////////////
     
-    handEyeCalibrationPG.reset();
+    InverseKinematicsControllerPG.reset();
 
 	unloadVrepLibrary(vrepLib); // release the library
 }
@@ -253,7 +255,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		/////////////
 		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
 		{	
-			//if(handEyeCalibrationPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
+			//if(InverseKinematicsControllerPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
 		
@@ -263,11 +265,11 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// Use handles that were found at the "start" of this simulation running
 
 		// next few Lines get the joint angles, torque, etc from the simulation
-		if (handEyeCalibrationPG)// && HandEyeCalibrationPG->allHandlesSet == true // allHandlesSet now handled internally
+		if (InverseKinematicsControllerPG)// && InverseKinematicsControllerPG->allHandlesSet == true // allHandlesSet now handled internally
 		{
 		
           // run one loop synchronizing the arm and plugin
-          // handEyeCalibrationPG->run_one();
+          // InverseKinematicsControllerPG->run_one();
 		  
 		}
 	}
@@ -288,13 +290,13 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// simGetObjectHandle
         
         try {
-            //handEyeCalibrationPG = std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
-            //handEyeCalibrationPG->construct();
-            //HandEyeCalibrationPG->run_one();  // for debugging purposes only
-            //HandEyeCalibrationPG.reset();     // for debugging purposes only
+            //InverseKinematicsControllerPG = std::make_shared<grl::VrepInverseKinematicsController>();
+            //InverseKinematicsControllerPG->construct();
+            //InverseKinematicsControllerPG->run_one();  // for debugging purposes only
+            //InverseKinematicsControllerPG.reset();     // for debugging purposes only
         } catch (boost::exception& e){
             // log the error and print it to the screen, don't release the exception
-            std::string initerr("v_repExtHandEyeCalibration plugin initialization error:\n" + boost::diagnostic_information(e));
+            std::string initerr("v_repExtInverseKinematicsController plugin initialization error:\n" + boost::diagnostic_information(e));
             simAddStatusbarMessage( initerr.c_str());
             BOOST_LOG_TRIVIAL(error) <<  initerr;
         }
