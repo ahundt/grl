@@ -90,7 +90,6 @@ public:
         VrepRobotArmDriverP_ = std::make_shared<vrep::VrepRobotArmDriver>();
         ikGroupHandle_ = simGetIkGroupHandle(std::get<IKGroupName>(params).c_str());
         simSetExplicitHandling(ikGroupHandle_,1); // enable explicit handling for the ik
-        std::size_t numJoints;
 
         this->currentKinematicsStateP_.reset(new prmKinematicsState());
         this->currentKinematicsStateP_->Name = std::get<IKGroupName>(params);
@@ -104,9 +103,37 @@ public:
     
     /// check out sawConstraintController
     void updateKinematics(){
+    
+        // Initialize Variables for update
+        const auto& jointHandles = VrepRobotArmDriverP_->getJointHandles();
+        int numJoints =jointHandles.size();
+        std::vector<float> ikCalculatedJointValues(numJoints,0);
+        VrepRobotArmDriverP_->getState(currentArmState_);
+        
+        /// Run inverse kinematics, but all we really want is the jacobian
+        /// @todo find version that only returns jacobian
+        /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simCheckIkGroup
+        auto ikcalcResult =
+        simCheckIkGroup(ikGroupHandle_
+                       ,numJoints
+                       ,&jointHandles[0]
+                       ,&ikCalculatedJointValues[0]
+                       ,NULL /// @todo do we need to use these options?
+                       );
+        /// @see http://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#ikCalculationResults
+        if(ikcalcResult!=sim_ikresult_success)
+        {
+            BOOST_THROW_EXCEPTION(std::runtime_error("VrepInverseKinematicsController: didn't run inverse kinematics"));
+        }
+        
+        // Get the Jacobian
         std::string str;
         int jacobianSize[2];
         float* jacobian=simGetIkGroupMatrix(ikGroupHandle_,0,jacobianSize);
+        
+        this->currentKinematicsStateP_->Jacobian.SetSize(jacobianSize[0],jacobianSize[1]);
+        
+        // Transfer the Jacobian to cisst
 
         // jacobianSize[0] represents the row count of the Jacobian 
         // (i.e. the number of equations or the number of joints involved
@@ -127,9 +154,27 @@ public:
                 if (str.size()==0)
                     str+=", ";
                 str+=boost::str(boost::format("%.1e") % jacobian[static_cast<int>(j*jacobianSize[0]+i)]);
+                this->currentKinematicsStateP_->Jacobian[j*jacobianSize[0]][i] = jacobian[static_cast<int>(j*jacobianSize[0]+i)];
             }
-            std::cout << str;
+            BOOST_LOG_TRIVIAL(trace) << str;
         }
+        
+        
+        ///////////////////////////////////////////////////////////
+        // Copy Joint Interval, the range of motion for each joint
+        
+        
+        // lower limits
+        auto & llim = std::get<vrep::VrepRobotArmDriver::JointLowerPositionLimit>(currentArmState_);
+        std::vector<double> llimits(llim.begin(),llim.end());
+        jointPositionLimitsVFP_->LowerLimits = vctDoubleVec(llimits.size(),&llimits[0]);
+        
+        // upper limits
+        auto & ulim = std::get<vrep::VrepRobotArmDriver::JointLowerPositionLimit>(currentArmState_);
+        std::vector<double> ulimits(ulim.begin(),ulim.end());
+        jointPositionLimitsVFP_->UpperLimits = vctDoubleVec(ulimits.size(),&ulimits[0]);
+        
+        /// @todo get target position, probably relative to base
         
         // call setKinematics with the new kinematics
         // sawconstraintcontroller has kinematicsState
@@ -154,6 +199,7 @@ public:
     
     int ikGroupHandle_;
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverP_;
+    vrep::VrepRobotArmDriver::State currentArmState_;
 };
 
 } // namespace grl
