@@ -36,6 +36,12 @@ public:
         std::string
         > Params;
     
+    typedef std::tuple<
+        std::vector<int>,
+        int,
+        int,
+        int
+        > VrepHandleParams;
     
     static const Params defaultParams()
     {
@@ -98,11 +104,16 @@ public:
 /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
 /// @todo throw an exception if any of the handles is -1
 void construct() {
-    jointHandle.clear();
-    getHandleFromParam<JointNames>(params_,std::back_inserter(jointHandle)); //Obtain Joint Handles
-	robotTip       = getHandleFromParam<RobotTipName>           (params_);					//Obtain RobotTip handle
-	target         = getHandleFromParam<RobotTargetName>        (params_);
-	targetBase     = getHandleFromParam<RobotTargetBaseName>    (params_);
+    std::vector<int> jointHandle;
+    getHandleFromParam<JointNames>(params_,std::back_inserter(jointHandle));
+    handleParams_ =
+    std::make_tuple(
+         std::move(jointHandle)                                 //Obtain Joint Handles
+	    ,getHandleFromParam<RobotTipName>           (params_)	//Obtain RobotTip handle
+	    ,getHandleFromParam<RobotTargetName>        (params_)
+	    ,getHandleFromParam<RobotTargetBaseName>    (params_)
+    );
+
 	allHandlesSet  = true;
 }
 
@@ -111,11 +122,14 @@ void construct() {
 /// @todo handle cyclic joints (see isCyclic below & simGetJointInterval)
 bool getState(State& state){
             if(!allHandlesSet) return false;
+            const std::vector<int>& jointHandle = std::get<JointNames>(handleParams_);
     
-            std::get<JointPosition>      (state).resize(jointHandle.size());
-            std::get<JointForce>         (state).resize(jointHandle.size());
-            std::get<JointTargetPosition>(state).resize(jointHandle.size());
-            std::get<JointMatrix>        (state).resize(jointHandle.size());
+            std::get<JointPosition>             (state).resize(jointHandle.size());
+            std::get<JointForce>                (state).resize(jointHandle.size());
+            std::get<JointTargetPosition>       (state).resize(jointHandle.size());
+            std::get<JointMatrix>               (state).resize(jointHandle.size());
+            std::get<JointLowerPositionLimit>   (state).resize(jointHandle.size());
+            std::get<JointUpperPositionLimit>   (state).resize(jointHandle.size());
     
             enum limit {
               lower
@@ -194,21 +208,24 @@ bool setState(State& state) {
             return true;
 }
 
-
+/// @todo deal with !allHandlesSet()
 const std::vector<int>& getJointHandles()
 {
-  return jointHandle;
+  return std::get<JointNames>(handleParams_);
 }
 
+const Params & getParams(){
+   return params_;
+}
+
+const VrepHandleParams & getVrepHandleParams(){
+   return handleParams_;
+}
 
 private:
 
 Params params_;
-
-std::vector<int> jointHandle = {}; // {-1,-1,-1,-1,-1,-1,-1};	//global variables defined
-int robotTip = -1;					//Obtain RobotTip handle
-int target = -1;
-int targetBase = -1;
+VrepHandleParams handleParams_;
 
 volatile bool allHandlesSet = false;
 
