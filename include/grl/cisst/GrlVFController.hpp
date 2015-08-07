@@ -42,7 +42,19 @@ public:
     
     
     /// @todo maybe parameterize this somehow
-    static const std::size_t totalRows = 6;
+    static const std::size_t totalRows = 7;
+    
+    /// @todo this is just done quickly, make it and the constructor be done right
+    InverseKinematicsController(size_t num_joints, mtsVFBase::CONTROLLERMODE cm):
+         mtsVFController(num_joints,cm) // parent
+        ,currentKinematicsStateP_(new prmKinematicsState())
+        ,desiredKinematicsStateP_(new prmKinematicsState())
+        ,followVFP_(new mtsVFDataBase())
+        ,jointVelocityLimitsVFP_(new mtsVFDataJointLimits())
+        ,jointPositionLimitsVFP_(new mtsVFDataJointLimits())
+    {
+    
+    }
     
     Params defaultParams()
     {

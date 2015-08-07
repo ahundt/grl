@@ -58,38 +58,38 @@ std::shared_ptr<grl::VrepInverseKinematicsController> InverseKinematicsControlle
 }
 */
 
-void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
+void LUA_SIM_EXT_GRL_IK_START(SLuaCallBack* p)
 {
   if (!InverseKinematicsControllerPG) {
   
-    BOOST_LOG_TRIVIAL(info) << "v_repExtInverseKinematicsController Starting Hand Eye Calibration Plugin Data Collection\n";
+    BOOST_LOG_TRIVIAL(info) << "v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin\n";
     InverseKinematicsControllerPG=std::make_shared<grl::VrepInverseKinematicsController>();
     InverseKinematicsControllerPG->construct();
   }
 }
 
-void LUA_SIM_EXT_HAND_EYE_CALIB_RESET(SLuaCallBack* p)
+void LUA_SIM_EXT_GRL_IK_RESET(SLuaCallBack* p)
 {
-    BOOST_LOG_TRIVIAL(info) << "v_repExtInverseKinematicsController Starting Hand Eye Calibration Plugin Data Collection\n";
+    BOOST_LOG_TRIVIAL(info) << "v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin Data Collection\n";
     InverseKinematicsControllerPG=std::make_shared<grl::VrepInverseKinematicsController>();
     InverseKinematicsControllerPG->construct();
 }
 
-void LUA_SIM_EXT_HAND_EYE_CALIB_STOP(SLuaCallBack* p)
+void LUA_SIM_EXT_GRL_IK_STOP(SLuaCallBack* p)
 {
     
     BOOST_LOG_TRIVIAL(info) << "Ending v_repExtInverseKinematicsController plugin\n";
 	InverseKinematicsControllerPG.reset();
 }
 
-void LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME(SLuaCallBack* p)
+void LUA_SIM_EXT_GRL_IK_ADD_FRAME(SLuaCallBack* p)
 {
   if (InverseKinematicsControllerPG) {
     //InverseKinematicsControllerPG->addFrame();
   }
 }
 
-void LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM(SLuaCallBack* p)
+void LUA_SIM_EXT_GRL_IK_FIND_TRANSFORM(SLuaCallBack* p)
 {
   if (InverseKinematicsControllerPG) {
     //InverseKinematicsControllerPG->estimateHandEyeScrew();
@@ -97,7 +97,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM(SLuaCallBack* p)
 }
 
 
-void LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM(SLuaCallBack* p)
+void LUA_SIM_EXT_GRL_IK_APPLY_TRANSFORM(SLuaCallBack* p)
 {
   if (InverseKinematicsControllerPG) {
     //InverseKinematicsControllerPG->applyEstimate();
@@ -105,7 +105,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM(SLuaCallBack* p)
 }
 
 
-void LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION(SLuaCallBack* p)
+void LUA_SIM_EXT_GRL_IK_RESTORE_SENSOR_POSITION(SLuaCallBack* p)
 {
   if (InverseKinematicsControllerPG) {
     //InverseKinematicsControllerPG->restoreSensorPosition();
@@ -114,7 +114,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION(SLuaCallBack* p)
 
 /// @todo implement and connect up this function
 /// Returns the current transform estimate in a format that vrep understands
-void LUA_SIM_EXT_HAND_EYE_CALIB_GET_TRANSFORM(SLuaCallBack* p)
+void LUA_SIM_EXT_GRL_IK_GET_TRANSFORM(SLuaCallBack* p)
 {
   if (InverseKinematicsControllerPG) {
   }
@@ -174,18 +174,18 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
     
     
 	int noArgs[]={0}; // no input arguments
-	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStart","number result=simExtGrlInverseKinematicsStart()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_START);
-	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStop","number result=simExtGrlInverseKinematicsStop()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_STOP);
-	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsReset","number result=simExtGrlInverseKinematicsReset()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESET);
-	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsAddFrame","number result=simExtGrlInverseKinematicsAddFrame()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME);
-	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsFindTransform","number result=simExtGrlInverseKinematicsFindTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM);
-	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsApplyTransform","number result=simExtGrlInverseKinematicsApplyTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM);
-	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsRestoreSensorPosition","number result=simExtGrlInverseKinematicsRestoreSensorPosition()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStart","number result=simExtGrlInverseKinematicsStart()",noArgs,LUA_SIM_EXT_GRL_IK_START);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStop","number result=simExtGrlInverseKinematicsStop()",noArgs,LUA_SIM_EXT_GRL_IK_STOP);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsReset","number result=simExtGrlInverseKinematicsReset()",noArgs,LUA_SIM_EXT_GRL_IK_RESET);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsAddFrame","number result=simExtGrlInverseKinematicsAddFrame()",noArgs,LUA_SIM_EXT_GRL_IK_ADD_FRAME);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsFindTransform","number result=simExtGrlInverseKinematicsFindTransform()",noArgs,LUA_SIM_EXT_GRL_IK_FIND_TRANSFORM);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsApplyTransform","number result=simExtGrlInverseKinematicsApplyTransform()",noArgs,LUA_SIM_EXT_GRL_IK_APPLY_TRANSFORM);
+	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsRestoreSensorPosition","number result=simExtGrlInverseKinematicsRestoreSensorPosition()",noArgs,LUA_SIM_EXT_GRL_IK_RESTORE_SENSOR_POSITION);
     
     
 	// ******************************************
 
-    BOOST_LOG_TRIVIAL(info) << "Hand Eye Calibration plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
+    BOOST_LOG_TRIVIAL(info) << "Inverse Kinematics plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
 
 	return(PLUGIN_VERSION); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
 }
@@ -269,7 +269,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		{
 		
           // run one loop synchronizing the arm and plugin
-          // InverseKinematicsControllerPG->run_one();
+          InverseKinematicsControllerPG->run_one();
 		  
 		}
 	}
