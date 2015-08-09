@@ -85,3 +85,7 @@ if(MODULE_FRI-Client-SDK_Cpp)
     endif()
 endif()
 
+
+if(CISSTNETLIB_FOUND)
+    set(CISSTNETLIB_INCLUDE_DIRS ${CISSTNETLIB_INCLUDE_DIR})
+endif()

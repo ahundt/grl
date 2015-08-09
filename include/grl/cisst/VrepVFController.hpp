@@ -199,6 +199,7 @@ public:
         // [row0,col0],[row1,col0],..,[rowN,col0],[row0,col1],[row1,col1],etc.
 
         std::string str;
+        str+="\n";
         for (int i=0;i<jacobianSize[0];i++)
         {
             for (int j=0;j<jacobianSize[1];j++)
@@ -209,6 +210,7 @@ public:
                 float currentValue = jacobian[static_cast<int>(j*jacobianSize[0]+i)];
                 this->currentKinematicsStateP_->Jacobian[i][j] = currentValue;
             }
+            str+="\n";
         }
         BOOST_LOG_TRIVIAL(trace) << str;
         

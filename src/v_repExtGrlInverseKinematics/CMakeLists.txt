@@ -30,12 +30,13 @@
 #       BASIS will automatically add a library build target for these modules.
 
 
+
 #TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
-if(CISST_SAW_FOUND)
+if(CISST_SAW_FOUND AND CISSTNETLIB_FOUND)
     #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
     #@see https://github.com/schuhschuh/cmake-basis/issues/442
     #basis_
-    include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${CISST_SAW_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+    include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${CISSTNETLIB_INCLUDE_DIRS} ${CISST_SAW_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} )
     #basis_
     add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
     #basis_
@@ -43,7 +44,9 @@ if(CISST_SAW_FOUND)
                     ${Boost_LIBRARIES}  
                     ${Boost_LIBRARIES} 
                     ${CMAKE_THREAD_LIBS_INIT}
+                    ${CISSTNETLIB_LIBRARIES}
                     ${CISST_SAW_LIBRARIES}
+                    ${CISSTNETLIB_LIBRARIES}
                     v_repLib
                 )
 endif()
