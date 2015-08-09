@@ -110,10 +110,11 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
-    Threads
-	Eigen3
-    Nanopb
-    FRI-Client-SDK_Cpp # Kuka Fast Robot Interface Client SDK
+    Threads            # pthreads, see CMake documentation
+	Eigen3             # Linear Algebra eigen.tuxfamily.com
+    Nanopb             # Used in Kuka Fast Robot Interface
+    FRI-Client-SDK_Cpp # Kuka Fast Robot Interface (FRI) Client SDK
+    cisstNetlib # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
