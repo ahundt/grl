@@ -60,11 +60,12 @@ using boost::asio::ip::udp;
 
 #include <chrono>
 
-/// @see https://stackoverflow.com/questions/2808398/easily-measure-elapsed-time
+/// @see https://stackoverflow.com/questions/2808398/easily-measure-elapsed-time for the code I based this on
 template<typename TimeT = std::chrono::milliseconds>
 struct periodic
 {
-    periodic():start(std::chrono::system_clock::now()){};
+    periodic(TimeT duration = TimeT(1)):
+    start(std::chrono::system_clock::now()),period_duration(duration.count()){};
 
     template<typename F, typename ...Args>
     typename TimeT::rep execution(F func, Args&&... args)
@@ -72,13 +73,17 @@ struct periodic
         auto duration = std::chrono::duration_cast< TimeT> 
                             (std::chrono::system_clock::now() - start);
         auto count = duration.count();
-        if(count > previous_count) func(std::forward<Args>(args)...);
-        previous_count = count;
+        if(count > previous_count + period_duration)
+        {
+            func(std::forward<Args>(args)...);
+            previous_count = count;
+        }
         return count;
     }
     
     std::chrono::time_point<std::chrono::system_clock> start;
-    std::size_t previous_count;
+    typename TimeT::rep period_duration;
+    typename TimeT::rep previous_count;
 };
 
 
