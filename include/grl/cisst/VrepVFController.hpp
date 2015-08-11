@@ -182,8 +182,12 @@ public:
         // Get the Jacobian
         int jacobianSize[2];
         float* jacobian=simGetIkGroupMatrix(ikGroupHandle_,0,jacobianSize);
+        /// @todo FIX HACK jacobianSize include orientation component, should be 7x6 instead of 7x3
+        jacobianSize[1] = 3;
         
-        this->currentKinematicsStateP_->Jacobian.SetSize(jacobianSize[0],jacobianSize[1]);
+        /// The row/column major order is swapped between cisst and VREP!
+        this->currentKinematicsStateP_->Jacobian.SetSize(jacobianSize[1],jacobianSize[0]);
+        
         
         // Transfer the Jacobian to cisst
 
@@ -208,7 +212,9 @@ public:
                 if (j<jacobianSize[1]-1)
                     str+=", ";
                 float currentValue = jacobian[static_cast<int>(j*jacobianSize[0]+i)];
-                this->currentKinematicsStateP_->Jacobian[i][j] = currentValue;
+            
+                /// The row/column major order is swapped between cisst and VREP!
+                this->currentKinematicsStateP_->Jacobian[j][i] = currentValue;
             }
             str+="\n";
         }
