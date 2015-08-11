@@ -128,7 +128,6 @@ int main(int argc, char* argv[])
     
     
     // Will run until signal is received, using one object for both send and receive
-    std::thread thr(bounce,sendsocket,recvsocket,shouldReceive);
     std::thread ios_t;
     
     {
@@ -136,9 +135,10 @@ int main(int argc, char* argv[])
         ios_t = std::thread([&] {
             io_service.run();
         });
+    
+        bounce(sendsocket, recvsocket,shouldReceive);
         sendsocket.reset();
         recvsocket.reset();
-        thr.join();
     }
     
     io_service.stop();
