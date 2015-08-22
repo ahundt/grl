@@ -17,6 +17,7 @@
 #include "grl/vrep/Eigen.hpp"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/range/algorithm/copy.hpp>
 
 namespace grl {
 
@@ -145,8 +146,12 @@ public:
         //jointHandles_ = VrepRobotArmDriverP_->getJointHandles();
         //int numJoints =jointHandles_.size();
         
+#ifdef HANDLE_ROTATION
         /// @todo objectiveRows seems to currently be a 3 vector, may eventually want a rotation and translation, perhaps with quaternion rotation
+        followVFP_->ObjectiveRows = 6;
+#else
         followVFP_->ObjectiveRows = 3;
+#endif
         // set the names once for each object, only once
         followVFP_->KinNames.push_back(currentKinematicsStateP_->Name);
         followVFP_->KinNames.push_back(desiredKinematicsStateP_->Name);
@@ -186,7 +191,10 @@ public:
         int jacobianSize[2];
         float* jacobian=simGetIkGroupMatrix(ikGroupHandle_,0,jacobianSize);
         /// @todo FIX HACK jacobianSize include orientation component, should be 7x6 instead of 7x3
+        
+#ifndef HANDLE_ROTATION
         jacobianSize[1] = 3;
+#endif
         
         /// The row/column major order is swapped between cisst and VREP!
         this->currentKinematicsStateP_->Jacobian.SetSize(jacobianSize[1],jacobianSize[0]);
@@ -259,7 +267,11 @@ public:
         currentCisstT[0] = currentEigenT(0);
         currentCisstT[1] = currentEigenT(1);
         currentCisstT[2] = currentEigenT(2);
-        /// @todo set rotation component of desired position
+#ifdef HANDLE_ROTATION
+        Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> ccr(currentKinematicsStateP_->Frame.Rotation().Pointer());
+        ccr = currentEndEffectorPose.rotation();
+#endif // HANDLE_ROTATION
+        /// @todo set rotation component of current position
         
         
         Eigen::Affine3d desiredEndEffectorPose =
@@ -272,6 +284,10 @@ public:
         desiredCisstT[0] = desiredEigenT(0);
         desiredCisstT[1] = desiredEigenT(1);
         desiredCisstT[2] = desiredEigenT(2);
+#ifdef HANDLE_ROTATION
+        Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> dcr(desiredKinematicsStateP_->Frame.Rotation().Pointer());
+        dcr = desiredEndEffectorPose.rotation();
+#endif // HANDLE_ROTATION
         /// @todo set rotation component of desired position
         
         // for debugging, the translation between the current and desired position in cartesian coordinates
