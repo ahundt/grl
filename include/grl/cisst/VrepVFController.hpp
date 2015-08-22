@@ -16,6 +16,8 @@
 #include "grl/vrep/VrepRobotArmDriver.hpp"
 #include "grl/vrep/Eigen.hpp"
 
+#include <boost/lexical_cast.hpp>
+
 namespace grl {
 
 /// This handles a whole vrep path object
@@ -174,9 +176,10 @@ public:
                        ,NULL /// @todo do we need to use these options?
                        );
         /// @see http://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#ikCalculationResults
-        if(ikcalcResult!=sim_ikresult_success)
+        if(ikcalcResult!=sim_ikresult_success && ikcalcResult != sim_ikresult_not_performed)
         {
-            BOOST_THROW_EXCEPTION(std::runtime_error("VrepInverseKinematicsController: didn't run inverse kinematics"));
+            BOOST_LOG_TRIVIAL(error) << "VrepInverseKinematicsController: didn't run inverse kinematics";
+            return;
         }
         
         // Get the Jacobian
@@ -214,7 +217,7 @@ public:
                 float currentValue = jacobian[static_cast<int>(j*jacobianSize[0]+i)];
             
                 /// The row/column major order is swapped between cisst and VREP!
-                this->currentKinematicsStateP_->Jacobian[j][i] = currentValue;
+                this->currentKinematicsStateP_->Jacobian[j][jacobianSize[0]-i-1] = currentValue;
             }
             str+="\n";
         }
@@ -238,23 +241,41 @@ public:
         jointPositionLimitsVFP_->LowerLimits = vctDoubleVec(llimits.size(),&llimits[0]);
         
         // upper limits
-        auto & ulim = std::get<vrep::VrepRobotArmDriver::JointLowerPositionLimit>(currentArmState_);
+        auto & ulim = std::get<vrep::VrepRobotArmDriver::JointUpperPositionLimit>(currentArmState_);
         std::vector<double> ulimits(ulim.begin(),ulim.end());
         jointPositionLimitsVFP_->UpperLimits = vctDoubleVec(ulimits.size(),&ulimits[0]);
         
         /// @todo get target position, probably relative to base
         const auto& handleParams = VrepRobotArmDriverP_->getVrepHandleParams();
         
+        
+        Eigen::Affine3d currentEndEffectorPose =
+        getObjectTransform(
+                             std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams)
+                            ,std::get<vrep::VrepRobotArmDriver::RobotTargetBaseName>(handleParams)
+                          );
+        auto  currentEigenT = currentEndEffectorPose.translation();
+        auto& currentCisstT = currentKinematicsStateP_->Frame.Translation();
+        currentCisstT[0] = currentEigenT(0);
+        currentCisstT[1] = currentEigenT(1);
+        currentCisstT[2] = currentEigenT(2);
+        /// @todo set rotation component of desired position
+        
+        
         Eigen::Affine3d desiredEndEffectorPose =
         getObjectTransform(
                              std::get<vrep::VrepRobotArmDriver::RobotTargetName>(handleParams)
                             ,std::get<vrep::VrepRobotArmDriver::RobotTargetBaseName>(handleParams)
                           );
-        auto  eigenT = desiredEndEffectorPose.translation();
-        auto& cisstT = desiredKinematicsStateP_->Frame.Translation();
-        cisstT[0] = eigenT(0);
-        cisstT[1] = eigenT(1);
-        cisstT[2] = eigenT(2);
+        auto  desiredEigenT = desiredEndEffectorPose.translation();
+        auto& desiredCisstT = desiredKinematicsStateP_->Frame.Translation();
+        desiredCisstT[0] = desiredEigenT(0);
+        desiredCisstT[1] = desiredEigenT(1);
+        desiredCisstT[2] = desiredEigenT(2);
+        /// @todo set rotation component of desired position
+        
+        // for debugging, the translation between the current and desired position in cartesian coordinates
+        auto inputDesired_dx = desiredCisstT - currentCisstT;
         
         SetKinematics(*currentKinematicsStateP_);  // replaced by name of object
         // fill these out in the desiredKinematicsStateP_
@@ -266,17 +287,14 @@ public:
         // sawconstraintcontroller has kinematicsState
         // set the jacobian here
         
-    }
-    
-    /// may not need this it is in the base class
-    /// blocking call, call in separate thread, just allocates memory
-    void run_one(){
-       updateKinematics();
-       /// @todo need to provide tick time in double seconds
-       UpdateOptimizer(0.05);
+        //////////////////////
+        /// @todo move code below here back under run_one updateKinematics() call
+        
+       /// @todo need to provide tick time in double seconds and get from vrep API call
+       UpdateOptimizer(0.01);
        
-       vctDoubleVec jointAngles;
-       auto returncode = Solve(jointAngles);
+       vctDoubleVec jointAngles_dt;
+       auto returncode = Solve(jointAngles_dt);
        
        
        /// @todo check the return code, if it doesn't have a result, use the VREP version as a fallback and report an error.
@@ -284,10 +302,31 @@ public:
        
        
        /// @todo: rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
+        //std::string str;
+        str = "";
        for (int i=0 ; i < jointHandles_.size() ; i++)
        {
-          simSetJointTargetPosition(jointHandles_[i],jointAngles[i]);
+          float currentAngle;
+          auto ret = simGetJointPosition(jointHandles_[i],&currentAngle);
+          BOOST_VERIFY(ret!=-1);
+          float futureAngle = currentAngle + jointAngles_dt[i];
+          //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
+          simSetJointPosition(jointHandles_[i],futureAngle);
+                str+=boost::lexical_cast<std::string>(jointAngles_dt[i]);
+                if (i<jointHandles_.size()-1)
+                    str+=", ";
        }
+        BOOST_LOG_TRIVIAL(trace) << "jointAngles_dt: "<< str;
+        
+        auto optimizerCalculated_dx = this->currentKinematicsStateP_->Jacobian * jointAngles_dt;
+       
+        BOOST_LOG_TRIVIAL(trace) << "desired dx: " << inputDesired_dx << " optimizer Calculated dx: " << optimizerCalculated_dx;
+    }
+    
+    /// may not need this it is in the base class
+    /// blocking call, call in separate thread, just allocates memory
+    void run_one(){
+       updateKinematics();
        
     }
     
