@@ -253,8 +253,10 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// PUT MAIN CODE HERE
 		
 		/////////////
-		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
-		{	
+        auto simulationState = simGetSimulationState();
+		if (simulationState == sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
+		{
+            InverseKinematicsControllerPG.reset();
 			//if(InverseKinematicsControllerPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
@@ -265,7 +267,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// Use handles that were found at the "start" of this simulation running
 
 		// next few Lines get the joint angles, torque, etc from the simulation
-		if (InverseKinematicsControllerPG)// && InverseKinematicsControllerPG->allHandlesSet == true // allHandlesSet now handled internally
+		if (InverseKinematicsControllerPG && simulationState == sim_simulation_advancing_running)// && InverseKinematicsControllerPG->allHandlesSet == true // allHandlesSet now handled internally
 		{
 		
           // run one loop synchronizing the arm and plugin
