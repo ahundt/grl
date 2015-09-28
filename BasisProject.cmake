@@ -114,7 +114,9 @@ basis_project (
 	Eigen3             # Linear Algebra eigen.tuxfamily.com
     Nanopb             # Used in Kuka Fast Robot Interface
     FRI-Client-SDK_Cpp # Kuka Fast Robot Interface (FRI) Client SDK
-    cisstNetlib # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
+    CisstNetlib # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
+    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # used for inverse kinematics plugin
+    sawConstraintController #  used for inverse kinematics plugin
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

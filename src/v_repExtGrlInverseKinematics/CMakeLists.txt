@@ -32,21 +32,32 @@
 
 
 #TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
-if(CISST_SAW_FOUND AND CISSTNETLIB_FOUND)
+if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_FOUND)
     #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
     #@see https://github.com/schuhschuh/cmake-basis/issues/442
-    #basis_
-    include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${CISSTNETLIB_INCLUDE_DIRS} ${CISST_SAW_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} )
-    #basis_
-    add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
-    #basis_
-    target_link_libraries(v_repExtGrlInverseKinematics 
+    basis_include_directories(
+      ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include 
+      ${CISSTNETLIB_INCLUDE_DIRS} 
+      ${CISST_INCLUDE_DIR}  
+      ${EIGEN3_INCLUDE_DIR}
+      ${sawConstraintController_INCLUDE_DIR}
+    )
+    # ${CISST_SAW_INCLUDE_DIRS}
+    basis_add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
+    basis_target_link_libraries(v_repExtGrlInverseKinematics 
                     ${Boost_LIBRARIES}  
                     ${Boost_LIBRARIES} 
                     ${CMAKE_THREAD_LIBS_INIT}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib_gcc}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib_blas}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib_lapack}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib_gfortran}
                     ${CISSTNETLIB_LIBRARIES}
-                    ${CISST_SAW_LIBRARIES}
-                    ${CISSTNETLIB_LIBRARIES}
+                    ${CISST_LIBRARIES}
+                    ##${CISST_SAW_LIBRARIES}
+                    #${CISSTNETLIB_LIBRARIES}
+                    ${sawConstraintController_LIBRARIES}
                     v_repLib
                 )
 endif()
