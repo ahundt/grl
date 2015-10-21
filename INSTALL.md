@@ -8,7 +8,11 @@ developed on top of the [CMake Build system And Software Implementation
 Standard (BASIS)][1], please refer to the respective [BASIS Installation Guide][2]
 which is part of the CMake BASIS documentation.
 
+Homebrew Installation
+=====================
 
+
+brew install --HEAD --cc=clang --build-from-source --HEAD cisstnetlib
 
 Binary Distribution Package
 ===========================
@@ -20,7 +24,7 @@ Please see the corresponding section of the [BASIS Installation Guide][3].
 Runtime Requirements
 ====================
 
-This software has no runtime dependencies.
+This software has an optional runtime dependency on [V-REP][10].
 
 
 
