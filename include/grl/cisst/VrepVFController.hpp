@@ -327,6 +327,7 @@ public:
           BOOST_VERIFY(ret!=-1);
           float futureAngle = currentAngle + jointAngles_dt[i];
           //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
+          //simSetJointTargetPosition(jointHandles_[i],futureAngle);
           simSetJointPosition(jointHandles_[i],futureAngle);
                 str+=boost::lexical_cast<std::string>(jointAngles_dt[i]);
                 if (i<jointHandles_.size()-1)
