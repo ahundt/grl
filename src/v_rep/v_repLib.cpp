@@ -27,7 +27,7 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
+// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
 
 #include "../include/v_repLib.h"
 #include <stdio.h>
@@ -533,6 +533,7 @@ ptr_simHandleCustomContact _simHandleCustomContact=0;
 ptr_simGetPureHollowScaling _simGetPureHollowScaling=0;
 ptr_simGetVortexParameters _simGetVortexParameters=0;
 ptr_simGetJointCallbackCallOrder _simGetJointCallbackCallOrder=0;
+ptr_simGetNewtonParameters _simGetNewtonParameters=0;
 
 
 LIBRARY loadVrepLibrary(const char* pathAndFilename)
@@ -1076,6 +1077,7 @@ int getVrepProcAddresses(LIBRARY lib)
 	_simGetPureHollowScaling=(ptr_simGetPureHollowScaling)(_getProcAddress(lib,"_simGetPureHollowScaling"));
 	_simGetVortexParameters=(ptr_simGetVortexParameters)(_getProcAddress(lib,"_simGetVortexParameters"));
 	_simGetJointCallbackCallOrder=(ptr_simGetJointCallbackCallOrder)(_getProcAddress(lib,"_simGetJointCallbackCallOrder"));
+	_simGetNewtonParameters=(ptr_simGetNewtonParameters)(_getProcAddress(lib,"_simGetNewtonParameters"));
 
 	
 	char couldNotFind[]="Could not find function";
@@ -3516,6 +3518,11 @@ int getVrepProcAddresses(LIBRARY lib)
 	if (_simGetJointCallbackCallOrder==0)
 	{
 		printf("%s _simGetJointCallbackCallOrder\n",couldNotFind);
+		return 0;
+	}
+	if (_simGetNewtonParameters==0)
+	{
+		printf("%s _simGetNewtonParameters\n",couldNotFind);
 		return 0;
 	}
 	return 1;

@@ -12,7 +12,7 @@
 // You are free to use/modify/distribute this file for whatever purpose!
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
+// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
 
 #include "luaFunctionDataItem.h"
 

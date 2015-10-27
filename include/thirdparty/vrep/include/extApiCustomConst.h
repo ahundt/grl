@@ -24,7 +24,7 @@
 // along with the REMOTE API.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
+// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
 
 #if !defined(EXTAPICUSTOMCONST_INCLUDED_)
 #define EXTAPICUSTOMCONST_INCLUDED_
