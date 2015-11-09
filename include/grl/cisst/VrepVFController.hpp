@@ -170,6 +170,23 @@ public:
         std::vector<float> ikCalculatedJointValues(numJoints,0);
         VrepRobotArmDriverP_->getState(currentArmState_);
         
+        /// @todo get target position, probably relative to base
+        const auto& handleParams = VrepRobotArmDriverP_->getVrepHandleParams();
+        
+        auto target = std::get<vrep::VrepRobotArmDriver::RobotTargetName>(handleParams);
+        auto tip = std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams);
+        
+        // save the current tip to target transform
+        Eigen::Affine3d tipToTarget =getObjectTransform( target,tip);
+        
+        // set the current transform to the identity so simCheckIkGroup won't fail
+        // @see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=3967
+        // for details about this issue.
+        setObjectTransform( target,tip,Eigen::Affine3d::Identity());
+        
+        // debug:
+        // std::cout << "TipToTargetTransform:\n" << tipToTarget.matrix() << "\n";
+        
         /// Run inverse kinematics, but all we really want is the jacobian
         /// @todo find version that only returns jacobian
         /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simCheckIkGroup
@@ -186,6 +203,8 @@ public:
             BOOST_LOG_TRIVIAL(error) << "VrepInverseKinematicsController: didn't run inverse kinematics";
             return;
         }
+        
+        setObjectTransform( target,tip,tipToTarget);
         
         // Get the Jacobian
         int jacobianSize[2];
@@ -253,8 +272,6 @@ public:
         std::vector<double> ulimits(ulim.begin(),ulim.end());
         jointPositionLimitsVFP_->UpperLimits = vctDoubleVec(ulimits.size(),&ulimits[0]);
         
-        /// @todo get target position, probably relative to base
-        const auto& handleParams = VrepRobotArmDriverP_->getVrepHandleParams();
         
         
         Eigen::Affine3d currentEndEffectorPose =
@@ -320,7 +337,7 @@ public:
        /// @todo: rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
         //std::string str;
         str = "";
-       for (int i=0 ; i < jointHandles_.size() ; i++)
+       for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
        {
           float currentAngle;
           auto ret = simGetJointPosition(jointHandles_[i],&currentAngle);
