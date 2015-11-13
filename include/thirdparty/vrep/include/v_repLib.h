@@ -27,7 +27,7 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
+// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
 
 // Use this header to dynamically load and bind v_rep.dll and its functions (call loadVrepLibrary and unloadVrepLibrary)
 
@@ -515,7 +515,7 @@ typedef simFloat (__cdecl *ptr_simGetDynamicMotorUpperLimitVelocity)(const simVo
 typedef simVoid (__cdecl *ptr_simSetDynamicMotorReflectedPositionFromDynamicEngine)(simVoid* joint,simFloat pos);
 typedef simVoid (__cdecl *ptr_simSetJointSphericalTransformation)(simVoid* joint,const simFloat* quat);
 typedef simVoid (__cdecl *ptr_simAddForceSensorCumulativeForcesAndTorques)(simVoid* forceSensor,const simFloat* force,const simFloat* torque,int totalPassesCount);
-typedef simVoid (__cdecl *ptr_simAddJointCumulativeForcesOrTorques)(simVoid* joint,float forceOrTorque,int totalPassesCount);
+typedef simVoid (__cdecl *ptr_simAddJointCumulativeForcesOrTorques)(simVoid* joint,simFloat forceOrTorque,int totalPassesCount);
 typedef simVoid (__cdecl *ptr_simSetDynamicJointLocalTransformationPart2)(simVoid* joint,const simFloat* pos,const simFloat* quat);
 typedef simVoid (__cdecl *ptr_simSetDynamicForceSensorLocalTransformationPart2)(simVoid* forceSensor,const simFloat* pos,const simFloat* quat);
 typedef simVoid (__cdecl *ptr_simSetDynamicJointLocalTransformationPart2IsValid)(simVoid* joint,simBool valid);
@@ -549,6 +549,7 @@ typedef simInt (__cdecl *ptr_simHandleCustomContact)(simInt objHandle1,simInt ob
 typedef simFloat (__cdecl *ptr_simGetPureHollowScaling)(const simVoid* geometric);
 typedef simVoid (__cdecl *ptr_simGetVortexParameters)(const simVoid* object,simInt version,simFloat* floatParams,simInt* intParams);
 typedef simInt (__cdecl *ptr_simGetJointCallbackCallOrder)(const simVoid* joint);
+typedef simVoid (__cdecl *ptr_simGetNewtonParameters)(const simVoid* object,simInt* version,simFloat* floatParams,simInt* intParams);
 
 
 extern ptrSimRunSimulator simRunSimulator;
@@ -1041,5 +1042,6 @@ extern ptr_simHandleCustomContact _simHandleCustomContact;
 extern ptr_simGetPureHollowScaling _simGetPureHollowScaling;
 extern ptr_simGetVortexParameters _simGetVortexParameters;
 extern ptr_simGetJointCallbackCallOrder _simGetJointCallbackCallOrder;
+extern ptr_simGetNewtonParameters _simGetNewtonParameters;
 
 #endif // !defined(V_REPLIB_INCLUDED_)

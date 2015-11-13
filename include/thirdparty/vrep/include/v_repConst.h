@@ -27,13 +27,13 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
+// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
 
 #if !defined(V_REPCONST_INCLUDED_)
 #define V_REPCONST_INCLUDED_
 
-#define VREP_PROGRAM_VERSION_NB 30201
-#define VREP_PROGRAM_VERSION "3.2.1."
+#define VREP_PROGRAM_VERSION_NB 30202
+#define VREP_PROGRAM_VERSION "3.2.2."
 
 #define VREP_PROGRAM_REVISION_NB 1
 #define VREP_PROGRAM_REVISION "(rev. 1)"
@@ -245,7 +245,7 @@ enum { /* Check the documentation instead of comments below!! */
 		sim_message_eventcallback_rmlvelocity, /* the command simRMLVelocity was called. The appropriate plugin should handle the call */
 
 		sim_message_eventcallback_meshcalculationplugin, /* to interact with the mesh calculation plugin */
-		sim_message_eventcallback_dynamicsplugin, /* to interact with the dynamics calculation plugin */
+		sim_message_eventcallback_dynamicsplugin, /* deprecated */
 		sim_message_eventcallback_pathplanningplugin, /* to interact with the path planning plugin */
 		sim_message_eventcallback_colladaplugin, /* to interact with the collada plugin */
 
@@ -265,10 +265,26 @@ enum { /* Check the documentation instead of comments below!! */
 
 		sim_message_eventcallback_beforerendering, /* called just before the scene is rendered. From the main SIM thread! */
 
-		sim_message_eventcallback_raytracing_start,
-		sim_message_eventcallback_raytracing_light,
-		sim_message_eventcallback_raytracing_mesh,
-		sim_message_eventcallback_raytracing_stop,
+		sim_message_eventcallback_extrenderer_start,
+		sim_message_eventcallback_extrenderer_light,
+		sim_message_eventcallback_extrenderer_mesh,
+		sim_message_eventcallback_extrenderer_stop,
+
+		sim_message_eventcallback_dynamicspluginbullet, /* to interact with the dynamics calculation plugin, Bullet */
+		sim_message_eventcallback_dynamicspluginode, /* to interact with the dynamics calculation plugin, ODE */
+		sim_message_eventcallback_dynamicspluginvortex, /* to interact with the dynamics calculation plugin, Vortex */
+		sim_message_eventcallback_dynamicspluginnewton, /* to interact with the dynamics calculation plugin, Newton */
+		sim_message_eventcallback_dynamicspluginreserved2, /* for future extensions */
+		sim_message_eventcallback_dynamicspluginreserved3, /* for future extensions */
+		sim_message_eventcallback_dynamicspluginreserved4, /* for future extensions */
+		sim_message_eventcallback_dynamicspluginreserved5, /* for future extensions */
+		sim_message_eventcallback_dynamicspluginreserved6, /* for future extensions */
+		sim_message_eventcallback_dynamicspluginreserved7, /* for future extensions */
+		sim_message_eventcallback_dynamicspluginreserved8, /* for future extensions */
+		sim_message_eventcallback_dynamicspluginreserved9, /* for future extensions */
+
+		sim_message_eventcallback_extrenderer_triangles,
+
 
 		sim_message_simulation_start_resume_request=0x1000,
 		sim_message_simulation_pause_request,
@@ -300,7 +316,7 @@ enum {
 		sim_displayattribute_useauxcomponent		=0x80000,
 		sim_displayattribute_ignorerenderableflag	=0x100000,
 		sim_displayattribute_noopenglcallbacks		=0x200000,
-		sim_displayattribute_forraytracingvisionsensor	=0x400000,
+		sim_displayattribute_FREE					=0x400000,
 		sim_displayattribute_noghosts				=0x800000,
 		sim_displayattribute_nopointclouds			=0x1000000,
 		sim_displayattribute_nodrawingobjects		=0x2000000,
@@ -530,13 +546,13 @@ enum { /* Path properties: */
 	sim_pathproperty_show_orientation		=0x0002,
 	sim_pathproperty_closed_path			=0x0004,
 	sim_pathproperty_automatic_orientation	=0x0008,
-	sim_pathproperty_invert_velocity		=0x0010,
-	sim_pathproperty_infinite_acceleration	=0x0020,
+	sim_pathproperty_invert_velocity_deprecated		=0x0010,
+	sim_pathproperty_infinite_acceleration_deprecated	=0x0020,
 	sim_pathproperty_flat_path				=0x0040,
 	sim_pathproperty_show_position			=0x0080,
-	sim_pathproperty_auto_velocity_profile_translation	=0x0100,
-	sim_pathproperty_auto_velocity_profile_rotation		=0x0200,
-	sim_pathproperty_endpoints_at_zero					=0x0400,
+	sim_pathproperty_auto_velocity_profile_translation_deprecated	=0x0100,
+	sim_pathproperty_auto_velocity_profile_rotation_deprecated		=0x0200,
+	sim_pathproperty_endpoints_at_zero_deprecated					=0x0400,
 	sim_pathproperty_keep_x_up							=0x0800
 };
 
@@ -626,8 +642,8 @@ enum { /* Boolean parameters: */
 	sim_boolparam_ik_handling_enabled,
 	sim_boolparam_gcs_handling_enabled,
 	sim_boolparam_dynamics_handling_enabled,
-	sim_boolparam_joint_motion_handling_enabled,
-	sim_boolparam_path_motion_handling_enabled,
+	sim_boolparam_joint_motion_handling_enabled_deprecated,
+	sim_boolparam_path_motion_handling_enabled_deprecated,
 	sim_boolparam_proximity_sensor_handling_enabled,
 	sim_boolparam_vision_sensor_handling_enabled,
 	sim_boolparam_mill_handling_enabled,
@@ -675,7 +691,7 @@ enum { /* Integer parameters: */
 	sim_intparam_current_page,
 	sim_intparam_flymode_camera_handle, /* can only be read */
 	sim_intparam_dynamic_step_divider, /* can only be read */
-	sim_intparam_dynamic_engine, /* 0=Bullet, 1=ODE. 2=Vortex. Can only be read */
+	sim_intparam_dynamic_engine, /* 0=Bullet, 1=ODE. 2=Vortex. 3=Newton. Can only be read */
 	sim_intparam_server_port_start, /* can only be read */
 	sim_intparam_server_port_range, /* can only be read */
 	sim_intparam_visible_layers,
@@ -702,7 +718,8 @@ enum { /* Integer parameters: */
 	sim_intparam_dynamic_warning_disabled_mask,
 	sim_intparam_simulation_warning_disabled_mask,
 	sim_intparam_scene_index, /* can be used to switch to a different instance programmatically */
-	sim_intparam_motionplanning_seed
+	sim_intparam_motionplanning_seed,
+	sim_intparam_speedmodifier /* can only be used while simulation is not stopped */
 };
 
 enum { /* Float parameters: */
@@ -725,7 +742,8 @@ enum { /* String parameters: */
 	sim_stringparam_app_arg9,
 	sim_stringparam_additional_addonscript_firstscene, /* do not use. Can only be written. */
 	sim_stringparam_additional_addonscript, /* do not use. Can only be written. */
-	sim_stringparam_scene_path_and_name /* can only be read */
+	sim_stringparam_scene_path_and_name, /* can only be read */
+	sim_stringparam_remoteapi_temp_file_dir /* can only be read */
 };
 
 enum { /* Array parameters: */
@@ -756,7 +774,7 @@ enum { /* User interface elements: */
 
 enum { /* Joint modes: */
 	sim_jointmode_passive=0,
-	sim_jointmode_motion,
+	sim_jointmode_motion_deprecated,
 	sim_jointmode_ik,
 	sim_jointmode_reserved_previously_ikdependent,
 	sim_jointmode_dependent,
@@ -835,7 +853,8 @@ enum { /* message box return values */
 enum { /* physics engine */
 	sim_physics_bullet=0,
 	sim_physics_ode,
-	sim_physics_vortex
+	sim_physics_vortex,
+	sim_physics_newton
 };
 
 enum { /* pure primitives type */
@@ -898,6 +917,75 @@ enum { /* color components */
 	sim_colorcomponent_emission,
 	sim_colorcomponent_transparency,
 	sim_colorcomponent_auxiliary
+};
+
+enum { /* Pov pattern types */
+	sim_pov_pattern_null=0,
+	sim_pov_white_marble,
+	sim_pov_blood_marble,
+	sim_pov_blue_agate,
+	sim_pov_sapphire_agate,
+	sim_pov_brown_agate,
+	sim_pov_pink_granite,
+	sim_pov_pink_alabaster,
+	sim_pov_cherry_wood,
+	sim_pov_pine_wood,
+	sim_pov_dark_wood,
+	sim_pov_tan_wood,
+	sim_pov_white_wood,
+	sim_pov_tom_wood,
+	sim_pov_dmf_wood1,
+	sim_pov_dmf_wood2,
+	sim_pov_dmf_wood3,
+	sim_pov_dmf_wood4,
+	sim_pov_dmf_wood5,
+	sim_pov_dmf_wood6,
+	sim_pov_dmf_light_oak,
+	sim_pov_dmf_dark_oak,
+	sim_pov_emb_wood1,
+	sim_pov_yellow_pine,
+	sim_pov_rose_wood,
+	sim_pov_sandal_wood,
+	sim_pov_glass,
+	sim_pov_glass2,
+	sim_pov_glass3,
+	sim_pov_green_glass,
+	sim_pov_light_glass,
+	sim_pov_bold_glass,
+	sim_pov_wine_bottle,
+	sim_pov_beer_bottle,
+	sim_pov_ruby_glass,
+	sim_pov_blue_glass,
+	sim_pov_yellow_glass,
+	sim_pov_orange_glass,
+	sim_pov_vicks_bottle_glass,
+	sim_pov_chrome_metal,
+	sim_pov_brass_metal,
+	sim_pov_copper_metal,
+	sim_pov_bronze_metal,
+	sim_pov_silver_metal,
+	sim_pov_gold_metal,
+	sim_pov_polished_chrome,
+	sim_pov_polished_brass,
+	sim_pov_new_brass,
+	sim_pov_spun_brass,
+	sim_pov_brushed_aluminum,
+	sim_pov_silver1,
+	sim_pov_silver2,
+	sim_pov_silver3,
+	sim_pov_brass_valley,
+	sim_pov_rust,
+	sim_pov_rusty_iron,
+	sim_pov_soft_silver,
+	sim_pov_new_penny,
+	sim_pov_tinny_brass,
+	sim_pov_gold_nugget,
+	sim_pov_aluminum,
+	sim_pov_bright_bronze,
+	sim_pov_water,
+	sim_pov_cork,
+	sim_pov_lightning,
+	sim_pov_mirror
 };
 
 /******************************************
