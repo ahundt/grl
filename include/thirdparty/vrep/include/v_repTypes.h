@@ -27,7 +27,7 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
+// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
 
 #if !defined(V_REPTYPES_INCLUDED_)
 #define V_REPTYPES_INCLUDED_

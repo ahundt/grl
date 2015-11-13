@@ -12,7 +12,7 @@
 // You are free to use/modify/distribute this file for whatever purpose!
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.1 on May 3rd 2015
+// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
 
 #include "luaFunctionData.h"
 #include <sstream>
@@ -88,7 +88,7 @@ bool CLuaFunctionData::readDataFromLua(const SLuaCallBack* p,const int* expected
 			if (p->inputArgTypeAndSize[i*2+0]!=((expectedArguments[1+i*2+0]|SIM_LUA_ARG_NIL_ALLOWED)-SIM_LUA_ARG_NIL_ALLOWED))
 			{
 				std::ostringstream str;
-				str << "Argument " << i+1 << " is not correct, expected type#" << expectedArguments[1+i*2+0] << " and got type#" << p->inputArgTypeAndSize[i*2+0] << ".";
+				str << "Argument " << i+1 << " is not correct.";
 				simSetLastError(functionName,str.str().c_str());
 				return(false);
 			}
