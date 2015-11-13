@@ -285,7 +285,7 @@ public:
         currentCisstT[1] = currentEigenT(1);
         currentCisstT[2] = currentEigenT(2);
 #ifdef HANDLE_ROTATION
-        Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> ccr(currentKinematicsStateP_->Frame.Rotation().Pointer());
+        Eigen::Map<Eigen::Matrix<double,3,3,Eigen::ColMajor>> ccr(currentKinematicsStateP_->Frame.Rotation().Pointer());
         ccr = currentEndEffectorPose.rotation();
 #endif // HANDLE_ROTATION
         /// @todo set rotation component of current position
@@ -302,7 +302,7 @@ public:
         desiredCisstT[1] = desiredEigenT(1);
         desiredCisstT[2] = desiredEigenT(2);
 #ifdef HANDLE_ROTATION
-        Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> dcr(desiredKinematicsStateP_->Frame.Rotation().Pointer());
+        Eigen::Map<Eigen::Matrix<double,3,3,Eigen::ColMajor>> dcr(desiredKinematicsStateP_->Frame.Rotation().Pointer());
         dcr = desiredEndEffectorPose.rotation();
 #endif // HANDLE_ROTATION
         /// @todo set rotation component of desired position
