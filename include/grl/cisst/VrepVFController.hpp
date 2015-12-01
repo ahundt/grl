@@ -20,6 +20,7 @@
 #include <boost/range/algorithm/copy.hpp>
 
 namespace grl {
+#define HANDLE_ROTATION
 
 /// This handles a whole vrep path object
 class DesiredKinematicsPath {
@@ -205,6 +206,11 @@ public:
         }
         
         setObjectTransform( target,tip,tipToTarget);
+   
+        // debug verifying that get and set object transform don't corrupt underlying data
+//        Eigen::Affine3d tipToTarget2 =getObjectTransform( target,tip);
+//        std::cout << "\ntiptotarget\n" << tipToTarget.matrix();
+//        std::cout << "\ntiptotarget2\n" << tipToTarget2.matrix();
         
         // Get the Jacobian
         int jacobianSize[2];
@@ -310,6 +316,30 @@ public:
         // for debugging, the translation between the current and desired position in cartesian coordinates
         auto inputDesired_dx = desiredCisstT - currentCisstT;
         
+        vct3 dx_translation, dx_rotation;
+        
+        // Rotation part
+        vctAxAnRot3 dxRot;
+        vct3 dxRotVec;
+        dxRot.FromNormalized((currentKinematicsStateP_->Frame.Inverse() * desiredKinematicsStateP_->Frame).Rotation());
+        dxRotVec = dxRot.Axis() * dxRot.Angle();
+        dx_rotation[0] = dxRotVec[0];
+        dx_rotation[1] = dxRotVec[1];
+        dx_rotation[2] = dxRotVec[2];
+        //dx_rotation.SetAll(0.0);
+        dx_rotation = currentKinematicsStateP_->Frame.Rotation() * dx_rotation;
+        
+        Eigen::AngleAxis<float> tipToTarget_cisstToEigen;
+        
+        Eigen::Matrix3f rotmat;
+        double theta = std::sqrt(dx_rotation[0]*dx_rotation[0]+dx_rotation[1]*dx_rotation[1]+dx_rotation[2]*dx_rotation[2]);
+        rotmat= Eigen::AngleAxisf(theta,Eigen::Vector3f(dx_rotation[0]/theta,dx_rotation[1]/theta,dx_rotation[2]/theta));
+        
+        std::cout << "\ntiptotarget     \n" << tipToTarget.matrix() << "\n";
+        std::cout << "\ntiptotargetcisst\n" << rotmat.matrix() << "\n";
+        
+        
+        //BOOST_LOG_TRIVIAL(trace) << "\n   test         desired dx: " << inputDesired_dx << " " << dx_rotation << "\noptimizer Calculated dx: " << optimizerCalculated_dx;
         SetKinematics(*currentKinematicsStateP_);  // replaced by name of object
         // fill these out in the desiredKinematicsStateP_
         //RotationType RotationMember; // vcRot3
@@ -354,7 +384,7 @@ public:
         
         auto optimizerCalculated_dx = this->currentKinematicsStateP_->Jacobian * jointAngles_dt;
        
-        BOOST_LOG_TRIVIAL(trace) << "desired dx: " << inputDesired_dx << " optimizer Calculated dx: " << optimizerCalculated_dx;
+        BOOST_LOG_TRIVIAL(trace) << "\n            desired dx: " << inputDesired_dx << " " << dx_rotation << "\noptimizer Calculated dx: " << optimizerCalculated_dx;
     }
     
     /// may not need this it is in the base class
