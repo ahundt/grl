@@ -33,11 +33,13 @@ public:
         std::vector<std::string>,
         std::string,
         std::string,
+        std::string,
         std::string
         > Params;
     
     typedef std::tuple<
         std::vector<int>,
+        int,
         int,
         int,
         int
@@ -59,7 +61,8 @@ public:
                     jointNames                , // JointNames
                     "RobotMillTip"            , // RobotTipName,
                     "RobotMillTipTarget"      , // RobotTargetName,
-                    "Robotiiwa"                 // RobotTargetBaseName,
+                    "Robotiiwa"               , // RobotTargetBaseName,
+                    "IK_Group1_iiwa"            // RobotIkGroup
                 );
     }
     
@@ -102,7 +105,7 @@ public:
     }
     
 /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
-/// @todo throw an exception if any of the handles is -1
+/// @warning getting the ik group is optional, so it does not throw an exception
 void construct() {
     std::vector<int> jointHandle;
     getHandleFromParam<JointNames>(params_,std::back_inserter(jointHandle));
@@ -112,6 +115,7 @@ void construct() {
 	    ,getHandleFromParam<RobotTipName>           (params_)	//Obtain RobotTip handle
 	    ,getHandleFromParam<RobotTargetName>        (params_)
 	    ,getHandleFromParam<RobotTargetBaseName>    (params_)
+        ,simGetIkGroupHandle(std::get<RobotIkGroup> (params_).c_str())
     );
 
 	allHandlesSet  = true;
@@ -140,7 +144,7 @@ bool getState(State& state){
             simBool isCyclic;
             float jointAngleInterval[2]; // min,max
 			
-			for (int i=0 ; i < jointHandle.size() ; i++)
+			for (std::size_t i=0 ; i < jointHandle.size() ; i++)
 			{	
                 int currentJointHandle = jointHandle[i];
 				simGetJointPosition(currentJointHandle,&std::get<JointPosition>(state)[i]);  //retrieves the intrinsic position of a joint (Angle for revolute joint)
@@ -173,6 +177,7 @@ bool getState(State& state){
 			// Send updated position to the real arm based on simulation
             return false;
 }
+
 
 
 
