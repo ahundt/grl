@@ -70,11 +70,13 @@ public:
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
         RemoteHostKukaKoniUDPPort,
-        KukaCommandMode
+        KukaCommandMode,
+        IKGroupName
     };
     
     /// @todo allow default params
     typedef std::tuple<
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -113,7 +115,8 @@ public:
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
                     "30200"                   , // RemoteHostKukaKoniUDPPort
-                    "JAVA"                      // KukaCommandMode (options are FRI, JAVA)
+                    "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+                    "IK_Group1_iiwa"            // IKGroupName
                 );
     }
 
@@ -246,7 +249,8 @@ void initHandles() {
             },
             std::get<RobotTipName>           (params_),
             std::get<RobotTargetName>        (params_),
-            std::get<RobotTargetBaseName>    (params_)
+            std::get<RobotTargetBaseName>    (params_),
+            std::get<IKGroupName>            (params_)
         )
     );
     vrepRobotArmDriverP_->construct();
