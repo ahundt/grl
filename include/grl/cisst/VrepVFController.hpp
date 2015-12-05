@@ -1,7 +1,11 @@
 /// @author Andrew Hundt <athundt@gmail.com>
-
 #ifndef _VREP_VF_CONTROLLER_
 #define _VREP_VF_CONTROLLER_
+
+/// @todo remove IGNORE_ROTATION or make it a runtime configurable parameter
+// #define IGNORE_ROTATION
+
+
 
 #include <string>
 #include <tuple>
@@ -14,57 +18,13 @@
 #include "grl/cisst/GrlVFController.hpp"
 #include "grl/vrep/Vrep.hpp"
 #include "grl/vrep/VrepRobotArmDriver.hpp"
+#include "grl/vrep/VrepRobotArmJacobian.hpp"
 #include "grl/vrep/Eigen.hpp"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/copy.hpp>
 
 namespace grl {
-#define HANDLE_ROTATION
-
-/// This handles a whole vrep path object
-class DesiredKinematicsPath {
-  
-    enum  VrepVFControllerParamsIndex {
-        DesiredKinematicsObjectName
-    };
-    
-    typedef std::tuple<
-            std::string // DesiredKinematicsObjectName
-        > VrepVFControllerParams;
-    
-    
-    void construct()
-    {
-        
-    }
-    
-    Eigen::Affine3d getDesiredPose(){
-        
-    }
-};
-
-/// This handles a specific vrep pose
-class DesiredKinematicsObject {
-  
-    enum  VrepVFControllerParamsIndex {
-        DesiredKinematicsObjectName
-    };
-    
-    std::tuple<
-            std::string // DesiredKinematicsObjectName
-        > Params;
-    
-    void construct()
-    {
-        
-    }
-    
-    
-    Eigen::Affine3d getDesiredPose(){
-        
-    }
-};
 
 /// @todo verify Robotiiwa is the correct base, and RobotMillTipTarget is the right target, because if the transform doesn't match the one in the jacobian the algorithm will break
 //template<typename DesiredKinematics = DesiredKinematicsObject>
@@ -147,7 +107,7 @@ public:
         //jointHandles_ = VrepRobotArmDriverP_->getJointHandles();
         //int numJoints =jointHandles_.size();
         
-#ifdef HANDLE_ROTATION
+#ifndef IGNORE_ROTATION
         /// @todo objectiveRows seems to currently be a 3 vector, may eventually want a rotation and translation, perhaps with quaternion rotation
         followVFP_->ObjectiveRows = 6;
 #else
@@ -162,106 +122,35 @@ public:
         /// @todo set vrep explicit handling of IK here, plus unset in destructor of this object
     }
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     /// check out sawConstraintController
     void updateKinematics(){
     
-        // Initialize Variables for update
         jointHandles_ = VrepRobotArmDriverP_->getJointHandles();
-        int numJoints =jointHandles_.size();
-        std::vector<float> ikCalculatedJointValues(numJoints,0);
-        VrepRobotArmDriverP_->getState(currentArmState_);
-        
-        /// @todo get target position, probably relative to base
-        const auto& handleParams = VrepRobotArmDriverP_->getVrepHandleParams();
-        
-        auto target = std::get<vrep::VrepRobotArmDriver::RobotTargetName>(handleParams);
-        auto tip = std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams);
-        
-        // save the current tip to target transform
-        Eigen::Affine3d tipToTarget =getObjectTransform( target,tip);
-        
-        // set the current transform to the identity so simCheckIkGroup won't fail
-        // @see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=3967
-        // for details about this issue.
-        setObjectTransform( target,tip,Eigen::Affine3d::Identity());
-        
-        // debug:
-        // std::cout << "TipToTargetTransform:\n" << tipToTarget.matrix() << "\n";
-        
-        /// Run inverse kinematics, but all we really want is the jacobian
-        /// @todo find version that only returns jacobian
-        /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simCheckIkGroup
-        auto ikcalcResult =
-        simCheckIkGroup(ikGroupHandle_
-                       ,numJoints
-                       ,&jointHandles_[0]
-                       ,&ikCalculatedJointValues[0]
-                       ,NULL /// @todo do we need to use these options?
-                       );
-        /// @see http://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#ikCalculationResults
-        if(ikcalcResult!=sim_ikresult_success && ikcalcResult != sim_ikresult_not_performed)
-        {
-            BOOST_LOG_TRIVIAL(error) << "VrepInverseKinematicsController: didn't run inverse kinematics";
-            return;
-        }
-        
-        setObjectTransform( target,tip,tipToTarget);
-   
-        // debug verifying that get and set object transform don't corrupt underlying data
-//        Eigen::Affine3d tipToTarget2 =getObjectTransform( target,tip);
-//        std::cout << "\ntiptotarget\n" << tipToTarget.matrix();
-//        std::cout << "\ntiptotarget2\n" << tipToTarget2.matrix();
-        
-        // Get the Jacobian
-        int jacobianSize[2];
-        float* jacobian=simGetIkGroupMatrix(ikGroupHandle_,0,jacobianSize);
-        /// @todo FIX HACK jacobianSize include orientation component, should be 7x6 instead of 7x3
-        
-#ifndef HANDLE_ROTATION
-        jacobianSize[1] = 3;
-#endif
-        
+        auto eigentestJacobian=::grl::vrep::getJacobian(*VrepRobotArmDriverP_);
+
         /// The row/column major order is swapped between cisst and VREP!
-        this->currentKinematicsStateP_->Jacobian.SetSize(jacobianSize[1],jacobianSize[0]);
+        this->currentKinematicsStateP_->Jacobian.SetSize(eigentestJacobian.cols(),eigentestJacobian.rows());
+        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > mckp2(this->currentKinematicsStateP_->Jacobian.Pointer(),this->currentKinematicsStateP_->Jacobian.cols(),this->currentKinematicsStateP_->Jacobian.rows());
+        mckp2 = eigentestJacobian.cast<double>();
         
         
-        // Transfer the Jacobian to cisst
-
-        // jacobianSize[0] represents the row count of the Jacobian 
-        // (i.e. the number of equations or the number of joints involved
-        // in the IK resolution of the given kinematic chain)
-        // Joints appear from tip to base.
-
-        // jacobianSize[1] represents the column count of the Jacobian 
-        // (i.e. the number of constraints, e.g. x,y,z,alpha,beta,gamma,jointDependency)
-
-        // The Jacobian data is ordered row-wise, i.e.:
-        // [row0,col0],[row1,col0],..,[rowN,col0],[row0,col1],[row1,col1],etc.
-
-        std::string str;
-        str+="\n";
-        for (int i=0;i<jacobianSize[0];i++)
-        {
-            for (int j=0;j<jacobianSize[1];j++)
-            {
-                str+=boost::str(boost::format("%.1e") % jacobian[static_cast<int>(j*jacobianSize[0]+i)]);
-                if (j<jacobianSize[1]-1)
-                    str+=", ";
-                float currentValue = jacobian[static_cast<int>(j*jacobianSize[0]+i)];
-            
-                /// The row/column major order is swapped between cisst and VREP!
-                this->currentKinematicsStateP_->Jacobian[j][jacobianSize[0]-i-1] = currentValue;
-            }
-            str+="\n";
-        }
-        BOOST_LOG_TRIVIAL(trace) << str;
-        
-        
-        ///////////////////////////////////////////////////////////
-        /// @todo Set Current Joint State
-        
-        // currentKinematicsStateP_->JointState = ...
-        // prmJointState* JointState;
+        //Eigen::Map<Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > mf(eigentestJacobian,eigentestJacobian.cols(),eigentestJacobian.rows());
+        //Eigen::MatrixXf eigenJacobian = mf;
+        Eigen::MatrixXf eigenJacobian = eigentestJacobian;
         
         
         ///////////////////////////////////////////////////////////
@@ -279,7 +168,7 @@ public:
         jointPositionLimitsVFP_->UpperLimits = vctDoubleVec(ulimits.size(),&ulimits[0]);
         
         
-        
+        const auto& handleParams = VrepRobotArmDriverP_->getVrepHandleParams();
         Eigen::Affine3d currentEndEffectorPose =
         getObjectTransform(
                              std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams)
@@ -290,10 +179,10 @@ public:
         currentCisstT[0] = currentEigenT(0);
         currentCisstT[1] = currentEigenT(1);
         currentCisstT[2] = currentEigenT(2);
-#ifdef HANDLE_ROTATION
+#ifndef IGNORE_ROTATION
         Eigen::Map<Eigen::Matrix<double,3,3,Eigen::ColMajor>> ccr(currentKinematicsStateP_->Frame.Rotation().Pointer());
         ccr = currentEndEffectorPose.rotation();
-#endif // HANDLE_ROTATION
+#endif // IGNORE_ROTATION
         /// @todo set rotation component of current position
         
         
@@ -307,10 +196,10 @@ public:
         desiredCisstT[0] = desiredEigenT(0);
         desiredCisstT[1] = desiredEigenT(1);
         desiredCisstT[2] = desiredEigenT(2);
-#ifdef HANDLE_ROTATION
+#ifndef IGNORE_ROTATION
         Eigen::Map<Eigen::Matrix<double,3,3,Eigen::ColMajor>> dcr(desiredKinematicsStateP_->Frame.Rotation().Pointer());
         dcr = desiredEndEffectorPose.rotation();
-#endif // HANDLE_ROTATION
+#endif // IGNORE_ROTATION
         /// @todo set rotation component of desired position
         
         // for debugging, the translation between the current and desired position in cartesian coordinates
@@ -335,8 +224,8 @@ public:
         double theta = std::sqrt(dx_rotation[0]*dx_rotation[0]+dx_rotation[1]*dx_rotation[1]+dx_rotation[2]*dx_rotation[2]);
         rotmat= Eigen::AngleAxisf(theta,Eigen::Vector3f(dx_rotation[0]/theta,dx_rotation[1]/theta,dx_rotation[2]/theta));
         
-        std::cout << "\ntiptotarget     \n" << tipToTarget.matrix() << "\n";
-        std::cout << "\ntiptotargetcisst\n" << rotmat.matrix() << "\n";
+//        std::cout << "\ntiptotarget     \n" << tipToTarget.matrix() << "\n";
+//        std::cout << "\ntiptotargetcisst\n" << rotmat.matrix() << "\n";
         
         
         //BOOST_LOG_TRIVIAL(trace) << "\n   test         desired dx: " << inputDesired_dx << " " << dx_rotation << "\noptimizer Calculated dx: " << optimizerCalculated_dx;
@@ -365,8 +254,8 @@ public:
        
        
        /// @todo: rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
-        //std::string str;
-        str = "";
+        std::string str;
+       // str = "";
        for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
        {
           float currentAngle;
