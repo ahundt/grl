@@ -48,7 +48,8 @@ BOOST_AUTO_TEST_CASE(connectToFake){
                     "30200"                  , // LocalHostKukaKoniUDPPort,
                     "127.0.0.1"              , // RemoteHostKukaKoniUDPAddress,
                     "30200"                  , // RemoteHostKukaKoniUDPPort
-                    "JAVA"                     // KukaCommandMode ("JAVA" or "FRI")
+                    "JAVA"                   , // KukaCommandMode ("JAVA" or "FRI")
+                    ""                         // IKGroupName (empty because there isn't one right now)
                 );
 auto plugin = std::make_shared<grl::vrep::KukaVrepPlugin>(config);
 }

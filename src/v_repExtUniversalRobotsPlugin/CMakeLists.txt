@@ -28,14 +28,13 @@
 #       be placed in the lib/[<lang>/]grl/ directory,
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
+if(ur_modern_driver_FOUND)
+basis_include_directories(${UR_MODERN_DRIVER_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
+basis_add_library(v_repExtUniversalRobots SHARED v_repExtUniversalRobots.cpp )
+basis_target_link_libraries(v_repExtUniversalRobots  ${Boost_LIBRARIES} ur_driver v_repLib)
+endif()
 
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 
-add_subdirectory(v_rep)
-add_subdirectory(v_repExtUniversalRobotsPlugin)
-add_subdirectory(v_repExtKukaLBRiiwaPlugin)
-add_subdirectory(v_repExtHandEyeCalibration)
-add_subdirectory(v_repExtGrlInverseKinematics)
 
 # ============================================================================
 # executable target(s)

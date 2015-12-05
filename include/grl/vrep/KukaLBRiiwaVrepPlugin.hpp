@@ -70,11 +70,13 @@ public:
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
         RemoteHostKukaKoniUDPPort,
-        KukaCommandMode
+        KukaCommandMode,
+        IKGroupName
     };
     
     /// @todo allow default params
     typedef std::tuple<
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -113,7 +115,8 @@ public:
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
                     "30200"                   , // RemoteHostKukaKoniUDPPort
-                    "JAVA"                      // KukaCommandMode (options are FRI, JAVA)
+                    "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+                    "IK_Group1_iiwa"            // IKGroupName
                 );
     }
 
@@ -246,7 +249,8 @@ void initHandles() {
             },
             std::get<RobotTipName>           (params_),
             std::get<RobotTargetName>        (params_),
-            std::get<RobotTargetBaseName>    (params_)
+            std::get<RobotTargetBaseName>    (params_),
+            std::get<IKGroupName>            (params_)
         )
     );
     vrepRobotArmDriverP_->construct();
@@ -286,10 +290,11 @@ void getRealKukaAngles() {
         grl::robot::arm::copy(updatedState->get(), std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
         
         
+#if BOOST_VERSION < 105900
         // here we expect the simulation to be slightly ahead of the arm
         // so we get the simulation based joint angles and update the arm
-       
        BOOST_LOG_TRIVIAL(trace) << "Real joint angles from FRI: " << realJointPosition << "\n";
+#endif
     } else if (kukaFRIClientDataDriverP_)
     {
       /// @todo fix this hack, real data hasn't actually been received because send & receive happen simultaneously
@@ -321,7 +326,9 @@ void sendSimulatedJointAnglesToKuka(){
            boost::copy(simJointPosition, std::back_inserter(joints));
            auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
            
+#if BOOST_VERSION < 105900
            BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
+#endif
            
            /// @note we don't have a velocity right now, sending empty!
            joints.clear();
