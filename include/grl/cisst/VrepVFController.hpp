@@ -243,7 +243,8 @@ public:
         /// @todo move code below here back under run_one updateKinematics() call
         
        /// @todo need to provide tick time in double seconds and get from vrep API call
-       UpdateOptimizer(0.01);
+       float simulationTimeStep = simGetSimulationTimeStep();
+       UpdateOptimizer(simulationTimeStep);
        
        vctDoubleVec jointAngles_dt;
        auto returncode = Solve(jointAngles_dt);
