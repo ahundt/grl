@@ -45,7 +45,7 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 std::shared_ptr<grl::vrep::KukaVrepPlugin> kukaPluginPG;
 
 const int inArgs_KUKA_LBR_IIWA_START[]={
- 17,                   //   Example Value              // Parameter name  
+ 18,                   //   Example Value              // Parameter name
  sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint1Handle 
  sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint2Handle 
  sim_lua_arg_string,0, //  "LBR_iiwa_14_R820_joint1" , // Joint3Handle 
@@ -62,10 +62,11 @@ const int inArgs_KUKA_LBR_IIWA_START[]={
  sim_lua_arg_string,0, //  "30200"                   , // LocalHostKukaKoniUDPPort,
  sim_lua_arg_string,0, //  "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
  sim_lua_arg_string,0, //  "30200"                   , // RemoteHostKukaKoniUDPPort
- sim_lua_arg_string,0, //  "JAVA"                      // KukaCommandMode (options are "JAVA", "FRI")
+ sim_lua_arg_string,0, //  "JAVA"                    , // KukaCommandMode (options are "JAVA", "FRI")
+ sim_lua_arg_string,0, //  "IK_Group1_iiwa"            // IKGroupName (VREP built in inverse kinematics group)
 };
 
-std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaStart(string Joint1Handle , string Joint2Handle , string Joint3Handle , string Joint4Handle , string Joint5Handle , string Joint6Handle , string Joint7Handle , string RobotTipHandle, string RobotTargetHandle, string RobotTargetBaseHandle, string LocalZMQAddress, string RemoteZMQAddress, string LocalHostKukaKoniUDPAddress, string LocalHostKukaKoniUDPPort, string RemoteHostKukaKoniUDPAddress, string RemoteHostKukaKoniUDPPort, string KukaCommandMode) -- KukaCommandMode options are JAVA and FRI");
+std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaStart(string Joint1Handle , string Joint2Handle , string Joint3Handle , string Joint4Handle , string Joint5Handle , string Joint6Handle , string Joint7Handle , string RobotTipHandle, string RobotTargetHandle, string RobotTargetBaseHandle, string LocalZMQAddress, string RemoteZMQAddress, string LocalHostKukaKoniUDPAddress, string LocalHostKukaKoniUDPPort, string RemoteHostKukaKoniUDPAddress, string RemoteHostKukaKoniUDPPort, string KukaCommandMode, string IKGroupName) -- KukaCommandMode options are JAVA and FRI");
 
 void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
@@ -98,6 +99,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
             std::string RemoteHostKukaKoniUDPAddress        (inData->at(14).stringData[0]);
             std::string RemoteHostKukaKoniUDPPort           (inData->at(15).stringData[0]);
             std::string KukaCommandMode                     (inData->at(16).stringData[0]);
+            std::string IKGroupName                         (inData->at(17).stringData[0]);
             
         
             kukaPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>(
@@ -118,7 +120,8 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
                     LocalHostKukaKoniUDPPort      ,
                     RemoteHostKukaKoniUDPAddress  ,
                     RemoteHostKukaKoniUDPPort     ,
-                    KukaCommandMode               
+                    KukaCommandMode               ,
+                    IKGroupName
                 )
             );
             kukaPluginPG->construct();
