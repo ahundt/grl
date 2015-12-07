@@ -34,6 +34,7 @@ via Luigi Alamanni 13D, San Giuliano Terme 56010 (PI), Italy
 #include <pcl/io/ply_io.h>
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/recognition/ransac_based/obj_rec_ransac.h>
+#include <pcl/registration/transforms.h>
 #include <pcl/features/integral_image_normal.h>
 
 
@@ -80,14 +81,23 @@ int main(int argc, char *argv[])
   // setup ransac
   pcl::recognition::ObjRecRANSAC orransac(pair_width,voxel_size);
   pcl::PLYReader reader;
+
+  //Map from the file name to the point cloud
+  std::map<std::string, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> pclMap;
+
   for (int idx : ply_file_indices) {
       pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+      // these are the point clouds of the ply files read in
       pcl::PointCloud<Normal>::Ptr modelnormal(new pcl::PointCloud<pcl::Normal>());
       pcl::copyPointCloud(*model,*modelnormal);
       pcl::PointCloud<pcl::PointXYZ>::Ptr modelxyz(new pcl::PointCloud<pcl::PointXYZ>());
       pcl::copyPointCloud(*model,*modelxyz);
       
       std::string modelFile(argv[ply_file_indices[idx]]);
+
+      //we need to map these strings, which are the names, to the ply files
+      pclMap[modelFile] = model;
+
       reader.read(modelFile,*model);
       /// @todo should const_cast really be used?
       orransac.addModel(*modelxyz,*modelnormal,modelFile);
@@ -98,7 +108,8 @@ int main(int argc, char *argv[])
     pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
 
   // setup kinect
-  boost::shared_ptr<pcl::PointCloud<pcl::PointXYZRGB>> cloud;
+  //changed cloud type to ::Ptr
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
   K2G k2g(freenectprocessor);
   std::cout << "getting cloud" << std::endl;
   cloud = k2g.getCloud();
@@ -141,10 +152,40 @@ int main(int argc, char *argv[])
     double success_probability=0.99;
     orransac.recognize(*cloudxyz,*normals,recognized_objects,success_probability);
     
-    /// @todo transform new locations of recognized objects and visualize
+    // iterate through the recognized objects, obtain names and get pcls to transform onto cloud
+    // the final concatenated point cloud to visualize
+    
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloudTransform(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+    for (const pcl::recognition::ObjRecRANSAC::Output & object : recognized_objects) {
+        //obtain the object string, use it to find the initial point cloud to transpose on cloud scene
+        std::string objstring = object.object_name_; //:: ?
+
+        //get the point cloud with normal, need to copy to pcl without normal and add to cloud
+        pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pclCloud = pclMap[objstring];
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloudNoNorm(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+        // copy to point cloud without normal, now add to scene cloud
+        pcl::copyPointCloud(*pclCloud, *pclCloudNoNorm);
+
+        // need to create an eigenmatrix from the transform parameters
+        // no idea if this is correct, need to create an eigenMatrix for transformation
+        Eigen::Affine3f eMatrix = Eigen::Affine3f::Identity();
+        for (std::size_t i = 0; i < 4; i++) {
+            for (std::size_t j = 0; j < 4; j++) {
+                eMatrix.matrix()(i,j) = object.rigid_transform_[i*4 + j];
+            }
+        }
+        //outputs pclCloudTransform, now correctly transformed to add to cloud
+        pcl::transformPointCloud(*pclCloudNoNorm, *pclCloudTransform, eMatrix);
+        //now concatenate with existing point cloud to get new visualization
+        *cloud += *pclCloudTransform;
+    }
+
+    // now visualize with the template objects superimposed on
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
     viewer->updatePointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
-    
+
     if(ply_file_indices.size() > 0 ){
         pcl::PCLPointCloud2 cloud2;
         pcl::toPCLPointCloud2(*cloud,cloud2);

@@ -137,4 +137,5 @@ if(PCL_FOUND AND freenect2_LIBRARIES)
     add_executable(Kinect2pclObjRecRansac kinect2pclObjRecRansac)
 
     target_link_libraries(Kinect2Grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
+    target_link_libraries(Kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
 endif()
