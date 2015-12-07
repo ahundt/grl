@@ -119,6 +119,8 @@ basis_project (
     cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # used for inverse kinematics plugin
     sawConstraintController #  used for inverse kinematics plugin
     CAMODOCAL # used for hand eye calibration plugin
+    PCL # point cloud library
+    freenect2 # kinect v2 drivers
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

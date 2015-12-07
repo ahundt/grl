@@ -114,3 +114,26 @@ if(FRI-Client-SDK_Cpp_FOUND)
 	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} v_repExtKukaLBRiiwa)
 endif()
 
+
+
+if(PCL_FOUND AND freenect2_LIBRARIES)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+    set(CMAKE_BUILD_TYPE Release) 
+
+    find_package(OpenCV REQUIRED)
+    find_package(PCL 1.7 REQUIRED)
+    pkg_search_module(GLFW REQUIRED glfw3)
+
+    link_directories(${PCL_LIBRARY_DIRS})
+    add_definitions(${PCL_DEFINITIONS})
+
+    include_directories(${OpenCV_INCLUDE_DIRS})
+    include_directories(${GLEWF_INCLUDE_DIRS})
+    include_directories(${PCL_INCLUDE_DIRS})
+    include_directories(${GLFW_INCLUDE_DIRS})
+
+    add_executable(Kinect2Grabber kinect2pclObjRecRansac.cpp)
+
+    target_link_libraries(Kinect2Grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
+endif()
