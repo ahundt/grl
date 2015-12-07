@@ -30,12 +30,8 @@ via Luigi Alamanni 13D, San Giuliano Terme 56010 (PI), Italy
 #include <pcl/console/parse.h>
 #include <pcl/console/time.h>
 #include <pcl/conversions.h>
-#include <pcl/common/io.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/PCLPointCloud2.h>
-#include <pcl/recognition/ransac_based/obj_rec_ransac.h>
-#include <pcl/features/integral_image_normal.h>
-
 
 using namespace pcl;
 using namespace pcl::io;
@@ -58,46 +54,17 @@ saveCloud (const std::string &filename, const Cloud &cloud, bool binary, bool us
 
 int main(int argc, char *argv[])
 {
-  std::cout << "Syntax is: " << argv[0] << " [-processor 0|1|2] [model.ply]\n -processor options 0,1,2 correspond to CPU, OPENCL, and OPENGL respectively\n";
+  std::cout << "Syntax is: " << argv[0] << " [-processor 0|1|2] [output.ply]\n -processor options 0,1,2 correspond to CPU, OPENCL, and OPENGL respectively\n";
   processor freenectprocessor = OPENGL;
   std::vector<int> ply_file_indices;
-  
-  /// http://docs.pointclouds.org/trunk/classpcl_1_1recognition_1_1_obj_rec_r_a_n_s_a_c.html#ae1a4249f8278de41a34f74b950996986
-  float pair_width = 0.15;
-  float voxel_size = 0.01;
-  
   if(argc>1){
       int fnpInt;
       ply_file_indices = parse_file_extension_argument (argc, argv, ".ply");
-      parse_argument (argc, argv, "--processor", fnpInt);
-      parse_argument (argc, argv, "--pair_width", pair_width);
-      parse_argument (argc, argv, "--voxel_size", voxel_size);
+      parse_argument (argc, argv, "-processor", fnpInt);
       freenectprocessor = static_cast<processor>(fnpInt);
       
   }
-  
-  
-  // setup ransac
-  pcl::recognition::ObjRecRANSAC orransac(pair_width,voxel_size);
-  pcl::PLYReader reader;
-  for (int idx : ply_file_indices) {
-      pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-      pcl::PointCloud<Normal>::Ptr modelnormal(new pcl::PointCloud<pcl::Normal>());
-      pcl::copyPointCloud(*model,*modelnormal);
-      pcl::PointCloud<pcl::PointXYZ>::Ptr modelxyz(new pcl::PointCloud<pcl::PointXYZ>());
-      pcl::copyPointCloud(*model,*modelxyz);
-      
-      std::string modelFile(argv[ply_file_indices[idx]]);
-      reader.read(modelFile,*model);
-      /// @todo should const_cast really be used?
-      orransac.addModel(*modelxyz,*modelnormal,modelFile);
-      
-  }
-  
-    // estimate normals http://pointclouds.org/documentation/tutorials/normal_estimation_using_integral_images.php#normal-estimation-using-integral-images
-    pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-
-  // setup kinect
+    
   boost::shared_ptr<pcl::PointCloud<pcl::PointXYZRGB>> cloud;
   K2G k2g(freenectprocessor);
   std::cout << "getting cloud" << std::endl;
@@ -123,32 +90,13 @@ int main(int argc, char *argv[])
     cloud = k2g.updateCloud(cloud);
     auto tpost = high_resolution_clock::now();
     std::cout << "delta " << duration_cast<duration<double>>(tpost-tnow).count()*1000 << std::endl;
-    
-    
-
-    pcl::IntegralImageNormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
-    ne.setNormalEstimationMethod (ne.AVERAGE_3D_GRADIENT);
-    /// @todo make magic numbers into params
-    ne.setMaxDepthChangeFactor(1.0f);
-    ne.setNormalSmoothingSize(10.0f);
-    ne.setInputCloud(cloud);
-    ne.compute(*normals);
-    
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudxyz(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::copyPointCloud(*cloud,*cloudxyz);
-    std::list< pcl::recognition::ObjRecRANSAC::Output > recognized_objects;
-    /// @todo make magic numbers into params
-    double success_probability=0.99;
-    orransac.recognize(*cloudxyz,*normals,recognized_objects,success_probability);
-    
-    /// @todo transform new locations of recognized objects and visualize
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
-    viewer->updatePointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
+    viewer->updatePointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud"); 
     
     if(ply_file_indices.size() > 0 ){
         pcl::PCLPointCloud2 cloud2;
         pcl::toPCLPointCloud2(*cloud,cloud2);
-        saveCloud("cloudname.ply",cloud2,false,false);
+        saveCloud(std::string(argv[ply_file_indices[0]]),cloud2,false,false);
         done = true;
     }
   }

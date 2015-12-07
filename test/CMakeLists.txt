@@ -133,7 +133,8 @@ if(PCL_FOUND AND freenect2_LIBRARIES)
     include_directories(${PCL_INCLUDE_DIRS})
     include_directories(${GLFW_INCLUDE_DIRS})
 
-    add_executable(Kinect2Grabber kinect2pclObjRecRansac.cpp)
+    add_executable(Kinect2Grabber kinect2pclgrabber.cpp)
+    add_executable(Kinect2pclObjRecRansac kinect2pclObjRecRansac)
 
     target_link_libraries(Kinect2Grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
 endif()
