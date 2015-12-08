@@ -32,7 +32,7 @@
 if(FRI-Client-SDK_Cpp_FOUND)
 basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 basis_add_library(v_repExtKukaLBRiiwa SHARED v_repExtKukaLBRiiwa.cpp )
-basis_target_link_libraries(v_repExtKukaLBRiiwa ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Nanopb_LIBRARIES} v_repLib)
+basis_target_link_libraries(v_repExtKukaLBRiiwa ${Boost_LIBRARIES}  ${Boost_LIBRARIES}  ${Boost_LOG_LIBRARY} ${Boost_REGEX_LIBRARY} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Nanopb_LIBRARIES} v_repLib)
 basis_add_dependencies(v_repExtKukaLBRiiwa grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
 endif()
 

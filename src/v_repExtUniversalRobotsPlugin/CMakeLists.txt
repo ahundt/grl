@@ -28,10 +28,11 @@
 #       be placed in the lib/[<lang>/]grl/ directory,
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
+message(STATUS "Boost_LIBRARIES:${Boost_LIBRARIES}<<<<<<Boost_LOG_FOUND:${Boost_LOG_FOUND}<<<<<<<Boost_LOG_LIBRARY:${Boost_LOG_LIBRARY}<<<<<<<<<<<")
 if(ur_modern_driver_FOUND)
 basis_include_directories(${UR_MODERN_DRIVER_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 basis_add_library(v_repExtUniversalRobots SHARED v_repExtUniversalRobots.cpp )
-basis_target_link_libraries(v_repExtUniversalRobots  ${Boost_LIBRARIES} ur_driver v_repLib)
+basis_target_link_libraries(v_repExtUniversalRobots  ${Boost_LIBRARIES} ${Boost_LOG_LIBRARY} ur_driver v_repLib)
 endif()
 
 
