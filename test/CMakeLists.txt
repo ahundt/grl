@@ -134,7 +134,10 @@ if(PCL_FOUND AND freenect2_LIBRARIES)
     include_directories(${GLFW_INCLUDE_DIRS})
 
     add_executable(Kinect2Grabber kinect2pclgrabber.cpp)
+    add_executable(pcl_grabbing_and_matching pcl_grabbing_and_matching.cpp pcl_grabbing_and_matching_class.cpp)
     add_executable(Kinect2pclObjRecRansac kinect2pclObjRecRansac)
 
     target_link_libraries(Kinect2Grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
+    target_link_libraries(pcl_grabbing_and_matching ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
+    target_link_libraries(Kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
 endif()
