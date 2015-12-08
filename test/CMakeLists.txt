@@ -117,27 +117,21 @@ endif()
 
 
 if(PCL_FOUND AND freenect2_LIBRARIES)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") 
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    set(CMAKE_BUILD_TYPE Release) 
-
-    find_package(OpenCV REQUIRED)
-    find_package(PCL 1.7 REQUIRED)
     pkg_search_module(GLFW REQUIRED glfw3)
 
     link_directories(${PCL_LIBRARY_DIRS})
     add_definitions(${PCL_DEFINITIONS})
 
-    include_directories(${OpenCV_INCLUDE_DIRS})
-    include_directories(${GLEWF_INCLUDE_DIRS})
-    include_directories(${PCL_INCLUDE_DIRS})
-    include_directories(${GLFW_INCLUDE_DIRS})
+    basis_include_directories(${OpenCV_INCLUDE_DIRS})
+    basis_include_directories(${GLEWF_INCLUDE_DIRS})
+    basis_include_directories(${PCL_INCLUDE_DIRS})
+    basis_include_directories(${GLFW_INCLUDE_DIRS})
 
-    add_executable(Kinect2Grabber kinect2pclgrabber.cpp)
-    add_executable(pcl_grabbing_and_matching pcl_grabbing_and_matching.cpp pcl_grabbing_and_matching_class.cpp)
-    add_executable(Kinect2pclObjRecRansac kinect2pclObjRecRansac)
+    basis_add_executable(kinect2grabber kinect2pclgrabber.cpp)
+    basis_add_executable(pcl_grabbing_and_matching pcl_grabbing_and_matching.cpp pcl_grabbing_and_matching_class.cpp)
+    basis_add_executable(Kinect2pclObjRecRansac kinect2pclObjRecRansac.cpp)
 
-    target_link_libraries(Kinect2Grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
-    target_link_libraries(pcl_grabbing_and_matching ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
-    target_link_libraries(Kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES})
+    basis_target_link_libraries(kinect2Grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES})
+    basis_target_link_libraries(pcl_grabbing_and_matching ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES})
+    basis_target_link_libraries(kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES})
 endif()
