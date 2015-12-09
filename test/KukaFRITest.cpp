@@ -17,7 +17,7 @@
 
 
 template<typename T>
-inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
+inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)
 {
     out << "[";
     size_t last = v.size() - 1;
@@ -72,7 +72,9 @@ void printState(){
            if (timerLoops%1000 == 0) shouldprint = true;
            
             if(shouldprint)  {
-              BOOST_LOG_TRIVIAL(trace) << "jointAngles: " << jointAngles << " connectionQuality: " << connectionQ << " operationMode: " << operationMode << "\n";
+              // workaround https://svn.boost.org/trac/boost/ticket/11549
+              //BOOST_LOG_TRIVIAL(trace)
+              std::cout << "" << "jointAngles: " << jointAngles << " connectionQuality: " << connectionQ << " operationMode: " << operationMode << "\n" << "";
               BOOST_LOG_TRIVIAL(trace) << "\n" << timers.report();
             }
             shouldprint = false;
