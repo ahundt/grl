@@ -253,13 +253,14 @@ bool parse (const std::string& filename)
 
 int main(int argc, char *argv[])
 {
-  std::cout << "Syntax is: " << argv[0] << " [--processor 0|1|2] [model.ply]\n --processor options 0,1,2 correspond to CPU, OPENCL, and OPENGL respectively\n";
+  std::cout << "Syntax is: " << argv[0] << " [--processor 0|1|2] [model.ply] [--showmodels]\n --processor options 0,1,2 correspond to CPU, OPENCL, and OPENGL respectively\n";
   processor freenectprocessor = OPENGL;
   std::vector<int> ply_file_indices;
   
   /// http://docs.pointclouds.org/trunk/classpcl_1_1recognition_1_1_obj_rec_r_a_n_s_a_c.html#ae1a4249f8278de41a34f74b950996986
   float pair_width = 0.15;
   float voxel_size = 0.01;
+  bool showmodels = false;
   
   if(argc>1){
       int fnpInt;
@@ -267,6 +268,7 @@ int main(int argc, char *argv[])
       parse_argument (argc, argv, "--processor", fnpInt);
       parse_argument (argc, argv, "--pair_width", pair_width);
       parse_argument (argc, argv, "--voxel_size", voxel_size);
+      showmodels = find_switch(argc,argv,"--showmodels");
       freenectprocessor = static_cast<processor>(fnpInt);
       
   }
@@ -300,6 +302,23 @@ int main(int argc, char *argv[])
 
       //we need to map these strings, which are the names, to the ply files
       pclMap[modelFile] = model;
+      
+      if (showmodels) {
+    
+          boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (modelFile));
+          viewer->setBackgroundColor (0, 0, 0);
+          pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBNormal> rgb(model);
+          viewer->addPointCloud<pcl::PointXYZRGBNormal> (model, rgb, modelFile);
+          viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, modelFile);
+          
+          /// @todo wasStopped() seems to never be true?!?
+          /// @todo the model is missing colors?!?!
+          while (!viewer->wasStopped()) {
+            viewer->spinOnce ();
+            pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBNormal> rgb(model);
+            viewer->updatePointCloud<pcl::PointXYZRGBNormal> (model, rgb, modelFile);
+          }
+      }
   }
   
     // estimate normals http://pointclouds.org/documentation/tutorials/normal_estimation_using_integral_images.php#normal-estimation-using-integral-images
