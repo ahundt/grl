@@ -78,18 +78,18 @@ endif ()
 
 
 basis_add_executable(zmqFlatbuffersTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(zmqFlatbuffersTest ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+basis_target_link_libraries(zmqFlatbuffersTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 basis_add_dependencies(zmqFlatbuffersTest grlflatbuffers)
 
 basis_add_executable(AzmqFlatbufferTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-basis_target_link_libraries(AzmqFlatbufferTest ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+basis_target_link_libraries(AzmqFlatbufferTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 basis_add_dependencies(AzmqFlatbufferTest grlflatbuffers)
 
 basis_add_executable(AzmqTest.cpp)
-basis_target_link_libraries(AzmqTest ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+basis_target_link_libraries(AzmqTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${ZeroMQ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 basis_add_executable(asioSocketTest.cpp)
-basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 basis_find_package( OpenCV REQUIRED )
 basis_include_directories( ${OpenCV_INCLUDE_DIRS})
@@ -98,20 +98,18 @@ basis_target_link_libraries( ppf_load_match ${OpenCV_LIBS} )
 
 # For KUKA IIWA FRI Libraries
 if(FRI-Client-SDK_Cpp_FOUND)
-    basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
+    basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 	basis_add_executable(KukaFRITest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-	basis_target_link_libraries(KukaFRITest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES} ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+	basis_target_link_libraries(KukaFRITest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES} ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 	basis_add_executable(KukaFRIClientDataTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-	basis_target_link_libraries(KukaFRIClientDataTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+	basis_target_link_libraries(KukaFRIClientDataTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 	basis_add_executable(KukaFRIClientDataDriverTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-	basis_target_link_libraries(KukaFRIClientDataDriverTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-
-
+	basis_target_link_libraries(KukaFRIClientDataDriverTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
     
     basis_add_test(KukaLBRiiwaVrepPluginTest.cpp)
-	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} v_repExtKukaLBRiiwa)
+	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} v_repExtKukaLBRiiwa)
 endif()
 
 
@@ -131,7 +129,7 @@ if(PCL_FOUND AND freenect2_LIBRARIES)
     basis_add_executable(pcl_grabbing_and_matching pcl_grabbing_and_matching.cpp pcl_grabbing_and_matching_class.cpp)
     basis_add_executable(kinect2pclObjRecRansac kinect2pclObjRecRansac.cpp)
 
-    basis_target_link_libraries(kinect2grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES})
-    basis_target_link_libraries(pcl_grabbing_and_matching ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES})
-    basis_target_link_libraries(kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES})
+    basis_target_link_libraries(kinect2grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
+    basis_target_link_libraries(pcl_grabbing_and_matching ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
+    basis_target_link_libraries(kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
 endif()

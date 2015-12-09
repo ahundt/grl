@@ -24,6 +24,14 @@ using namespace pcl;
 using namespace pcl::io;
 using namespace pcl::console;
 
+
+bool stop = false;
+void sigint_handler(int s)
+{
+	stop = true;
+}
+
+
 template<typename Cloud>
 void
 saveCloud (const std::string &filename, const Cloud &cloud, bool binary, bool use_camera)

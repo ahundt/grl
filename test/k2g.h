@@ -38,16 +38,16 @@ via Luigi Alamanni 13D, San Giuliano Terme 56010 (PI), Italy
 #include <cstdlib>
 #include <Eigen/Core>
 
-bool stop = false;
+//bool stop = false;
 
 enum processor{
 	CPU, OPENCL, OPENGL
 };
 
-void sigint_handler(int s)
-{
-	stop = true;
-}
+// void sigint_handler(int s)
+// {
+//     stop = true;
+// }
 
 class K2G {
 
@@ -55,7 +55,7 @@ public:
 
 	K2G(processor p): undistorted_(512, 424, 4), registered_(512, 424, 4), listener_(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth),big_mat_(1920, 1082, 4),qnan_(std::numeric_limits<float>::quiet_NaN()){
 
-		signal(SIGINT,sigint_handler);
+		//signal(SIGINT,sigint_handler);
 
 		if(freenect2_.enumerateDevices() == 0)
 		{
