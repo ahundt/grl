@@ -395,11 +395,12 @@ int main(int argc, char *argv[])
         // need to create an eigenmatrix from the transform parameters
         // no idea if this is correct, need to create an eigenMatrix for transformation
         Eigen::Affine3f eMatrix = Eigen::Affine3f::Identity();
-        for (std::size_t i = 0; i < 4; i++) {
-            for (std::size_t j = 0; j < 4; j++) {
-                eMatrix.matrix()(i,j) = object.rigid_transform_[i*4 + j];
-            }
-        }
+        const float* tr  = &(object.rigid_transform_[9]);
+        const float* rt = &(object.rigid_transform_[0]);
+        const Eigen::Map<const Eigen::Vector3f> trans(tr);
+        const Eigen::Map<const Eigen::Matrix<float,3,3,Eigen::RowMajor>> rot(rt);
+        eMatrix.matrix().block<3,3>(0,0)=rot;
+        eMatrix.translation()=trans;
         //outputs pclCloudTransform, now correctly transformed to add to cloud
         pcl::transformPointCloud(*pclCloudNoNorm, *pclCloudTransform, eMatrix);
         //now concatenate with existing point cloud to get new visualization
