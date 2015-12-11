@@ -112,8 +112,7 @@ if(FRI-Client-SDK_Cpp_FOUND)
 	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} v_repExtKukaLBRiiwa)
 endif()
 
-message(STATUS “PCL: ${PCL_FOUND})
-message(STATUS “Freenect: ${freenect2_LIBRARIES})
+
 
 if(PCL_FOUND AND freenect2_LIBRARIES)
     pkg_search_module(GLFW REQUIRED glfw3)
