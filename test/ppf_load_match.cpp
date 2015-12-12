@@ -42,10 +42,11 @@
 #include <iostream>
 #include "opencv2/surface_matching/ppf_helpers.hpp"
 #include "opencv2/core/utility.hpp"
+#include "ICP.h"
+#include <opencv2/core/eigen.hpp>
 
 using namespace std;
 using namespace cv;
-using namespace ppf_match_3d;
 
 static void help(const string& errorMessage)
 {
@@ -87,7 +88,7 @@ int main(int argc, char** argv)
     string modelFileName = (string)argv[1];
     string sceneFileName = (string)argv[2];
     
-    Mat pc = loadPLYSimple(modelFileName.c_str(), 1);
+    Mat pc = cv::ppf_match_3d::loadPLYSimple(modelFileName.c_str(), 1);
     
     // Now train the model
     cout << "Training..." << endl;
@@ -100,11 +101,11 @@ int main(int argc, char** argv)
          << " sec" << endl << "Loading model..." << endl;
          
     // Read the scene
-    Mat pcTest = loadPLYSimple(sceneFileName.c_str(), 1);
+    Mat pcTest = cv::ppf_match_3d::loadPLYSimple(sceneFileName.c_str(), 1);
     
     // Match the model to the scene and get the pose
     cout << endl << "Starting matching..." << endl;
-    vector<Pose3DPtr> results;
+    vector<cv::ppf_match_3d::Pose3DPtr> results;
     tick1 = cv::getTickCount();
     detector.match(pcTest, results, 1.0/40.0, 0.05);
     tick2 = cv::getTickCount();
@@ -113,44 +114,74 @@ int main(int argc, char** argv)
 
     //check results size from match call above
     size_t results_size = results.size();
-    cout << "Number of matching poses: " << results_size;
+    cout << "Number of matching poses: " << results_size	;
     if (results_size == 0) {
         cout << endl << "No matching poses found. Exiting." << endl;
         exit(0);
     }
 
     // Get only first N results - but adjust to results size if num of results are less than that specified by N
-    size_t N = 2;
+    size_t N = 8;
     if (results_size < N) {
         cout << endl << "Reducing matching poses to be reported (as specified in code): "
              << N << " to the number of matches found: " << results_size << endl;
         N = results_size;
     }
-    vector<Pose3DPtr> resultsSub(results.begin(),results.begin()+N);
+    vector<cv::ppf_match_3d::Pose3DPtr> resultsSub(results.begin(),results.begin()+N);
+
+    typedef double Scalar;
+    typedef Eigen::Matrix<Scalar, 3, Eigen::Dynamic> Vertices;
     
-    // Create an instance of ICP
-    ICP icp(100, 0.005f, 2.5f, 8);
+    // Map the OpenCV matrix with Eigen:
+    Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> pcTestEigen(pcTest.ptr<float>(), pcTest.rows, pcTest.cols);
+    Eigen::MatrixXf eigenScene = pcTestEigen.transpose();
+    Vertices eigenScenePoints = eigenScene.topRows<3>().cast<Scalar>();
+    
+    
+    
+    //ICP icp(100, 0.005f, 2.5f, 8);
     int64 t1 = cv::getTickCount();
     
     // Register for all selected poses
     cout << endl << "Performing ICP on " << N << " poses..." << endl;
-    icp.registerModelToScene(pc, pcTest, resultsSub);
+    std::vector<Vertices> transformedModels;
+    for (auto& result: resultsSub)
+    {
+       cv::Mat pct = cv::ppf_match_3d::transformPCPose(pc, result->pose);
+        // Map the OpenCV matrix with Eigen:
+        Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> pcModelEigen(pct.ptr<float>(), pct.rows, pct.cols);
+        Vertices eigenModelPoints = pcModelEigen.transpose().topRows<3>().cast<double>();
+        Vertices eigenModelNormals = pcModelEigen.transpose().middleRows<3>(3).cast<double>();
+    
+        //SICP::point_to_plane(eigenScenePoints, eigenModelPoints, eigenModelNormals);
+        SICP::point_to_point(eigenModelPoints, eigenScenePoints);
+    
+        transformedModels.push_back(eigenModelPoints);
+    
+    }
+    //icp.registerModelToScene(pc, pcTest, resultsSub);
     int64 t2 = cv::getTickCount();
     
     cout << endl << "ICP Elapsed Time " <<
          (t2-t1)/cv::getTickFrequency() << " sec" << endl;
          
     cout << "Poses: " << endl;
+    
+    Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> pcModelEigen(pc.ptr<float>(), pc.rows, pc.cols);
+    Vertices eigenModelPoints = pcModelEigen.transpose().topRows<3>().cast<double>();
+    Vertices eigenModelNormals = pcModelEigen.transpose().middleRows<3>(3).cast<double>();
+    bool saved = false;
     // debug first five poses
-    for (size_t i=0; i<resultsSub.size(); i++)
+    for (auto& transformedModel : transformedModels)
     {
-        Pose3DPtr result = resultsSub[i];
-        cout << "Pose Result " << i << endl;
-        result->printPose();
-        if (i==0)
+        Eigen::Affine3d transform = RigidMotionEstimator::point_to_point(eigenModelPoints, transformedModel);
+        cout << "\nPose Result:\n " << transform.matrix() << endl;
+        if (!saved)
         {
-            Mat pct = transformPCPose(pc, result->pose);
-            writePLY(pct, "para6700PCTrans.ply");
+            Eigen::MatrixXf floatModel = transformedModel.transpose().cast<float>();
+            cv::Mat cvTransformedModel;
+            eigen2cv(floatModel, cvTransformedModel);
+            cv::ppf_match_3d::writePLY(cvTransformedModel, "transformedModelOut.ply");
         }
     }
     
