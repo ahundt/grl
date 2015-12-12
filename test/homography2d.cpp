@@ -35,7 +35,7 @@ int main( int argc, char** argv )
 
 
   //-- Step 2: Calculate descriptors (feature vectors)
-  int surfNFeatures = 100;
+  int surfNFeatures = 1000;
   auto extractor = cv::xfeatures2d::SurfFeatureDetector::create(surfNFeatures, 5, 2);
 
   Mat descriptors_object, descriptors_scene;
