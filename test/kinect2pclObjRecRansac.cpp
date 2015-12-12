@@ -81,8 +81,8 @@ saveCloud (const std::string &filename, const Cloud &cloud, bool binary, bool us
       
       pcl::PointXYZRGBNormal cp;
       cp.x = cvcloud.at<float>(i,0);
-      cp.x = cvcloud.at<float>(i,1);
-      cp.x = cvcloud.at<float>(i,2);
+      cp.y = cvcloud.at<float>(i,1);
+      cp.z = cvcloud.at<float>(i,2);
       if (cols > 3)
       {
         cp.normal_x = cvcloud.at<float>(i,3);
