@@ -80,10 +80,24 @@ int main(int argc, char *argv[])
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
   viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
   viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
-  
+	  
   // estimate normals http://pointclouds.org/documentation/tutorials/normal_estimation_using_integral_images.php#normal-estimation-using-integral-images
   pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>());
-  
+  normals->sensor_orientation_.w() = 0.0;
+  normals->sensor_orientation_.x() = 1.0;
+  normals->sensor_orientation_.y() = 0.0;
+  normals->sensor_orientation_.z() = 0.0;
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_2(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+  cloud_2->sensor_orientation_.w() = 0.0;
+  cloud_2->sensor_orientation_.x() = 1.0;
+  cloud_2->sensor_orientation_.y() = 0.0;
+  cloud_2->sensor_orientation_.z() = 0.0;
+  pcl::IntegralImageNormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+  ne.setNormalEstimationMethod (ne.AVERAGE_3D_GRADIENT);
+  /// @todo make magic numbers into params
+  ne.setMaxDepthChangeFactor(1.0f);
+  ne.setNormalSmoothingSize(10.0f);
+
   bool done = false;
   while ((!viewer->wasStopped()) && (!done)) {
     viewer->spinOnce ();
@@ -96,18 +110,13 @@ int main(int argc, char *argv[])
     std::cout << "delta " << duration_cast<duration<double>>(tpost-tnow).count()*1000 << std::endl;
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
     viewer->updatePointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
-    
-    pcl::IntegralImageNormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
-    ne.setNormalEstimationMethod (ne.AVERAGE_3D_GRADIENT);
-    /// @todo make magic numbers into params
-    ne.setMaxDepthChangeFactor(1.0f);
-    ne.setNormalSmoothingSize(10.0f);
     ne.setInputCloud(cloud);
     ne.compute(*normals);
-	
-    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_2(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+    
     pcl::concatenateFields (*cloud, *normals, *cloud_2);
     	
+    viewer->addPointCloudNormals<pcl::PointXYZRGB,pcl::Normal>(cloud, normals);
+
     
     if(ply_file_indices.size() > 0 ){
         pcl::PCLPointCloud2 cloud2;
