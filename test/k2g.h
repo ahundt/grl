@@ -53,7 +53,7 @@ class K2G {
 
 public:
 
-	K2G(processor p): undistorted_(512, 424, 4), registered_(512, 424, 4), listener_(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth),big_mat_(1920, 1082, 4),qnan_(std::numeric_limits<float>::quiet_NaN()){
+	K2G(processor p, bool mirror = 1): mirror_(mirror), undistorted_(512, 424, 4), registered_(512, 424, 4), listener_(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth),big_mat_(1920, 1082, 4),qnan_(std::numeric_limits<float>::quiet_NaN()){
 
 		//signal(SIGINT,sigint_handler);
 
@@ -127,8 +127,19 @@ public:
 		const short w = undistorted_.width;
 		const short h = undistorted_.height;
 
-		const float * itD0 = (float *)undistorted_.data;
-		const char * itRGB0 = (char *)registered_.data;
+        cv::Mat tmp_itD0(undistorted_.height, undistorted_.width, CV_8UC4, undistorted_.data);
+        cv::Mat tmp_itRGB0(registered_.height, registered_.width, CV_8UC4, registered_.data);
+        
+        if (mirror_ == true){
+
+            cv::flip(tmp_itD0,tmp_itD0,1);
+            cv::flip(tmp_itRGB0,tmp_itRGB0,1);
+
+        }
+
+        const float * itD0 = (float *) tmp_itD0.ptr();
+        const char * itRGB0 = (char *) tmp_itRGB0.ptr();
+        
 		pcl::PointXYZRGB * itP = &cloud->points[0];
         bool is_dense = true;
 		
@@ -225,6 +236,7 @@ private:
 	    }
 	}
 
+    bool mirror_;
 	libfreenect2::Freenect2 freenect2_;
 	libfreenect2::Freenect2Device * dev_ = 0;
 	libfreenect2::PacketPipeline * pipeline_ = 0;
