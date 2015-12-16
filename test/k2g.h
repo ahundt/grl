@@ -53,7 +53,7 @@ class K2G {
 
 public:
 
-	K2G(processor p, bool mirror = 1): mirror_(mirror), undistorted_(512, 424, 4), registered_(512, 424, 4), listener_(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth),big_mat_(1920, 1082, 4),qnan_(std::numeric_limits<float>::quiet_NaN()){
+	K2G(processor p, bool mirror = 1): mirror_(mirror), listener_(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth), undistorted_(512, 424, 4), registered_(512, 424, 4),big_mat_(1920, 1082, 4),qnan_(std::numeric_limits<float>::quiet_NaN()){
 
 		//signal(SIGINT,sigint_handler);
 
@@ -124,8 +124,8 @@ public:
 		libfreenect2::Frame * depth = frames_[libfreenect2::Frame::Depth];
 
 		registration_->apply(rgb, depth, &undistorted_, &registered_, true, &big_mat_);
-		const short w = undistorted_.width;
-		const short h = undistorted_.height;
+		const std::size_t w = undistorted_.width;
+		const std::size_t h = undistorted_.height;
 
         cv::Mat tmp_itD0(undistorted_.height, undistorted_.width, CV_8UC4, undistorted_.data);
         cv::Mat tmp_itRGB0(registered_.height, registered_.width, CV_8UC4, registered_.data);
@@ -143,14 +143,14 @@ public:
 		pcl::PointXYZRGB * itP = &cloud->points[0];
         bool is_dense = true;
 		
-		for(int y = 0; y < h; ++y){
+		for(std::size_t y = 0; y < h; ++y){
 
 			const unsigned int offset = y * w;
 			const float * itD = itD0 + offset;
 			const char * itRGB = itRGB0 + offset * 4;
 			const float dy = rowmap(y);
 
-			for(size_t x = 0; x < w; ++x, ++itP, ++itD, itRGB += 4 )
+			for(std::size_t x = 0; x < w; ++x, ++itP, ++itD, itRGB += 4 )
 			{
 				const float depth_value = *itD / 1000.0f;
 				
@@ -247,6 +247,5 @@ private:
 	Eigen::Matrix<float,512,1> colmap;
 	Eigen::Matrix<float,424,1> rowmap;
 	std::string serial_;
-	int map_[512 * 424];
 	float qnan_;   
 };
