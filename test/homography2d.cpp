@@ -301,16 +301,15 @@ int main( int argc, char** argv )
     cv::Ptr<cv::VideoCapture> capP;
     
     if (kinect) {
-      k2gP.reset(new K2G(freenectprocessor));
+        k2gP.reset(new K2G(freenectprocessor));
     } else {
-      capP.reset(new cv::VideoCapture(0)); // open the default camera
-      if(!capP->isOpened())  // check if we succeeded
+        capP.reset(new cv::VideoCapture(0)); // open the default camera
+        if(!capP->isOpened())  // check if we succeeded
             return -1;
     }
     
-    if (usepcl)
+    if (usepcl && kinect)
     {
-      
           // setup kinect
           pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
           pcl::PointCloud<pcl::PointXYZRGB>::Ptr kinect_cloud;
@@ -331,6 +330,65 @@ int main( int argc, char** argv )
           pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
           viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
           viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
+    
+          
+          pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+          int idx = 0; // only use the first model for now
+          std::string modelFile(argv[idx]);
+
+          reader.read(modelFile,*model);
+          
+          pcl::PointCloud<pcl::PointXYZRGB>::Ptr modelNoNorm(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+            // copy to point cloud without normal, now add to scene cloud
+          pcl::copyPointCloud(*model, *modelNoNorm);
+    
+          while (!viewer->wasStopped()) {
+            viewer->spinOnce ();
+    
+        
+            cv::Mat scene_object;
+            cv::Mat rgb_scene_object;
+        
+            rgb_scene_object = k2gP->getColor();;
+            cv::cvtColor(rgb_scene_object, scene_object, cv::COLOR_BGR2GRAY);
+            
+            kinect_cloud = k2gP->updateCloud(kinect_cloud);
+            pcl::copyPointCloud(*kinect_cloud,*cloud);
+
+            // Get the descriptors using SIFT/SURF in the scene image
+            ImageToPoseObject.getSceneDescriptors(scene_object);
+            bool debug=false; // debug visualization will break in this case
+            // Get the homography between the scene and object image
+            cv::Mat H = ImageToPoseObject.getHomography(debug);
+            if(!H.cols || !H.rows) continue; //Could not find match
+            // Get the pose from the homography
+            std::vector<cv::Mat> rotations;
+            std::vector<cv::Mat> translations;
+            std::vector<cv::Mat> normals;
+          
+            cv::Mat K = k2gP->getColorIntrinsicMatrix();
+        
+            cv::decomposeHomographyMat(H, K, rotations, translations, normals);
+          
+            Eigen::Affine3f eMatrix = Eigen::Affine3f::Identity();
+            const Eigen::Map<const Eigen::Vector3f> trans((float*)(translations[0].data));
+            eMatrix.translation()=trans;
+          
+            const Eigen::Map<const Eigen::Matrix<float,3,3,Eigen::RowMajor>> rot((float*)(rotations[0].data));
+            eMatrix.matrix().block<3,3>(0,0)=rot;
+          
+            
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloudTransform(new pcl::PointCloud<pcl::PointXYZRGB>());
+            pcl::transformPointCloud(*modelNoNorm, *pclCloudTransform, eMatrix);
+            
+            //now concatenate with existing point cloud to get new visualization
+            *cloud += *pclCloudTransform;
+          
+            // now visualize with the template objects superimposed on
+            pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+            viewer->updatePointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
+          }
     } else
     {
     
