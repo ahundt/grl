@@ -260,6 +260,11 @@ int main( int argc, char** argv )
           pcl::copyPointCloud(*model,*modelnormal);
           pcl::copyPointCloud(*model,*modelxyz);
           
+          
+//          model->sensor_orientation_.w() = 0.0;
+//          model->sensor_orientation_.x() = 1.0;
+//          model->sensor_orientation_.y() = 0.0;
+//          model->sensor_orientation_.z() = 0.0;
 
           //we need to map these strings, which are the names, to the ply files
           pclMap[modelFile] = model;
@@ -370,24 +375,33 @@ int main( int argc, char** argv )
           
             cv::Mat K = k2gP->getColorIntrinsicMatrix();
         
-            cv::decomposeHomographyMat(H, K, rotations, translations, normals);
-          
-            std::cout << "translations:" << translations[0] <<"\n";
+            int nSolutions = cv::decomposeHomographyMat(H, K, rotations, translations, normals);
+            
+            //cv::Mat pose = ImageToPoseObject.cameraPoseFromHomography(H);
+            //nSolutions = 1;
             Eigen::Affine3d eMatrix = Eigen::Affine3d::Identity();
-            const Eigen::Map<const Eigen::Vector3d> trans((double*)(translations[0].data));
-            eMatrix.translation()=trans;
-          
-            std::cout << "\nrotations[0]:\n" << rotations[0] << "\n";
-            const Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor>> rot((double*)(rotations[0].data));
-            eMatrix.matrix().block<3,3>(0,0)=rot;
-          
-            std::cout << "\nPose Transform:\n" << eMatrix.matrix() << "\n";
+            for( int i = 0; i < nSolutions; i++)
+            {
+                const Eigen::Map<const Eigen::Vector3d> trans((double*)(translations[i].data));
+                eMatrix.translation()=trans;
+              
+                const Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor>> rot((double*)(rotations[i].data));
+                eMatrix.matrix().block<3,3>(0,0)=rot;
             
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloudTransform(new pcl::PointCloud<pcl::PointXYZRGB>());
-            pcl::transformPointCloud(*modelNoNorm, *pclCloudTransform, eMatrix);
+                //const Eigen::Map<const Eigen::Matrix<float,3,4,Eigen::RowMajor>> xform((float*)(pose.data));
+                //eMatrix.matrix().block<3,4>(0,0) = xform.cast<double>();
+              
+                std::cout << "\nPose Transform:\n" << eMatrix.matrix() << "\n";
             
-            //now concatenate with existing point cloud to get new visualization
-            *cloud += *pclCloudTransform;
+//                modelNoNorm->sensor_orientation_ = cloud->sensor_orientation_;
+//                modelNoNorm->sensor_origin_ = cloud->sensor_origin_;
+            
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloudTransform(new pcl::PointCloud<pcl::PointXYZRGB>());
+                pcl::transformPointCloud(*modelNoNorm, *pclCloudTransform, eMatrix);
+                
+                //now concatenate with existing point cloud to get new visualization
+                *cloud += *pclCloudTransform;
+            }
           
             // now visualize with the template objects superimposed on
             pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
