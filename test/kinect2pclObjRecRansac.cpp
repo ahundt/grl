@@ -202,55 +202,6 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr loadPLYSimpleCloud(const char* file
    return model;
 }
 
-
-bool parse (const std::string& filename)
-{
-  std::ifstream istream (filename.c_str (), std::ios::in | std::ios::binary);
-
-  std::string line;
-  std::size_t line_number_ = 0;
-
-  std::size_t number_of_format_statements = 0; 
-  std::size_t number_of_element_statements = 0; 
-  std::size_t number_of_property_statements = 0; 
-  std::size_t number_of_obj_info_statements = 0; 
-  std::size_t number_of_comment_statements = 0;
-
-  pcl::io::ply::format_type format = pcl::io::ply::unknown;
-  //std::vector< boost::shared_ptr<pcl::io::ply::element> > elements;
-
-  char line_delim = '\n';
-  int char_ignore_count = 0;
-
-  // magic
-  char magic[4];
-  istream.read (magic, 4);
-
-  // Check if CR/LF, setup delim and char skip
-  if (magic[3] == '\r')
-  {
-    istream.ignore (1);
-    line_delim = '\r';
-    char_ignore_count = 1;
-  }
-
-  ++line_number_;
-  if (!istream)
-  {
-    //if (error_callback_)
-    //  error_callback_ (line_number_, "parse error: couldn't read the magic string");
-    return false;
-  }
-
-  if ((magic[0] != 'p') || (magic[1] != 'l') || (magic[2] != 'y'))
-  {
-    //if (error_callback_)
-    //  error_callback_ (line_number_, "parse error: wrong magic string");
-    return false;
-  }
-  return true;
-}
-
 int main(int argc, char *argv[])
 {
   std::cout << "Syntax is: " << argv[0] << " [--processor 0|1|2] [model.ply] [--showmodels]\n --processor options 0,1,2 correspond to CPU, OPENCL, and OPENGL respectively\n";
@@ -289,8 +240,6 @@ int main(int argc, char *argv[])
       
       std::string modelFile(argv[idx]);
 
-      bool success = parse(modelFile);
-      std::cout << "success: " << success << "\n";
       reader.read(modelFile,*model);
       //loadPLYSimpleCloud(modelFile.c_str(),model);
       pcl::copyPointCloud(*model,*modelnormal);
@@ -325,7 +274,6 @@ int main(int argc, char *argv[])
     pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>());
 
   // setup kinect
-  //changed cloud type to ::Ptr
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr kinect_cloud;
   K2G k2g(freenectprocessor);
