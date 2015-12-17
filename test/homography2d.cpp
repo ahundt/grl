@@ -22,6 +22,7 @@
 #include <pcl/recognition/ransac_based/obj_rec_ransac.h>
 #include <pcl/registration/transforms.h>
 #include <pcl/features/integral_image_normal.h>
+#include <pcl/visualization/cloud_viewer.h>
 
 #include "k2g.h"
 
@@ -209,19 +210,10 @@ public:
     };
 
     
-    
-    cv::Mat videoToFrame(cv::VideoCapture cap){
-        cv::Mat video_img;
-        cv::Mat frame;
-        cap >> video_img; // get a new frame from camera
-        cv::cvtColor(video_img, frame, cv::COLOR_BGR2GRAY);
-        return frame;
-    }
-    
-    /** @function main */
-    int main( int argc, char** argv )
-    {
-      std::cout << "Syntax is: " << argv[0] << " [--processor 0|1|2] [model.ply] [--showmodels]\n --processor options 0,1,2 correspond to CPU, OPENCL, and OPENGL respectively\n";
+/** @function main */
+int main( int argc, char** argv )
+{
+      std::cout << "Syntax is: " << argv[0] << " [--processor 0|1|2] [model.ply] [--img_object path] [--kinect] [--usepcl] [--showmodels]\n --processor options 0,1,2 correspond to CPU, OPENCL, and OPENGL respectively\n";
       processor freenectprocessor = OPENGL;
       std::vector<int> ply_file_indices;
       
@@ -229,61 +221,150 @@ public:
       float pair_width = 0.15;
       float voxel_size = 0.01;
       bool showmodels = false;
+      bool kinect = false;
+      bool usepcl = false;
+    
+      std::string img_object_path;
         
       
       if(argc>1){
           int fnpInt;
           ply_file_indices = pcl::console::parse_file_extension_argument (argc, argv, ".ply");
           pcl::console::parse_argument (argc, argv, "--processor", fnpInt);
+          pcl::console::parse_argument (argc, argv, "--img_object", img_object_path);
           pcl::console::parse_argument (argc, argv, "--pair_width", pair_width);
           pcl::console::parse_argument (argc, argv, "--voxel_size", voxel_size);
           showmodels = pcl::console::find_switch(argc,argv,"--showmodels");
+          kinect = pcl::console::find_switch(argc,argv,"--kinect");
+          usepcl = pcl::console::find_switch(argc,argv,"--usepcl");
           freenectprocessor = static_cast<processor>(fnpInt);
           
       }
     
-    if( argc != 2 )
-        { readme(); return -1; }
+      pcl::PLYReader reader;
+
+      //Map from the file name to the point cloud
+      std::map<std::string, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> pclMap;
+
+      for (int idx : ply_file_indices) {
+          pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+          // these are the point clouds of the ply files read in
+          pcl::PointCloud<pcl::Normal>::Ptr modelnormal(new pcl::PointCloud<pcl::Normal>());
+          pcl::PointCloud<pcl::PointXYZ>::Ptr modelxyz(new pcl::PointCloud<pcl::PointXYZ>());
+          
+          std::string modelFile(argv[idx]);
+
+          reader.read(modelFile,*model);
+          //loadPLYSimpleCloud(modelFile.c_str(),model);
+          pcl::copyPointCloud(*model,*modelnormal);
+          pcl::copyPointCloud(*model,*modelxyz);
+          
+
+          //we need to map these strings, which are the names, to the ply files
+          pclMap[modelFile] = model;
+          
+          if (showmodels) {
+        
+              boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer (modelFile));
+              viewer->setBackgroundColor (0, 0, 0);
+              pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBNormal> rgb(model);
+              viewer->addPointCloud<pcl::PointXYZRGBNormal> (model, rgb, modelFile);
+              viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, modelFile);
+              
+              /// @todo wasStopped() seems to never be true?!?
+              /// @todo the model is missing colors?!?!
+              while (!viewer->wasStopped()) {
+                viewer->spinOnce ();
+                pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBNormal> rgb(model);
+                viewer->updatePointCloud<pcl::PointXYZRGBNormal> (model, rgb, modelFile);
+              }
+          }
+      }
+    
     
     // Create ImageToPose object
     ImageToPose ImageToPoseObject;
-    
+
     // Read in command line for file path for the object image to be found in the scene
-    cv::Mat img_object = cv::imread( argv[1], cv::IMREAD_GRAYSCALE );
+    cv::Mat img_object = cv::imread( img_object_path, cv::IMREAD_GRAYSCALE );
     if( !img_object.data )
         { std::cout<< " --(!) Error reading object image " << std::endl; return -1; }
     // Get the descriptors using SIFT/SURF in the object image
     ImageToPoseObject.getObjectDescriptors(img_object);
-    
+
     // Gets an opencv video capture using a standard webcam. You can get the image scene from somewhere else
     cv::Mat img_scene;
-    cv::VideoCapture cap(0); // open the default camera
-    if(!cap.isOpened())  // check if we succeeded
-        return -1;
-
-    // Loop to continually get scene images
-    for(;;)
+    
+    // kinect v2 driver
+    boost::shared_ptr<K2G> k2gP;
+    // regular webcam driver
+    cv::Ptr<cv::VideoCapture> capP;
+    
+    if (kinect) {
+      k2gP.reset(new K2G(freenectprocessor));
+    } else {
+      capP.reset(new cv::VideoCapture(0)); // open the default camera
+      if(!capP->isOpened())  // check if we succeeded
+            return -1;
+    }
+    
+    if (usepcl)
     {
-        // Function to convert opencv video capture to scene image
-        cv::Mat scene_object = videoToFrame(cap);
+      
+          // setup kinect
+          pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+          pcl::PointCloud<pcl::PointXYZRGB>::Ptr kinect_cloud;
+          std::cout << "getting cloud" << std::endl;
+          kinect_cloud = k2gP->getCloud();
+
+          kinect_cloud->sensor_orientation_.w() = 0.0;
+          kinect_cloud->sensor_orientation_.x() = 1.0;
+          kinect_cloud->sensor_orientation_.y() = 0.0;
+          kinect_cloud->sensor_orientation_.z() = 0.0;
+
+          cloud->sensor_orientation_.w() = 0.0;
+          cloud->sensor_orientation_.x() = 1.0;
+          cloud->sensor_orientation_.y() = 0.0;
+          cloud->sensor_orientation_.z() = 0.0;
+          boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+          viewer->setBackgroundColor (0, 0, 0);
+          pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+          viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
+          viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
+    } else
+    {
     
-        // Get the descriptors using SIFT/SURF in the scene image
-        ImageToPoseObject.getSceneDescriptors(scene_object);
-        // Get the homography between the scene and object image
-        cv::Mat H = ImageToPoseObject.getHomography();
-        if(!H.cols || !H.rows) continue; //Could not find match
-        // Get the pose from the homography
-        cv::Mat pose = ImageToPoseObject.cameraPoseFromHomography(H);
-        // Get the image matches between the object and scene
-        cv::Mat img_matches = ImageToPoseObject.draw2dMatchesToImage();
-    
-        //-- Show detected matches
-        cv::imshow( "Good Matches & Object detection", img_matches );
-        if(cv::waitKey(30) >= 0) continue;
+        if (kinect) {
+            
+        }
+        // Loop to continually get scene images
+        for(;;)
+        {
+            // Function to convert opencv video capture to scene image
+        
+            cv::Mat scene_object;
+            cv::Mat rgb_scene_object;
+        
+            if (kinect && k2gP) rgb_scene_object = k2gP->getColor();
+            else if(capP) *capP >> rgb_scene_object;
+            else std::cout << "error: no driver objects initialized\n";
+        
+            cv::cvtColor(rgb_scene_object, scene_object, cv::COLOR_BGR2GRAY);
+
+            // Get the descriptors using SIFT/SURF in the scene image
+            ImageToPoseObject.getSceneDescriptors(scene_object);
+            // Get the homography between the scene and object image
+            cv::Mat H = ImageToPoseObject.getHomography();
+            if(!H.cols || !H.rows) continue; //Could not find match
+            // Get the pose from the homography
+            cv::Mat pose = ImageToPoseObject.cameraPoseFromHomography(H);
+            // Get the image matches between the object and scene
+            cv::Mat img_matches = ImageToPoseObject.draw2dMatchesToImage();
+
+            //-- Show detected matches
+            cv::imshow( "Good Matches & Object detection", img_matches );
+            if(cv::waitKey(30) >= 0) continue;
+        }
     }
     
-    }
-    
-    /** @function readme */
-    void readme()
-    { std::cout << " Usage: ./SURF_descriptor <img1> <img2>" << std::endl; }
+}
