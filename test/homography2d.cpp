@@ -145,37 +145,37 @@ public:
         return H;
     }
     
-    Eigen::Affine3f cameraPoseFromHomography(pcl::PointCloud<pcl::PointXYZRGB>::Ptr kinect_cloud)
+    Eigen::Affine3f cameraPoseFromHomography(const pcl::PointCloud<pcl::PointXYZRGB>& kinect_cloud)
     {
         std::vector<cv::Point2f> obj_axes(3);
-        cv::Point2f obj_center = cv::cvPoint(_img_object.cols/2,_img_object.rows/2);
-        cv::Point2f obj_yaxis_point = obj_center + cv::Point(0,_img_object.rows/4);
-        cv::Point2f obj_xaxis_point = obj_center + cv::Point(_img_object.rows/4,0);
+        cv::Point2f obj_center = cv::Point(_img_object.cols/2,_img_object.rows/2);
+        obj_axes[0] = obj_center;
+        obj_axes[1] = obj_center + cv::Point2f(0,_img_object.rows/4);
+        obj_axes[2] = obj_center + cv::Point2f(_img_object.cols/4,0);
 
-        std::vector<cv::Point2f> obj_axes(4);
+        std::vector<cv::Point2f> obj_scene_axes(3);
+    
+        cv::perspectiveTransform( obj_axes, obj_scene_axes, _homography_transform);
         
-        cv::Mat obj_scene_axes;
-        perspectiveTransform( obj_axes, obj_scene_axes, _homography_transform);
+        pcl::PointXYZRGB obj_scene_center = kinect_cloud(obj_scene_axes[0].x,obj_scene_axes[0].y);
+        pcl::PointXYZRGB obj_scene_yaxis = kinect_cloud(obj_scene_axes[1].x,obj_scene_axes[1].y);
+        pcl::PointXYZRGB obj_scene_xaxis = kinect_cloud(obj_scene_axes[2].x,obj_scene_axes[2].y);
         
-        pcl::PointXYZRGB obj_scene_center = kinect_cloud(obj_scene_axes[0]);
-        pcl::PointXYZRGB obj_scene_yaxis = kinect_cloud(obj_scene_axes[1]);
-        pcl::PointXYZRGB obj_scene_xaxis = kinect_cloud(obj_scene_axes[2]);
-        
-        Eigen::Vector3f obj_translation << obj_scene_center.x, obj_scene_center.y, obj_scene_center.z;
-        Eigen::Vector3f yaxis << obj_scene_yaxis.x, obj_scene_yaxis.y, obj_scene_yaxis.z;
-        Eigen::Vector3f xaxis << obj_scene_xaxis.x, obj_scene_xaxis.y, obj_scene_xaxis.z;
+        Eigen::Vector3f obj_translation(obj_scene_center.x,obj_scene_center.y,obj_scene_center.z);
+        Eigen::Vector3f yaxis(obj_scene_yaxis.x, obj_scene_yaxis.y, obj_scene_yaxis.z);
+        Eigen::Vector3f xaxis(obj_scene_xaxis.x, obj_scene_xaxis.y, obj_scene_xaxis.z);
         
         yaxis = yaxis - obj_translation;
-        yaxis = yaxis.norm();
+        yaxis.normalize();
         xaxis = xaxis - obj_translation;
-        xaxis = xaxis.norm();
+        xaxis.normalize();
         
-        zaxis = xaxis.cross(yaxis);
+        Eigen::Vector3f zaxis = xaxis.cross(yaxis);
         
-        Eigen::Affine3f = obj_transformation;
-        obj_transformation.block<3,1>(0,0) = xaxis;
-        obj_transformation.block<3,1>(0,1) = yaxis;
-        obj_transformation.block<3,1>(0,2) = zaxis;
+        Eigen::Affine3f obj_transformation;
+        obj_transformation.matrix().block<3,1>(0,0) = xaxis;
+        obj_transformation.matrix().block<3,1>(0,1) = yaxis;
+        obj_transformation.matrix().block<3,1>(0,2) = zaxis;
         
         obj_transformation.translation() = obj_translation;
         
@@ -256,6 +256,7 @@ int main( int argc, char** argv )
       bool showmodels = false;
       bool kinect = false;
       bool usepcl = false;
+      bool cvSolutions = true;
     
       std::string img_object_path;
         
@@ -270,6 +271,7 @@ int main( int argc, char** argv )
           showmodels = pcl::console::find_switch(argc,argv,"--showmodels");
           kinect = pcl::console::find_switch(argc,argv,"--kinect");
           usepcl = pcl::console::find_switch(argc,argv,"--usepcl");
+          cvSolutions = pcl::console::find_switch(argc,argv,"--usepcl");
           freenectprocessor = static_cast<processor>(fnpInt);
           
       }
@@ -401,24 +403,30 @@ int main( int argc, char** argv )
             std::vector<cv::Mat> translations;
             std::vector<cv::Mat> normals;
           
-            cv::Mat K = k2gP->getColorIntrinsicMatrix();
-        
-            int nSolutions = cv::decomposeHomographyMat(H, K, rotations, translations, normals);
             
-            //cv::Mat pose = ImageToPoseObject.cameraPoseFromHomography(H);
-            //nSolutions = 1;
-            Eigen::Affine3d eMatrix = Eigen::Affine3d::Identity();
+            int nSolutions;
+            Eigen::Affine3d eMatrix;
+            
+             if (cvSolutions) {
+                eMatrix = Eigen::Affine3d::Identity();
+                
+                cv::Mat K = k2gP->getColorIntrinsicMatrix();
+                nSolutions = cv::decomposeHomographyMat(H, K, rotations, translations, normals);
+            } else {
+                eMatrix = ImageToPoseObject.cameraPoseFromHomography(*kinect_cloud).cast<double>();
+                nSolutions = 1;
+            }
             for( int i = 0; i < nSolutions; i++)
             {
-                const Eigen::Map<const Eigen::Vector3d> trans((double*)(translations[i].data));
-                eMatrix.translation()=trans;
-              
-                const Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor>> rot((double*)(rotations[i].data));
-                eMatrix.matrix().block<3,3>(0,0)=rot;
+                
+                if (cvSolutions) {
+                    const Eigen::Map<const Eigen::Vector3d> trans((double*)(translations[i].data));
+                    eMatrix.translation()=trans;
+                  
+                    const Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor>> rot((double*)(rotations[i].data));
+                    eMatrix.matrix().block<3,3>(0,0)=rot;
+                }
             
-                //const Eigen::Map<const Eigen::Matrix<float,3,4,Eigen::RowMajor>> xform((float*)(pose.data));
-                //eMatrix.matrix().block<3,4>(0,0) = xform.cast<double>();
-              
                 std::cout << "\nPose Transform:\n" << eMatrix.matrix() << "\n";
             
 //                modelNoNorm->sensor_orientation_ = cloud->sensor_orientation_;
@@ -462,8 +470,6 @@ int main( int argc, char** argv )
             // Get the homography between the scene and object image
             cv::Mat H = ImageToPoseObject.getHomography();
             if(!H.cols || !H.rows) continue; //Could not find match
-            // Get the pose from the homography
-            cv::Mat pose = ImageToPoseObject.cameraPoseFromHomography(H);
             // Get the image matches between the object and scene
             cv::Mat img_matches = ImageToPoseObject.draw2dMatchesToImage();
 
