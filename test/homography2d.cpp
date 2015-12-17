@@ -145,47 +145,80 @@ public:
         return H;
     }
     
-    cv::Mat cameraPoseFromHomography(cv::Mat H)
+    Eigen::Affine3f cameraPoseFromHomography(pcl::PointCloud<pcl::PointXYZRGB>::Ptr kinect_cloud)
     {
-        //std::cout << "H = "<< std::endl << " "  << H << std::endl << std::endl;
+        std::vector<cv::Point2f> obj_axes(3);
+        cv::Point2f obj_center = cv::cvPoint(_img_object.cols/2,_img_object.rows/2);
+        cv::Point2f obj_yaxis_point = obj_center + cv::Point(0,_img_object.rows/4);
+        cv::Point2f obj_xaxis_point = obj_center + cv::Point(_img_object.rows/4,0);
+
+        std::vector<cv::Point2f> obj_axes(4);
+        
+        cv::Mat obj_scene_axes;
+        perspectiveTransform( obj_axes, obj_scene_axes, _homography_transform);
+        
+        pcl::PointXYZRGB obj_scene_center = kinect_cloud(obj_scene_axes[0]);
+        pcl::PointXYZRGB obj_scene_yaxis = kinect_cloud(obj_scene_axes[1]);
+        pcl::PointXYZRGB obj_scene_xaxis = kinect_cloud(obj_scene_axes[2]);
+        
+        Eigen::Vector3f obj_translation << obj_scene_center.x, obj_scene_center.y, obj_scene_center.z;
+        Eigen::Vector3f yaxis << obj_scene_yaxis.x, obj_scene_yaxis.y, obj_scene_yaxis.z;
+        Eigen::Vector3f xaxis << obj_scene_xaxis.x, obj_scene_xaxis.y, obj_scene_xaxis.z;
+        
+        yaxis = yaxis - obj_translation;
+        yaxis = yaxis.norm();
+        xaxis = xaxis - obj_translation;
+        xaxis = xaxis.norm();
+        
+        zaxis = xaxis.cross(yaxis);
+        
+        Eigen::Affine3f = obj_transformation;
+        obj_transformation.block<3,1>(0,0) = xaxis;
+        obj_transformation.block<3,1>(0,1) = yaxis;
+        obj_transformation.block<3,1>(0,2) = zaxis;
+        
+        obj_transformation.translation() = obj_translation;
+        
+        return obj_transformation;
+        
     
-        _pose = cv::Mat::eye(3, 4, CV_32FC1);      // 3x4 matrix, the camera pose
-        float norm1 = (float)norm(H.col(0));
-        float norm2 = (float)norm(H.col(1));
-        float tnorm = (norm1 + norm2) / 2.0f; // Normalization value
-    
-        cv::Mat p1 = H.col(0);       // Pointer to first column of H
-                             //std::cout << "p1 = "<< std::endl << " "  << p1 << std::endl << std::endl;
-        cv::Mat p2 = _pose.col(0);    // Pointer to first column of pose (empty)
-                             //std::cout << "p2 = "<< std::endl << " "  << p2 << std::endl << std::endl;
-    
-        cv::normalize(p1, p2);   // Normalize the rotation, and copies the column to pose
-        p2.copyTo(_pose.col(0));
-        //std::cout << "p1 = "<< std::endl << " "  << p1 << std::endl << std::endl;
-        //std::cout << "pose = "<< std::endl << " "  << pose << std::endl << std::endl;
-    
-        p1 = H.col(1);           // Pointer to second column of H
-        p2 = _pose.col(1);        // Pointer to second column of pose (empty)
-    
-        cv::normalize(p1, p2);   // Normalize the rotation and copies the column to pose
-        p2.copyTo(_pose.col(1));
-    
-        p1 = _pose.col(0);
-        p2 = _pose.col(1);
-    
-        cv::Mat p3 = p1.cross(p2);   // Computes the cross-product of p1 and p2
-                             //Mat c2 = pose.col(2);    // Pointer to third column of pose
-        p3.copyTo(_pose.col(2));       // Third column is the crossproduct of columns one and two
-    
-        std::cout << "H.col(2) = "<< std::endl << " "  << H.col(2) << std::endl << std::endl;
-        std::cout << "tnorm = "<< std::endl << " "  << tnorm << std::endl << std::endl;
-        p3 = H.col(2) / tnorm;  //vector t [R|t] is the last column of pose
-        (p3).copyTo(_pose.col(3));
-        std::cout << "pose = "<< std::endl << " "  << _pose << std::endl << std::endl;
-    
-        cv::Mat pose;
-        _pose.copyTo(pose);
-        return pose;
+//        _pose = cv::Mat::eye(3, 4, CV_32FC1);      // 3x4 matrix, the camera pose
+//        float norm1 = (float)norm(H.col(0));
+//        float norm2 = (float)norm(H.col(1));
+//        float tnorm = (norm1 + norm2) / 2.0f; // Normalization value
+//    
+//        cv::Mat p1 = H.col(0);       // Pointer to first column of H
+//                             //std::cout << "p1 = "<< std::endl << " "  << p1 << std::endl << std::endl;
+//        cv::Mat p2 = _pose.col(0);    // Pointer to first column of pose (empty)
+//                             //std::cout << "p2 = "<< std::endl << " "  << p2 << std::endl << std::endl;
+//    
+//        cv::normalize(p1, p2);   // Normalize the rotation, and copies the column to pose
+//        p2.copyTo(_pose.col(0));
+//        //std::cout << "p1 = "<< std::endl << " "  << p1 << std::endl << std::endl;
+//        //std::cout << "pose = "<< std::endl << " "  << pose << std::endl << std::endl;
+//    
+//        p1 = H.col(1);           // Pointer to second column of H
+//        p2 = _pose.col(1);        // Pointer to second column of pose (empty)
+//    
+//        cv::normalize(p1, p2);   // Normalize the rotation and copies the column to pose
+//        p2.copyTo(_pose.col(1));
+//    
+//        p1 = _pose.col(0);
+//        p2 = _pose.col(1);
+//    
+//        cv::Mat p3 = p1.cross(p2);   // Computes the cross-product of p1 and p2
+//                             //Mat c2 = pose.col(2);    // Pointer to third column of pose
+//        p3.copyTo(_pose.col(2));       // Third column is the crossproduct of columns one and two
+//    
+//        std::cout << "H.col(2) = "<< std::endl << " "  << H.col(2) << std::endl << std::endl;
+//        std::cout << "tnorm = "<< std::endl << " "  << tnorm << std::endl << std::endl;
+//        p3 = H.col(2) / tnorm;  //vector t [R|t] is the last column of pose
+//        (p3).copyTo(_pose.col(3));
+//        std::cout << "pose = "<< std::endl << " "  << _pose << std::endl << std::endl;
+//    
+//        cv::Mat pose;
+//        _pose.copyTo(pose);
+//        return pose;
     }
     
     cv::Mat draw2dMatchesToImage(){
@@ -370,7 +403,7 @@ int main( int argc, char** argv )
           
             cv::Mat K = k2gP->getColorIntrinsicMatrix();
         
-            cv::decomposeHomographyMat(H, K, rotations, translations, normals);
+            // cv::decomposeHomographyMat(H, K, rotations, translations, normals);
           
             std::cout << "translations:" << translations[0] <<"\n";
             Eigen::Affine3d eMatrix = Eigen::Affine3d::Identity();
