@@ -227,6 +227,22 @@ public:
 		listener_.release(frames_);
 		return std::move(std::pair<cv::Mat, cv::Mat>(r,d));
 	}
+    
+    /// Get the color camera's intrinsic matrix
+    /// @see explanation of intrinsic matrices: https://ksimek.github.io/2013/08/13/intrinsic/
+    /// @see equations used in libfreenect2: https://github.com/OpenKinect/libfreenect2/issues/41#issuecomment-72022111
+    cv::Mat getColorIntrinsicMatrix()
+    {
+      cv::Mat_<double> K = cv::Mat_<double>::eye(3,3);
+      libfreenect2::Freenect2Device::ColorCameraParams cp = dev_->getColorCameraParams();
+    
+      K(0,0)=cp.fx;
+      K(1,1)=cp.fy;
+      K(0,2)=cp.cx;
+      K(1,2)=cp.cy;
+    
+      return cv::Mat(K);
+    }
 
 private:
 
