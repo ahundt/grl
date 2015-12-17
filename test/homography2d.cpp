@@ -246,8 +246,9 @@ int main( int argc, char** argv )
       //Map from the file name to the point cloud
       std::map<std::string, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> pclMap;
 
+      pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+    
       for (int idx : ply_file_indices) {
-          pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
           // these are the point clouds of the ply files read in
           pcl::PointCloud<pcl::Normal>::Ptr modelnormal(new pcl::PointCloud<pcl::Normal>());
           pcl::PointCloud<pcl::PointXYZ>::Ptr modelxyz(new pcl::PointCloud<pcl::PointXYZ>());
@@ -332,12 +333,12 @@ int main( int argc, char** argv )
           viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
     
           
-          pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-          int idx = 0; // only use the first model for now
-          std::string modelFile(argv[idx]);
-
-          reader.read(modelFile,*model);
-          
+//          pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+//          int idx = 0; // only use the first model for now
+//          std::string modelFile(argv[idx]);
+//
+//          reader.read(modelFile,*model);
+    
           pcl::PointCloud<pcl::PointXYZRGB>::Ptr modelNoNorm(new pcl::PointCloud<pcl::PointXYZRGB>());
 
             // copy to point cloud without normal, now add to scene cloud
@@ -371,13 +372,16 @@ int main( int argc, char** argv )
         
             cv::decomposeHomographyMat(H, K, rotations, translations, normals);
           
-            Eigen::Affine3f eMatrix = Eigen::Affine3f::Identity();
-            const Eigen::Map<const Eigen::Vector3f> trans((float*)(translations[0].data));
+            std::cout << "translations:" << translations[0] <<"\n";
+            Eigen::Affine3d eMatrix = Eigen::Affine3d::Identity();
+            const Eigen::Map<const Eigen::Vector3d> trans((double*)(translations[0].data));
             eMatrix.translation()=trans;
           
-            const Eigen::Map<const Eigen::Matrix<float,3,3,Eigen::RowMajor>> rot((float*)(rotations[0].data));
+            std::cout << "\nrotations[0]:\n" << rotations[0] << "\n";
+            const Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor>> rot((double*)(rotations[0].data));
             eMatrix.matrix().block<3,3>(0,0)=rot;
           
+            std::cout << "\nPose Transform:\n" << eMatrix.matrix() << "\n";
             
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloudTransform(new pcl::PointCloud<pcl::PointXYZRGB>());
             pcl::transformPointCloud(*modelNoNorm, *pclCloudTransform, eMatrix);
@@ -388,6 +392,8 @@ int main( int argc, char** argv )
             // now visualize with the template objects superimposed on
             pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
             viewer->updatePointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
+            
+            //while(true) viewer->spinOnce ();
           }
     } else
     {
