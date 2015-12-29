@@ -1,0 +1,40 @@
+include "JointState.fbs";
+
+namespace grl.flatbuffer;
+
+table StartArm {
+}
+
+table StopArm {
+}
+
+table PauseArm {
+}
+
+table TeachArm {
+}
+
+table MoveArmJoints {
+  goal:JointState;
+}
+
+union ArmState { StartArm, StopArm, PauseArm, TeachArm, MoveArmJoints }
+
+table ArmControlState {
+  sequenceNumber:long;
+  timeStamp:double;
+  state:ArmState;
+}
+
+table ArmControlSeries {
+  states:[ArmControlState];
+}
+
+root_type ArmControlSeries;
+file_identifier "armc";
+file_extension  "armc";
+
+//table VerifiedArmControlState {
+//  nested_flatbuffer:"ArmControlState";
+//  hash:string;
+//}
