@@ -10,8 +10,9 @@ Regular Java Kuka
 Laptop IP
 ---------
 
-172.31.1.100
+Address: 172.31.1.100
 
+Mask: 255.255.255.0
 
 Robot IP
 --------
