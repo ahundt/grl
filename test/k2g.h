@@ -236,8 +236,8 @@ public:
       cv::Mat_<double> K = cv::Mat_<double>::eye(3,3);
       libfreenect2::Freenect2Device::ColorCameraParams cp = dev_->getColorCameraParams();
     
-      K(0,0)=cp.fx;
-      K(1,1)=cp.fy;
+      K(0,0)=cp.fx;///0.002199;
+      K(1,1)=cp.fy;///0.002199;
       K(0,2)=cp.cx;
       K(1,2)=cp.cy;
     
