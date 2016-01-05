@@ -91,10 +91,12 @@ basis_target_link_libraries(AzmqTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} $
 basis_add_executable(asioSocketTest.cpp)
 basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
-basis_find_package( OpenCV REQUIRED )
-basis_include_directories( ${OpenCV_INCLUDE_DIRS})
-basis_add_executable( ppf_load_match ppf_load_match.cpp)
-basis_target_link_libraries( ppf_load_match ${OpenCV_LIBS} )
+if(${OpenCV_VERSION} VERSION_GREATER 3.0)
+    basis_find_package( OpenCV REQUIRED )
+    basis_include_directories( ${OpenCV_INCLUDE_DIRS})
+    basis_add_executable( ppf_load_match ppf_load_match.cpp)
+    basis_target_link_libraries( ppf_load_match ${OpenCV_LIBS} )
+endif()
 
 # For KUKA IIWA FRI Libraries
 if(FRI-Client-SDK_Cpp_FOUND)

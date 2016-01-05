@@ -103,9 +103,10 @@ basis_project (
   # --------------------------------------------------------------------------
   # dependencies
   DEPENDS
-    ZeroMQ
-	AZMQ
-	FlatBuffers
+  # libsodium https://github.com/jedisct1/libsodium # todo: test this dependency
+    ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq 
+	AZMQ        # https://github.com/zeromq/azmq
+	FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
 	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log}
     #<dependency>
   OPTIONAL_DEPENDS
@@ -114,18 +115,12 @@ basis_project (
 	Eigen3             # Linear Algebra eigen.tuxfamily.com
     Nanopb             # Used in Kuka Fast Robot Interface
     FRI-Client-SDK_Cpp # Kuka Fast Robot Interface (FRI) Client SDK
-    ur_modern_driver # Universal Robots Device Driver https://github.com/ThomasTimm/ur_modern_driver/
-    CisstNetlib # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
-    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # used for inverse kinematics plugin
-    sawConstraintController #  used for inverse kinematics plugin
-    CAMODOCAL # used for hand eye calibration plugin
-    PCL # point cloud library
-    freenect2 # kinect v2 drivers
-  TEST_DEPENDS
-    #<test-dependency>
-  OPTIONAL_TEST_DEPENDS
-    #<optional-test-dependency>
-  INCLUDE_DIRS
-    include
-    include/thirdparty/vrep/include
+    ur_modern_driver   # Universal Robots Arm Device Driver https://github.com/ThomasTimm/ur_modern_driver/
+    CisstNetlib        # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
+    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin 
+    sawConstraintController #  used for inverse kinematics plugin https://github.com/jhu-saw/sawConstraintController
+    Ceres              # http://ceres-solver.org/ used in arm hand eye calibration
+    CAMODOCAL          # used for hand eye calibration plugin https://github.com/hengli/camodocal
+    PCL                # point cloud library, for vision components >=1.7 recommended https://github.com/PointCloudLibrary/pcl
+    freenect2          # kinect v2 drivers, for vision components https://github.com/OpenKinect/libfreenect2
 )
