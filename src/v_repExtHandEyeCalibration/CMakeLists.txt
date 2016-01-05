@@ -28,8 +28,8 @@
 #       be placed in the lib/[<lang>/]grl/ directory,
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
-
-if(CAMODOCAL_FOUND)
+message(STATUS "HandEyCalib:${CAMODOCAL_FOUND} AND (${CERES_FOUND} OR ${USE_INTERNAL_CERES})")
+if(CAMODOCAL_FOUND AND (CERES_FOUND OR USE_INTERNAL_CERES))
 basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${camodocal_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 basis_add_library(v_repExtHandEyeCalibration SHARED v_repExtHandEyeCalibration.cpp )
 basis_target_link_libraries(v_repExtHandEyeCalibration ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${Boost_LOG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}  v_repLib camodocal_calib)
