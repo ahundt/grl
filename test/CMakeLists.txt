@@ -91,7 +91,7 @@ basis_target_link_libraries(AzmqTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} $
 basis_add_executable(asioSocketTest.cpp)
 basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
-if(${OpenCV_VERSION} VERSION_GREATER 3.0)
+if(OpenCV_FOUND AND (OpenCV_VERSION VERSION_GREATER 3.0))
     basis_find_package( OpenCV REQUIRED )
     basis_include_directories( ${OpenCV_INCLUDE_DIRS})
     basis_add_executable( ppf_load_match ppf_load_match.cpp)
@@ -116,7 +116,7 @@ endif()
 
 
 
-if(PCL_FOUND AND freenect2_LIBRARIES)
+if(PCL_FOUND AND freenect2_LIBRARIES AND OpenCV_FOUND)
     pkg_search_module(GLFW REQUIRED glfw3)
 
     link_directories(${PCL_LIBRARY_DIRS})
@@ -129,12 +129,16 @@ if(PCL_FOUND AND freenect2_LIBRARIES)
 
     basis_add_executable(kinect2grabber kinect2pclgrabber.cpp)
     basis_add_executable(pcl_grabbing_and_matching pcl_grabbing_and_matching.cpp pcl_grabbing_and_matching_class.cpp)
-    basis_add_executable(kinect2pclObjRecRansac kinect2pclObjRecRansac.cpp)
     basis_add_executable(homography2d homography2d.cpp)
 
 
     basis_target_link_libraries(kinect2grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
     basis_target_link_libraries(pcl_grabbing_and_matching ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
-    basis_target_link_libraries(kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
     basis_target_link_libraries(homography2d ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
+    
+
+    if(OpenCV_FOUND AND (OpenCV_VERSION VERSION_GREATER 3.0))
+        basis_add_executable(kinect2pclObjRecRansac kinect2pclObjRecRansac.cpp)
+        basis_target_link_libraries(kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
+    endif()
 endif()
