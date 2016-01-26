@@ -27,16 +27,16 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
+// This file was automatically created for V-REP release V3.2.3 rev4 on December 21st 2015
 
 #if !defined(V_REPCONST_INCLUDED_)
 #define V_REPCONST_INCLUDED_
 
-#define VREP_PROGRAM_VERSION_NB 30202
-#define VREP_PROGRAM_VERSION "3.2.2."
+#define VREP_PROGRAM_VERSION_NB 30203
+#define VREP_PROGRAM_VERSION "3.2.3."
 
-#define VREP_PROGRAM_REVISION_NB 1
-#define VREP_PROGRAM_REVISION "(rev. 1)"
+#define VREP_PROGRAM_REVISION_NB 4
+#define VREP_PROGRAM_REVISION "(rev. 4)"
 
 /* Scene object types. Values are serialized */
 enum { 
@@ -154,6 +154,7 @@ enum { /* Model properties (serialized): */
 		sim_modelproperty_not_reset						=0x0080, /* Model is not reset at simulation end. This flag is cleared at simulation end */
 		sim_modelproperty_not_visible					=0x0100, /* Whole model is invisible, independent of local visibility settings */
 		sim_modelproperty_scripts_inactive				=0x0200, /* All scripts in the model will not be executed */
+		sim_modelproperty_not_showasinsidemodel			=0x0400, /* Whole model is invisible to any model bounding box */
 		sim_modelproperty_not_model						=0xf000  /* object is not a model */
 };
 
@@ -510,6 +511,7 @@ enum { /* special argument of some functions: */
 enum { /* special handle flags: */
 	sim_handleflag_assembly				=0x00400000,
 	sim_handleflag_togglevisibility		=0x00400000,
+	sim_handleflag_extended				=0x00400000,
 	sim_handleflag_model				=0x00800000,
 	sim_handleflag_rawvalue				=0x01000000
 };
@@ -679,7 +681,10 @@ enum { /* Boolean parameters: */
 	sim_boolparam_exit_request,
 	sim_boolparam_play_toolbarbutton_enabled,
 	sim_boolparam_pause_toolbarbutton_enabled,
-	sim_boolparam_stop_toolbarbutton_enabled
+	sim_boolparam_stop_toolbarbutton_enabled,
+	sim_boolparam_waiting_for_trigger,
+	sim_boolparam_objproperties_toolbarbutton_enabled,
+	sim_boolparam_calcmodules_toolbarbutton_enabled
 };
 
 enum { /* Integer parameters: */
@@ -719,13 +724,20 @@ enum { /* Integer parameters: */
 	sim_intparam_simulation_warning_disabled_mask,
 	sim_intparam_scene_index, /* can be used to switch to a different instance programmatically */
 	sim_intparam_motionplanning_seed,
-	sim_intparam_speedmodifier /* can only be used while simulation is not stopped */
+	sim_intparam_speedmodifier, /* can only be used while simulation is not stopped */
+	sim_intparam_dynamic_iteration_count
+};
+
+enum { /* uint64 parameters: */
+	sim_uint64param_simulation_time_step_ns=0, /* simulation time step in nanoseconds */
+	sim_uint64param_simulation_time_ns		/* simulation time in nanoseconds */
 };
 
 enum { /* Float parameters: */
 	sim_floatparam_rand=0, /* random value (0.0-1.0) */
 	sim_floatparam_simulation_time_step,
-	sim_floatparam_stereo_distance
+	sim_floatparam_stereo_distance,
+	sim_floatparam_dynamic_step_size
 };
 
 enum { /* String parameters: */
@@ -743,6 +755,8 @@ enum { /* String parameters: */
 	sim_stringparam_additional_addonscript_firstscene, /* do not use. Can only be written. */
 	sim_stringparam_additional_addonscript, /* do not use. Can only be written. */
 	sim_stringparam_scene_path_and_name, /* can only be read */
+	sim_stringparam_scene_path, /* can only be read */
+	sim_stringparam_scene_name, /* can only be read */
 	sim_stringparam_remoteapi_temp_file_dir /* can only be read */
 };
 
@@ -988,16 +1002,182 @@ enum { /* Pov pattern types */
 	sim_pov_mirror
 };
 
+
+enum { /* Object int/float/string parameters */
+	/* scene objects */
+	sim_objintparam_visibility_layer= 10,
+	sim_objfloatparam_abs_x_velocity= 11,
+	sim_objfloatparam_abs_y_velocity= 12,
+	sim_objfloatparam_abs_z_velocity= 13,
+	sim_objfloatparam_abs_rot_velocity= 14,
+	sim_objfloatparam_objbbox_min_x= 15,
+	sim_objfloatparam_objbbox_min_y= 16,
+	sim_objfloatparam_objbbox_min_z= 17,
+	sim_objfloatparam_objbbox_max_x= 18,
+	sim_objfloatparam_objbbox_max_y= 19,
+	sim_objfloatparam_objbbox_max_z= 20,
+	sim_objfloatparam_modelbbox_min_x= 21,
+	sim_objfloatparam_modelbbox_min_y= 22,
+	sim_objfloatparam_modelbbox_min_z= 23,
+	sim_objfloatparam_modelbbox_max_x= 24,
+	sim_objfloatparam_modelbbox_max_y= 25,
+	sim_objfloatparam_modelbbox_max_z= 26,
+	sim_objintparam_collection_self_collision_indicator= 27,
+	sim_objfloatparam_transparency_offset= 28,
+	sim_objintparam_child_role= 29,
+	sim_objintparam_parent_role= 30,
+	sim_objintparam_manipulation_permissions= 31,
+	sim_objintparam_illumination_handle= 32,
+
+	sim_objparam_end= 999,
+
+	/* vision_sensors */
+	sim_visionfloatparam_near_clipping= 1000,
+	sim_visionfloatparam_far_clipping= 1001,
+	sim_visionintparam_resolution_x= 1002,
+	sim_visionintparam_resolution_y= 1003,
+	sim_visionfloatparam_perspective_angle= 1004,
+	sim_visionfloatparam_ortho_size= 1005,
+	sim_visionintparam_disabled_light_components= 1006,
+	sim_visionintparam_rendering_attributes= 1007,
+	sim_visionintparam_entity_to_render= 1008,
+	sim_visionintparam_windowed_size_x= 1009,
+	sim_visionintparam_windowed_size_y= 1010,
+	sim_visionintparam_windowed_pos_x= 1011,
+	sim_visionintparam_windowed_pos_y= 1012,
+	sim_visionintparam_pov_focal_blur= 1013,
+	sim_visionfloatparam_pov_blur_distance= 1014,
+	sim_visionfloatparam_pov_aperture= 1015,
+	sim_visionintparam_pov_blur_sampled= 1016,
+	sim_visionintparam_render_mode= 1017,
+
+	/* joints */
+	sim_jointintparam_motor_enabled= 2000,
+	sim_jointintparam_ctrl_enabled= 2001,
+	sim_jointfloatparam_pid_p= 2002,
+	sim_jointfloatparam_pid_i= 2003,
+	sim_jointfloatparam_pid_d= 2004,
+	sim_jointfloatparam_intrinsic_x= 2005,
+	sim_jointfloatparam_intrinsic_y= 2006,
+	sim_jointfloatparam_intrinsic_z= 2007,
+	sim_jointfloatparam_intrinsic_qx= 2008,
+	sim_jointfloatparam_intrinsic_qy= 2009,
+	sim_jointfloatparam_intrinsic_qz= 2010,
+	sim_jointfloatparam_intrinsic_qw= 2011,
+	sim_jointfloatparam_velocity= 2012,
+	sim_jointfloatparam_spherical_qx= 2013,
+	sim_jointfloatparam_spherical_qy= 2014,
+	sim_jointfloatparam_spherical_qz= 2015,
+	sim_jointfloatparam_spherical_qw= 2016,
+	sim_jointfloatparam_upper_limit= 2017,
+	sim_jointfloatparam_kc_k= 2018,
+	sim_jointfloatparam_kc_c= 2019,
+	sim_jointfloatparam_ik_weight= 2021,
+	sim_jointfloatparam_error_x= 2022,
+	sim_jointfloatparam_error_y= 2023,
+	sim_jointfloatparam_error_z= 2024,
+	sim_jointfloatparam_error_a= 2025,
+	sim_jointfloatparam_error_b= 2026,
+	sim_jointfloatparam_error_g= 2027,
+	sim_jointfloatparam_error_pos= 2028,
+	sim_jointfloatparam_error_angle= 2029,
+	sim_jointintparam_velocity_lock= 2030,
+	sim_jointintparam_vortex_dep_handle= 2031,
+	sim_jointfloatparam_vortex_dep_multiplication= 2032,
+	sim_jointfloatparam_vortex_dep_offset= 2033,
+
+	/* shapes */
+	sim_shapefloatparam_init_velocity_x= 3000,
+	sim_shapefloatparam_init_velocity_y= 3001,
+	sim_shapefloatparam_init_velocity_z= 3002,
+	sim_shapeintparam_static= 3003,
+	sim_shapeintparam_respondable= 3004,
+	sim_shapefloatparam_mass= 3005,
+	sim_shapefloatparam_texture_x= 3006,
+	sim_shapefloatparam_texture_y= 3007,
+	sim_shapefloatparam_texture_z= 3008,
+	sim_shapefloatparam_texture_a= 3009,
+	sim_shapefloatparam_texture_b= 3010,
+	sim_shapefloatparam_texture_g= 3011,
+	sim_shapefloatparam_texture_scaling_x= 3012,
+	sim_shapefloatparam_texture_scaling_y= 3013,
+	sim_shapeintparam_culling= 3014,
+	sim_shapeintparam_wireframe= 3015,
+	sim_shapeintparam_compound= 3016,
+	sim_shapeintparam_convex= 3017,
+	sim_shapeintparam_convex_check= 3018,
+	sim_shapeintparam_respondable_mask= 3019,
+	sim_shapefloatparam_init_velocity_a= 3020,
+	sim_shapefloatparam_init_velocity_b= 3021,
+	sim_shapefloatparam_init_velocity_g= 3022,
+	sim_shapestringparam_color_name= 3023,
+	sim_shapeintparam_edge_visibility= 3024,
+	sim_shapefloatparam_shading_angle= 3025,
+	sim_shapefloatparam_edge_angle= 3026,
+	sim_shapeintparam_edge_borders_hidden= 3027,
+
+	/* proximity sensors */
+	sim_proxintparam_ray_invisibility= 4000,
+
+	/* proximity sensors */
+	sim_forcefloatparam_error_x= 5000,
+	sim_forcefloatparam_error_y= 5001,
+	sim_forcefloatparam_error_z= 5002,
+	sim_forcefloatparam_error_a= 5003,
+	sim_forcefloatparam_error_b= 5004,
+	sim_forcefloatparam_error_g= 5005,
+	sim_forcefloatparam_error_pos= 5006,
+	sim_forcefloatparam_error_angle= 5007,
+
+	/* lights */
+	sim_lightintparam_pov_casts_shadows= 8000,
+
+	/* cameras */
+	sim_cameraintparam_disabled_light_components= 9000,
+	sim_camerafloatparam_perspective_angle= 9001,
+	sim_camerafloatparam_ortho_size= 9002,
+	sim_cameraintparam_rendering_attributes= 9003,
+	sim_cameraintparam_pov_focal_blur= 9004,
+	sim_camerafloatparam_pov_blur_distance= 9005,
+	sim_camerafloatparam_pov_aperture= 9006,
+	sim_cameraintparam_pov_blur_samples= 9007,
+
+	/* dummies */
+	sim_dummyintparam_link_type= 10000,
+
+	/* mirrors */
+	sim_mirrorfloatparam_width= 12000,
+	sim_mirrorfloatparam_height= 12001,
+	sim_mirrorfloatparam_reflectance= 12002,
+	sim_mirrorintparam_enable= 12003,
+
+	/* path planning */
+	sim_pplanfloatparam_x_min= 20000,
+	sim_pplanfloatparam_x_range= 20001,
+	sim_pplanfloatparam_y_min= 20002,
+	sim_pplanfloatparam_y_range= 20003,
+	sim_pplanfloatparam_z_min= 20004,
+	sim_pplanfloatparam_z_range= 20005,
+	sim_pplanfloatparam_delta_min= 20006,
+	sim_pplanfloatparam_delta_range= 20007,
+
+	/* motion planning */
+	sim_mplanintparam_nodes_computed= 25000,
+	sim_mplanintparam_prepare_nodes= 25001,
+	sim_mplanintparam_clear_nodes= 25002
+};
+
 /******************************************
 *******************************************
 Remote API constants:
 *******************************************
 *******************************************/
 
-#define SIMX_VERSION 9  /* max is 255!!! */
+#define SIMX_VERSION 10  /* max is 255!!! */
 /* version to 6 for release 3.1.2 */
 /* version to 7 for release 3.1.3 */
 /* version to 8 for release AFTER 3.1.3 */
+/* version to 10 for release AFTER 3.2.3. Added simxGetCollectionHandle */
 
 /*
 Messages sent/received look like this:
@@ -1158,6 +1338,7 @@ enum {	simx_cmdnull_start				=0,
 		simx_cmd_write_string_stream=simx_cmd_append_string_signal,
 		simx_cmd_get_and_clear_string_signal,
 		simx_cmd_read_string_stream,
+		simx_cmd_get_collection_handle,
 
 		simx_cmd1string_custom_start	=0x003800,
 

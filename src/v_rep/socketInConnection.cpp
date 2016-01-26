@@ -12,7 +12,7 @@
 // You are free to use/modify/distribute this file for whatever purpose!
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
+// This file was automatically created for V-REP release V3.2.3 rev4 on December 21st 2015
 
 #include "socketInConnection.h"
 #define HEADER_LENGTH 6 // byte1=id1, byte2=id2, byte3+byte4=packetSize, byte5+byte6=packetsLeftToRead
