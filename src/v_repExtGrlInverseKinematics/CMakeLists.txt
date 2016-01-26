@@ -30,9 +30,10 @@
 #       BASIS will automatically add a library build target for these modules.
 
 
-
+#TODO: HACK: find_backage(Boost) shouldn't be necessary, boost.log isn't found properly... remove when possible
+find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log)
 #TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
-if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_FOUND)
+if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_FOUND AND Boost_FOUND AND Boost_LOG_FOUND)
     #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
     #@see https://github.com/schuhschuh/cmake-basis/issues/442
     basis_include_directories(
@@ -46,7 +47,7 @@ if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_
     basis_add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
     basis_target_link_libraries(v_repExtGrlInverseKinematics 
                     ${Boost_LIBRARIES}  
-                    ${Boost_LIBRARIES} 
+                    ${Boost_LOG_LIBRARY}
                     ${CMAKE_THREAD_LIBS_INIT}
                     # ${cisstNetlib_LIBRARY_cisstNetlib}
                     # ${cisstNetlib_LIBRARY_cisstNetlib_gcc}
@@ -58,6 +59,7 @@ if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_
                     ##${CISST_SAW_LIBRARIES}
                     #${CISSTNETLIB_LIBRARIES}
                     ${sawConstraintController_LIBRARIES}
+                    sawConstraintController
                     v_repLib
                 )
 endif()
