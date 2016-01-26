@@ -20,10 +20,19 @@
 
 namespace grl { namespace vrep {
 
-
-/// @todo verify that the ordering of the jacobian returned is accurate against VrepVFController.hpp
+/// @brief get the Jacobian as calculated by vrep in an Eigen::MatrixXf in column major format
+/// @param driver the vrep arm driver object that provides access to vrep simulation state for a specific arm
+/// @param jacobianOnly true calls simComputeJacobian, false uses simCheckIKGroup which incidentally calculates the Jacobian
+///
+/// The jacobianOnly option is provided because some irregularities were seen with
+/// simComputeJacobian (jacobianOnly == true). Thus (jacobianOnly == false) falls
+/// back on using the full vrep provided inverse kinematics calculation which is
+/// slower but didn't have the previously seen irregularities. The jacobianOnly option
+/// should be eliminated in favor of the simComputeJacobian (jacobianOnly == true) case
+/// once all issues are fully resolved.
+///
 /// @return jacobian in ColumnMajor format where each row is a joint from base to tip, first 3 columns are translation component, last 3 columns are rotation component
-Eigen::MatrixXf getJacobian(vrep::VrepRobotArmDriver& driver)
+Eigen::MatrixXf getJacobian(vrep::VrepRobotArmDriver& driver, bool jacobianOnly = false)
 {
 
         // Initialize Variables for update
@@ -36,39 +45,54 @@ Eigen::MatrixXf getJacobian(vrep::VrepRobotArmDriver& driver)
         /// @todo get target position, probably relative to base
         const auto& handleParams = driver.getVrepHandleParams();
         auto ikGroupHandle_ = std::get<vrep::VrepRobotArmDriver::RobotIkGroup>(handleParams);
-        
-        auto target = std::get<vrep::VrepRobotArmDriver::RobotTargetName>(handleParams);
-        auto tip = std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams);
-        
-        // save the current tip to target transform
-        Eigen::Affine3d tipToTarget =getObjectTransform( target,tip);
-        
-        // set the current transform to the identity so simCheckIkGroup won't fail
-        // @see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=3967
-        // for details about this issue.
-        setObjectTransform( target,tip,Eigen::Affine3d::Identity());
-        
-        // debug:
-        // std::cout << "TipToTargetTransform:\n" << tipToTarget.matrix() << "\n";
-        
-        /// Run inverse kinematics, but all we really want is the jacobian
-        /// @todo find version that only returns jacobian
-        /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simCheckIkGroup
-        auto ikcalcResult =
-        simCheckIkGroup(ikGroupHandle_
-                       ,numJoints
-                       ,&jointHandles_[0]
-                       ,&ikCalculatedJointValues[0]
-                       ,NULL /// @todo do we need to use these options?
-                       );
-        /// @see http://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#ikCalculationResults
-        if(ikcalcResult!=sim_ikresult_success && ikcalcResult != sim_ikresult_not_performed)
+    
+        if (jacobianOnly)
         {
-            BOOST_LOG_TRIVIAL(error) << "VrepInverseKinematicsController: didn't run inverse kinematics";
-            return Eigen::MatrixXf();
+            // http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simComputeJacobian
+            auto jacobianResult = simComputeJacobian(ikGroupHandle_,NULL,NULL);
+            
+            if(jacobianResult == -1)
+            {
+                BOOST_LOG_TRIVIAL(error) << "VrepInverseKinematicsController: couldn't compute Jacobian";
+                return Eigen::MatrixXf();
+            }
+            
         }
+        else
+        {
         
-        setObjectTransform( target,tip,tipToTarget);
+            auto target = std::get<vrep::VrepRobotArmDriver::RobotTargetName>(handleParams);
+            auto tip = std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams);
+            // save the current tip to target transform
+            Eigen::Affine3d tipToTarget =getObjectTransform( target,tip);
+            
+            // set the current transform to the identity so simCheckIkGroup won't fail
+            // @see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=3967
+            // for details about this issue.
+            setObjectTransform( target,tip,Eigen::Affine3d::Identity());
+            
+            // debug:
+            // std::cout << "TipToTargetTransform:\n" << tipToTarget.matrix() << "\n";
+            
+            /// Run inverse kinematics, but all we really want is the jacobian
+            /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simCheckIkGroup
+            auto ikcalcResult =
+            simCheckIkGroup(ikGroupHandle_
+                           ,numJoints
+                           ,&jointHandles_[0]
+                           ,&ikCalculatedJointValues[0]
+                           ,NULL /// @todo do we need to use these options?
+                           );
+            /// @see http://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#ikCalculationResults
+            if(ikcalcResult!=sim_ikresult_success && ikcalcResult != sim_ikresult_not_performed)
+            {
+                BOOST_LOG_TRIVIAL(error) << "VrepInverseKinematicsController: didn't run inverse kinematics";
+                return Eigen::MatrixXf();
+            }
+        
+            
+            setObjectTransform( target,tip,tipToTarget);
+        }
    
         // debug verifying that get and set object transform don't corrupt underlying data
 //        Eigen::Affine3d tipToTarget2 =getObjectTransform( target,tip);
