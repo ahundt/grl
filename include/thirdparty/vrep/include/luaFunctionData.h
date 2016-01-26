@@ -12,7 +12,7 @@
 // You are free to use/modify/distribute this file for whatever purpose!
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
+// This file was automatically created for V-REP release V3.2.3 rev4 on December 21st 2015
 
 #pragma once
 
@@ -29,9 +29,14 @@ public:
 
 	bool readDataFromLua(const SLuaCallBack* p,const int* expectedArguments,int requiredArgumentCount,const char* functionName);
 	std::vector<CLuaFunctionDataItem>* getInDataPtr();
-
 	void pushOutData(const CLuaFunctionDataItem& dataItem);
 	void writeDataToLua(SLuaCallBack* p);
+
+	bool readDataFromLua_luaFunctionCall(const SLuaCallBack* p,const int* expectedArguments,int requiredArgumentCount,const char* functionName);
+	std::vector<CLuaFunctionDataItem>* getOutDataPtr_luaFunctionCall();
+	void pushOutData_luaFunctionCall(const CLuaFunctionDataItem& dataItem);
+	void writeDataToLua_luaFunctionCall(SLuaCallBack* p,const int* expectedArguments);
+	void releaseBuffers_luaFunctionCall(SLuaCallBack* p);
 
 	static void getInputDataForFunctionRegistration(const int* dat,std::vector<int>& outDat);
 

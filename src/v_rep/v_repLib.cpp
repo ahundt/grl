@@ -27,7 +27,7 @@
 // along with V-REP.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.2.2 Rev1 on September 5th 2015
+// This file was automatically created for V-REP release V3.2.3 rev4 on December 21st 2015
 
 #include "../include/v_repLib.h"
 #include <stdio.h>
@@ -46,10 +46,17 @@ ptrSimUnloadModule simUnloadModule=0;
 ptrSimSendModuleMessage simSendModuleMessage=0;
 ptrSimSetBooleanParameter simSetBooleanParameter=0;
 ptrSimGetBooleanParameter simGetBooleanParameter=0;
+ptrSimSetBoolParameter simSetBoolParameter=0;
+ptrSimGetBoolParameter simGetBoolParameter=0;
 ptrSimSetIntegerParameter simSetIntegerParameter=0;
 ptrSimGetIntegerParameter simGetIntegerParameter=0;
+ptrSimSetInt32Parameter simSetInt32Parameter=0;
+ptrSimGetInt32Parameter simGetInt32Parameter=0;
+ptrSimGetUInt64Parameter simGetUInt64Parameter=0;
 ptrSimSetFloatingParameter simSetFloatingParameter=0;
 ptrSimGetFloatingParameter simGetFloatingParameter=0;
+ptrSimSetFloatParameter simSetFloatParameter=0;
+ptrSimGetFloatParameter simGetFloatParameter=0;
 ptrSimSetStringParameter simSetStringParameter=0;
 ptrSimGetStringParameter simGetStringParameter=0;
 ptrSimGetObjectHandle simGetObjectHandle=0;
@@ -60,6 +67,7 @@ ptrSimGetObjects simGetObjects=0;
 ptrSimSetObjectName simSetObjectName=0;
 ptrSimGetCollectionHandle simGetCollectionHandle=0;
 ptrSimRemoveCollection simRemoveCollection=0;
+ptrSimEmptyCollection simEmptyCollection=0;
 ptrSimGetCollectionName simGetCollectionName=0;
 ptrSimSetCollectionName simSetCollectionName=0;
 ptrSimGetObjectMatrix simGetObjectMatrix=0;
@@ -315,6 +323,8 @@ ptrSimCreateVisionSensor simCreateVisionSensor=0;
 ptrSimRegisterContactCallback simRegisterContactCallback=0;
 ptrSimGetObjectIntParameter simGetObjectIntParameter=0;
 ptrSimSetObjectIntParameter simSetObjectIntParameter=0;
+ptrSimGetObjectInt32Parameter simGetObjectInt32Parameter=0;
+ptrSimSetObjectInt32Parameter simSetObjectInt32Parameter=0;
 ptrSimGetObjectFloatParameter simGetObjectFloatParameter=0;
 ptrSimSetObjectFloatParameter simSetObjectFloatParameter=0;
 ptrSimGetObjectStringParameter simGetObjectStringParameter=0;
@@ -427,6 +437,14 @@ ptrSimRemoveMotionPlanning simRemoveMotionPlanning=0;
 ptrSimCreateCollection simCreateCollection=0;
 ptrSimAddObjectToCollection simAddObjectToCollection=0;
 ptrSimSaveImage simSaveImage=0;
+ptrSimGetQHull simGetQHull=0;
+ptrSimGetDecimatedMesh simGetDecimatedMesh=0;
+ptrSimExportIk simExportIk=0;
+ptrSimCallScriptFunction simCallScriptFunction=0;
+ptrSimAppendScriptArrayEntry simAppendScriptArrayEntry=0;
+ptrSimClearScriptVariable simClearScriptVariable=0;
+ptrSimComputeJacobian simComputeJacobian=0;
+
 
 
 
@@ -597,10 +615,17 @@ int getVrepProcAddresses(LIBRARY lib)
 	simSendModuleMessage=(ptrSimSendModuleMessage)(_getProcAddress(lib,"simSendModuleMessage"));
 	simSetBooleanParameter=(ptrSimSetBooleanParameter)(_getProcAddress(lib,"simSetBooleanParameter"));
 	simGetBooleanParameter=(ptrSimGetBooleanParameter)(_getProcAddress(lib,"simGetBooleanParameter"));
+	simSetBoolParameter=(ptrSimSetBoolParameter)(_getProcAddress(lib,"simSetBoolParameter"));
+	simGetBoolParameter=(ptrSimGetBoolParameter)(_getProcAddress(lib,"simGetBoolParameter"));
 	simSetIntegerParameter=(ptrSimSetIntegerParameter)(_getProcAddress(lib,"simSetIntegerParameter"));
 	simGetIntegerParameter=(ptrSimGetIntegerParameter)(_getProcAddress(lib,"simGetIntegerParameter"));
+	simSetInt32Parameter=(ptrSimSetInt32Parameter)(_getProcAddress(lib,"simSetInt32Parameter"));
+	simGetInt32Parameter=(ptrSimGetInt32Parameter)(_getProcAddress(lib,"simGetInt32Parameter"));
+	simGetUInt64Parameter=(ptrSimGetUInt64Parameter)(_getProcAddress(lib,"simGetUInt64Parameter"));
 	simSetFloatingParameter=(ptrSimSetFloatingParameter)(_getProcAddress(lib,"simSetFloatingParameter"));
 	simGetFloatingParameter=(ptrSimGetFloatingParameter)(_getProcAddress(lib,"simGetFloatingParameter"));
+	simSetFloatParameter=(ptrSimSetFloatParameter)(_getProcAddress(lib,"simSetFloatParameter"));
+	simGetFloatParameter=(ptrSimGetFloatParameter)(_getProcAddress(lib,"simGetFloatParameter"));
 	simSetStringParameter=(ptrSimSetStringParameter)(_getProcAddress(lib,"simSetStringParameter"));
 	simGetStringParameter=(ptrSimGetStringParameter)(_getProcAddress(lib,"simGetStringParameter"));
 	simGetObjectHandle=(ptrSimGetObjectHandle)(_getProcAddress(lib,"simGetObjectHandle"));
@@ -611,6 +636,7 @@ int getVrepProcAddresses(LIBRARY lib)
 	simSetObjectName=(ptrSimSetObjectName)(_getProcAddress(lib,"simSetObjectName"));
 	simGetCollectionHandle=(ptrSimGetCollectionHandle)(_getProcAddress(lib,"simGetCollectionHandle"));
 	simRemoveCollection=(ptrSimRemoveCollection)(_getProcAddress(lib,"simRemoveCollection"));
+	simEmptyCollection=(ptrSimEmptyCollection)(_getProcAddress(lib,"simEmptyCollection"));
 	simGetCollectionName=(ptrSimGetCollectionName)(_getProcAddress(lib,"simGetCollectionName"));
 	simSetCollectionName=(ptrSimSetCollectionName)(_getProcAddress(lib,"simSetCollectionName"));
 	simGetObjectMatrix=(ptrSimGetObjectMatrix)(_getProcAddress(lib,"simGetObjectMatrix"));
@@ -866,6 +892,8 @@ int getVrepProcAddresses(LIBRARY lib)
 	simRegisterContactCallback=(ptrSimRegisterContactCallback)(_getProcAddress(lib,"simRegisterContactCallback"));
 	simGetObjectIntParameter=(ptrSimGetObjectIntParameter)(_getProcAddress(lib,"simGetObjectIntParameter"));
 	simSetObjectIntParameter=(ptrSimSetObjectIntParameter)(_getProcAddress(lib,"simSetObjectIntParameter"));
+	simGetObjectInt32Parameter=(ptrSimGetObjectInt32Parameter)(_getProcAddress(lib,"simGetObjectInt32Parameter"));
+	simSetObjectInt32Parameter=(ptrSimSetObjectInt32Parameter)(_getProcAddress(lib,"simSetObjectInt32Parameter"));
 	simGetObjectFloatParameter=(ptrSimGetObjectFloatParameter)(_getProcAddress(lib,"simGetObjectFloatParameter"));
 	simSetObjectFloatParameter=(ptrSimSetObjectFloatParameter)(_getProcAddress(lib,"simSetObjectFloatParameter"));
 	simGetObjectStringParameter=(ptrSimGetObjectStringParameter)(_getProcAddress(lib,"simGetObjectStringParameter"));
@@ -978,6 +1006,13 @@ int getVrepProcAddresses(LIBRARY lib)
 	simCreateCollection=(ptrSimCreateCollection)(_getProcAddress(lib,"simCreateCollection"));
 	simAddObjectToCollection=(ptrSimAddObjectToCollection)(_getProcAddress(lib,"simAddObjectToCollection"));
 	simSaveImage=(ptrSimSaveImage)(_getProcAddress(lib,"simSaveImage"));
+	simGetQHull=(ptrSimGetQHull)(_getProcAddress(lib,"simGetQHull"));
+	simGetDecimatedMesh=(ptrSimGetDecimatedMesh)(_getProcAddress(lib,"simGetDecimatedMesh"));
+	simExportIk=(ptrSimExportIk)(_getProcAddress(lib,"simExportIk"));
+	simCallScriptFunction=(ptrSimCallScriptFunction)(_getProcAddress(lib,"simCallScriptFunction"));
+	simAppendScriptArrayEntry=(ptrSimAppendScriptArrayEntry)(_getProcAddress(lib,"simAppendScriptArrayEntry"));
+	simClearScriptVariable=(ptrSimClearScriptVariable)(_getProcAddress(lib,"simClearScriptVariable"));
+	simComputeJacobian=(ptrSimComputeJacobian)(_getProcAddress(lib,"simComputeJacobian"));
 
 
 	_simGetContactCallbackCount=(ptr_simGetContactCallbackCount)(_getProcAddress(lib,"_simGetContactCallbackCount"));
@@ -1126,6 +1161,16 @@ int getVrepProcAddresses(LIBRARY lib)
 		printf("%s simGetBooleanParameter\n",couldNotFind);
 		return 0;
 	}
+	if (simSetBoolParameter==0)
+	{
+		printf("%s simSetBoolParameter\n",couldNotFind);
+		return 0;
+	}
+	if (simGetBoolParameter==0)
+	{
+		printf("%s simGetBoolParameter\n",couldNotFind);
+		return 0;
+	}
 	if (simSetIntegerParameter==0)
 	{
 		printf("%s simSetIntegerParameter\n",couldNotFind);
@@ -1136,6 +1181,21 @@ int getVrepProcAddresses(LIBRARY lib)
 		printf("%s simGetIntegerParameter\n",couldNotFind);
 		return 0;
 	}
+	if (simSetInt32Parameter==0)
+	{
+		printf("%s simSetInt32Parameter\n",couldNotFind);
+		return 0;
+	}
+	if (simGetInt32Parameter==0)
+	{
+		printf("%s simGetInt32Parameter\n",couldNotFind);
+		return 0;
+	}
+	if (simGetUInt64Parameter==0)
+	{
+		printf("%s simGetUInt64Parameter\n",couldNotFind);
+		return 0;
+	}
 	if (simSetFloatingParameter==0)
 	{
 		printf("%s simSetFloatingParameter\n",couldNotFind);
@@ -1144,6 +1204,16 @@ int getVrepProcAddresses(LIBRARY lib)
 	if (simGetFloatingParameter==0)
 	{
 		printf("%s simGetFloatingParameter\n",couldNotFind);
+		return 0;
+	}
+	if (simSetFloatParameter==0)
+	{
+		printf("%s simSetFloatParameter\n",couldNotFind);
+		return 0;
+	}
+	if (simGetFloatParameter==0)
+	{
+		printf("%s simGetFloatParameter\n",couldNotFind);
 		return 0;
 	}
 	if (simSetStringParameter==0)
@@ -1194,6 +1264,11 @@ int getVrepProcAddresses(LIBRARY lib)
 	if (simRemoveCollection==0)
 	{
 		printf("%s simRemoveCollection\n",couldNotFind);
+		return 0;
+	}
+	if (simEmptyCollection==0)
+	{
+		printf("%s simEmptyCollection\n",couldNotFind);
 		return 0;
 	}
 	if (simGetCollectionName==0)
@@ -2471,6 +2546,16 @@ int getVrepProcAddresses(LIBRARY lib)
 		printf("%s simSetObjectIntParameter\n",couldNotFind);
 		return 0;
 	}
+	if (simGetObjectInt32Parameter==0)
+	{
+		printf("%s simGetObjectInt32Parameter\n",couldNotFind);
+		return 0;
+	}
+	if (simSetObjectInt32Parameter==0)
+	{
+		printf("%s simSetObjectInt32Parameter\n",couldNotFind);
+		return 0;
+	}
 	if (simGetObjectFloatParameter==0)
 	{
 		printf("%s simGetObjectFloatParameter\n",couldNotFind);
@@ -3031,8 +3116,41 @@ int getVrepProcAddresses(LIBRARY lib)
 		printf("%s simSaveImage\n",couldNotFind);
 		return 0;
 	}
-
-
+	if (simGetQHull==0)
+	{
+		printf("%s simGetQHull\n",couldNotFind);
+		return 0;
+	}
+	if (simGetDecimatedMesh==0)
+	{
+		printf("%s simGetDecimatedMesh\n",couldNotFind);
+		return 0;
+	}
+	if (simExportIk==0)
+	{
+		printf("%s simExportIk\n",couldNotFind);
+		return 0;
+	}
+	if (simCallScriptFunction==0)
+	{
+		printf("%s simCallScriptFunction\n",couldNotFind);
+		return 0;
+	}
+	if (simAppendScriptArrayEntry==0)
+	{
+		printf("%s simAppendScriptArrayEntry\n",couldNotFind);
+		return 0;
+	}
+	if (simClearScriptVariable==0)
+	{
+		printf("%s simClearScriptVariable\n",couldNotFind);
+		return 0;
+	}
+	if (simComputeJacobian==0)
+	{
+		printf("%s simComputeJacobian\n",couldNotFind);
+		return 0;
+	}
 
 
 	if (_simGetContactCallbackCount==0)
