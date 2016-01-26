@@ -31,7 +31,7 @@ namespace grl {
 class VrepInverseKinematicsController : public grl::InverseKinematicsController
 {
 public:
-    typedef InverseKinematicsController parent_type;
+    typedef grl::InverseKinematicsController parent_type;
     
     //using parent_type::currentKinematicsStateP_;
     //using parent_type::parent_type::InitializeKinematicsState;
@@ -166,6 +166,10 @@ public:
         auto & ulim = std::get<vrep::VrepRobotArmDriver::JointUpperPositionLimit>(currentArmState_);
         std::vector<double> ulimits(ulim.begin(),ulim.end());
         jointPositionLimitsVFP_->UpperLimits = vctDoubleVec(ulimits.size(),&ulimits[0]);
+        
+        // update limits
+        /// @todo does this leak memory when called every time around?
+        UpdateAbsoluteJointLimitsVF(llim.size(),positionLimitsName,jointPositionLimitsVFP_->UpperLimits,jointPositionLimitsVFP_->LowerLimits);
         
         
         const auto& handleParams = VrepRobotArmDriverP_->getVrepHandleParams();
