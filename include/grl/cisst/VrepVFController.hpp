@@ -167,9 +167,14 @@ public:
         std::vector<double> ulimits(ulim.begin(),ulim.end());
         jointPositionLimitsVFP_->UpperLimits = vctDoubleVec(ulimits.size(),&ulimits[0]);
         
+        // current position
+        auto & currentJointPos = std::get<vrep::VrepRobotArmDriver::JointPosition>(currentArmState_);
+        std::vector<double> currentJointPosVec(currentJointPos.begin(),currentJointPos.end());
+        vctDoubleVec vctDoubleVecCurrentJoints(currentJointPosVec.size(),&currentJointPosVec[0]);
+        
         // update limits
         /// @todo does this leak memory when called every time around?
-        UpdateAbsoluteJointLimitsVF(llim.size(),positionLimitsName,jointPositionLimitsVFP_->UpperLimits,jointPositionLimitsVFP_->LowerLimits);
+        UpdateJointPosLimitsVF(positionLimitsName,jointPositionLimitsVFP_->UpperLimits,jointPositionLimitsVFP_->LowerLimits,vctDoubleVecCurrentJoints);
         
         
         const auto& handleParams = VrepRobotArmDriverP_->getVrepHandleParams();
