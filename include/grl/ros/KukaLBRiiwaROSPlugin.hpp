@@ -325,6 +325,14 @@ namespace grl {
             "Robotiiwa"               , // RobotTargetBaseName,
             "IK_Group1_iiwa"            // RobotIkGroup
             );
+
+
+        ros::Rate rate(60);
+        while (ros::ok()) {
+          ros::spinOnce();
+
+          rate.sleep();
+        }
       }
 
 
