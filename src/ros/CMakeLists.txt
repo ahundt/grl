@@ -29,14 +29,6 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
-
-add_subdirectory(ros)
-add_subdirectory(v_rep)
-add_subdirectory(v_repExtUniversalRobotsPlugin)
-add_subdirectory(v_repExtKukaLBRiiwaPlugin)
-add_subdirectory(v_repExtHandEyeCalibration)
-add_subdirectory(v_repExtGrlInverseKinematics)
 
 # ============================================================================
 # executable target(s)
@@ -49,3 +41,4 @@ add_subdirectory(v_repExtGrlInverseKinematics)
 # MATLAB, and Bash.
 
 
+basis_add_executable(grl_ros_bridge ros_bridge.cpp)
