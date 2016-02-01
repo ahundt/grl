@@ -5,13 +5,19 @@ using namespace grl::ros;
 
 int main(int argc, char **argv) {
 
-  ros::init("kuka_lbr_ros_bridge",argc,argv);
+  ros::init(argc,argv,"kuka_lbr_ros_bridge");
 
-  KukaLBRiiwaROSPlugin plugin;
-  plugin.construct();
+  std::shared_ptr<KukaLBRiiwaROSPlugin> plugin(std::make_shared<KukaLBRiiwaROSPlugin>());
+  plugin->construct();
 
+  ::ros::Rate rate(60);
+  while (::ros::ok()) {
+    ::ros::spinOnce();
 
-  plugin.run_one();
+    plugin->run_one();
+    
+    rate.sleep();
+  }
 
   return 0;
 }

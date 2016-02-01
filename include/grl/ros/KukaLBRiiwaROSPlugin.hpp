@@ -1,9 +1,38 @@
 #ifndef GRL_ROS_BRIDGE_HPP_
 #define GRL_ROS_BRIDGE_HPP_
 
+#include <iostream>
+#include <memory>
+#include <array>
+
+#include <boost/log/trivial.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/algorithm/string.hpp>
+
+#include "grl/KukaFRIThreadSeparator.hpp"
+#include "grl/KukaFriClientData.hpp"
+#include "grl/AzmqFlatbuffer.hpp"
+#include "grl/flatbuffer/JointState_generated.h"
+
 #include <ros/ros.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <sensor_msgs/JointState.h>
+
+/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
+template<typename T>
+inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
+{
+    out << "[";
+    size_t last = v.size() - 1;
+    for(size_t i = 0; i < v.size(); ++i) {
+        out << v[i];
+        if (i != last) 
+            out << ", ";
+    }
+    out << "]";
+    return out;
+}
+
 
 namespace grl {
   namespace ros {
@@ -23,6 +52,8 @@ namespace grl {
      */
     class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin> {
     public:
+
+      static const std::size_t KUKA_LBR_DOF = 7;
 
       enum ParamIndex {
         Joint1Name, 
@@ -100,8 +131,8 @@ namespace grl {
         JointPosition,
         JointForce,
         JointTargetPosition,
-        JointLowerPositionLimit
-          JointUpperPositionLimit,
+        JointLowerPositionLimit,
+        JointUpperPositionLimit,
         JointMatrix,
         JointStateTagIndex
       };
@@ -128,18 +159,23 @@ namespace grl {
       KukaLBRiiwaROSPlugin(Params params = defaultParams())
         : params_(params), nh_()
       {
+        ::ros::NodeHandle nh;
+        js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_state",100);
+        jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_callback, this);
+        //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
       }
+
+      void construct(){ construct(params_);}
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
-      void construct() {
+      void construct(Params params) {
 
         params_ = params;
         // keep driver threads from exiting immediately after creation, because they have work to do!
         device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
 
         /// @todo figure out how to re-enable when .so isn't loaded
-        // initHandles();
         if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC"))
           )
         {
@@ -191,63 +227,7 @@ namespace grl {
                            std::get<RemoteZMQAddress>            (params_));
           throw;
         }
-        initHandles();
-
-        std::vector<int> jointHandle;
-        getHandleFromParam<JointNames>(params_,std::back_inserter(jointHandle));
-        handleParams_ =
-          std::make_tuple(
-              std::move(jointHandle)                                 //Obtain Joint Handles
-              ,getHandleFromParam<RobotTipName>           (params_)	//Obtain RobotTip handle
-              ,getHandleFromParam<RobotTargetName>        (params_)
-              ,getHandleFromParam<RobotTargetBaseName>    (params_)
-              ,simGetIkGroupHandle(std::get<RobotIkGroup> (params_).c_str())
-              );
-
-        allHandlesSet  = true;
-
-        js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_state",100);
-        jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_callback, this);
       }
-
-      /// @return 0 if ok 1 if problem
-      /// @todo handle cyclic joints (see isCyclic below & simGetJointInterval)
-      bool getState(State& state){
-        if(!allHandlesSet) return false;
-        const std::vector<int>& jointHandle = std::get<JointNames>(handleParams_);
-
-        std::get<JointPosition>             (state).resize(jointHandle.size());
-        std::get<JointForce>                (state).resize(jointHandle.size());
-        std::get<JointTargetPosition>       (state).resize(jointHandle.size());
-        std::get<JointMatrix>               (state).resize(jointHandle.size());
-        std::get<JointLowerPositionLimit>   (state).resize(jointHandle.size());
-        std::get<JointUpperPositionLimit>   (state).resize(jointHandle.size());
-
-        enum limit {
-          lower
-            ,upper
-            ,numLimits
-        };
-
-        simBool isCyclic;
-        float jointAngleInterval[2]; // min,max
-
-        for (std::size_t i=0 ; i < jointHandle.size() ; i++)
-        {	
-          int currentJointHandle = jointHandle[i];
-          simGetJointPosition(currentJointHandle,&std::get<JointPosition>(state)[i]);  //retrieves the intrinsic position of a joint (Angle for revolute joint)
-          simGetJointForce(currentJointHandle,&std::get<JointForce>(state)[i]);	//retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled.
-          simGetJointTargetPosition(currentJointHandle,&std::get<JointTargetPosition>(state)[i]);  //retrieves the target position of a joint
-          simGetJointMatrix(currentJointHandle,&std::get<JointMatrix>(state)[i][0]);   //retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
-          simGetJointInterval(currentJointHandle,&isCyclic,jointAngleInterval);
-          std::get<JointLowerPositionLimit>(state)[i] = jointAngleInterval[lower];
-          std::get<JointUpperPositionLimit>(state)[i] = jointAngleInterval[upper];
-
-        }
-
-        return false;
-      }
-
 
       void getRealKukaAngles() {
         /// @todo m_haveReceivedRealData = true is a DANGEROUS HACK!!!! REMOVE ME AFTER DEBUGGING
@@ -271,16 +251,13 @@ namespace grl {
           // We have the real kuka state read from the device now
           // update real joint angle data
           current_js_.position.clear();
-          grl::robot::arm::copy(updatedState->get(), std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
-
+          grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
 
           current_js_.effort.clear();
           grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
 
           current_js_.velocity.clear();
           grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
-
-
 
 #if BOOST_VERSION < 105900
           // here we expect the simulation to be slightly ahead of the arm
@@ -289,8 +266,7 @@ namespace grl {
 #endif
 
 
-          js_pub.publish(current_js_);
-
+          js_pub_.publish(current_js_);
 
         } else if (kukaFRIClientDataDriverP_)
         {
@@ -313,182 +289,163 @@ namespace grl {
        * ROS joint trajectory callback
        * this code needs to execute the joint trajectory on the robot
        */
-      void jt_callback(const trajectory_msgs::JointTrajectory &msg) {
+      void jt_callback(const trajectory_msgs::JointTrajectoryConstPtr &msg) {
 
       }
 
+      /**
+       * spin once 
+       *
+       */
       void run_one(){
-        return std::make_tuple(
-            jointNames                , // JointNames
-            "RobotMillTip"            , // RobotTipName,
-            "RobotMillTipTarget"      , // RobotTargetName,
-            "Robotiiwa"               , // RobotTargetBaseName,
-            "IK_Group1_iiwa"            // RobotIkGroup
-            );
 
+        getRealKukaAngles();
 
-        ros::Rate rate(60);
-        while (ros::ok()) {
-          ros::spinOnce();
+        /// @todo re-enable simulation feedback based on actual kuka state
+        sendSimulatedJointAnglesToKuka();
 
-          rate.sleep();
+      }
+
+      ~KukaLBRiiwaROSPlugin(){
+        device_driver_workP_.reset();
+
+        if(driver_threadP){
+          device_driver_io_service.stop();
+          driver_threadP->join();
         }
       }
 
+      void sendSimulatedJointAnglesToKuka(){
 
-      if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaRosPlugin: Handles have not been initialized, cannot run updates."));
-      getRealKukaAngles();
-      bool isError = getStateFromVrep(); // true if there is an error
-      allHandlesSet = !isError;
-      /// @todo re-enable simulation feedback based on actual kuka state
-      //updateVrepFromKuka();
-      sendSimulatedJointAnglesToKuka();
+        if(!m_haveReceivedRealData) return;
 
-    }
+        /// @todo make this handled by template driver implementations/extensions
 
-    ~KukaLBRiiwaROSPlugin(){
-      device_driver_workP_.reset();
+        if(kukaJavaDriverP && boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
+        {
+          /////////////////////////////////////////
+          // Client sends to server asynchronously!
 
-      if(driver_threadP){
-        device_driver_io_service.stop();
-        driver_threadP->join();
-      }
-    }
+          /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
+          std::vector<double> joints;
 
-    void sendSimulatedJointAnglesToKuka(){
+          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
 
-      if(!allHandlesSet || !m_haveReceivedRealData) return;
-
-      /// @todo make this handled by template driver implementations/extensions
-
-      if(kukaJavaDriverP && boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
-      {
-        /////////////////////////////////////////
-        // Client sends to server asynchronously!
-
-        /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
-        std::vector<double> joints;
-
-        auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-
-        /// @todo should we use simJointTargetPosition here?
-        joints.clear();
-        boost::copy(simJointPosition, std::back_inserter(joints));
-        auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
+          /// @todo should we use simJointTargetPosition here?
+          joints.clear();
+          boost::copy(simJointPosition, std::back_inserter(joints));
+          auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
 
 #if BOOST_VERSION < 105900
-        BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
+          BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
 #endif
 
-        /// @note we don't have a velocity right now, sending empty!
-        joints.clear();
-        //boost::copy(simJointVelocity, std::back_inserter(joints));
-        auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
-        joints.clear();
-        boost::copy(simJointForce, std::back_inserter(joints));
-        auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
-        auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
-        grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
-        kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          /// @note we don't have a velocity right now, sending empty!
+          joints.clear();
+          //boost::copy(simJointVelocity, std::back_inserter(joints));
+          auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
+          joints.clear();
+          boost::copy(simJointForce, std::back_inserter(joints));
+          auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
+          auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
+          grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
+          kukaJavaDriverP->async_send_flatbuffer(fbbP);
 
-      }
-      else if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
-      {
-        // note: this one sends *and* receives the joint data!
-        BOOST_VERIFY(kukaFRIClientDataDriverP_.get()!=nullptr);
-        /// @todo use runtime calculation of NUM_JOINTS instead of constant
-        if(!friData_) friData_ = std::make_shared<KUKA::FRI::ClientData>(7);
-
-        // Set the FRI to the simulated joint positions
-        grl::robot::arm::set(friData_->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-        grl::robot::arm::set(friData_->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
-
-
-
-        boost::system::error_code send_ec,recv_ec;
-        std::size_t send_bytes, recv_bytes;
-        bool haveNewData = !kukaFRIClientDataDriverP_->update_state(friData_,recv_ec,recv_bytes,send_ec,send_bytes);
-
-        if(haveNewData)
-        {
-          this->m_haveReceivedRealData = true;
         }
-        else
+        else if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
         {
-          /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
-          return;
+          // note: this one sends *and* receives the joint data!
+          BOOST_VERIFY(kukaFRIClientDataDriverP_.get()!=nullptr);
+          /// @todo use runtime calculation of NUM_JOINTS instead of constant
+          if(!friData_) friData_ = std::make_shared<KUKA::FRI::ClientData>(KUKA_LBR_DOF);
+
+          // Set the FRI to the simulated joint positions
+          grl::robot::arm::set(friData_->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+          grl::robot::arm::set(friData_->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+
+
+
+          boost::system::error_code send_ec,recv_ec;
+          std::size_t send_bytes, recv_bytes;
+          bool haveNewData = !kukaFRIClientDataDriverP_->update_state(friData_,recv_ec,recv_bytes,send_ec,send_bytes);
+
+          if(haveNewData)
+          {
+            this->m_haveReceivedRealData = true;
+          }
+          else
+          {
+            /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
+            return;
+          }
+
+
+          // We have the real kuka state read from the device now
+          // update real joint angle data
+          current_js_.position.clear();
+          grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
+
+          current_js_.effort.clear();
+          grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
+
+          current_js_.velocity.clear();
+          grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+
+          js_pub_.publish(current_js_);
+        }
+        else if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC")))
+        {
+          BOOST_VERIFY(kukaFRIThreadSeparatorP);
+          // create the command for the FRI
+          auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
+          // Set the FRI to the simulated joint positions
+          grl::robot::arm::set(*commandP, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+          grl::robot::arm::set(*commandP, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+          // send the command
+          this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
+        } else {
+          BOOST_THROW_EXCEPTION(std::runtime_error(std::string("KukaROSPlugin: Selected KukaCommandMode ")+std::get<KukaCommandMode>(params_)+" does not exist! Options are JAVA, FRI, and FRI_ASYNC"));
         }
 
-
-        // We have the real kuka state read from the device now
-        // update real joint angle data
-        realJointPosition.clear();
-        grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
-
-
-        realJointForce.clear();
-        grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
-
-        realJointPosition.clear();
-        grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
-
-
-      }
-      else if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC")))
-      {
-        BOOST_VERIFY(kukaFRIThreadSeparatorP);
-        // create the command for the FRI
-        auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
-        // Set the FRI to the simulated joint positions
-        grl::robot::arm::set(*commandP, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-        grl::robot::arm::set(*commandP, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
-        // send the command
-        this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
-      } else {
-        BOOST_THROW_EXCEPTION(std::runtime_error(std::string("KukaROSPlugin: Selected KukaCommandMode ")+std::get<KukaCommandMode>(params_)+" does not exist! Options are JAVA, FRI, and FRI_ASYNC"));
       }
 
-    }
 
+      volatile bool m_haveReceivedRealData = false;
 
-    volatile bool allHandlesSet = false;
-    volatile bool m_haveReceivedRealData = false;
+      boost::asio::io_service device_driver_io_service;
+      std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
+      std::unique_ptr<std::thread> driver_threadP;
+      std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver> kukaFRIClientDataDriverP_;
+      std::shared_ptr<grl::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
+      std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
+      std::shared_ptr<KukaLBRiiwaROSPlugin> KukaLBRiiwaROSPluginP_;
 
-    boost::asio::io_service device_driver_io_service;
-    std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
-    std::unique_ptr<std::thread> driver_threadP;
-    std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver> kukaFRIClientDataDriverP_;
-    std::shared_ptr<grl::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
-    std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
-    std::shared_ptr<RosArmDriver> RosArmDriverP_;
+      /// @todo replace all these simJoint elements with simple KukaLBRiiwaROSPlugin::State
+      std::vector<float_t> simJointPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+      std::vector<float_t> simJointForce = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+      std::vector<float_t> simJointTargetPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+      KukaLBRiiwaROSPlugin::TransformationMatrices simJointTransformationMatrix;
 
-    /// @todo replace all these simJoint elements with simple RosArmDriver::State
-    std::vector<float_t> simJointPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-    std::vector<float_t> simJointForce = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-    std::vector<float_t> simJointTargetPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-    RosArmDriver::TransformationMatrices simJointTransformationMatrix;
+      /// @note loss of precision! kuka sends double values, if you write custom code don't use these float values. Vrep uses floats internally which is why they are used here.
+      std::vector<float_t> realJointPosition        = { 0, 0, 0, 0, 0, 0, 0 };
+      // does not exist
+      std::vector<float_t> realJointForce           = { 0, 0, 0, 0, 0, 0, 0 };
 
-    /// @note loss of precision! kuka sends double values, if you write custom code don't use these float values. Vrep uses floats internally which is why they are used here.
-    std::vector<float_t> realJointPosition        = { 0, 0, 0, 0, 0, 0, 0 };
-    // does not exist
-    std::vector<float_t> realJointForce           = { 0, 0, 0, 0, 0, 0, 0 };
+    private:
 
+      Params params_;
+      std::shared_ptr<KUKA::FRI::ClientData> friData_;
 
+      ::ros::Subscriber jt_sub_; // subscribes to joint state trajectories and executes them 
+      ::ros::Publisher js_pub_; // publish true joint states from the KUKA
 
-  private:
+      sensor_msgs::JointState current_js_;
 
-    ros::Subscriber jt_sub_; // subscribes to joint state trajectories and executes them 
-    ros::Publisher js_pub_; // publish true joint states from the KUKA
+      ::ros::NodeHandle nh_;
 
-    sensor_msgs::JointState current_js_;
-
-    ros::NodeHandle nh_;
-
-  };
-
-
+    };
+  }
 }
 
-}
 
 #endif

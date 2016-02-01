@@ -10,7 +10,6 @@
 # @brief Build configuration of software.
 ##############################################################################
 
-
 # ============================================================================
 # library target(s)
 # ============================================================================
@@ -41,4 +40,18 @@
 # MATLAB, and Bash.
 
 
-basis_add_executable(grl_ros_bridge ros_bridge.cpp)
+if(catkin_FOUND)
+  basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+  basis_add_executable(grl_kuka_ros_driver ros_bridge.cpp)
+  basis_add_dependencies(grl_kuka_ros_driver grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
+  basis_target_link_libraries(grl_kuka_ros_driver
+    ${Boost_LIBRARIES}
+    ${Boost_LIBRARIES}
+    ${Boost_LOG_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    ${ZeroMQ_LIBRARIES}
+    ${FRI-Client-SDK_Cpp_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Nanopb_LIBRARIES}
+    ${catkin_LIBRARIES})
+endif(catkin_FOUND)
