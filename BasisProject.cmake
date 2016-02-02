@@ -121,7 +121,7 @@ basis_project (
     CAMODOCAL # used for hand eye calibration plugin
     PCL # point cloud library
     freenect2 # kinect v2 drivers
-    catkin{trajectory_msgs,sensor_msgs}
+    ROS
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
