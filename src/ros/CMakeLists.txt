@@ -40,8 +40,8 @@
 # MATLAB, and Bash.
 
 
-if(catkin_FOUND)
-  basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+if(ROS_FOUND)
+  basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${ROS_INCLUDE_DIR})
   basis_add_executable(grl_kuka_ros_driver ros_bridge.cpp)
   basis_add_dependencies(grl_kuka_ros_driver grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
   basis_target_link_libraries(grl_kuka_ros_driver
@@ -53,5 +53,5 @@ if(catkin_FOUND)
     ${FRI-Client-SDK_Cpp_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${Nanopb_LIBRARIES}
-    ${catkin_LIBRARIES})
-endif(catkin_FOUND)
+    ${ROS_LIBRARIES})
+endif(ROS_FOUND)

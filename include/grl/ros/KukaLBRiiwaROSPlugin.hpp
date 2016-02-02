@@ -53,7 +53,7 @@ namespace grl {
     class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin> {
     public:
 
-      static const std::size_t KUKA_LBR_DOF = 7;
+      const std::size_t KUKA_LBR_DOF = 7;
 
       enum ParamIndex {
         Joint1Name, 
