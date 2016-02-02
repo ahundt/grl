@@ -18,19 +18,22 @@
 #include <trajectory_msgs/JointTrajectory.h>
 #include <sensor_msgs/JointState.h>
 
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/locks.hpp>
+
 /// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
 template<typename T>
 inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
 {
-    out << "[";
-    size_t last = v.size() - 1;
-    for(size_t i = 0; i < v.size(); ++i) {
-        out << v[i];
-        if (i != last) 
-            out << ", ";
-    }
-    out << "]";
-    return out;
+  out << "[";
+  size_t last = v.size() - 1;
+  for(size_t i = 0; i < v.size(); ++i) {
+    out << v[i];
+    if (i != last) 
+      out << ", ";
+  }
+  out << "]";
+  return out;
 }
 
 
@@ -235,6 +238,7 @@ namespace grl {
 
         if(kukaFRIThreadSeparatorP)
         {
+
           boost::system::error_code send_ec,recv_ec;
           std::size_t send_bytes, recv_bytes;
           BOOST_VERIFY(kukaFRIThreadSeparatorP);
@@ -248,16 +252,21 @@ namespace grl {
             // if we didn't actually get anything don't try and update
             return;
           }
-          // We have the real kuka state read from the device now
-          // update real joint angle data
-          current_js_.position.clear();
-          grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
 
-          current_js_.effort.clear();
-          grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
+          {
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
 
-          current_js_.velocity.clear();
-          grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+            // We have the real kuka state read from the device now
+            // update real joint angle data
+            current_js_.position.clear();
+            grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
+
+            current_js_.effort.clear();
+            grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
+
+            current_js_.velocity.clear();
+            grl::robot::arm::copy(updatedState->get(), std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+          }
 
 #if BOOST_VERSION < 105900
           // here we expect the simulation to be slightly ahead of the arm
@@ -290,6 +299,24 @@ namespace grl {
        * this code needs to execute the joint trajectory on the robot
        */
       void jt_callback(const trajectory_msgs::JointTrajectoryConstPtr &msg) {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+
+
+        for(auto &pt: msg->points) {
+          // positions velocities ac
+          if (pt.positions.size() != KUKA_LBR_DOF) {
+            BOOST_THROW_EXCEPTION(std::runtime_error("Malformed joint trajectory request! Wrong number of joints."));
+          }
+
+          // handle
+          //simJointPosition
+          //simJointVelocity
+          //simJointForce
+          
+
+          ///@todo: execute the rest of the trajectory
+          break;
+        }
 
       }
 
@@ -333,7 +360,10 @@ namespace grl {
 
           /// @todo should we use simJointTargetPosition here?
           joints.clear();
-          boost::copy(simJointPosition, std::back_inserter(joints));
+          {
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+            boost::copy(simJointPosition, std::back_inserter(joints));
+          }
           auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
 
 #if BOOST_VERSION < 105900
@@ -343,13 +373,16 @@ namespace grl {
           /// @note we don't have a velocity right now, sending empty!
           joints.clear();
           //boost::copy(simJointVelocity, std::back_inserter(joints));
-          auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
-          joints.clear();
-          boost::copy(simJointForce, std::back_inserter(joints));
-          auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
-          auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
-          grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
-          kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          {
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+            auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
+            joints.clear();
+            boost::copy(simJointForce, std::back_inserter(joints));
+            auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
+            auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
+            grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
+            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          }
 
         }
         else if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
@@ -360,10 +393,11 @@ namespace grl {
           if(!friData_) friData_ = std::make_shared<KUKA::FRI::ClientData>(KUKA_LBR_DOF);
 
           // Set the FRI to the simulated joint positions
-          grl::robot::arm::set(friData_->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-          grl::robot::arm::set(friData_->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
-
-
+          {
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+            grl::robot::arm::set(friData_->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+            grl::robot::arm::set(friData_->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+          }
 
           boost::system::error_code send_ec,recv_ec;
           std::size_t send_bytes, recv_bytes;
@@ -378,7 +412,6 @@ namespace grl {
             /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
             return;
           }
-
 
           // We have the real kuka state read from the device now
           // update real joint angle data
@@ -399,8 +432,11 @@ namespace grl {
           // create the command for the FRI
           auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
           // Set the FRI to the simulated joint positions
-          grl::robot::arm::set(*commandP, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-          grl::robot::arm::set(*commandP, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+          {
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+            grl::robot::arm::set(*commandP, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+            grl::robot::arm::set(*commandP, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+          }
           // send the command
           this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
         } else {
@@ -421,17 +457,20 @@ namespace grl {
       std::shared_ptr<KukaLBRiiwaROSPlugin> KukaLBRiiwaROSPluginP_;
 
       /// @todo replace all these simJoint elements with simple KukaLBRiiwaROSPlugin::State
-      std::vector<float_t> simJointPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-      std::vector<float_t> simJointForce = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-      std::vector<float_t> simJointTargetPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+      std::vector<double> simJointPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+      std::vector<double> simJointVelocity = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+      std::vector<double> simJointForce = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+      std::vector<double> simJointTargetPosition = {0.0,0.0,0.0,0.0,0.0,0.0,0.0};
       KukaLBRiiwaROSPlugin::TransformationMatrices simJointTransformationMatrix;
 
       /// @note loss of precision! kuka sends double values, if you write custom code don't use these float values. Vrep uses floats internally which is why they are used here.
-      std::vector<float_t> realJointPosition        = { 0, 0, 0, 0, 0, 0, 0 };
+      std::vector<double> realJointPosition        = { 0, 0, 0, 0, 0, 0, 0 };
       // does not exist
-      std::vector<float_t> realJointForce           = { 0, 0, 0, 0, 0, 0, 0 };
+      std::vector<double> realJointForce           = { 0, 0, 0, 0, 0, 0, 0 };
 
     private:
+
+      boost::mutex jt_mutex;
 
       Params params_;
       std::shared_ptr<KUKA::FRI::ClientData> friData_;

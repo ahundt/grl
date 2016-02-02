@@ -35,8 +35,8 @@ add_subdirectory(ros)
 add_subdirectory(v_rep)
 add_subdirectory(v_repExtUniversalRobotsPlugin)
 add_subdirectory(v_repExtKukaLBRiiwaPlugin)
-add_subdirectory(v_repExtHandEyeCalibration)
-add_subdirectory(v_repExtGrlInverseKinematics)
+#add_subdirectory(v_repExtHandEyeCalibration)
+#add_subdirectory(v_repExtGrlInverseKinematics)
 
 # ============================================================================
 # executable target(s)
