@@ -53,8 +53,7 @@
 # )
 #
 # # ...
-# @endcode
-#
+# @endcomsg->#
 # @sa http://www.cmake.org/cmake/help/cmake-2-8-docs.html#command:create_test_sourcelist
 #
 # The built test executables can be found in @c TESTING_RUNTIME_DIR.

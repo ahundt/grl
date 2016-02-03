@@ -123,4 +123,12 @@ basis_project (
     CAMODOCAL          # used for hand eye calibration plugin https://github.com/hengli/camodocal
     PCL                # point cloud library, for vision components >=1.7 recommended https://github.com/PointCloudLibrary/pcl
     freenect2          # kinect v2 drivers, for vision components https://github.com/OpenKinect/libfreenect2
+    ROS
+  TEST_DEPENDS
+    #<test-dependency>
+  OPTIONAL_TEST_DEPENDS
+    #<optional-test-dependency>
+  INCLUDE_DIRS
+    include
+    include/thirdparty/vrep/include
 )
