@@ -97,7 +97,7 @@ Copy the folders in
 
 .. code-block:: bash
 
-    ${ROBONE_DIR}/src/java/grl/
+    ${GRL_DIR}/src/java/grl/
  
 into the directory where your Sunrise Project is located.
 
