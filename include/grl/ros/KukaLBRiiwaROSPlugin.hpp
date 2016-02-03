@@ -13,9 +13,11 @@
 #include "grl/KukaFriClientData.hpp"
 #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
+#include "grl/flatbuffer/ArmControlState_generated.h"
 
 #include <ros/ros.h>
 #include <trajectory_msgs/JointTrajectory.h>
+#include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <sensor_msgs/JointState.h>
 
 #include <boost/thread/mutex.hpp>
@@ -35,7 +37,6 @@ inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream
   out << "]";
   return out;
 }
-
 
 namespace grl {
   namespace ros {
@@ -165,6 +166,7 @@ namespace grl {
         ::ros::NodeHandle nh;
         js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_state",100);
         jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_callback, this);
+        jt_pt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectoryPoint>("joint_traj_pt_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_pt_callback, this);
         //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
       }
 
@@ -274,10 +276,9 @@ namespace grl {
           BOOST_LOG_TRIVIAL(trace) << "Real joint angles from FRI: " << realJointPosition << "\n";
 #endif
 
-
           js_pub_.publish(current_js_);
 
-        } else if (kukaFRIClientDataDriverP_)
+        } else if (true || kukaFRIClientDataDriverP_)
         {
           /// @todo fix this hack, real data hasn't actually been received because send & receive happen simultaneously
           m_haveReceivedRealData = true;
@@ -310,14 +311,45 @@ namespace grl {
 
           // handle
           //simJointPosition
+          simJointPosition.clear();
+          boost::copy(pt.positions,std::back_inserter(simJointPosition));
           //simJointVelocity
+          simJointVelocity.clear();
+          boost::copy(pt.velocities,std::back_inserter(simJointVelocity));
           //simJointForce
-          
+          simJointForce.clear();
+          boost::copy(pt.effort,std::back_inserter(simJointForce));
 
           ///@todo: execute the rest of the trajectory
           break;
         }
 
+      }
+      /**
+       * ROS joint trajectory callback
+       * this code needs to execute the joint trajectory on the robot
+       */
+      void jt_pt_callback(const trajectory_msgs::JointTrajectoryPointConstPtr &msg) {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+
+
+          // positions velocities ac
+          if (msg->positions.size() != KUKA_LBR_DOF) {
+            BOOST_THROW_EXCEPTION(std::runtime_error("Malformed joint trajectory request! Wrong number of joints."));
+          }
+
+          // handle
+          //simJointPosition
+          simJointPosition.clear();
+          boost::copy(msg->positions,std::back_inserter(simJointPosition));
+          //simJointVelocity
+          simJointVelocity.clear();
+          boost::copy(msg->velocities,std::back_inserter(simJointVelocity));
+          //simJointForce
+          simJointForce.clear();
+          boost::copy(msg->effort,std::back_inserter(simJointForce));
+
+          ///@todo: execute the rest of the trajectory
       }
 
       /**
@@ -348,7 +380,7 @@ namespace grl {
 
         /// @todo make this handled by template driver implementations/extensions
 
-        if(kukaJavaDriverP && boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
+        if(false && kukaJavaDriverP && boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
         {
           /////////////////////////////////////////
           // Client sends to server asynchronously!
@@ -375,6 +407,7 @@ namespace grl {
           //boost::copy(simJointVelocity, std::back_inserter(joints));
           {
             boost::lock_guard<boost::mutex> lock(jt_mutex);
+            boost::copy(simJointVelocity, std::back_inserter(joints));
             auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
             joints.clear();
             boost::copy(simJointForce, std::back_inserter(joints));
@@ -385,7 +418,8 @@ namespace grl {
           }
 
         }
-        else if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+        //else if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+        if(true || boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
         {
           // note: this one sends *and* receives the joint data!
           BOOST_VERIFY(kukaFRIClientDataDriverP_.get()!=nullptr);
@@ -409,6 +443,7 @@ namespace grl {
           }
           else
           {
+            std::cerr << "Issue getting new data!\n";
             /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
             return;
           }
@@ -422,7 +457,7 @@ namespace grl {
           grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
 
           current_js_.velocity.clear();
-          grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+          //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
 
           js_pub_.publish(current_js_);
         }
@@ -444,7 +479,6 @@ namespace grl {
         }
 
       }
-
 
       volatile bool m_haveReceivedRealData = false;
 
@@ -476,6 +510,7 @@ namespace grl {
       std::shared_ptr<KUKA::FRI::ClientData> friData_;
 
       ::ros::Subscriber jt_sub_; // subscribes to joint state trajectories and executes them 
+      ::ros::Subscriber jt_pt_sub_; // subscribes to joint state trajectories and executes them 
       ::ros::Publisher js_pub_; // publish true joint states from the KUKA
 
       sensor_msgs::JointState current_js_;

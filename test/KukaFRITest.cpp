@@ -4,6 +4,8 @@
 #include <ostream>
 #include <iostream>
 #include <memory>
+#include <thread>
+#include <mutex>
 
 #include "grl/KukaFRIThreadSeparator.hpp"
 #include "grl/KukaFRI.hpp"

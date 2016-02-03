@@ -141,6 +141,8 @@ int main(int argc, char* argv[])
         std::make_tuple(localhost,localport,remotehost,remoteport,grl::robot::arm::KukaFRIClientDataDriver::run_automatically)
     );
 
+  unsigned int num_missed = 0;
+
 	for (std::size_t i = 0;;++i) {
     
         /// use the interpolated joint position from the previous update as the base
@@ -164,8 +166,16 @@ int main(int argc, char* argv[])
         // but we can't process the new data so try updating again immediately.
         if(!haveNewData)
         {
-           std::this_thread::sleep_for(std::chrono::milliseconds(1));
-           continue;
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          ++num_missed;
+          if(num_missed>10000) {
+            std::cout << "No new data for " << num_missed << " milliseconds.\n";
+            break;
+          } else {
+            continue;
+          }
+        } else {
+          num_missed = 0;
         }
         
         /// use the interpolated joint position from the previous update as the base
@@ -203,8 +213,8 @@ int main(int argc, char* argv[])
         
         // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
         /// @todo should we take the current joint state into consideration?
-        
-		//BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << "\n";
+        BOOST_LOG_TRIVIAL(trace) << /*"position: " << ipoJointPos <<*/ " sessionState: " << friData->lastState << "\n";
+		    //BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << "\n";
 	}
   }
   catch (std::exception& e)
