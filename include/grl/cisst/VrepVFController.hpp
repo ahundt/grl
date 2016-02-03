@@ -272,6 +272,7 @@ public:
           auto ret = simGetJointPosition(jointHandles_[i],&currentAngle);
           BOOST_VERIFY(ret!=-1);
           float futureAngle = currentAngle + jointAngles_dt[i];
+          //simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
           //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
           //simSetJointTargetPosition(jointHandles_[i],futureAngle);
           simSetJointPosition(jointHandles_[i],futureAngle);
