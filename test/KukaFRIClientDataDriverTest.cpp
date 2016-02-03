@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
         
         // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
         /// @todo should we take the current joint state into consideration?
-        
+        BOOST_LOG_TRIVIAL(trace) << /*"position: " << ipoJointPos <<*/ " sessionState: " << friData->lastState << "\n";
 		//BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << "\n";
 	}
   }
