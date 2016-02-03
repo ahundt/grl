@@ -10,7 +10,6 @@
 # @brief Build configuration of software.
 ##############################################################################
 
-
 # ============================================================================
 # library target(s)
 # ============================================================================
@@ -29,14 +28,6 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
-
-add_subdirectory(ros)
-add_subdirectory(v_rep)
-add_subdirectory(v_repExtUniversalRobotsPlugin)
-add_subdirectory(v_repExtKukaLBRiiwaPlugin)
-add_subdirectory(v_repExtHandEyeCalibration)
-add_subdirectory(v_repExtGrlInverseKinematics)
 
 # ============================================================================
 # executable target(s)
@@ -49,3 +40,18 @@ add_subdirectory(v_repExtGrlInverseKinematics)
 # MATLAB, and Bash.
 
 
+if(ROS_FOUND)
+  basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${ROS_INCLUDE_DIR})
+  basis_add_executable(grl_kuka_ros_driver ros_bridge.cpp)
+  basis_add_dependencies(grl_kuka_ros_driver grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
+  basis_target_link_libraries(grl_kuka_ros_driver
+    ${Boost_LIBRARIES}
+    ${Boost_LIBRARIES}
+    ${Boost_LOG_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    ${ZeroMQ_LIBRARIES}
+    ${FRI-Client-SDK_Cpp_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Nanopb_LIBRARIES}
+    ${ROS_LIBRARIES})
+endif(ROS_FOUND)
