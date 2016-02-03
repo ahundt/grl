@@ -121,7 +121,7 @@ namespace grl {
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
-            "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+            "FRI"                    , // KukaCommandMode (options are FRI, JAVA)
             "IK_Group1_iiwa"            // IKGroupName
             );
       }
@@ -196,7 +196,7 @@ namespace grl {
                       )
                   ));
         }
-        else if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+        else if( true || boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
         {
           kukaFRIClientDataDriverP_.reset(
               new grl::robot::arm::KukaFRIClientDataDriver(
@@ -427,10 +427,25 @@ namespace grl {
           if(!friData_) friData_ = std::make_shared<KUKA::FRI::ClientData>(KUKA_LBR_DOF);
 
           // Set the FRI to the simulated joint positions
-          {
+          //////////////////////
+          /// DISABLED, CURRENTLY RECEIVES DATA ONLY, NO COMMANDS
+          //////////////////////
+          if(false && this->m_haveReceivedRealData){
             boost::lock_guard<boost::mutex> lock(jt_mutex);
-            grl::robot::arm::set(friData_->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-            grl::robot::arm::set(friData_->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+            switch (friData_->monitoringMsg.robotInfo.controlMode) {
+              case ControlMode_POSITION_CONTROLMODE:
+                grl::robot::arm::set(friData_->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+                break;
+              case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
+                grl::robot::arm::set(friData_->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+                break;
+              case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
+                // not yet supported
+                break;
+
+              default:
+                break;
+            }
           }
 
           boost::system::error_code send_ec,recv_ec;
@@ -439,6 +454,15 @@ namespace grl {
 
           if(haveNewData)
           {
+            if(false && !this->m_haveReceivedRealData){
+                boost::lock_guard<boost::mutex> lock(jt_mutex);
+              // initialize arm commands to current arm position
+              simJointPosition.clear();
+              grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(simJointPosition), grl::revolute_joint_angle_open_chain_command_tag());
+              simJointForce.clear();
+              grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(simJointForce)   , grl::revolute_joint_torque_open_chain_command_tag());
+            }
+          
             this->m_haveReceivedRealData = true;
           }
           else

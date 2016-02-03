@@ -42,7 +42,7 @@
 
 if(ROS_FOUND)
   basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${ROS_INCLUDE_DIR})
-  basis_add_executable(grl_kuka_ros_driver ros_bridge.cpp)
+  basis_add_executable(grl_kuka_ros_driver grl_kuka_ros_driver.cpp)
   basis_add_dependencies(grl_kuka_ros_driver grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
   basis_target_link_libraries(grl_kuka_ros_driver
     ${Boost_LIBRARIES}
