@@ -53,8 +53,7 @@
 # )
 #
 # # ...
-# @endcode
-#
+# @endcomsg->#
 # @sa http://www.cmake.org/cmake/help/cmake-2-8-docs.html#command:create_test_sourcelist
 #
 # The built test executables can be found in @c TESTING_RUNTIME_DIR.
@@ -91,10 +90,13 @@ basis_target_link_libraries(AzmqTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} $
 basis_add_executable(asioSocketTest.cpp)
 basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
-basis_find_package( OpenCV REQUIRED )
+basis_find_package( OpenCV )
+
+if(${OpenCV_FOUND})
 basis_include_directories( ${OpenCV_INCLUDE_DIRS})
 basis_add_executable( ppf_load_match ppf_load_match.cpp)
 basis_target_link_libraries( ppf_load_match ${OpenCV_LIBS} )
+endif(${OpenCV_FOUND})
 
 # For KUKA IIWA FRI Libraries
 if(FRI-Client-SDK_Cpp_FOUND)
