@@ -1,4 +1,4 @@
-package friCommunication;
+package grl.friCommunication;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
