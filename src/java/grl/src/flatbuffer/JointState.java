@@ -1,13 +1,14 @@
 // automatically generated, do not modify
 
-package flatbuffers;
+package grl.flatbuffer;
 
 import java.nio.*;
 import java.lang.*;
 import java.util.*;
 import com.google.flatbuffers.*;
 
-public class JointState extends Table {
+@SuppressWarnings("unused")
+public final class JointState extends Table {
   public static JointState getRootAsJointState(ByteBuffer _bb) { return getRootAsJointState(_bb, new JointState()); }
   public static JointState getRootAsJointState(ByteBuffer _bb, JointState obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public JointState __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
@@ -23,13 +24,13 @@ public class JointState extends Table {
   public ByteBuffer accelerationAsByteBuffer() { return __vector_as_bytebuffer(8, 8); }
 
   public static int createJointState(FlatBufferBuilder builder,
-      int position,
-      int velocity,
-      int acceleration) {
+      int positionOffset,
+      int velocityOffset,
+      int accelerationOffset) {
     builder.startObject(3);
-    JointState.addAcceleration(builder, acceleration);
-    JointState.addVelocity(builder, velocity);
-    JointState.addPosition(builder, position);
+    JointState.addAcceleration(builder, accelerationOffset);
+    JointState.addVelocity(builder, velocityOffset);
+    JointState.addPosition(builder, positionOffset);
     return JointState.endJointState(builder);
   }
 
