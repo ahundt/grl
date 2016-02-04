@@ -67,7 +67,7 @@ if(OpenCV_FOUND)
 endif()
 
 # list flatbuffer headers
-set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs JointState.fbs ArmControlState.fbs)
+set(RFB Geometry.fbs VrepControlPoint.fbs VrepPath.fbs JointState.fbs ArmControlState.fbs ArmConfiguration.fbs ObjectConfiguration.fbs)
 # directory to include flatbuffers
 set(GRL_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include)
 # Generate flatbuffer message C++ headers
