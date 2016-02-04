@@ -1,3 +1,5 @@
+#ifndef _GRL_TAGS_HPP
+#define _GRL_TAGS_HPP
 
 #include <boost/geometry/core/tags.hpp>
 #include <boost/units/physical_dimensions/torque.hpp>
@@ -49,3 +51,5 @@ namespace grl {
 	struct cartesian_wrench_command_tag : boost::geometry::single_tag, state_tag, command_tag, boost::geometry::cartesian_tag {};
 	/// @todo add single_tag_of implementation for all joint types @see boost/geometry/core/tags.hpp for reference.
 }
+
+#endif
