@@ -232,7 +232,9 @@ namespace grl { namespace robot {
        * \brief Set the joint positions for the current interpolation step.
        * 
        * This method is only effective when the client is in a commanding state.
+       * @param state Object which stores the current state of the robot, including the command to send next
        * @param range Array with the new joint positions (in radians)
+       * @param tag identifier object indicating that revolute joint angle commands should be modified
        */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
@@ -249,7 +251,9 @@ namespace grl { namespace robot {
        * The ControlMode of the robot has to be joint impedance control mode. The
        * Client Command Mode has to be torque.
        * 
+       * @param state Object which stores the current state of the robot, including the command to send next
        * @param torques Array with the applied torque values (in Nm)
+       * @param tag identifier object indicating that the torqe value command should be modified
        */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
@@ -277,6 +281,7 @@ namespace grl { namespace robot {
        * 
        * @param FRICommandMessage object storing the command data that will be sent to the physical device
        * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
+       * @param tag identifier object indicating that the wrench value command should be modified
        *
        * @todo perhaps support some specific more useful data layouts
        * @note copies only the elements that will fit
