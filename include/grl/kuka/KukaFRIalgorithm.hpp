@@ -21,8 +21,8 @@
 #include "friCommandMessageEncoder.h"
 #include "friMonitoringMessageDecoder.h"
 #include "grl/tags.hpp"
-#include "grl/Kuka/KukaNanopb.hpp"
-#include "grl/Kuka/Kuka.hpp"
+#include "grl/kuka/KukaNanopb.hpp"
+#include "grl/kuka/Kuka.hpp"
 
 namespace grl { namespace robot { 
 	    
