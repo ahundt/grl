@@ -1,19 +1,33 @@
-#ifndef _KUKA_FRI_CLIENT_DATA
-#define _KUKA_FRI_CLIENT_DATA
+#ifndef _KUKA_FRI_DRIVER
+#define _KUKA_FRI_DRIVER
+
+#include <tuple>
+#include <memory>
+#include <thread>
+#include <boost/asio.hpp>
+#include <boost/circular_buffer.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/config.hpp>
 
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
-#include <boost/config.hpp>
-#include <boost/thread.hpp>
 
+
+#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+#include <boost/thread.hpp>
+#endif
+
+// friClientData is found in the kuka connectivity FRI cpp zip file
+#include "friClientIf.h"
 #include "friClientData.h"
-#include "grl/KukaFRI.hpp"
-#include "grl/KukaFRIThreadSeparator.hpp"
-#include <boost/log/trivial.hpp>
+#include "grl/Kuka/KukaFRIalgorithm.hpp"
+#include "grl/exception.hpp"
+
+#include "Kuka.hpp"
 
 struct KukaState;
 
-/// @todo move back to KukaFRIClientDataTest.cpp
+/// @todo move somewhere that won't cause conflicts
 template<typename T,size_t N>
 std::ostream& operator<< (std::ostream& out, const boost::container::static_vector<T,N>& v) {
     out << "[";
@@ -27,24 +41,7 @@ std::ostream& operator<< (std::ostream& out, const boost::container::static_vect
     return out;
 }
 
-/// @todo move back to KukaFRIClientDataTest.cpp
-template<typename T,std::size_t U>
-inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  boost::container::static_vector<T,U>& v)
-{
-    out << "[";
-    size_t last = v.size() - 1;
-    for(size_t i = 0; i < v.size(); ++i) {
-        out << v[i];
-        if (i != last) 
-            out << ", ";
-    }
-    out << "]";
-    return out;
-}
-
-
 namespace grl { namespace robot { namespace arm {
-
 
 
     // Decode message buffer (using nanopb decoder)
@@ -123,38 +120,61 @@ void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& f
 }
 
 
+/// @brief Internal class, defines some default status variables 
+class KukaFRI {
+    
+public:
 
-/// @brief don't use this
-/// @todo replace with something generic
-/// @deprecated this is an old implemenation that will be removed in the future
-struct KukaState {
-	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
-    typedef boost::container::static_vector<double,6> cartesian_state;
+    enum ParamIndex {
+        localhost,  // 192.170.10.100
+        localport,  // 30200
+        remotehost, // 192.170.10.2
+        remoteport,  // 30200
+        is_running_automatically // true by default, this means that an internal thread will be created to run the driver.
+    };
     
-	joint_state     position;
-	joint_state     torque;
-	joint_state     commandedPosition;
-    cartesian_state commandedCartesianWrenchFeedForward;
-	joint_state     commandedTorque;
+    enum ThreadingRunMode {
+      run_manually = 0,
+      run_automatically = 1
+    };
     
-	joint_state     ipoJointPosition;
-    joint_state     ipoJointPositionOffsets;
-	KUKA::FRI::ESessionState      sessionState;
-	KUKA::FRI::EConnectionQuality connectionQuality;
-	KUKA::FRI::ESafetyState       safetyState;
-	KUKA::FRI::EOperationMode     operationMode;
-	KUKA::FRI::EDriveState        driveState;
-	
-	std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+    typedef std::tuple<std::string,std::string,std::string,std::string,ThreadingRunMode> Params;
     
-    void clear(){
-      position.clear();
-      torque.clear();
-      commandedPosition.clear();
-      commandedTorque.clear();
-      ipoJointPosition.clear();
+    
+    static const Params defaultParams(){
+        return std::make_tuple(std::string("192.170.10.100"),std::string("30200"),std::string("192.170.10.2"),std::string("30200"),run_automatically);
     }
+    
+    
+    /// Advanced functionality, do not use without a great reason
+    template<typename T>
+    static boost::asio::ip::udp::socket connect(T& params, boost::asio::io_service& io_service_,boost::asio::ip::udp::endpoint& sender_endpoint){
+              std::string localhost(std::get<localhost>(params));
+              std::string lp(std::get<localport>(params));
+              short localport = boost::lexical_cast<short>(lp);
+              std::string remotehost(std::get<remotehost>(params));
+              std::string rp(std::get<remoteport>(params));
+              short remoteport = boost::lexical_cast<short>(rp);
+              std::cout << "using: "<< " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
+        
+            boost::asio::ip::udp::socket s(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(localhost), localport));
+
+            boost::asio::ip::udp::resolver resolver(io_service_);
+            sender_endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), remotehost, rp});
+            s.connect(sender_endpoint);
+        
+            return std::move(s);
+    }
+    
+    static void add_details_to_connection_error(boost::exception& e, Params& params){
+                e << errmsg_info("KukaFRIThreadSeparator: Unable to connect to Kuka FRI Koni UDP device using boost::asio::udp::socket configured with localhost:localport @ " +
+                                   std::get<localhost>(params) + ":" + std::get<localport>(params) + " and remotehost:remoteport @ " +
+                                   std::get<remotehost>(params) + ":" + std::get<remoteport>(params) + "\n");
+    }
+
 };
+
+
 
 
 
@@ -217,36 +237,15 @@ std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
 }
 
 
-/// @deprecated this is an old implemenation that will be removed in the future
-/// @todo implement sending state
+/// @brief Simple low level driver to communicate over the Kuka iiwa FRI interface using KUKA::FRI::ClientData status objects
 ///
-/// @see void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, boost::system::error_code& receive_ec,std::size_t& receive_bytes_transferred, boost::system::error_code& send_ec, std::size_t& send_bytes_transferred, boost::asio::ip::udp::endpoint sender_endpoint = boost::asio::ip::udp::endpoint())
-void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, KukaState& state, boost::asio::ip::udp::endpoint sender_endpoint = boost::asio::ip::udp::endpoint()){
-    
-    boost::system::error_code receive_ec;
-	std::size_t buf_size = socket.receive_from(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),sender_endpoint);
-	decode(friData,buf_size);
-    KukaState::joint_state ipoJointCommand;
-    
-    // copy state over
-	copy(friData.monitoringMsg,state);
-    
-    // todo: figure out if there is a better place/time to do this
-    //state.ipoJointPosition.clear();
-
-    friData.lastSendCounter++;
-    // Check whether to send a response
-    if (friData.lastSendCounter >= friData.monitoringMsg.connectionInfo.receiveMultiplier){
-    	buf_size = encode(friData,state);
-		socket.send(boost::asio::buffer(friData.sendBuffer,buf_size));
-    }
-}
-
-/// @brief Simple driver to communicate over the Kuka iiwa FRI interface
-///
-/// how to deal with the discrepancy between the latest state received and the monitor state to be sent?
-/// since the one to be sent is likely outdated we need to receive, apply some changes, then send...
-/// the current full swap of send and received data means the commanded actions are based on outdated info
+/// One important aspect of this design is the is_running_automatically flag. If you are unsure,
+/// the suggested default is run_automatically (true/enabled). When it is enabled,
+/// the driver will create a thread internally and run the event loop (io_service) itself.
+/// If run manually, you are expected to call io_service.run() on the io_service you provide,
+/// or on the run() member function. When running manually you are also expected to call
+/// async_getLatestState(handler) frequently enought that the 5ms response requirement of the KUKA
+/// FRI interface is met.
 class KukaFRIClientDataDriver : public std::enable_shared_from_this<KukaFRIClientDataDriver>, public KukaFRI {
     
 public:
@@ -444,14 +443,10 @@ private:
                 grl::robot::arm::update_state  (
                                                 socket
                                                 ,*std::get<latest_receive_monitor_state>(nextState)
-#if 0 // use old deprecated api
-                                                ,kukastate
-#else // use new api
                                                 ,std::get<latest_receive_ec>(nextState)
                                                 ,std::get<latest_receive_bytes_transferred>(nextState)
                                                 ,std::get<latest_send_ec>(nextState)
                                                 ,std::get<latest_send_bytes_transferred>(nextState)
-#endif
                                                );
             
                 /// @todo use atomics to eliminate the global mutex lock for this object
@@ -649,6 +644,259 @@ private:
     boost::mutex ptrMutex_;
 };
 
+
+
+
+    enum RobotMode {
+      MODE_TEACH, MODE_SERVO, MODE_IDLE
+    };
+
+
+/// @brief Primary Kuka FRI driver, only talks over realtime network FRI KONI ethernet port
+///
+/// @todo support generic read/write
+/// @todo ensure commands stay within machine limits to avoid lockup
+/// @todo reset and resume if lockup occurs whenever possible
+class KukaFRIdriver : public std::enable_shared_from_this<KukaFRIdriver>, public KukaFRI {
+    
+public:
+
+    using KukaFRI::ParamIndex;
+    using KukaFRI::ThreadingRunMode;
+    using KukaFRI::Params;
+    using KukaFRI::defaultParams;
+
+
+      KukaFRIdriver(Params params = defaultParams())
+        : params_(params)
+      {}
+    
+//      KukaFRIdriver(boost::asio::io_service& device_driver_io_service__,Params params = defaultParams())
+//        :
+//        device_driver_io_service(device_driver_io_service__),
+//        params_(params)
+//      {}
+    
+
+      void construct(){ construct(params_);}
+
+      /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
+      /// @warning getting the ik group is optional, so it does not throw an exception
+      void construct(Params params) {
+
+        params_ = params;
+        // keep driver threads from exiting immediately after creation, because they have work to do!
+        device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
+        
+        
+
+
+          kukaFRIClientDataDriverP_.reset(
+              new grl::robot::arm::KukaFRIClientDataDriver(
+                  device_driver_io_service,
+                  std::make_tuple(
+                      std::string(std::get<localhost >        (params)),
+                      std::string(std::get<localport >        (params)),
+                      std::string(std::get<remotehost>        (params)),
+                      std::string(std::get<remoteport>        (params)),
+                      grl::robot::arm::KukaFRIClientDataDriver::run_automatically
+                      )
+                  )
+
+              );
+      }
+
+
+
+      const Params & getParams(){
+        return params_;
+      }
+
+
+      ~KukaFRIdriver(){
+        device_driver_workP_.reset();
+
+        if(driver_threadP){
+          device_driver_io_service.stop();
+          driver_threadP->join();
+        }
+      }
+
+
+     /**
+      * spin once 
+      *
+      */
+     bool run_one(){
+          // note: this one sends *and* receives the joint data!
+          BOOST_VERIFY(kukaFRIClientDataDriverP_.get()!=nullptr);
+          /// @todo use runtime calculation of NUM_JOINTS instead of constant
+          if(!friData_) friData_ = std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF);
+         
+          bool haveNewData = false;
+
+          static const std::size_t minimumConsecutiveSuccessesBeforeSendingCommands = 100;
+
+          // Set the FRI to the simulated joint positions
+          if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands){
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+            switch (friData_->monitoringMsg.robotInfo.controlMode) {
+              case ControlMode_POSITION_CONTROLMODE:
+                grl::robot::arm::set(friData_->commandMsg, armState.commandedPosition, grl::revolute_joint_angle_open_chain_command_tag());
+                break;
+              case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
+                grl::robot::arm::set(friData_->commandMsg, armState.commandedTorque, grl::revolute_joint_torque_open_chain_command_tag());
+                break;
+              case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
+                // not yet supported
+                break;
+
+              default:
+                break;
+            }
+          }
+
+          boost::system::error_code send_ec,recv_ec;
+          std::size_t send_bytes, recv_bytes;
+          // sync with device over network
+          haveNewData = !kukaFRIClientDataDriverP_->update_state(friData_,recv_ec,recv_bytes,send_ec,send_bytes);
+          m_attemptedCommunicationCount++;
+
+          if(haveNewData)
+          {
+              // if there were problems sending commands, start by sending the current position
+            if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands-1)
+            {
+              boost::lock_guard<boost::mutex> lock(jt_mutex);
+              // initialize arm commands to current arm position
+              armState.commandedPosition.clear();
+              armState.commandedTorque.clear();
+              grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.commandedPosition), grl::revolute_joint_angle_open_chain_command_tag());
+              grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.commandedTorque)   , grl::revolute_joint_torque_open_chain_command_tag());
+            }
+            
+            m_attemptedCommunicationConsecutiveSuccessCount++;
+            this->m_attemptedCommunicationConsecutiveFailureCount = 0;
+            this->m_haveReceivedRealDataCount++;
+          
+
+            // We have the real kuka state read from the device now
+            // update real joint angle data
+            armState.position.clear();
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.position), grl::revolute_joint_angle_open_chain_state_tag());
+
+            armState.torque.clear();
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.torque), grl::revolute_joint_torque_open_chain_state_tag());
+
+          }
+          else
+          {
+            m_attemptedCommunicationConsecutiveFailureCount++;
+            std::cerr << "No new FRI data available, is an FRI application running on the Kuka arm? \n Total sucessful transfers: " << this->m_haveReceivedRealDataCount << "\n Total attempts: "<< m_attemptedCommunicationCount <<"\n Consecutive Failures: "<< m_attemptedCommunicationConsecutiveFailureCount<<"\n Consecutive Successes: "<<
+            m_attemptedCommunicationConsecutiveSuccessCount <<"\n";
+            m_attemptedCommunicationConsecutiveSuccessCount=0;
+            /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
+          }
+          
+          return haveNewData;
+         
+        }
+    
+        
+ 
+     /**
+      * \brief Set the joint positions for the current interpolation step.
+      * 
+      * This method is only effective when the client is in a commanding state.
+      * @param state Object which stores the current state of the robot, including the command to send next
+      * @param range Array with the new joint positions (in radians)
+      * @param tag identifier object indicating that revolute joint angle commands should be modified
+      */
+   template<typename Range>
+   void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       armState.commandedPosition.clear();
+       boost::copy(range, std::back_inserter(armState.commandedPosition));
+    }
+  
+     /**
+      * \brief Set the applied joint torques for the current interpolation step.
+      * 
+      * This method is only effective when the client is in a commanding state.
+      * The ControlMode of the robot has to be joint impedance control mode. The
+      * Client Command Mode has to be torque.
+      * 
+      * @param state Object which stores the current state of the robot, including the command to send next
+      * @param torques Array with the applied torque values (in Nm)
+      * @param tag identifier object indicating that the torqe value command should be modified
+      */
+   template<typename Range>
+   void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+      boost::copy(range, armState.commandedTorque);
+    }
+ 
+   
+     /**
+      * \brief Set the applied wrench vector of the current interpolation step.
+      * 
+      * The wrench vector consists of:
+      * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
+      * 
+      * F ... forces (in N) applied along the Cartesian axes of the 
+      * currently used motion center.
+      * tau ... torques (in Nm) applied along the orientation angles 
+      * (Euler angles A, B, C) of the currently used motion center.
+      *  
+      * This method is only effective when the client is in a commanding state.
+      * The ControlMode of the robot has to be Cartesian impedance control mode. The
+      * Client Command Mode has to be wrench.
+      * 
+      * @param state object storing the command data that will be sent to the physical device
+      * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
+      * @param tag identifier object indicating that the wrench value command should be modified
+      *
+      * @todo perhaps support some specific more useful data layouts
+      */
+   template<typename Range>
+   void set(Range&& range, grl::cartesian_wrench_command_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+      std::copy(range,armState.commandedCartesianWrenchFeedForward);
+    }
+    
+   /// @todo should this exist? is it written correctly?
+   void get(KukaState & state)
+   {
+     boost::lock_guard<boost::mutex> lock(jt_mutex);
+     state = armState;
+   }
+
+      volatile std::size_t m_haveReceivedRealDataCount = 0;
+      volatile std::size_t m_attemptedCommunicationCount = 0;
+      volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
+      volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
+
+      boost::asio::io_service device_driver_io_service;
+      std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
+      std::unique_ptr<std::thread> driver_threadP;
+      std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver> kukaFRIClientDataDriverP_;
+
+    private:
+
+      KukaState armState;
+      boost::mutex jt_mutex;
+
+      Params params_;
+      std::shared_ptr<KUKA::FRI::ClientData> friData_;
+
+    };
+    
+ 
+
+  template<typename Range,typename T>
+  static inline void set(KukaFRIdriver & state, Range&& range, T t) {
+      state.set(range,t);
+   }
 }}} // namespace grl::robot::arm
 
 #endif
