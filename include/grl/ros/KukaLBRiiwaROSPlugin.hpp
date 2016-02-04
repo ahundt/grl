@@ -9,7 +9,7 @@
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "grl/KukaFRIThreadSeparator.hpp"
+#include "grl/KukaFRI.hpp"
 #include "grl/KukaFriClientData.hpp"
 #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
@@ -482,8 +482,8 @@ namespace grl {
           else
           {
             m_attemptedCommunicationConsecutiveFailureCount++;
-            std::cerr << "No new FRI data available, is an FRI application running on the Kuka arm? Real data received correctly " << this->m_haveReceivedRealDataCount << " times out of  "<< m_attemptedCommunicationCount <<" tries with "<< m_attemptedCommunicationConsecutiveFailureCount<<" consecutive failures after completing "<< 
-            m_attemptedCommunicationConsecutiveSuccessCount <<" consecutive successes.\n";
+            std::cerr << "No new FRI data available, is an FRI application running on the Kuka arm? \n Total sucessful transfers: " << this->m_haveReceivedRealDataCount << "\n Total attempts: "<< m_attemptedCommunicationCount <<"\n Consecutive Failures: "<< m_attemptedCommunicationConsecutiveFailureCount<<"\n Consecutive Successes: "<<
+            m_attemptedCommunicationConsecutiveSuccessCount <<"\n";
             m_attemptedCommunicationConsecutiveSuccessCount=0;
             /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
             return;
