@@ -235,8 +235,6 @@ namespace grl {
       }
 
       void getRealKukaAngles() {
-        /// @todo m_haveReceivedRealData = true is a DANGEROUS HACK!!!! REMOVE ME AFTER DEBUGGING
-        m_haveReceivedRealData = true;
 
         if(kukaFRIThreadSeparatorP)
         {
@@ -248,7 +246,7 @@ namespace grl {
           kukaFRIThreadSeparatorP->async_getLatestState(updatedState,recv_ec,recv_bytes,send_ec,send_bytes);
 
           if (updatedState && !recv_ec && !send_ec) {
-            this->m_haveReceivedRealData = true;
+            this->m_haveReceivedRealDataCount++;
           } else {
             /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
             // if we didn't actually get anything don't try and update
@@ -280,8 +278,6 @@ namespace grl {
 
         } else if (true || kukaFRIClientDataDriverP_)
         {
-          /// @todo fix this hack, real data hasn't actually been received because send & receive happen simultaneously
-          m_haveReceivedRealData = true;
         }
 
       }
@@ -376,7 +372,8 @@ namespace grl {
 
       void sendSimulatedJointAnglesToKuka(){
 
-        if(!m_haveReceivedRealData) return;
+        // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
+        //if(!m_haveReceivedRealDataCount) return;
 
         /// @todo make this handled by template driver implementations/extensions
 
@@ -427,10 +424,9 @@ namespace grl {
           if(!friData_) friData_ = std::make_shared<KUKA::FRI::ClientData>(KUKA_LBR_DOF);
 
           // Set the FRI to the simulated joint positions
-          //////////////////////
-          /// DISABLED, CURRENTLY RECEIVES DATA ONLY, NO COMMANDS
-          //////////////////////
-          if(false && this->m_haveReceivedRealData){
+          static const std::size_t minimumConsecutiveSuccessesBeforeSendingCommands = 100;
+        
+          if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands){
             boost::lock_guard<boost::mutex> lock(jt_mutex);
             switch (friData_->monitoringMsg.robotInfo.controlMode) {
               case ControlMode_POSITION_CONTROLMODE:
@@ -451,10 +447,12 @@ namespace grl {
           boost::system::error_code send_ec,recv_ec;
           std::size_t send_bytes, recv_bytes;
           bool haveNewData = !kukaFRIClientDataDriverP_->update_state(friData_,recv_ec,recv_bytes,send_ec,send_bytes);
+          m_attemptedCommunicationCount++;
 
           if(haveNewData)
           {
-            if(false && !this->m_haveReceivedRealData){
+            if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands-1)
+            {
                 boost::lock_guard<boost::mutex> lock(jt_mutex);
               // initialize arm commands to current arm position
               simJointPosition.clear();
@@ -462,28 +460,34 @@ namespace grl {
               simJointForce.clear();
               grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(simJointForce)   , grl::revolute_joint_torque_open_chain_command_tag());
             }
+            
+            m_attemptedCommunicationConsecutiveSuccessCount++;
+            this->m_attemptedCommunicationConsecutiveFailureCount = 0;
+            this->m_haveReceivedRealDataCount++;
           
-            this->m_haveReceivedRealData = true;
+
+            // We have the real kuka state read from the device now
+            // update real joint angle data
+            current_js_.position.clear();
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
+
+            current_js_.effort.clear();
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
+
+            current_js_.velocity.clear();
+            //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+
+            js_pub_.publish(current_js_);
           }
           else
           {
-            std::cerr << "Issue getting new data!\n";
+            m_attemptedCommunicationConsecutiveFailureCount++;
+            std::cerr << "No new FRI data available, is an FRI application running on the Kuka arm? Real data received correctly " << this->m_haveReceivedRealDataCount << " times out of  "<< m_attemptedCommunicationCount <<" tries with "<< m_attemptedCommunicationConsecutiveFailureCount<<" consecutive failures after completing "<< 
+            m_attemptedCommunicationConsecutiveSuccessCount <<" consecutive successes.\n";
+            m_attemptedCommunicationConsecutiveSuccessCount=0;
             /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
             return;
           }
-
-          // We have the real kuka state read from the device now
-          // update real joint angle data
-          current_js_.position.clear();
-          grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
-
-          current_js_.effort.clear();
-          grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
-
-          current_js_.velocity.clear();
-          //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
-
-          js_pub_.publish(current_js_);
         }
         else if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC")))
         {
@@ -501,10 +505,13 @@ namespace grl {
         } else {
           BOOST_THROW_EXCEPTION(std::runtime_error(std::string("KukaROSPlugin: Selected KukaCommandMode ")+std::get<KukaCommandMode>(params_)+" does not exist! Options are JAVA, FRI, and FRI_ASYNC"));
         }
-
+        
       }
 
-      volatile bool m_haveReceivedRealData = false;
+      volatile std::size_t m_haveReceivedRealDataCount = 0;
+      volatile std::size_t m_attemptedCommunicationCount = 0;
+      volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
+      volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
 
       boost::asio::io_service device_driver_io_service;
       std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
