@@ -1,0 +1,9 @@
+
+include "ObjectConfiguration.fbs";
+
+namespace grl.flatbuffer;
+
+
+table ArmConfiguration{
+  tool:Object;
+}
