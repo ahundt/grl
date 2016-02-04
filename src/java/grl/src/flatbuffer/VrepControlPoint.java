@@ -1,21 +1,22 @@
 // automatically generated, do not modify
 
-package flatbuffers;
+package grl.flatbuffer;
 
 import java.nio.*;
 import java.lang.*;
 import java.util.*;
 import com.google.flatbuffers.*;
 
-public class VrepControlPoint extends Table {
+@SuppressWarnings("unused")
+public final class VrepControlPoint extends Table {
   public static VrepControlPoint getRootAsVrepControlPoint(ByteBuffer _bb) { return getRootAsVrepControlPoint(_bb, new VrepControlPoint()); }
   public static VrepControlPoint getRootAsVrepControlPoint(ByteBuffer _bb, VrepControlPoint obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public VrepControlPoint __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
-  public Vector3d position() { return position(new Vector3d()); }
-  public Vector3d position(Vector3d obj) { int o = __offset(4); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
-  public EulerXYZd rotation() { return rotation(new EulerXYZd()); }
-  public EulerXYZd rotation(EulerXYZd obj) { int o = __offset(6); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.Vector3d position() { return position(new grl.flatbuffer.Vector3d()); }
+  public grl.flatbuffer.Vector3d position(grl.flatbuffer.Vector3d obj) { int o = __offset(4); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.EulerXYZd rotation() { return rotation(new grl.flatbuffer.EulerXYZd()); }
+  public grl.flatbuffer.EulerXYZd rotation(grl.flatbuffer.EulerXYZd obj) { int o = __offset(6); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
   public double relativeVelocity() { int o = __offset(8); return o != 0 ? bb.getDouble(o + bb_pos) : 1.0; }
   public int bezierPointCount() { int o = __offset(10); return o != 0 ? bb.getInt(o + bb_pos) : 1; }
   public double interpolationFactor1() { int o = __offset(12); return o != 0 ? bb.getDouble(o + bb_pos) : 0.5; }

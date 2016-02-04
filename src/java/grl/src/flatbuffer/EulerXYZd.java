@@ -1,13 +1,14 @@
 // automatically generated, do not modify
 
-package flatbuffers;
+package grl.flatbuffer;
 
 import java.nio.*;
 import java.lang.*;
 import java.util.*;
 import com.google.flatbuffers.*;
 
-public class EulerXYZd extends Struct {
+@SuppressWarnings("unused")
+public final class EulerXYZd extends Struct {
   public EulerXYZd __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
   public double rx() { return bb.getDouble(bb_pos + 0); }
