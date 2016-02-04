@@ -211,7 +211,7 @@ namespace grl { namespace robot { namespace arm {
           }
           auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
 
-#if BOOST_VERSION < 105900
+#if 0 //BOOST_VERSION < 105900
           BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
 #endif
 

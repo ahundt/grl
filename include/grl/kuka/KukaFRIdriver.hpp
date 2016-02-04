@@ -20,7 +20,7 @@
 // friClientData is found in the kuka connectivity FRI cpp zip file
 #include "friClientIf.h"
 #include "friClientData.h"
-#include "grl/Kuka/KukaFRIalgorithm.hpp"
+#include "grl/kuka/KukaFRIalgorithm.hpp"
 #include "grl/exception.hpp"
 
 #include "Kuka.hpp"
