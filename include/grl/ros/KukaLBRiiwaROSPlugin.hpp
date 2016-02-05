@@ -15,6 +15,7 @@
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <sensor_msgs/JointState.h>
+#include <std_msgs/String.h>
 
 #include "grl/kuka/KukaDriver.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
@@ -48,8 +49,6 @@ namespace grl {
      *
      * This class contains code to offer a simple communication layer between ROS and the KUKA LBR iiwa
      *
-     * Initally:
-     * 
      *
      */
     class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin> 
@@ -154,6 +153,7 @@ namespace grl {
           js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_state",100);
           jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_callback, this);
           jt_pt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectoryPoint>("joint_traj_pt_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_pt_callback, this);
+          mode_sub_ = nh.subscribe<std_msgs::String>("interaction_mode", 1000, &KukaLBRiiwaROSPlugin::mode_callback, this);
           //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
 
         params_ = params;
@@ -218,10 +218,24 @@ namespace grl {
         }
 
       }
-      /**
-       * ROS joint trajectory callback
-       * this code needs to execute the joint trajectory on the robot
-       */
+
+
+      /// ROS callback to set current interaction mode; determines whether commands will be send in SERVO, TEACH, etc
+      void mode_callback(const std_msgs::StringConstPtr &msg) {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        if (msg->data == "teach") { 
+          interaction_mode = MODE_TEACH;
+        } else if (msg->data == "servo") {
+          interaction_mode = MODE_SERVO;
+        } else if (msg->data == "idle") {
+          interaction_mode = MODE_IDLE;
+        } else {
+          interaction_mode = MODE_IDLE;
+        }
+      }
+
+      /// ROS joint trajectory callback
+      /// this code needs to execute the joint trajectory on the robot
       void jt_pt_callback(const trajectory_msgs::JointTrajectoryPointConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
 
@@ -268,7 +282,7 @@ namespace grl {
 
              //grl::robot::arm::set(*KukaDriverP_, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
              if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-             if(simJointForce.size()) KukaDriverP_->set( simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+             if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
              
              haveNewData = KukaDriverP_->run_one();
 
@@ -312,6 +326,7 @@ namespace grl {
 
     private:
 
+      RobotMode interaction_mode;
 
       boost::mutex jt_mutex;
       boost::shared_ptr<robot::arm::KukaDriver> KukaDriverP_;
@@ -319,7 +334,10 @@ namespace grl {
       
       ::ros::Subscriber jt_sub_; // subscribes to joint state trajectories and executes them 
       ::ros::Subscriber jt_pt_sub_; // subscribes to joint state trajectories and executes them 
+      ::ros::Subscriber mode_sub_; // subscribes to interaction mode messages (strings for now)
+
       ::ros::Publisher js_pub_; // publish true joint states from the KUKA
+
 
       sensor_msgs::JointState current_js_;
 
