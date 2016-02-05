@@ -1,4 +1,4 @@
-package flatBufferTesting;
+package grl.flatBufferTesting;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -8,8 +8,8 @@ import org.jeromq.ZMQ.Context;
 import org.jeromq.ZMQ.Socket;
 
 import com.google.flatbuffers.FlatBufferBuilder;
-import flatbuffers.VrepControlPoint;
-import flatbuffers.Vector3d;
+import grl.flatbuffer.VrepControlPoint;
+import grl.flatbuffer.Vector3d;
  
 public class FlatBuffer_Send {
     static final String ADDRESS = "tcp://127.0.0.1:5563";

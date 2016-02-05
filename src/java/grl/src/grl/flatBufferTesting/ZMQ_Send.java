@@ -1,4 +1,4 @@
-package flatBufferTesting;
+package grl.flatBufferTesting;
 
 import java.util.concurrent.TimeUnit;
 import org.jeromq.ZMQ;

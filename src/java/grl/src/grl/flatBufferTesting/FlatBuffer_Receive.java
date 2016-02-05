@@ -1,4 +1,4 @@
-package flatBufferTesting;
+package grl.flatBufferTesting;
 
 import java.nio.ByteBuffer;
  
@@ -6,8 +6,8 @@ import org.jeromq.ZMQ;
 import org.jeromq.ZMQ.Context;
 import org.jeromq.ZMQ.Socket;
 
-import flatbuffers.VrepControlPoint;
-import flatbuffers.Vector3d;
+import grl.flatbuffer.VrepControlPoint;
+import grl.flatbuffer.Vector3d;
  
 public class FlatBuffer_Receive {
     static final int NUM_MSG = 10;
