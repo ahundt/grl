@@ -14,11 +14,15 @@ table PauseArm {
 table TeachArm {
 }
 
-table MoveArmJoints {
+table MoveArmTrajectory {
   traj:[JointState];
 }
 
-union ArmState { StartArm, StopArm, PauseArm, TeachArm, MoveArmJoints }
+table MoveArmServo {
+  goal:JointState;
+}
+
+union ArmState { StartArm, StopArm, PauseArm, TeachArm, MoveArmTrajectory, MoveArmServo }
 
 table ArmControlState {
   sequenceNumber:long;
