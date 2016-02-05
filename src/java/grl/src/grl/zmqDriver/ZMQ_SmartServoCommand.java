@@ -1,4 +1,4 @@
-package zmqDriver;
+package grl.zmqDriver;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
@@ -8,6 +8,7 @@ import org.jeromq.ZMQ;
 import org.jeromq.ZMQ.Context;
 import org.jeromq.ZMQ.Socket;
 
+import com.google.flatbuffers.Table;
 import com.kuka.connectivity.fri.FRIConfiguration;
 import com.kuka.connectivity.fri.FRISession;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
@@ -16,10 +17,14 @@ import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
 import com.kuka.roboticsAPI.motionModel.ISmartServoRuntime;
+import com.kuka.roboticsAPI.motionModel.MotionBatch;
 import com.kuka.roboticsAPI.motionModel.SmartServo;
 import com.kuka.roboticsAPI.userInterface.ServoMotionUtilities;
 
-import flatbuffers.JointState;
+import grl.flatbuffer.JointState;
+import grl.flatbuffer.ArmControlState;
+import grl.flatbuffer.ArmState;
+import grl.flatbuffer.MoveArmJoints;
 
 /**
  * Creates a FRI Session.
@@ -91,12 +96,12 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
 
         aSmartServoMotion.setMinimumTrajectoryExecutionTime(20e-3);
 
-        _toolAttachedToLBR.getDefaultMotionFrame().moveAsync(aSmartServoMotion);
+        //_toolAttachedToLBR.getDefaultMotionFrame().moveAsync(aSmartServoMotion);
         
         // Fetch the Runtime of the Motion part
         theSmartServoRuntime = aSmartServoMotion.getRuntime();
         
-     // create an JointPosition Instance, to play with
+     	// create an JointPosition Instance, to play with
         JointPosition destination = new JointPosition(
                 _lbr.getJointCount());
         
@@ -104,7 +109,7 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         byte [] data = subscriber.recv();
         ByteBuffer bb = ByteBuffer.wrap(data);
 
-        JointState jointState = JointState.getRootAsJointState(bb);
+        ArmControlState armControlState = ArmControlState.getRootAsArmControlState(bb);
         
 
         // move to start pose
@@ -122,11 +127,28 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
             data = subscriber.recv();
             bb = ByteBuffer.wrap(data);
 
-            jointState = JointState.getRootAsJointState(bb);
+            armControlState = ArmControlState.getRootAsArmControlState(bb);
+            long num = armControlState.sequenceNumber();
+            double time = armControlState.timeStamp();
+            byte state = armControlState.stateType();
             
-            for (int k = 0; k < destination.getAxisCount(); ++k)
-            {
-            	destination.set(k, jointState.position(k));
+            if (state == ArmState.MoveArmJoints) {
+            	MoveArmJoints maj = null;
+            	armControlState.state(maj);
+            	
+
+	            for (int j = 0; j < maj.trajLength(); j++) {
+	            	
+	            	JointPosition pos = new JointPosition(_lbr.getCurrentJointPosition());
+	            	
+		            for (int k = 0; k < destination.getAxisCount(); ++k)
+		            {
+		            	//destination.set(k, maj.traj(j).position(k));
+		            	pos.set(k, maj.traj(j).position(k));
+		            }
+		        	_lbr.moveAsync(new SmartServo(pos));
+		            
+	            }
             }
 
             theSmartServoRuntime.setDestination(destination);
