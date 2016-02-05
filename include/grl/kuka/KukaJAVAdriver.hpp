@@ -24,7 +24,8 @@
 #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
-
+#include "grl/flatbuffer/ArmConfiguration_generated.h"
+#include "grl/flatbuffer/ObjectConfiguration_generated.h"
 
 
 
@@ -88,8 +89,8 @@ namespace grl { namespace robot { namespace arm {
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
-            "FRI"                    , // KukaCommandMode (options are FRI, JAVA)
-            "FRI"                    , // KukaMonitorMode (options are FRI, JAVA)
+            "JAVA"                     , // KukaCommandMode (options are FRI, JAVA)
+            "JAVA"                     , // KukaMonitorMode (options are FRI, JAVA)
             "IK_Group1_iiwa"            // IKGroupName
             );
       }

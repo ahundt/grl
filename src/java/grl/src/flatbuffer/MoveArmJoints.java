@@ -13,18 +13,21 @@ public final class MoveArmJoints extends Table {
   public static MoveArmJoints getRootAsMoveArmJoints(ByteBuffer _bb, MoveArmJoints obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public MoveArmJoints __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
-  public grl.flatbuffer.JointState goal() { return goal(new grl.flatbuffer.JointState()); }
-  public grl.flatbuffer.JointState goal(grl.flatbuffer.JointState obj) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public grl.flatbuffer.JointState traj(int j) { return traj(new grl.flatbuffer.JointState(), j); }
+  public grl.flatbuffer.JointState traj(grl.flatbuffer.JointState obj, int j) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
+  public int trajLength() { int o = __offset(4); return o != 0 ? __vector_len(o) : 0; }
 
   public static int createMoveArmJoints(FlatBufferBuilder builder,
-      int goalOffset) {
+      int trajOffset) {
     builder.startObject(1);
-    MoveArmJoints.addGoal(builder, goalOffset);
+    MoveArmJoints.addTraj(builder, trajOffset);
     return MoveArmJoints.endMoveArmJoints(builder);
   }
 
   public static void startMoveArmJoints(FlatBufferBuilder builder) { builder.startObject(1); }
-  public static void addGoal(FlatBufferBuilder builder, int goalOffset) { builder.addOffset(0, goalOffset, 0); }
+  public static void addTraj(FlatBufferBuilder builder, int trajOffset) { builder.addOffset(0, trajOffset, 0); }
+  public static int createTrajVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
+  public static void startTrajVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
   public static int endMoveArmJoints(FlatBufferBuilder builder) {
     int o = builder.endObject();
     return o;

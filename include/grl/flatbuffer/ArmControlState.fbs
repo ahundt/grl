@@ -15,7 +15,7 @@ table TeachArm {
 }
 
 table MoveArmJoints {
-  goal:JointState;
+  traj:[JointState];
 }
 
 union ArmState { StartArm, StopArm, PauseArm, TeachArm, MoveArmJoints }
