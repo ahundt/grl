@@ -16,6 +16,7 @@ import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
+import com.kuka.roboticsAPI.motionModel.IMotionContainer;
 import com.kuka.roboticsAPI.motionModel.ISmartServoRuntime;
 import com.kuka.roboticsAPI.motionModel.MotionBatch;
 import com.kuka.roboticsAPI.motionModel.SmartServo;
@@ -25,6 +26,8 @@ import grl.flatbuffer.JointState;
 import grl.flatbuffer.ArmControlState;
 import grl.flatbuffer.ArmState;
 import grl.flatbuffer.MoveArmJoints;
+import grl.flatbuffer.MoveArmServo;
+import grl.flatbuffer.MoveArmTrajectory;
 
 /**
  * Creates a FRI Session.
@@ -110,13 +113,13 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         ByteBuffer bb = ByteBuffer.wrap(data);
 
         ArmControlState armControlState = ArmControlState.getRootAsArmControlState(bb);
-        
 
         // move to start pose
-        //_lbr.move(ptp(jointState.position(0), jointState.position(1), jointState.position(2), jointState.position(3), jointState.position(4), jointState.position(5), jointState.position(6)));
+        //_lbr.move(ptp(initialPosition));//ptp(jointState.position(0), jointState.position(1), jointState.position(2), jointState.position(3), jointState.position(4), jointState.position(5), jointState.position(6)));
 		//.setJointAccelerationRel(acceleration));
 
  
+        IMotionContainer currentMotion = null;
         
         // Receive Flat Buffer and Move to Position
         // TODO: make into while loop and add exception to exit loop
@@ -132,10 +135,10 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
             double time = armControlState.timeStamp();
             byte state = armControlState.stateType();
             
-            if (state == ArmState.MoveArmJoints) {
-            	MoveArmJoints maj = null;
-            	armControlState.state(maj);
+            if (state == ArmState.MoveArmTrajectory) {
             	
+            	MoveArmTrajectory maj = null;
+            	armControlState.state(maj);
 
 	            for (int j = 0; j < maj.trajLength(); j++) {
 	            	
@@ -146,9 +149,26 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
 		            	//destination.set(k, maj.traj(j).position(k));
 		            	pos.set(k, maj.traj(j).position(k));
 		            }
-		        	_lbr.moveAsync(new SmartServo(pos));
+		        	currentMotion = _lbr.moveAsync(ptp(pos));
 		            
 	            }
+            } else if (state == ArmState.MoveArmServo) {
+            	
+            	MoveArmServo mas = null;
+            	armControlState.state(mas);
+            	
+            	JointState jointState = mas.goal();
+
+            	for (int k = 0; k < destination.getAxisCount(); ++k)
+                {
+                	destination.set(k, jointState.position(k));
+                }
+                theSmartServoRuntime.setDestination(destination);
+            	
+            } else if (state == ArmState.StopArm) {
+            	// stop all 
+            } else if (state == ArmState.TeachArm) {
+            	
             }
 
             theSmartServoRuntime.setDestination(destination);
