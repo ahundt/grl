@@ -4,19 +4,15 @@
 #include <ostream>
 #include <iostream>
 #include <memory>
-
-#include "grl/KukaFRI.hpp"
-#include "grl/KukaFriClientData.hpp"
-#include <boost/log/trivial.hpp>
-
-
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
-#include <boost/asio.hpp>
 #include <vector>
-#include <iostream>
 
+
+#include <boost/log/trivial.hpp>
+#include <boost/asio.hpp>
+
+#include "grl/kuka/KukaFRIdriver.hpp"
 
 
 //

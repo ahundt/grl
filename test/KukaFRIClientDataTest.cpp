@@ -5,8 +5,7 @@
 #include <iostream>
 #include <memory>
 
-#include "grl/KukaFRI.hpp"
-#include "grl/KukaFriClientData.hpp"
+#include "grl/kuka/KukaFRIdriver.hpp"
 #include <boost/log/trivial.hpp>
 
 
