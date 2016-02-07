@@ -9,10 +9,7 @@
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "grl/KukaFRIThreadSeparator.hpp"
-#include "grl/KukaFriClientData.hpp"
-#include "grl/AzmqFlatbuffer.hpp"
-#include "grl/flatbuffer/JointState_generated.h"
+#include "grl/kuka/KukaDriver.hpp"
 #include "grl/vrep/Vrep.hpp"
 #include "grl/vrep/VrepRobotArmDriver.hpp"
 
@@ -71,11 +68,12 @@ public:
         RemoteHostKukaKoniUDPAddress,
         RemoteHostKukaKoniUDPPort,
         KukaCommandMode,
+        KukaMonitorMode,
         IKGroupName
     };
     
-    /// @todo allow default params
     typedef std::tuple<
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -116,6 +114,7 @@ public:
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
                     "30200"                   , // RemoteHostKukaKoniUDPPort
                     "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+                    "FRI"                     , // KukaMonitorMode (options are FRI, JAVA)
                     "IK_Group1_iiwa"            // IKGroupName
                 );
     }
@@ -148,25 +147,7 @@ void construct(Params params){
   // keep driver threads from exiting immediately after creation, because they have work to do!
   device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
   
-/// @todo figure out how to re-enable when .so isn't loaded
- // initHandles();
- if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC"))
-     // || boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")) /// @todo enable if driver isn't working
- )
- {
-     kukaFRIThreadSeparatorP.reset(
-        new grl::KukaFRIThreadSeparator(
-              device_driver_io_service,
-              std::make_tuple(
-                  std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
-                  std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
-                  std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
-                  std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
-                  grl::KukaFRIThreadSeparator::run_automatically
-              )
-          ));
-  }
-  else if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+  if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
   {
      kukaFRIClientDataDriverP_.reset(
         new grl::robot::arm::KukaFRIClientDataDriver(
@@ -261,45 +242,6 @@ void initHandles() {
 void getRealKukaAngles() {
       /// @todo m_haveReceivedRealData = true is a DANGEROUS HACK!!!! REMOVE ME AFTER DEBUGGING
       m_haveReceivedRealData = true;
-    
-    if(kukaFRIThreadSeparatorP)
-    {
-        boost::system::error_code send_ec,recv_ec;
-        std::size_t send_bytes, recv_bytes;
-        BOOST_VERIFY(kukaFRIThreadSeparatorP);
-        std::shared_ptr<grl::robot::arm::kuka::iiwa::MonitorState> updatedState;
-        kukaFRIThreadSeparatorP->async_getLatestState(updatedState,recv_ec,recv_bytes,send_ec,send_bytes);
-        
-        if (updatedState && !recv_ec && !send_ec) {
-            this->m_haveReceivedRealData = true;
-        } else {
-            /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
-            // if we didn't actually get anything don't try and update
-            return;
-        }
-        // We have the real kuka state read from the device now
-        // update real joint angle data
-        realJointPosition.clear();
-        grl::robot::arm::copy(updatedState->get(), std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
-        
-        
-        realJointForce.clear();
-        grl::robot::arm::copy(updatedState->get(), std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
-        
-        realJointPosition.clear();
-        grl::robot::arm::copy(updatedState->get(), std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
-        
-        
-#if BOOST_VERSION < 105900
-        // here we expect the simulation to be slightly ahead of the arm
-        // so we get the simulation based joint angles and update the arm
-       BOOST_LOG_TRIVIAL(trace) << "Real joint angles from FRI: " << realJointPosition << "\n";
-#endif
-    } else if (kukaFRIClientDataDriverP_)
-    {
-      /// @todo fix this hack, real data hasn't actually been received because send & receive happen simultaneously
-      m_haveReceivedRealData = true;
-    }
 
 
 
@@ -384,17 +326,8 @@ void sendSimulatedJointAnglesToKuka(){
         
         
         }
-        else if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI_ASYNC")))
+        else
         {
-            BOOST_VERIFY(kukaFRIThreadSeparatorP);
-            // create the command for the FRI
-            auto commandP = std::make_shared<grl::robot::arm::kuka::iiwa::CommandState>();
-            // Set the FRI to the simulated joint positions
-            grl::robot::arm::set(*commandP, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-            grl::robot::arm::set(*commandP, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
-            // send the command
-            this->kukaFRIThreadSeparatorP->async_sendCommand(commandP);
-        } else {
             BOOST_THROW_EXCEPTION(std::runtime_error(std::string("KukaVrepPlugin: Selected KukaCommandMode ")+std::get<KukaCommandMode>(params_)+" does not exist! Options are JAVA, FRI, and FRI_ASYNC"));
         }
     
@@ -492,7 +425,6 @@ boost::asio::io_service device_driver_io_service;
 std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
 std::unique_ptr<std::thread> driver_threadP;
 std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver> kukaFRIClientDataDriverP_;
-std::shared_ptr<grl::KukaFRIThreadSeparator> kukaFRIThreadSeparatorP;
 std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
 std::shared_ptr<VrepRobotArmDriver> vrepRobotArmDriverP_;
 //boost::asio::deadline_timer sendToJavaDelay;
