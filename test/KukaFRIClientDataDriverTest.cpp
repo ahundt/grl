@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
     std::vector<double> jointStateToCommand(7,0);
   
     grl::robot::arm::KukaFRIClientDataDriver driver(io_service,
-        std::make_tuple(localhost,localport,remotehost,remoteport,grl::robot::arm::KukaFRIClientDataDriver::run_automatically)
+        std::make_tuple(localhost,localport,remotehost,remoteport,4/*ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver::run_automatically)
     );
 
   unsigned int num_missed = 0;

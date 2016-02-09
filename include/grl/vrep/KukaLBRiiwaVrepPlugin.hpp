@@ -129,9 +129,11 @@ public:
 /// The KukaCommandMode parameters supports the options "FRI" and "JAVA". This configures how commands will
 /// be sent to the arm itself. "FRI" mode is via a direct "Fast Robot Interface" "KUKA KONI"
 /// ethernet connection which provides substantially higher performance and response time,
-//  but is extremely sensitive to delays, and any delay will halt the robot and require a manual reset.
-//  "JAVA" mode sends the command to the Java application installed on the KUKA robot, which then submits
-//  it to the arm itself to execute. This is a much more forgiving mode of communication, but it is subject to delays.
+///  but is extremely sensitive to delays, and any delay will halt the robot and require a manual reset.
+///  "JAVA" mode sends the command to the Java application installed on the KUKA robot, which then submits
+///  it to the arm itself to execute. This is a much more forgiving mode of communication, but it is subject to delays.
+///
+/// @todo read ms_per_tick from the java interface
 KukaVrepPlugin (Params params = defaultParams())
       :
       params_(params)
@@ -146,43 +148,24 @@ void construct(Params params){
   params_ = params;
   // keep driver threads from exiting immediately after creation, because they have work to do!
   device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
-  
-  if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
-  {
-     kukaFRIClientDataDriverP_.reset(
-        new grl::robot::arm::KukaFRIClientDataDriver(
-              device_driver_io_service,
-              std::make_tuple(
-                  std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
-                  std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
-                  std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
-                  std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
-                  grl::robot::arm::KukaFRIClientDataDriver::run_automatically
-              )
-          )
-  
-     );
-  }
-  
-  	try {
-        BOOST_LOG_TRIVIAL(trace) << "KukaLBRiiwaVrepPlugin: Connecting ZeroMQ Socket from " <<
-                               std::get<LocalZMQAddress>             (params_) << " to " <<
-                               std::get<RemoteZMQAddress>            (params_);
-		boost::system::error_code ec;
-		azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
-		socket.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
-		socket.connect(std::get<RemoteZMQAddress>            (params_).c_str()   );
-		kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
-    
-        // start up the driver thread
-        /// @todo perhaps allow user to control this?
-        driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
-	} catch( boost::exception &e) {
-            e << errmsg_info("KukaLBRiiwaVrepPlugin: Unable to connect to ZeroMQ Socket from " + 
-                               std::get<LocalZMQAddress>             (params_) + " to " + 
-                               std::get<RemoteZMQAddress>            (params_));
-        throw;
-    }
+  kukaDriverP_=std::make_shared<robot::arm::KukaDriver>(std::make_tuple(
+      
+        std::get<RobotTipName>(params),
+        std::get<RobotTargetName>(params),
+        std::get<RobotTargetBaseName>(params),
+        std::get<LocalZMQAddress>(params),
+        std::get<RemoteZMQAddress>(params),
+        std::get<LocalHostKukaKoniUDPAddress>(params),
+        std::get<LocalHostKukaKoniUDPPort>(params),
+        std::get<RemoteHostKukaKoniUDPAddress>(params),
+        std::get<RemoteHostKukaKoniUDPPort>(params),
+        std::get<KukaCommandMode>(params),
+        std::get<KukaMonitorMode>(params),
+        std::get<IKGroupName>(params)
+
+        
+  ));
+  kukaDriverP_->construct();
   initHandles();
 }
 
@@ -252,84 +235,18 @@ void sendSimulatedJointAnglesToKuka(){
         if(!allHandlesSet || !m_haveReceivedRealData) return;
     
 /// @todo make this handled by template driver implementations/extensions
-
-        if(kukaJavaDriverP && boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
-        {
-            /////////////////////////////////////////
-            // Client sends to server asynchronously!
-            
-           /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
-           std::vector<double> joints;
-           
-           auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-           
-           /// @todo should we use simJointTargetPosition here?
-           joints.clear();
-           boost::copy(simJointPosition, std::back_inserter(joints));
-           auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
-           
-#if BOOST_VERSION < 105900
-           BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
-#endif
-           
-           /// @note we don't have a velocity right now, sending empty!
-           joints.clear();
-           //boost::copy(simJointVelocity, std::back_inserter(joints));
-           auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
-           joints.clear();
-           boost::copy(simJointForce, std::back_inserter(joints));
-           auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
-           auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
-           grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
-           kukaJavaDriverP->async_send_flatbuffer(fbbP);
-            
-        }
-        else if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
-        {
-            // note: this one sends *and* receives the joint data!
-            BOOST_VERIFY(kukaFRIClientDataDriverP_.get()!=nullptr);
-            /// @todo use runtime calculation of NUM_JOINTS instead of constant
-            if(!friData_) friData_ = std::make_shared<KUKA::FRI::ClientData>(7);
-            
-            // Set the FRI to the simulated joint positions
-            grl::robot::arm::set(friData_->commandMsg, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-            grl::robot::arm::set(friData_->commandMsg, simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+        kukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+        if(0) kukaDriverP_->set( simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());        
+    
+        kukaDriverP_->run_one();
+        // We have the real kuka state read from the device now
+        // update real joint angle data
+        realJointPosition.clear();
+        kukaDriverP_->get(std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
         
         
-        
-            boost::system::error_code send_ec,recv_ec;
-            std::size_t send_bytes, recv_bytes;
-            bool haveNewData = !kukaFRIClientDataDriverP_->update_state(friData_,recv_ec,recv_bytes,send_ec,send_bytes);
-        
-            if(haveNewData)
-            {
-              this->m_haveReceivedRealData = true;
-            }
-            else
-            {
-               /// @todo should the results of getlatest state even be possible to call without receiving real data? should the library change?
-              return;
-            }
-        
-            
-            // We have the real kuka state read from the device now
-            // update real joint angle data
-            realJointPosition.clear();
-            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
-            
-            
-            realJointForce.clear();
-            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
-            
-            realJointPosition.clear();
-            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
-        
-        
-        }
-        else
-        {
-            BOOST_THROW_EXCEPTION(std::runtime_error(std::string("KukaVrepPlugin: Selected KukaCommandMode ")+std::get<KukaCommandMode>(params_)+" does not exist! Options are JAVA, FRI, and FRI_ASYNC"));
-        }
+        realJointForce.clear();
+        kukaDriverP_->get(std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
     
 }
 
@@ -424,8 +341,7 @@ volatile bool m_haveReceivedRealData = false;
 boost::asio::io_service device_driver_io_service;
 std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
 std::unique_ptr<std::thread> driver_threadP;
-std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver> kukaFRIClientDataDriverP_;
-std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
+std::shared_ptr<grl::robot::arm::KukaDriver> kukaDriverP_;
 std::shared_ptr<VrepRobotArmDriver> vrepRobotArmDriverP_;
 //boost::asio::deadline_timer sendToJavaDelay;
 

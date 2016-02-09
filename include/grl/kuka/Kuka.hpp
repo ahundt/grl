@@ -28,8 +28,8 @@ namespace grl { namespace robot { namespace arm {
 /// @todo replace with something generic
 /// @deprecated this is an old implemenation that will be removed in the future
 struct KukaState {
-	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
-    typedef boost::container::static_vector<double,6> cartesian_state;
+	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF+1> joint_state;
+    typedef boost::container::static_vector<double,7> cartesian_state;
     
 	joint_state     position;
 	joint_state     torque;
@@ -47,12 +47,28 @@ struct KukaState {
 	
 	std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     
+    // members bewlow here define the driver state and are not part of the FRI arm message format
+    
+    /// we need to mind arm constraints, so we set a goal then work towards it
+    joint_state     commandedPosition_goal;
+    /// velocity_limits we need to mind arm constraints, so we set a goal then work towards it
+    joint_state     velocity_limits;
+    
     void clear(){
       position.clear();
       torque.clear();
       commandedPosition.clear();
       commandedTorque.clear();
+      commandedCartesianWrenchFeedForward.clear();
       ipoJointPosition.clear();
+      commandedPosition_goal.clear();
+    }
+    
+    void clearCommands(){
+      commandedPosition.clear();
+      commandedTorque.clear();
+      commandedCartesianWrenchFeedForward.clear();
+      commandedPosition_goal.clear();
     }
 };
 
