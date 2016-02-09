@@ -6,6 +6,7 @@
 
 #include <boost/range/adaptor/copied.hpp>
 #include <boost/range/algorithm/copy.hpp>
+#include <boost/range/distance.hpp>
 #include <boost/range.hpp>
 #include <boost/geometry/core/access.hpp>
 #include <boost/units/physical_dimensions/torque.hpp>
@@ -213,10 +214,13 @@ namespace grl { namespace robot {
        */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
-       state.has_commandData = true;
-       state.commandData.has_jointPosition = true;
-       tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
-       boost::copy(range, dest->value);
+       if(boost::size(range))
+       {
+           state.has_commandData = true;
+           state.commandData.has_jointPosition = true;
+           tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
+           boost::copy(range, dest->value);
+       }
      }
      
       /**
@@ -232,10 +236,13 @@ namespace grl { namespace robot {
        */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
-       state.has_commandData = true;
-       state.commandData.has_jointTorque = true;
-       tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointTorque.value.arg;
-       boost::copy(range, dest->value);
+       if(boost::size(range))
+       {
+           state.has_commandData = true;
+           state.commandData.has_jointTorque = true;
+           tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointTorque.value.arg;
+           boost::copy(range, dest->value);
+       }
      }
     
       
@@ -263,9 +270,12 @@ namespace grl { namespace robot {
        */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::cartesian_wrench_command_tag) {
-       state.has_commandData = true;
-       state.commandData.has_cartesianWrenchFeedForward = true;
-       std::copy_n(std::begin(range),std::min(std::distance(range),state.commandData.cartesianWrenchFeedForward.element_count), &state.commandData.cartesianWrenchFeedForward.element[0]);
+       if(boost::size(range))
+       {
+           state.has_commandData = true;
+           state.commandData.has_cartesianWrenchFeedForward = true;
+           std::copy_n(std::begin(range),std::min(boost::size(range),state.commandData.cartesianWrenchFeedForward.element_count), &state.commandData.cartesianWrenchFeedForward.element[0]);
+       }
      }
      
      

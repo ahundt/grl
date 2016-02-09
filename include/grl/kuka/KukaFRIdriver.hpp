@@ -11,6 +11,7 @@
 
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
+#include <boost/math/special_functions/sign.hpp>
 
 
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
@@ -79,7 +80,7 @@ std::size_t encode(KUKA::FRI::ClientData& friData,boost::system::error_code& ec)
     friData.commandMsg.header.reflectedSequenceCounter = friData.monitoringMsg.header.sequenceCounter;
     
     KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData.monitoringMsg,KUKA::FRI::ESessionState());
-        // copy current joint position to commanded position
+        // copy current measured joint position to commanded position only if we *don't* have new command data
 	if (
         !(friData.commandMsg.has_commandData &&
         (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE))
@@ -130,6 +131,7 @@ public:
         localport,  // 30200
         remotehost, // 192.170.10.2
         remoteport,  // 30200
+        send_period_millisec, // number of milliseconds between fri updates (1-5)
         is_running_automatically // true by default, this means that an internal thread will be created to run the driver.
     };
     
@@ -138,11 +140,11 @@ public:
       run_automatically = 1
     };
     
-    typedef std::tuple<std::string,std::string,std::string,std::string,ThreadingRunMode> Params;
+    typedef std::tuple<std::string,std::string,std::string,std::string,std::size_t,ThreadingRunMode> Params;
     
     
     static const Params defaultParams(){
-        return std::make_tuple(std::string("192.170.10.100"),std::string("30200"),std::string("192.170.10.2"),std::string("30200"),run_automatically);
+        return std::make_tuple(std::string("192.170.10.100"),std::string("30200"),std::string("192.170.10.2"),std::string("30200"),1/* ms per tick */,run_automatically);
     }
     
     
@@ -197,43 +199,6 @@ void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
 		
 	/// @todo fill out missing state update steps
 	
-}
-
-
-/// @deprecated this is an old implemenation that will be removed in the future
-/// encode data in the class into the send buffer
-/// @todo update the statements in here to run on the actual data types available
-std::size_t encode(KUKA::FRI::ClientData& friData,KukaState& state){
-    // Check whether to send a response
-    friData.lastSendCounter = 0;
-  
-    // set sequence counters
-    friData.commandMsg.header.sequenceCounter = friData.sequenceCounter++;
-    friData.commandMsg.header.reflectedSequenceCounter = friData.monitoringMsg.header.sequenceCounter;
-
-    // copy current joint position to commanded position
-	if ((state.ipoJointPosition.size() == KUKA::LBRState::NUM_DOF) &&
-        (((state.sessionState == KUKA::FRI::COMMANDING_WAIT)) || (state.sessionState == KUKA::FRI::COMMANDING_ACTIVE))
-       ) {
-       
-         KukaState::joint_state jointStateToCommand;
-        
-        // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
-        boost::transform ( state.ipoJointPosition, state.ipoJointPositionOffsets, std::back_inserter(jointStateToCommand), std::plus<KukaState::joint_state::value_type>());
-        
-        // copy the commanded position into the command message
-        set(friData.commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
-        
-		//BOOST_LOG_TRIVIAL(trace) << "ENCODE position: " << state.position << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << " jointStateToCommand: " << jointStateToCommand << "\n";
-    }else {
-        set(friData.commandMsg, state.commandedPosition, grl::revolute_joint_angle_open_chain_command_tag());
-    }
-	
-	int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
-        if (!friData.encoder.encode(friData.sendBuffer, buffersize))
-            return 0;
-	
-	return buffersize;
 }
 
 
@@ -695,10 +660,11 @@ public:
               new grl::robot::arm::KukaFRIClientDataDriver(
                   device_driver_io_service,
                   std::make_tuple(
-                      std::string(std::get<localhost >        (params)),
-                      std::string(std::get<localport >        (params)),
-                      std::string(std::get<remotehost>        (params)),
-                      std::string(std::get<remoteport>        (params)),
+                      std::string(std::get<localhost >                  (params)),
+                      std::string(std::get<localport >                  (params)),
+                      std::string(std::get<remotehost>                  (params)),
+                      std::string(std::get<remoteport>                  (params)),
+                                  std::get<send_period_millisec>        (params) ,
                       grl::robot::arm::KukaFRIClientDataDriver::run_automatically
                       )
                   )
@@ -722,6 +688,32 @@ public:
         }
       }
 
+    KukaState::joint_state getMaxVel()
+    {
+    
+                    /// @todo make maxVel a parameter rather than hardcoded
+                    /// @todo 0.1 just makes it move at a much smaller fraction of max speed. Properly integrate safety.
+                    double secondsPerTick = (std::get<send_period_millisec>(params_)/1000.0);
+                    // R820 velocity limits
+                    //A1 - 85 °/s  == 1.483529864195 rad/s
+                    //A2 - 85 °/s  == 1.483529864195 rad/s
+                    //A3 - 100 °/s == 1.745329251994 rad/s
+                    //A4 - 75 °/s  == 1.308996938996 rad/s
+                    //A5 - 130 °/s == 2.268928027593 rad/s
+                    //A6 - 135 °/s == 2.356194490192 rad/s
+                    //A1 - 135 °/s == 2.356194490192 rad/s
+                    KukaState::joint_state maxVel = {
+                                                        1.483529864195*secondsPerTick,
+                                                        1.483529864195*secondsPerTick,
+                                                        1.745329251994*secondsPerTick,
+                                                        1.308996938996*secondsPerTick,
+                                                        2.268928027593*secondsPerTick,
+                                                        2.356194490192*secondsPerTick,
+                                                        2.356194490192*secondsPerTick
+                                                        };
+                    return maxVel;
+    }
+        
 
      /**
       * spin once 
@@ -736,19 +728,38 @@ public:
           bool haveNewData = false;
 
           static const std::size_t minimumConsecutiveSuccessesBeforeSendingCommands = 100;
+          
+                    KukaState::joint_state ipoJointPos;
+                    KukaState::joint_state currentJointPos;
+                    KukaState::joint_state diffToGoal;
+                    KukaState::joint_state amountToMove;
+                    KukaState::joint_state commandToSend;
+                    KukaState::joint_state maxvel = getMaxVel();
+                    
+         
 
           // Set the FRI to the simulated joint positions
           if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands){
             boost::lock_guard<boost::mutex> lock(jt_mutex);
             switch (friData_->monitoringMsg.robotInfo.controlMode) {
               case ControlMode_POSITION_CONTROLMODE:
-                grl::robot::arm::set(friData_->commandMsg, armState.commandedPosition, grl::revolute_joint_angle_open_chain_command_tag());
+                    
+                    // the current "holdposition" joint angles
+                    grl::robot::arm::copy(friData_->monitoringMsg,std::back_inserter(currentJointPos),revolute_joint_angle_open_chain_state_tag());
+                    
+                    boost::transform ( armState.commandedPosition_goal, currentJointPos, std::back_inserter(diffToGoal), std::minus<double>());
+                    
+                    boost::transform(diffToGoal,maxvel,std::back_inserter(amountToMove), [&](double diff,double maxvel) { return boost::math::copysign(std::min(std::abs(diff),maxvel),diff); } );
+                    boost::transform ( currentJointPos, amountToMove, std::back_inserter(commandToSend), std::plus<double>());
+                    if(0) grl::robot::arm::set(friData_->commandMsg, commandToSend, grl::revolute_joint_angle_open_chain_command_tag());
+                    std::cout << "commandToSend: " << commandToSend << "\n" << "currentJointPos: " << currentJointPos << "\n" << "amountToMove: " << amountToMove << "\n" << "maxVel: " << maxvel << "\n";
                 break;
               case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
                 grl::robot::arm::set(friData_->commandMsg, armState.commandedTorque, grl::revolute_joint_torque_open_chain_command_tag());
                 break;
               case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
                 // not yet supported
+                grl::robot::arm::set(friData_->commandMsg, armState.commandedCartesianWrenchFeedForward, grl::cartesian_wrench_command_tag());
                 break;
 
               default:
@@ -765,16 +776,17 @@ public:
           if(haveNewData)
           {
               // if there were problems sending commands, start by sending the current position
-            if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands-1)
-            {
-              boost::lock_guard<boost::mutex> lock(jt_mutex);
-              // initialize arm commands to current arm position
-              armState.commandedPosition.clear();
-              armState.commandedTorque.clear();
-              grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.commandedPosition), grl::revolute_joint_angle_open_chain_command_tag());
-              grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.commandedTorque)   , grl::revolute_joint_torque_open_chain_command_tag());
-            }
-            
+//            if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands-1)
+//            {
+//              boost::lock_guard<boost::mutex> lock(jt_mutex);
+//              // initialize arm commands to current arm position
+//              armState.clearCommands();
+////              armState.commandedPosition.clear();
+////              armState.commandedTorque.clear();
+////              grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.commandedPosition), grl::revolute_joint_angle_open_chain_command_tag());
+////              grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.commandedTorque)   , grl::revolute_joint_torque_open_chain_command_tag());
+//            }
+          
             m_attemptedCommunicationConsecutiveSuccessCount++;
             this->m_attemptedCommunicationConsecutiveFailureCount = 0;
             this->m_haveReceivedRealDataCount++;
@@ -815,8 +827,9 @@ public:
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState.commandedPosition.clear();
+       armState.clearCommands();
        boost::copy(range, std::back_inserter(armState.commandedPosition));
+       boost::copy(range, std::back_inserter(armState.commandedPosition_goal));
     }
   
      /**
@@ -833,6 +846,7 @@ public:
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
+       armState.clearCommands();
       boost::copy(range, armState.commandedTorque);
     }
  
@@ -861,6 +875,7 @@ public:
    template<typename Range>
    void set(Range&& range, grl::cartesian_wrench_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
+       armState.clearCommands();
       std::copy(range,armState.commandedCartesianWrenchFeedForward);
     }
     

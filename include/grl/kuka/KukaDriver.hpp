@@ -38,8 +38,6 @@ namespace grl { namespace robot { namespace arm {
     class KukaDriver : public std::enable_shared_from_this<KukaDriver> {
     public:
 
-      const std::size_t KUKA_LBR_DOF = 7;
-
       enum ParamIndex {
         RobotTipName,
         RobotTargetName,
@@ -135,7 +133,7 @@ namespace grl { namespace robot { namespace arm {
 
         params_ = params;
         // keep driver threads from exiting immediately after creation, because they have work to do!
-        device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
+        //device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
 
         /// @todo figure out how to re-enable when .so isn't loaded
         if(    boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI"))
@@ -149,6 +147,7 @@ namespace grl { namespace robot { namespace arm {
                       std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
                       std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
                       std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
+                      ms_per_tick ,
                       grl::robot::arm::KukaFRIClientDataDriver::run_automatically
                       )
                   )
@@ -157,18 +156,22 @@ namespace grl { namespace robot { namespace arm {
               FRIdriverP_->construct();
         }
 
+        /// @todo implement reading configuration in both FRI and JAVA mode from JAVA interface
+        if(    boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA"))){
         try {
           JAVAdriverP_ = boost::make_shared<KukaJAVAdriver>(params_);
           JAVAdriverP_->construct();
 
           // start up the driver thread
           /// @todo perhaps allow user to control this?
-          driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
+          //driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
         } catch( boost::exception &e) {
           e << errmsg_info("KukaDriver: Unable to connect to ZeroMQ Socket from " + 
                            std::get<LocalZMQAddress>             (params_) + " to " + 
                            std::get<RemoteZMQAddress>            (params_));
           throw;
+        }
+        
         }
       }
 
@@ -249,9 +252,10 @@ namespace grl { namespace robot { namespace arm {
       */
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState.commandedPosition.clear();
-      boost::copy(range, std::back_inserter(armState.commandedPosition));
+       boost::unique_lock<boost::mutex> lock(jt_mutex);
+       armState.clearCommands();
+       boost::copy(range, std::back_inserter(armState.commandedPosition));
+       boost::copy(range, std::back_inserter(armState.commandedPosition_goal));
     }
   
      /**
@@ -267,9 +271,9 @@ namespace grl { namespace robot { namespace arm {
       */
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState.commandedTorque.clear();
-      boost::copy(range, std::back_inserter(armState.commandedTorque));
+       boost::unique_lock<boost::mutex> lock(jt_mutex);
+       armState.clearCommands();
+       boost::copy(range, std::back_inserter(armState.commandedTorque));
     }
  
    
@@ -296,15 +300,16 @@ namespace grl { namespace robot { namespace arm {
       */
    template<typename Range>
    void set(Range&& range, grl::cartesian_wrench_command_tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-      std::copy(range,armState.commandedCartesianWrenchFeedForward);
+       boost::unique_lock<boost::mutex> lock(jt_mutex);
+       armState.clearCommands();
+       std::copy(range,armState.commandedCartesianWrenchFeedForward);
     }
     
     /// @todo implement get function
     template<typename OutputIterator>
     void get(OutputIterator output, grl::revolute_joint_angle_open_chain_state_tag)
     {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       boost::unique_lock<boost::mutex> lock(jt_mutex);
         boost::copy(armState.position,output);
     }
     
@@ -312,7 +317,7 @@ namespace grl { namespace robot { namespace arm {
     template<typename OutputIterator>
     void get(OutputIterator output, grl::revolute_joint_torque_open_chain_state_tag)
     {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       boost::unique_lock<boost::mutex> lock(jt_mutex);
         boost::copy(armState.torque,output);
     }
       volatile std::size_t m_haveReceivedRealDataCount = 0;
@@ -328,11 +333,13 @@ namespace grl { namespace robot { namespace arm {
 
     private:
 
+      /// @todo read ms_per_tick from JAVA interface
+      std::size_t ms_per_tick = 1;
       KukaState armState;
 
+      boost::mutex jt_mutex;
       boost::shared_ptr<KukaFRIdriver> FRIdriverP_;
       boost::shared_ptr<KukaJAVAdriver> JAVAdriverP_;
-      boost::mutex jt_mutex;
 
       Params params_;
 
