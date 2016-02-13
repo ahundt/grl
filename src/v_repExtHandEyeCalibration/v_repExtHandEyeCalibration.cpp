@@ -15,6 +15,7 @@
 // This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
 
 
+#include "luaFunctionData.h"
 #include "v_repExtHandEyeCalibration.h"
 #include "grl/vrep/HandEyeCalibrationVrepPlugin.hpp"
 
@@ -56,13 +57,45 @@ std::shared_ptr<grl::HandEyeCalibrationVrepPlugin> handEyeCalibrationPG;
 }
 */
 
+
+const int inArgs_HAND_EYE_CALIB_START[]={
+ 4,                   //   Example Value              // Parameter name
+ sim_lua_arg_string,0, //  "RobotMillTip"            , // RobotBaseName,
+ sim_lua_arg_string,0, //  "RobotMillTipTarget"      , // RobotTipName,
+ sim_lua_arg_string,0, //  "Robotiiwa"               , // OpticalTrackerBaseName,
+ sim_lua_arg_string,0, //  "tcp://0.0.0.0:30010"     , // OpticalTrackerTipName
+};
+
+std::string LUA_SIM_EXT_HAND_EYE_CALIB_START_CALL_TIP("number result=simExtHandEyeCalibStart(string RobotBaseName , string RobotTipName, string OpticalTrackerBaseName, string OpticalTrackerDetectedObjectName) -- KukaCommandMode options are JAVA and FRI");
+
+
 void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
 {
   if (!handEyeCalibrationPG) {
   
     BOOST_LOG_TRIVIAL(info) << "v_repExtHandEyeCalibration Starting Hand Eye Calibration Plugin Data Collection\n";
-    handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
-    handEyeCalibrationPG->construct();
+    
+    	CLuaFunctionData data;
+
+    	if (data.readDataFromLua(p,inArgs_HAND_EYE_CALIB_START,inArgs_HAND_EYE_CALIB_START[0],"simExtHandEyeCalibStart"))
+        {
+    		std::vector<CLuaFunctionDataItem>* inData=data.getInDataPtr();
+            std::string RobotBaseName((inData->at(0 ).stringData[0]));
+            std::string RobotTipName((inData->at(1 ).stringData[0]));
+            std::string OpticalTrackerBaseName((inData->at(2 ).stringData[0]));
+            std::string OpticalTrackerDetectedObjectName(inData->at(3 ).stringData[0]);
+            handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>(
+                std::make_tuple(RobotBaseName , RobotTipName, OpticalTrackerBaseName, OpticalTrackerDetectedObjectName)
+        
+            );
+            handEyeCalibrationPG->construct();
+
+        }
+        else
+        {
+            handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
+            handEyeCalibrationPG->construct();
+        }
   }
 }
 
