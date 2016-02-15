@@ -118,6 +118,10 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
                 _lbr.getJointCount());
         
         
+        TeachMode tm = new TeachMode(_lbr);
+        Thread teachModeThread = new Thread(tm);
+        teachModeThread.start();
+        
         byte [] data = subscriber.recv();
         ByteBuffer bb = ByteBuffer.wrap(data);
 
@@ -139,7 +143,7 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
             byte state = armControlState.stateType();
             
             if (state == ArmState.MoveArmTrajectory) {
-            	
+            	tm.setActive(false);
             	theSmartServoRuntime.stopMotion();
             	if (currentMotion != null) {
             		currentMotion.cancel();
@@ -161,6 +165,10 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
 		            
 	            }
             } else if (state == ArmState.MoveArmServo) {
+            	if (currentMotion != null) {
+            		currentMotion.cancel();
+            	}
+            	tm.setActive(false);
             	
             	MoveArmServo mas = null;
             	armControlState.state(mas);
@@ -178,11 +186,13 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
             	if (currentMotion != null) {
             		currentMotion.cancel();
             	}
+            	tm.setActive(false);
             } else if (state == ArmState.TeachArm) {
             	theSmartServoRuntime.stopMotion();
             	if (currentMotion != null) {
             		currentMotion.cancel();
             	}
+            	tm.setActive(true);
             }
 
             //theSmartServoRuntime.setDestination(destination);
