@@ -22,12 +22,15 @@ import com.kuka.roboticsAPI.motionModel.MotionBatch;
 import com.kuka.roboticsAPI.motionModel.SmartServo;
 import com.kuka.roboticsAPI.userInterface.ServoMotionUtilities;
 
+import grl.flatbuffer.ArmConfiguration;
 import grl.flatbuffer.JointState;
 import grl.flatbuffer.ArmControlState;
 import grl.flatbuffer.ArmState;
 import grl.flatbuffer.MoveArmJoints;
 import grl.flatbuffer.MoveArmServo;
 import grl.flatbuffer.MoveArmTrajectory;
+import grl.flatbuffer.Quaternion;
+import grl.flatbuffer.Vector3d;
 
 /**
  * Creates a FRI Session.
@@ -40,6 +43,7 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
     private String _controllingLaptopIPAddress;
     private PhysicalObject _toolAttachedToLBR;
     private ISmartServoRuntime theSmartServoRuntime = null;
+	private String _controllingLaptopIPAddressConfig;
 
     @Override
     public void initialize()
@@ -54,6 +58,7 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         // *** change next line to the KUKA address and Port Number           ***
         // **********************************************************************
         _controllingLaptopIPAddress = "tcp://172.31.1.100:30010";
+        _controllingLaptopIPAddressConfig = "tcp://172.31.1.100:30011";
         
 
         // FIXME: Set proper Weights or use the plugin feature
@@ -78,7 +83,7 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         
         // TODO: remove default start pose
         // move do default start pose
-        _toolAttachedToLBR.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
+        //_toolAttachedToLBR.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
 
         
        // Prepare ZeroMQ context and dealer
@@ -86,8 +91,12 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         Socket subscriber = context.socket(ZMQ.DEALER);
         subscriber.connect(_controllingLaptopIPAddress);
         subscriber.setRcvHWM(1000000);
-     
-       
+        
+        Socket configSubscriber = context.socket(ZMQ.DEALER);
+        configSubscriber.connect(_controllingLaptopIPAddressConfig);
+        configSubscriber.setRcvHWM(1000000);
+
+        getArmConfiguration(configSubscriber);
 
         JointPosition initialPosition = new JointPosition(
                 _lbr.getCurrentJointPosition());
@@ -113,12 +122,6 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         ByteBuffer bb = ByteBuffer.wrap(data);
 
         ArmControlState armControlState = ArmControlState.getRootAsArmControlState(bb);
-
-        // move to start pose
-        //_lbr.move(ptp(initialPosition));//ptp(jointState.position(0), jointState.position(1), jointState.position(2), jointState.position(3), jointState.position(4), jointState.position(5), jointState.position(6)));
-		//.setJointAccelerationRel(acceleration));
-
- 
         IMotionContainer currentMotion = null;
         
         // Receive Flat Buffer and Move to Position
@@ -137,6 +140,11 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
             
             if (state == ArmState.MoveArmTrajectory) {
             	
+            	theSmartServoRuntime.stopMotion();
+            	if (currentMotion != null) {
+            		currentMotion.cancel();
+            	}
+            	
             	MoveArmTrajectory maj = null;
             	armControlState.state(maj);
 
@@ -148,8 +156,8 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
 		            {
 		            	//destination.set(k, maj.traj(j).position(k));
 		            	pos.set(k, maj.traj(j).position(k));
+			        	currentMotion = _lbr.moveAsync(ptp(pos));
 		            }
-		        	currentMotion = _lbr.moveAsync(ptp(pos));
 		            
 	            }
             } else if (state == ArmState.MoveArmServo) {
@@ -166,12 +174,18 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
                 theSmartServoRuntime.setDestination(destination);
             	
             } else if (state == ArmState.StopArm) {
-            	// stop all 
+            	theSmartServoRuntime.stopMotion();
+            	if (currentMotion != null) {
+            		currentMotion.cancel();
+            	}
             } else if (state == ArmState.TeachArm) {
-            	
+            	theSmartServoRuntime.stopMotion();
+            	if (currentMotion != null) {
+            		currentMotion.cancel();
+            	}
             }
 
-            theSmartServoRuntime.setDestination(destination);
+            //theSmartServoRuntime.setDestination(destination);
             // TODO: test to make sure the accelerations are present
             //double[] acceleration = {jointState.acceleration(0),jointState.acceleration(1),jointState.acceleration(2),jointState.acceleration(3),jointState.acceleration(4),jointState.acceleration(5),jointState.acceleration(6)};
 
@@ -187,7 +201,29 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         friSession.close();
     }
 
-    /**
+    private void getArmConfiguration(Socket sub) {
+        byte [] data = sub.recv();
+        ByteBuffer bb = ByteBuffer.wrap(data);
+
+        ArmConfiguration conf = ArmConfiguration.getRootAsArmConfiguration(bb);
+        
+        Vector3d toolpos = conf.tool().pose().position();
+        Quaternion toolrot = conf.tool().pose().orientation();
+        Vector3d compos = conf.tool().centerOfMass().position();
+        Quaternion comrot = conf.tool().centerOfMass().orientation();
+
+        double[] translationOfTool =
+        { toolpos.x(), toolpos.y(), toolpos.z() };
+        double[] centerOfMassInMillimeter =
+        { comrot.x(), comrot.y(), comrot.z() };
+        
+        _toolAttachedToLBR = ServoMotionUtilities.createTool(_lbr,
+        		conf.tool().name(), translationOfTool,
+        		conf.tool().mass(),
+                centerOfMassInMillimeter);
+	}
+
+	/**
      * main.
      * 
      * @param args
