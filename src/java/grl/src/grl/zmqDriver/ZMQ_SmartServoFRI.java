@@ -1,4 +1,4 @@
-package zmqDriver;
+package grl.zmqDriver;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
@@ -19,7 +19,7 @@ import com.kuka.roboticsAPI.motionModel.ISmartServoRuntime;
 import com.kuka.roboticsAPI.motionModel.SmartServo;
 import com.kuka.roboticsAPI.userInterface.ServoMotionUtilities;
 
-import flatbuffers.JointState;
+import grl.flatbuffer.JointState;
 
 /**
  * Creates a FRI Session.
