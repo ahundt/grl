@@ -51,13 +51,7 @@ class KukaVrepPlugin : public std::enable_shared_from_this<KukaVrepPlugin> {
 public:
 
     enum ParamIndex {
-        Joint1Name, 
-        Joint2Name, 
-        Joint3Name, 
-        Joint4Name, 
-        Joint5Name, 
-        Joint6Name, 
-        Joint7Name,
+        JointNames,
         RobotTipName,
         RobotTargetName,
         RobotTargetBaseName,
@@ -73,13 +67,7 @@ public:
     };
     
     typedef std::tuple<
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
+        std::vector<std::string>,
         std::string,
         std::string,
         std::string,
@@ -96,14 +84,17 @@ public:
     
     
     static const Params defaultParams(){
+        std::vector<std::string> jointHandles;
+        
+        jointHandles.push_back("LBR_iiwa_14_R820_joint1"); // Joint1Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint2"); // Joint2Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint3"); // Joint3Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint4"); // Joint4Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint5"); // Joint5Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint6"); // Joint6Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint7"); // Joint7Handle,
         return std::make_tuple(
-                    "LBR_iiwa_14_R820_joint1" , // Joint1Handle, 
-                    "LBR_iiwa_14_R820_joint2" , // Joint2Handle, 
-                    "LBR_iiwa_14_R820_joint3" , // Joint3Handle, 
-                    "LBR_iiwa_14_R820_joint4" , // Joint4Handle, 
-                    "LBR_iiwa_14_R820_joint5" , // Joint5Handle, 
-                    "LBR_iiwa_14_R820_joint6" , // Joint6Handle, 
-                    "LBR_iiwa_14_R820_joint7" , // Joint7Handle,
+                    jointHandles              , // JointHandles,
                     "RobotMillTip"            , // RobotTipHandle,
                     "RobotMillTipTarget"      , // RobotTargetHandle,
                     "Robotiiwa"               , // RobotTargetBaseHandle,
@@ -201,16 +192,7 @@ void initHandles() {
     vrepRobotArmDriverP_ = std::make_shared<VrepRobotArmDriver>
     (
         std::make_tuple(
-            std::vector<std::string>
-            {
-                std::get<Joint1Name>             (params_),
-                std::get<Joint2Name>             (params_),
-                std::get<Joint3Name>             (params_),
-                std::get<Joint4Name>             (params_),
-                std::get<Joint5Name>             (params_),
-                std::get<Joint6Name>             (params_),
-                std::get<Joint7Name>             (params_)
-            },
+            std::get<JointNames>             (params_),
             std::get<RobotTipName>           (params_),
             std::get<RobotTargetName>        (params_),
             std::get<RobotTargetBaseName>    (params_),

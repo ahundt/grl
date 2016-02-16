@@ -28,16 +28,12 @@
 #       be placed in the lib/[<lang>/]grl/ directory,
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
+if(TRTK_FOUND)
+basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${TRTK_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+basis_add_library(v_repExtPivotCalibration SHARED v_repExtPivotCalibration.cpp )
+basis_target_link_libraries(v_repExtPivotCalibration ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${Boost_LOG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}  v_repLib TRTK)
+endif()
 
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
-
-add_subdirectory(ros)
-add_subdirectory(v_rep)
-add_subdirectory(v_repExtUniversalRobotsPlugin)
-add_subdirectory(v_repExtKukaLBRiiwaPlugin)
-add_subdirectory(v_repExtHandEyeCalibration)
-add_subdirectory(v_repExtPivotCalibration)
-add_subdirectory(v_repExtGrlInverseKinematics)
 
 # ============================================================================
 # executable target(s)
