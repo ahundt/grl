@@ -4,9 +4,7 @@ import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 import java.nio.ByteBuffer;
 
-import org.jeromq.ZMQ;
-import org.jeromq.ZMQ.Context;
-import org.jeromq.ZMQ.Socket;
+import org.zeromq.ZMQ;
 
 import com.google.flatbuffers.Table;
 import com.kuka.connectivity.fri.FRIConfiguration;
@@ -31,7 +29,7 @@ import grl.flatbuffer.MoveArmServo;
 import grl.flatbuffer.MoveArmTrajectory;
 import grl.flatbuffer.Quaternion;
 import grl.flatbuffer.Vector3d;
-import grl.flatbuffer.kuka.iiwa.KUKAiiwaArmConfiguration;
+import grl.flatbuffer.KUKAiiwaArmConfiguration;
 
 /**
  * Creates a FRI Session.
@@ -89,12 +87,12 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
 
         
        // Prepare ZeroMQ context and dealer
-        Context context = ZMQ.context(1);
-        Socket subscriber = context.socket(ZMQ.DEALER);
+        ZMQ.Context context = ZMQ.context(1);
+        ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
         subscriber.connect(_controllingLaptopIPAddress);
         subscriber.setRcvHWM(1000000);
         
-        Socket configSubscriber = context.socket(ZMQ.DEALER);
+        ZMQ.Socket configSubscriber = context.socket(ZMQ.DEALER);
         configSubscriber.connect(_controllingLaptopIPAddressConfig);
         configSubscriber.setRcvHWM(1000000);
 
@@ -136,11 +134,13 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         ArmControlState armControlState = ArmControlState.getRootAsArmControlState(bb);
         IMotionContainer currentMotion = null;
         
+        boolean stop = false;
+        
         // Receive Flat Buffer and Move to Position
         // TODO: make into while loop and add exception to exit loop
         // TODO: add a message that we send to the driver with data log strings
         // TODO: add a message we receive (and send) that tells the other application to stop running
-        for (int i=0; i<100000; i++) {
+        while (!stop) {
         	// TODO: IMPORTANT: this recv call must be made asynchronous
             data = subscriber.recv();
             
@@ -204,6 +204,9 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
 	            		currentMotion.cancel();
 	            	}
 	            	tm.setActive(true);
+	            } else {
+	            	System.out.println("Unsupported Mode! stopping");
+	            	stop = true;
 	            }
 	
 	            //theSmartServoRuntime.setDestination(destination);

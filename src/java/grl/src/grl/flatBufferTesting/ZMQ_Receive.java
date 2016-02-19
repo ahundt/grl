@@ -2,9 +2,7 @@ package grl.flatBufferTesting;
 
 import java.util.concurrent.TimeUnit;
  
-import org.jeromq.ZMQ;
-import org.jeromq.ZMQ.Context;
-import org.jeromq.ZMQ.Socket;
+import org.zeromq.ZMQ;
  
 //https://github.com/miniway/jeromq/tree/master/src/test/java/guide
 public class ZMQ_Receive {
@@ -14,8 +12,8 @@ public class ZMQ_Receive {
         long bTime = System.currentTimeMillis();
  
         // Prepare our context and dealer
-        Context context = ZMQ.context(1);
-        Socket subscriber = context.socket(ZMQ.DEALER);
+        ZMQ.Context context = ZMQ.context(1);
+        ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
  
         subscriber.connect(ADDRESS);
         subscriber.setRcvHWM(1000000);

@@ -1,9 +1,7 @@
 package grl.flatBufferTesting;
 
 import java.util.concurrent.TimeUnit;
-import org.jeromq.ZMQ;
-import org.jeromq.ZMQ.Context;
-import org.jeromq.ZMQ.Socket;
+import org.zeromq.ZMQ;
  
 public class ZMQ_Send {
     static final String TOPIC = "topic1";
@@ -12,8 +10,8 @@ public class ZMQ_Send {
         long bTime = System.currentTimeMillis();
         
         // Prepare our context and publisher
-        Context context = ZMQ.context(1);
-        Socket publisher = context.socket(ZMQ.DEALER);
+        ZMQ.Context context = ZMQ.context(1);
+        ZMQ.Socket publisher = context.socket(ZMQ.DEALER);
         publisher.bind("tcp://127.0.0.1:5563");
         publisher.setHWM(1000000);
         publisher.setSndHWM(1000000);
@@ -22,7 +20,7 @@ public class ZMQ_Send {
         while (c < NUM_MSG) {
         	byte [] msg = {0,1,2,3,4,(byte) c};
             c++;
-            publisher.send(msg);
+            publisher.send(msg,0);
             System.out.println(msg);
         }
         

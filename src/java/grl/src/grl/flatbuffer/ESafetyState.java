@@ -1,6 +1,6 @@
 // automatically generated, do not modify
 
-package grl.flatbuffer.kuka.iiwa;
+package grl.flatbuffer;
 
 public final class ESafetyState {
   private ESafetyState() { }
