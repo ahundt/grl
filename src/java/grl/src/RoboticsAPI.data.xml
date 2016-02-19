@@ -3,4 +3,8 @@
     <world>
         <gravitation x="0.0" y="0.0" z="9.81"/>
     </world>
+    <processDataContainer>
+        <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Velocity Relative" id="jointVelRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
+        <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Acceleration Relative" id="jointAccRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
+    </processDataContainer>
 </RoboticsAPIData>

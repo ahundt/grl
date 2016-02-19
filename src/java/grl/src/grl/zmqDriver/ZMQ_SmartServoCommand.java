@@ -103,8 +103,10 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         SmartServo aSmartServoMotion = new SmartServo(initialPosition);
 
         // Set the motion properties to 20% of systems abilities
-        aSmartServoMotion.setJointAccelerationRel(0.2);
-        aSmartServoMotion.setJointVelocityRel(0.2);
+        double jointVelRel = getApplicationData().getProcessData("jointVelRel").getValue();
+        double jointAccRel = getApplicationData().getProcessData("jointAccRel").getValue();
+        aSmartServoMotion.setJointAccelerationRel(jointVelRel);
+        aSmartServoMotion.setJointVelocityRel(jointAccRel);
 
         aSmartServoMotion.setMinimumTrajectoryExecutionTime(20e-3);
 
@@ -187,6 +189,7 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
             		currentMotion.cancel();
             	}
             	tm.setActive(false);
+            	
             } else if (state == ArmState.TeachArm) {
             	theSmartServoRuntime.stopMotion();
             	if (currentMotion != null) {
