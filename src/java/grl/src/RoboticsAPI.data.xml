@@ -6,5 +6,8 @@
     <processDataContainer>
         <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Velocity Relative" id="jointVelRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
         <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Acceleration Relative" id="jointAccRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
+        <processData dataType="java.lang.String" defaultValue="tcp://172.31.1.100:30010" displayName="Control Address" id="controlAddress" unit="IP4 Address" value="tcp://172.31.1.100:30010"/>
+        <processData dataType="java.lang.String" defaultValue="tcp://172.31.1.100:30011" displayName="Configuration Address" id="configAddress" unit="IP4 Address" value="tcp://172.31.1.100:30011"/>
+        <processData dataType="java.lang.String" defaultValue="192.170.10.100" displayName="Host Address" id="hostAddress" unit="IP4 Address" value="192.170.10.100"/>
     </processDataContainer>
 </RoboticsAPIData>
