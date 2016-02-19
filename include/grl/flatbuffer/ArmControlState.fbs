@@ -1,4 +1,5 @@
 include "JointState.fbs";
+include "Geometry.fbs";
 
 namespace grl.flatbuffer;
 
@@ -21,13 +22,19 @@ table MoveArmTrajectory {
   traj:[JointState];
 }
 
-table MoveArmServo {
+table MoveArmJointServo {
   goal:JointState;
 }
 
-union ArmState { StartArm, StopArm, PauseArm, TeachArm, MoveArmTrajectory, MoveArmServo }
+table MoveArmCartesianServo {
+  parent:string; // Object/Frame/Coordinate System to move wrt
+  goal:Pose;
+}
+
+union ArmState { StartArm, StopArm, PauseArm, TeachArm, MoveArmTrajectory, MoveArmJointServo, MoveArmCartesianServo }
 
 table ArmControlState {
+  name:string;   // entity to move
   sequenceNumber:long;
   timeStamp:double;
   state:ArmState;

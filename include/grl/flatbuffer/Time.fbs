@@ -1,0 +1,8 @@
+
+namespace grl.flatbuffer;
+
+struct Time {
+  sec:double;
+  // sec:long;  // should sec/nsec be it?
+  // nsec:long; 
+}
