@@ -22,19 +22,24 @@ public final class JointState extends Table {
   public double acceleration(int j) { int o = __offset(8); return o != 0 ? bb.getDouble(__vector(o) + j * 8) : 0; }
   public int accelerationLength() { int o = __offset(8); return o != 0 ? __vector_len(o) : 0; }
   public ByteBuffer accelerationAsByteBuffer() { return __vector_as_bytebuffer(8, 8); }
+  public double torque(int j) { int o = __offset(10); return o != 0 ? bb.getDouble(__vector(o) + j * 8) : 0; }
+  public int torqueLength() { int o = __offset(10); return o != 0 ? __vector_len(o) : 0; }
+  public ByteBuffer torqueAsByteBuffer() { return __vector_as_bytebuffer(10, 8); }
 
   public static int createJointState(FlatBufferBuilder builder,
-      int positionOffset,
-      int velocityOffset,
-      int accelerationOffset) {
-    builder.startObject(3);
-    JointState.addAcceleration(builder, accelerationOffset);
-    JointState.addVelocity(builder, velocityOffset);
-    JointState.addPosition(builder, positionOffset);
+      int position,
+      int velocity,
+      int acceleration,
+      int torque) {
+    builder.startObject(4);
+    JointState.addTorque(builder, torque);
+    JointState.addAcceleration(builder, acceleration);
+    JointState.addVelocity(builder, velocity);
+    JointState.addPosition(builder, position);
     return JointState.endJointState(builder);
   }
 
-  public static void startJointState(FlatBufferBuilder builder) { builder.startObject(3); }
+  public static void startJointState(FlatBufferBuilder builder) { builder.startObject(4); }
   public static void addPosition(FlatBufferBuilder builder, int positionOffset) { builder.addOffset(0, positionOffset, 0); }
   public static int createPositionVector(FlatBufferBuilder builder, double[] data) { builder.startVector(8, data.length, 8); for (int i = data.length - 1; i >= 0; i--) builder.addDouble(data[i]); return builder.endVector(); }
   public static void startPositionVector(FlatBufferBuilder builder, int numElems) { builder.startVector(8, numElems, 8); }
@@ -44,6 +49,9 @@ public final class JointState extends Table {
   public static void addAcceleration(FlatBufferBuilder builder, int accelerationOffset) { builder.addOffset(2, accelerationOffset, 0); }
   public static int createAccelerationVector(FlatBufferBuilder builder, double[] data) { builder.startVector(8, data.length, 8); for (int i = data.length - 1; i >= 0; i--) builder.addDouble(data[i]); return builder.endVector(); }
   public static void startAccelerationVector(FlatBufferBuilder builder, int numElems) { builder.startVector(8, numElems, 8); }
+  public static void addTorque(FlatBufferBuilder builder, int torqueOffset) { builder.addOffset(3, torqueOffset, 0); }
+  public static int createTorqueVector(FlatBufferBuilder builder, double[] data) { builder.startVector(8, data.length, 8); for (int i = data.length - 1; i >= 0; i--) builder.addDouble(data[i]); return builder.endVector(); }
+  public static void startTorqueVector(FlatBufferBuilder builder, int numElems) { builder.startVector(8, numElems, 8); }
   public static int endJointState(FlatBufferBuilder builder) {
     int o = builder.endObject();
     return o;
