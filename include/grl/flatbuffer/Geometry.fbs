@@ -7,13 +7,6 @@ struct Vector3d {
   z:double;
 }
 
-// euler angles in DEGREES
-struct EulerXYZd {
-  rx:double;
-  ry:double;
-  rz:double;
-}
-
 struct Quaternion {
   x:double;
   y:double;
@@ -47,3 +40,4 @@ struct Inertia {
   iyz:double;
   izz:double;
 }
+

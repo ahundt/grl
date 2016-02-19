@@ -1,10 +1,16 @@
 
 include "LinkObject.fbs";
 include "JointState.fbs";
+include "Euler.fbs";
 
-namespace grl.flatbuffer.kuka.iiwa;
+namespace grl.flatbuffer;
 
-
+enum KUKAiiwaInterface : short {
+   Disabled = 0,
+   SmartServo,
+   DirectServo,
+   FRI
+}
 
 enum EClientCommandMode : byte {
    NO_COMMAND_MODE = 0,
@@ -40,12 +46,71 @@ enum ESafetyState : byte {
   SAFETY_STOP_LEVEL_2
 }
 
+table CartesianImpedenceControlMode {
+  stiffness:EulerPoseParams; // actual stiffness to set rot:[nm/rad]
+  maxPathDeviation:EulerPose; // maximum deviation from set goal in mm and radians
+  maxJointSpeed:[double]; // sets the maximum joint speed
+  maxCartesianVelocity:EulerPose; // trans: [mm/s] rot: [rad/s]
+  maxControlForce:EulerPose;  // xyz: Newtons rpy:Nm (all >=0)
+  maxControlForceExceededStop:bool = 0; // stop if max control force is exceeded
+  nullspaceDamping:double; // must be between 0.3-1.0 suggested is 0.7
+  nullspaceStiffness:double; // [Nm/rad] must be => 0.0
+}
+
+
+table JointImpedenceControlMode {
+  stiffness:[double]; //  rot:[nm/rad]
+  damping:[double]; // must be between 0 and 1
+}
+
+
+
 
 table Disabled {
 }
 
 table FRI {
-  sendPeriodMillisec:short;
+  // Set the value for the send period of the connection from the KUKA controller to the remote side in [ms]. 
+  // This means, the KUKA controller will send cyclic FRI messages every sendPeriod milliseconds to the remote side. 
+  // 
+  // 
+  // Parameters:
+  // sendPeriod - the send period in milliseconds, 1 <= sendPeriod <= 100. 
+  // Note: The recommended value for good performance should be between 1-5 milliseconds. 
+
+  sendPeriodMillisec:int;
+  
+  // Set the receive multiplier of the cycle time from the remote side to the KUKA controller. 
+  // This multiplier defines the value of the receivePeriod which is calculated:
+  // receivePeriod = receiveMultiplier * sendPeriod 
+  // 
+  // The KUKA controller will expect a FRI response message every receivePeriod milliseconds from the remote side. 
+  // 
+  // The receivePeriod has to be within the range of:
+  // 1 <= receivePeriod <= 100. 
+   
+  setReceiveMultiplier:int;
+    
+  // Set the port ID of the socket at the controller side. 
+  // Note: Do not change this port ID, unless your application requires different port IDs on both ends of the FRI channel.
+  // For changing the FRI port ID on both sides, it is sufficient to call setPortOnRemote(int). 
+  // Values of controllerPortID:  
+  // "-1" - The configuration of setPortOnRemote(int) is used. This is the default. 
+  // recommended range of port IDs: 30200 <= controllerPortID < 30210
+  portOnRemote:short;
+  
+  //  Set the port ID of the FRI channel at the remote side. 
+  //  By default, this port ID is used on both sides of the FRI channel, unless specified otherwise by setPortOnController(int). 
+  //
+  //  Values of portID: 
+  //
+  //  default port ID: 30200 
+  //  recommended range of port IDs: 30200 <= portID < 30210 
+  //  Since the FRI channel utilizes UDP as connection layer, make sure, that your network topology (firewall, network services) are chosen accordingly. 
+  //
+  //  Parameters:
+  //  portID - the port ID > 0 (also known as UDP port number)
+  portOnController:short;
 }
 
 table SmartServo {
@@ -54,10 +119,6 @@ table SmartServo {
 }
 // Operation Mode isn't needed because it can be read directly from the device
 // enum EOperationMode :byte {}
-
-
-
-union CommunicationInterface { Disabled, FRI, SmartServo }
 
 table ProcessData {
   dataType:string;
@@ -70,18 +131,22 @@ table ProcessData {
   value:string;
 }
 
-table CheckTorqueSensor {
-   
-}
-
 // Set the configuration of the Kuka iiwa
 table KUKAiiwaArmConfiguration {
-  name:string;
-  commandInterface:CommunicationInterface;
-  monitorInterface:CommunicationInterface;
-  clientCommandMode:EClientCommandMode; // motion command mode, cartesian, wrench, torque
+  name:string; // robot name
+  commandInterface:KUKAiiwaInterface; // how commands will be sent to robot
+  monitorInterface:KUKAiiwaInterface; // how robot state will be sent to driver
+  
+  clientCommandMode:EClientCommandMode; // motion command mode: cartesian, wrench, torque commands
+  overlayType:EOverlayType; // The type of commands FRI will use: cartesian, joint
+  controlMode:EControlMode; // position, cartesian impedence, or joint impedence low level controller adjustments   
+  
+  smartServoConfig:SmartServo;
+  FRIConfig:FRI;
+  
   tools:[LinkObject];
-  currentMotionCenter:string; 
+  processData:[ProcessData]; // set kuka tablet "processData" panel UI config strings
+  currentMotionCenter:string;
   
 }
 

@@ -1,0 +1,79 @@
+include "Geometry.fbs";
+
+namespace grl.flatbuffer;
+
+
+// euler angles in DEGREES
+struct EulerXYZd {
+  rx:double;
+  ry:double;
+  rz:double;
+}
+
+enum EulerOrder : byte {
+// tait bryan angles
+xyz = 0,
+yzx,
+zxy,
+xzy,
+zyx,
+yxz,
+
+
+// proper euler angles
+zxz,
+xyx,
+yzy,
+xzx,
+yxy
+}
+
+struct EulerRotation {
+  r1:double; // axis 1 in radians specified by EulerOrder
+  r2:double; // axis 2 in radians specified by EulerOrder
+  r3:double; // axis 3 in radians specified by EulerOrder
+  eulerOrder:EulerOrder = xyz;
+}
+
+struct EulerPose { 
+   position:Vector3d;
+   rotation:EulerRotation;
+}
+
+
+
+
+
+// These are params, so fields are optional
+// used for configuration of functionality
+// such as optional axis constraints
+//
+// If you are unsure, use the struct above
+table EulerTranslationParams {
+  x:double;
+  y:double;
+  z:double;
+}
+
+// These are params, so fields are optional
+// used for configuration of functionality
+// such as optional axis constraints
+//
+// If you are unsure, use the struct above
+table EulerRotationParams {
+  r1:double; // axis 1 in radians specified by EulerOrder
+  r2:double; // axis 2 in radians specified by EulerOrder
+  r3:double; // axis 3 in radians specified by EulerOrder
+  eulerOrder:EulerOrder = xyz;
+}
+
+// These are params, so fields are optional
+// used for configuration of functionality
+// such as the axis on which cartesian impedence is enabled
+//
+// If you are unsure, use the struct above
+table EulerPoseParams { 
+   position:Vector3d;
+   rotation:EulerRotation;
+}
+
