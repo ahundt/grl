@@ -2,6 +2,8 @@
 
 package grl.flatbuffer.kuka.iiwa;
 
+import grl.flatbuffer.LinkObject;
+
 import java.nio.*;
 import java.lang.*;
 import java.util.*;
