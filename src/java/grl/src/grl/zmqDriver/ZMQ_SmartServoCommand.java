@@ -53,12 +53,13 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         // **********************************************************************
         // *** change next line to the FRIClient's IP address                 ***
         // **********************************************************************
-        _hostName = "192.170.10.100";
+        _hostName = getApplicationData().getProcessData("hostAddress").getValue(); //"192.170.10.100";
+        
         // **********************************************************************
         // *** change next line to the KUKA address and Port Number           ***
         // **********************************************************************
-        _controllingLaptopIPAddress = "tcp://172.31.1.100:30010";
-        _controllingLaptopIPAddressConfig = "tcp://172.31.1.100:30011";
+        _controllingLaptopIPAddress = getApplicationData().getProcessData("controlAddress").getValue(); //"tcp://172.31.1.100:30010";
+        _controllingLaptopIPAddressConfig = getApplicationData().getProcessData("configAddress").getValue(); //"tcp://172.31.1.100:30011";
         
 
         // FIXME: Set proper Weights or use the plugin feature
