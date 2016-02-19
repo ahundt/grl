@@ -13,14 +13,14 @@ public final class MoveArmTrajectory extends Table {
   public static MoveArmTrajectory getRootAsMoveArmTrajectory(ByteBuffer _bb, MoveArmTrajectory obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public MoveArmTrajectory __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
 
-  public grl.flatbuffer.JointState traj(int j) { return traj(new grl.flatbuffer.JointState(), j); }
-  public grl.flatbuffer.JointState traj(grl.flatbuffer.JointState obj, int j) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
+  public JointState traj(int j) { return traj(new JointState(), j); }
+  public JointState traj(JointState obj, int j) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
   public int trajLength() { int o = __offset(4); return o != 0 ? __vector_len(o) : 0; }
 
   public static int createMoveArmTrajectory(FlatBufferBuilder builder,
-      int trajOffset) {
+      int traj) {
     builder.startObject(1);
-    MoveArmTrajectory.addTraj(builder, trajOffset);
+    MoveArmTrajectory.addTraj(builder, traj);
     return MoveArmTrajectory.endMoveArmTrajectory(builder);
   }
 

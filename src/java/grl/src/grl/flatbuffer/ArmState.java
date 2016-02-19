@@ -10,9 +10,10 @@ public final class ArmState {
   public static final byte PauseArm = 3;
   public static final byte TeachArm = 4;
   public static final byte MoveArmTrajectory = 5;
-  public static final byte MoveArmServo = 6;
+  public static final byte MoveArmJointServo = 6;
+  public static final byte MoveArmCartesianServo = 7;
 
-  private static final String[] names = { "NONE", "StartArm", "StopArm", "PauseArm", "TeachArm", "MoveArmTrajectory", "MoveArmServo", };
+  private static final String[] names = { "NONE", "StartArm", "StopArm", "PauseArm", "TeachArm", "MoveArmTrajectory", "MoveArmJointServo", "MoveArmCartesianServo", };
 
   public static String name(int e) { return names[e]; }
 };

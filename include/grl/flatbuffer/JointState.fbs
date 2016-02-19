@@ -6,6 +6,7 @@ table JointState {
   position:[double]; // angle in radians
   velocity:[double]; // velocity in radians/second
   acceleration:[double]; // acceleration in radians/(second^2)
+  torque:[double]; // Newton Meters (N*m)
 }
 
 root_type JointState;

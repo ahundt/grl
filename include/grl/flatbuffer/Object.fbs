@@ -6,7 +6,6 @@ namespace grl.flatbuffer;
 table Object {
   name:string;
   parent:string;
-  pose:Frame;
-  centerOfMass:Frame;
-  mass:double;
+  pose:Pose;
+  inertia:Inertia;
 }

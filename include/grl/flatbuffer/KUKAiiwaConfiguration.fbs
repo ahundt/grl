@@ -1,0 +1,55 @@
+
+include "Object.fbs";
+
+namespace grl.flatbuffer.kuka.iiwa;
+
+
+table Disabled {
+}
+
+table FRI {
+  sendPeriodMillisec:short;
+}
+
+table SmartServo {
+}
+
+enum EClientCommandMode : byte {
+   NO_COMMAND_MODE = 0,
+   POSITION,
+   WRENCH,
+   TORQUE
+}
+
+enum EOverlayType : byte {
+  NO_OVERLAY=0,
+  JOINT,
+  CARTESIAN
+}
+
+//enum EOperationMode :byte {
+//}
+
+
+
+union CommunicationInterface { Disabled, FRI, SmartServo }
+
+table ProcessData {
+  dataType:string;
+  defaultValue:string;
+  displayName:string;
+  id:string;
+  min:string;
+  max:string;
+  unit:string;
+  value:string;
+}
+
+
+table KUKAiiwaArmConfiguration {
+  name:string;
+  commandInterface:CommunicationInterface;
+  monitorInterface:CommunicationInterface;
+  tools:[Object];
+  currentMotionCenter:string;
+}
