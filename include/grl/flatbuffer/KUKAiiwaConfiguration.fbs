@@ -1,7 +1,44 @@
 
-include "Object.fbs";
+include "LinkObject.fbs";
+include "JointState.fbs";
 
 namespace grl.flatbuffer.kuka.iiwa;
+
+
+
+enum EClientCommandMode : byte {
+   NO_COMMAND_MODE = 0,
+   POSITION,
+   WRENCH,
+   TORQUE
+}
+
+// Full autonomous vs 2 speeds of safety modes
+enum EOperationMode : byte {
+  TEST_MODE_1 = 0,
+  TEST_MODE_2 = 1,
+  AUTOMATIC_MODE = 2
+}
+
+enum EOverlayType : byte {
+  NO_OVERLAY=0,
+  JOINT,
+  CARTESIAN
+}
+
+enum EControlMode : byte {
+  POSITION_CONTROL_MODE=0,
+  CART_IMP_CONTROL_MODE=1,
+  JOINT_IMP_CONTROL_MODE=2,
+  NO_CONTROL=3
+}
+
+enum ESafetyState : byte {
+  NORMAL_OPERATION = 0,
+  SAFETY_STOP_LEVEL_0,
+  SAFETY_STOP_LEVEL_1,
+  SAFETY_STOP_LEVEL_2
+}
 
 
 table Disabled {
@@ -12,23 +49,11 @@ table FRI {
 }
 
 table SmartServo {
+  jointAccelerationRel:[double]; // normalized joint accelerations from 0 to 1
+  jointVelocityRel:[double]; // normalized joint velocity from 0 to 1
 }
-
-enum EClientCommandMode : byte {
-   NO_COMMAND_MODE = 0,
-   POSITION,
-   WRENCH,
-   TORQUE
-}
-
-enum EOverlayType : byte {
-  NO_OVERLAY=0,
-  JOINT,
-  CARTESIAN
-}
-
-//enum EOperationMode :byte {
-//}
+// Operation Mode isn't needed because it can be read directly from the device
+// enum EOperationMode :byte {}
 
 
 
@@ -45,11 +70,39 @@ table ProcessData {
   value:string;
 }
 
+table CheckTorqueSensor {
+   
+}
 
+// Set the configuration of the Kuka iiwa
 table KUKAiiwaArmConfiguration {
   name:string;
   commandInterface:CommunicationInterface;
   monitorInterface:CommunicationInterface;
-  tools:[Object];
-  currentMotionCenter:string;
+  clientCommandMode:EClientCommandMode; // motion command mode, cartesian, wrench, torque
+  tools:[LinkObject];
+  currentMotionCenter:string; 
+  
 }
+
+// Get configuration data from the arm that doesn't change often
+table KUKAiiwaMonitorConfiguration {
+   hardwareVersion:string;
+   torqueSensorLimits:[double];
+   isReadyToMove:bool;
+   isMastered:bool; // check if all joints are mastered (built in calibration of joints)
+}
+
+// Get state data for the arm (things that change often)
+table KUKAiiwaMonitorState {
+   measuredState:JointState;
+   cartesianFlangePose:Pose; // cartesian pose of the flange relative to the base of the arm
+   jointTorques:[double];
+   externalJointTorques:[double];
+   
+   operationMode:EOperationMode;
+   
+   
+}
+
+root_type KUKAiiwaArmConfiguration;
