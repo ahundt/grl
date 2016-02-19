@@ -2,6 +2,9 @@
 
 package grl.flatbuffer.kuka.iiwa;
 
+import grl.flatbuffer.JointState;
+import grl.flatbuffer.Pose;
+
 import java.nio.*;
 import java.lang.*;
 import java.util.*;

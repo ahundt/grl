@@ -31,6 +31,7 @@ import grl.flatbuffer.MoveArmServo;
 import grl.flatbuffer.MoveArmTrajectory;
 import grl.flatbuffer.Quaternion;
 import grl.flatbuffer.Vector3d;
+import grl.flatbuffer.kuka.iiwa.KUKAiiwaArmConfiguration;
 
 /**
  * Creates a FRI Session.
@@ -97,7 +98,7 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         configSubscriber.connect(_controllingLaptopIPAddressConfig);
         configSubscriber.setRcvHWM(1000000);
 
-        getArmConfiguration(configSubscriber);
+        //getArmConfiguration(configSubscriber);
 
         JointPosition initialPosition = new JointPosition(
                 _lbr.getCurrentJointPosition());
@@ -125,6 +126,10 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         Thread teachModeThread = new Thread(tm);
         teachModeThread.start();
         
+        UpdateConfigurationRunnable ucr = new UpdateConfigurationRunnable(configSubscriber,_lbr,_toolAttachedToLBR);
+        Thread updateConfigThread = new Thread(ucr);
+        updateConfigThread.start();
+        
         byte [] data = subscriber.recv();
         ByteBuffer bb = ByteBuffer.wrap(data);
 
@@ -138,104 +143,92 @@ public class ZMQ_SmartServoCommand extends RoboticsAPIApplication
         for (int i=0; i<100000; i++) {
         	// TODO: IMPORTANT: this recv call must be made asynchronous
             data = subscriber.recv();
-            bb = ByteBuffer.wrap(data);
-
-            armControlState = ArmControlState.getRootAsArmControlState(bb);
-            long num = armControlState.sequenceNumber();
-            double time = armControlState.timeStamp();
-            byte state = armControlState.stateType();
             
-            if (state == ArmState.MoveArmTrajectory) {
-            	tm.setActive(false);
-            	theSmartServoRuntime.stopMotion();
-            	if (currentMotion != null) {
-            		currentMotion.cancel();
-            	}
-            	
-            	MoveArmTrajectory maj = null;
-            	armControlState.state(maj);
-
-	            for (int j = 0; j < maj.trajLength(); j++) {
+            synchronized(_lbr) {
+	            bb = ByteBuffer.wrap(data);
+	
+	            armControlState = ArmControlState.getRootAsArmControlState(bb);
+	            long num = armControlState.sequenceNumber();
+	            double time = armControlState.timeStamp();
+	            byte state = armControlState.stateType();
+	            
+	            if (state == ArmState.MoveArmTrajectory) {
+	            	tm.setActive(false);
+	            	theSmartServoRuntime.stopMotion();
+	            	if (currentMotion != null) {
+	            		currentMotion.cancel();
+	            	}
 	            	
-	            	JointPosition pos = new JointPosition(_lbr.getCurrentJointPosition());
-	            	
-		            for (int k = 0; k < destination.getAxisCount(); ++k)
-		            {
-		            	//destination.set(k, maj.traj(j).position(k));
-		            	pos.set(k, maj.traj(j).position(k));
-			        	currentMotion = _lbr.moveAsync(ptp(pos));
+	            	MoveArmTrajectory maj = null;
+	            	armControlState.state(maj);
+	
+		            for (int j = 0; j < maj.trajLength(); j++) {
+		            	
+		            	JointPosition pos = new JointPosition(_lbr.getCurrentJointPosition());
+		            	
+			            for (int k = 0; k < destination.getAxisCount(); ++k)
+			            {
+			            	//destination.set(k, maj.traj(j).position(k));
+			            	pos.set(k, maj.traj(j).position(k));
+				        	currentMotion = _lbr.moveAsync(ptp(pos));
+			            }
+			            
 		            }
-		            
+	            } else if (state == ArmState.MoveArmJointServo) {
+	            	if (currentMotion != null) {
+	            		currentMotion.cancel();
+	            	}
+	            	tm.setActive(false);
+	            	
+	            	MoveArmServo mas = null;
+	            	armControlState.state(mas);
+	            	
+	            	JointState jointState = mas.goal();
+	
+	            	for (int k = 0; k < destination.getAxisCount(); ++k)
+	                {
+	                	destination.set(k, jointState.position(k));
+	                }
+	                theSmartServoRuntime.setDestination(destination);
+	            	
+	            } else if (state == ArmState.StopArm) {
+	            	theSmartServoRuntime.stopMotion();
+	            	if (currentMotion != null) {
+	            		currentMotion.cancel();
+	            	}
+	            	tm.setActive(false);
+	            	
+	            } else if (state == ArmState.TeachArm) {
+	            	theSmartServoRuntime.stopMotion();
+	            	if (currentMotion != null) {
+	            		currentMotion.cancel();
+	            	}
+	            	tm.setActive(true);
 	            }
-            } else if (state == ArmState.MoveArmServo) {
-            	if (currentMotion != null) {
-            		currentMotion.cancel();
-            	}
-            	tm.setActive(false);
-            	
-            	MoveArmServo mas = null;
-            	armControlState.state(mas);
-            	
-            	JointState jointState = mas.goal();
-
-            	for (int k = 0; k < destination.getAxisCount(); ++k)
-                {
-                	destination.set(k, jointState.position(k));
-                }
-                theSmartServoRuntime.setDestination(destination);
-            	
-            } else if (state == ArmState.StopArm) {
-            	theSmartServoRuntime.stopMotion();
-            	if (currentMotion != null) {
-            		currentMotion.cancel();
-            	}
-            	tm.setActive(false);
-            	
-            } else if (state == ArmState.TeachArm) {
-            	theSmartServoRuntime.stopMotion();
-            	if (currentMotion != null) {
-            		currentMotion.cancel();
-            	}
-            	tm.setActive(true);
+	
+	            //theSmartServoRuntime.setDestination(destination);
+	            // TODO: test to make sure the accelerations are present
+	            //double[] acceleration = {jointState.acceleration(0),jointState.acceleration(1),jointState.acceleration(2),jointState.acceleration(3),jointState.acceleration(4),jointState.acceleration(5),jointState.acceleration(6)};
+	
+	            // TODO: Test move command
+	            //_lbr.moveAsync(ptp(jointState.position(0), jointState.position(1), jointState.position(2), jointState.position(3), jointState.position(4), jointState.position(5), jointState.position(6)));
+	            		//.setJointAccelerationRel(acceleration));
             }
-
-            //theSmartServoRuntime.setDestination(destination);
-            // TODO: test to make sure the accelerations are present
-            //double[] acceleration = {jointState.acceleration(0),jointState.acceleration(1),jointState.acceleration(2),jointState.acceleration(3),jointState.acceleration(4),jointState.acceleration(5),jointState.acceleration(6)};
-
-            // TODO: Test move command
-            //_lbr.moveAsync(ptp(jointState.position(0), jointState.position(1), jointState.position(2), jointState.position(3), jointState.position(4), jointState.position(5), jointState.position(6)));
-            		//.setJointAccelerationRel(acceleration));
         }
         
         // done
+        ucr.stop();
         subscriber.close();
         context.term();
-        System.exit(1);
+        try {
+			updateConfigThread.join();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         friSession.close();
+        System.exit(1);
     }
-
-    private void getArmConfiguration(Socket sub) {
-        byte [] data = sub.recv();
-        ByteBuffer bb = ByteBuffer.wrap(data);
-
-        ArmConfiguration conf = ArmConfiguration.getRootAsArmConfiguration(bb);
-        
-        Vector3d toolpos = conf.tool().pose().position();
-        Quaternion toolrot = conf.tool().pose().orientation();
-        Vector3d compos = conf.tool().centerOfMass().position();
-        Quaternion comrot = conf.tool().centerOfMass().orientation();
-
-        double[] translationOfTool =
-        { toolpos.x(), toolpos.y(), toolpos.z() };
-        double[] centerOfMassInMillimeter =
-        { comrot.x(), comrot.y(), comrot.z() };
-        
-        _toolAttachedToLBR = ServoMotionUtilities.createTool(_lbr,
-        		conf.tool().name(), translationOfTool,
-        		conf.tool().mass(),
-                centerOfMassInMillimeter);
-	}
 
 	/**
      * main.
