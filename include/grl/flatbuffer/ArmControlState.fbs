@@ -31,7 +31,7 @@ table MoveArmCartesianServo {
   goal:Pose;
 }
 
-union ArmState { StartArm, StopArm, PauseArm, TeachArm, MoveArmTrajectory, MoveArmJointServo, MoveArmCartesianServo }
+union ArmState { StartArm, StopArm, PauseArm, ShutdownArm, TeachArm, MoveArmTrajectory, MoveArmJointServo, MoveArmCartesianServo }
 
 table ArmControlState {
   name:string;   // entity to move
