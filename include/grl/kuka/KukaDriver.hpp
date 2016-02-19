@@ -44,6 +44,8 @@ namespace grl { namespace robot { namespace arm {
         RobotTargetBaseName,
         LocalZMQAddress,
         RemoteZMQAddress,
+        LocalZMQConfigAddress,
+        RemoteZMQConfigAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -66,6 +68,8 @@ namespace grl { namespace robot { namespace arm {
         std::string,
         std::string,
         std::string,
+        std::string,
+        std::string,
         std::string
           > Params;
 
@@ -77,12 +81,14 @@ namespace grl { namespace robot { namespace arm {
             "Robotiiwa"               , // RobotTargetBaseHandle,
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
+            "tcp://0.0.0.0:30011"     , // LocalZMQConfigAddress
+            "tcp://172.31.1.147:30011", // RemoteZMQConfigAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
-            "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
-            "FRI"                     , // KukaMonitorMode (options are FRI, JAVA)
+            "JAVA"                     , // KukaCommandMode (options are FRI, JAVA)
+            "JAVA"                     , // KukaMonitorMode (options are FRI, JAVA)
             "IK_Group1_iiwa"            // IKGroupName
             );
       }
@@ -126,6 +132,8 @@ namespace grl { namespace robot { namespace arm {
       {}
 
       void construct(){ construct(params_);}
+      
+      bool destruct(){ return JAVAdriverP_->destruct(); }
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception

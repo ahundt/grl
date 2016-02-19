@@ -61,6 +61,8 @@ namespace grl {
         RobotTargetBaseName,
         LocalZMQAddress,
         RemoteZMQAddress,
+        LocalConfigZMQAddress,
+        RemoteConfigZMQAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -83,6 +85,8 @@ namespace grl {
         std::string,
         std::string,
         std::string,
+        std::string,
+        std::string,
         std::string
           > Params;
 
@@ -94,6 +98,8 @@ namespace grl {
             "Robotiiwa"               , // RobotTargetBaseHandle,
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
+            "tcp://0.0.0.0:30010"     , // LocalConfigZMQAddress
+            "tcp://172.31.1.147:30010", // RemoteConfigZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
