@@ -134,6 +134,17 @@ namespace grl { namespace robot { namespace arm {
       void construct(){ construct(params_);}
       
       bool destruct(){ return JAVAdriverP_->destruct(); }
+      
+      bool startArm(){ return JAVAdriverP_->startArm(); }
+      
+      bool teachMode(){ return JAVAdriverP_->teachArm(); }
+      
+      bool pauseArm(){ return JAVAdriverP_->pauseArm(); }
+      
+      bool stopArm(){ return JAVAdriverP_->stopArm(); }
+      
+      bool sendJointPositions(){ return JAVAdriverP_->sendJointPositions(); }
+      
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
