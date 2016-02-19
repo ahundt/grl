@@ -27,7 +27,7 @@ table MoveArmJointServo {
 }
 
 table MoveArmCartesianServo {
-  parent:string; // Object/Frame/Coordinate System to move wrt
+  parent:string; // Object/Frame/Coordinate System to move wrt. Empty default is robot base
   goal:Pose;
 }
 
