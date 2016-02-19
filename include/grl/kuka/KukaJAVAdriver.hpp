@@ -1,6 +1,10 @@
 #ifndef GRL_KUKA_JAVA_DRIVER
 #define GRL_KUKA_JAVA_DRIVER
 
+#include <iostream>
+#include <chrono>
+#include <ratio>
+#include <thread>
 
 #include <tuple>
 #include <memory>
@@ -12,6 +16,8 @@
 
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
+#include <boost/chrono/include.hpp>
+#include <boost/chrono/duration.hpp>
 
 
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
@@ -21,11 +27,11 @@
 #include "grl/tags.hpp"
 #include "grl/exception.hpp"
 #include "grl/kuka/Kuka.hpp"
+#include "grl/DoubleClock.hpp"
 #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwaConfiguration_generated.h"
-#include "grl/flatbuffer/Object_generated.h"
 
 
 
@@ -52,6 +58,8 @@ namespace grl { namespace robot { namespace arm {
         RobotTargetBaseName,
         LocalZMQAddress,
         RemoteZMQAddress,
+        LocalZMQConfigAddress,
+        RemoteZMQConfigAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -74,6 +82,8 @@ namespace grl { namespace robot { namespace arm {
         std::string,
         std::string,
         std::string,
+        std::string,
+        std::string,
         std::string
           > Params;
 
@@ -85,6 +95,8 @@ namespace grl { namespace robot { namespace arm {
             "Robotiiwa"               , // RobotTargetBaseHandle,
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
+            "tcp://0.0.0.0:30011"     , // LocalZMQConfigAddress
+            "tcp://172.31.1.147:30011", // RemoteZMQConfigAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -133,7 +145,7 @@ namespace grl { namespace robot { namespace arm {
         : params_(params)
       {}
 
-      void construct(){ construct(params_);}
+      void construct(){ construct(params_); sequenceNumber = 0;}
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
@@ -153,25 +165,80 @@ namespace grl { namespace robot { namespace arm {
           socket.connect(std::get<RemoteZMQAddress>            (params_).c_str()   );
           kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 
-          // start up the driver thread
-          /// @todo perhaps allow user to control this?
-          driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
         } catch( boost::exception &e) {
           e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to ZeroMQ Socket from " + 
                            std::get<LocalZMQAddress>             (params_) + " to " + 
                            std::get<RemoteZMQAddress>            (params_));
           throw;
         }
+        
+        
+
+        try {
+          BOOST_LOG_TRIVIAL(trace) << "KukaLBRiiwaRosPlugin: Connecting ZeroMQ Config Socket from " <<
+            std::get<LocalZMQConfigAddress>             (params_) << " to " <<
+            std::get<RemoteZMQConfigAddress>            (params_);
+          boost::system::error_code ec;
+          azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
+          socket.bind(   std::get<LocalZMQConfigAddress>             (params_).c_str()   );
+          socket.connect(std::get<RemoteZMQConfigAddress>            (params_).c_str()   );
+          kukaJavaConfigDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
+
+        } catch( boost::exception &e) {
+          e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to ZeroMQ Socket from " + 
+                           std::get<LocalZMQAddress>             (params_) + " to " + 
+                           std::get<RemoteZMQAddress>            (params_));
+          throw;
+        }
+        
+          // start up the driver thread
+          /// @todo perhaps allow user to control this?
+          driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
       }
 
 
 
 
       bool setState(State& state) { return true; }
+      
+      
+      bool setConfig(flatbuffer::KUKAiiwaArmConfiguration& config)
+      {
+      }
 
 
       const Params & getParams(){
         return params_;
+      }
+      
+      
+      bool destruct(){
+        
+          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+          
+          auto shutdownCommand = flatbuffer::CreateShutdownArm(*fbbP);
+          
+          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+          
+          /// @todo is this the best string to pass for the full arm's name?
+          auto basename = std::get<RobotTargetBaseName>(params_);
+          
+          auto bns = fbbP->CreateString(basename);
+          
+          
+          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_ShutdownArm,flatbuffer::CreateShutdownArm(*fbbP).Union());
+          
+          
+          auto jointPos = fbbP->CreateVector(&controlState, 1);
+          
+          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
+          
+          
+          
+            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
+            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          
+          return true;
       }
 
       ~KukaJAVAdriver(){
@@ -246,6 +313,7 @@ namespace grl { namespace robot { namespace arm {
       std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
       std::unique_ptr<std::thread> driver_threadP;
       std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
+      std::shared_ptr<AzmqFlatbuffer> kukaJavaConfigDriverP;
  
      /**
       * \brief Set the joint positions for the current interpolation step.
@@ -330,6 +398,8 @@ namespace grl { namespace robot { namespace arm {
 
       Params params_;
       std::shared_ptr<KUKA::FRI::ClientData> friData_;
+      
+      int64_t sequenceNumber;
 
     };    
 

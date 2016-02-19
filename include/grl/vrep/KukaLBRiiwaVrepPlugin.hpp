@@ -57,6 +57,8 @@ public:
         RobotTargetBaseName,
         LocalZMQAddress,
         RemoteZMQAddress,
+        LocalConfigZMQAddress,
+        RemoteConfigZMQAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -68,6 +70,8 @@ public:
     
     typedef std::tuple<
         std::vector<std::string>,
+        std::string,
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -100,6 +104,8 @@ public:
                     "Robotiiwa"               , // RobotTargetBaseHandle,
                     "tcp://0.0.0.0:30010"     , // LocalZMQAddress
                     "tcp://172.31.1.147:30010", // RemoteZMQAddress
+                    "tcp://0.0.0.0:30011"     , // LocalConfigZMQAddress
+                    "tcp://172.31.1.147:30011", // RemoteConfigZMQAddress
                     "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -146,6 +152,8 @@ void construct(Params params){
         std::get<RobotTargetBaseName>(params),
         std::get<LocalZMQAddress>(params),
         std::get<RemoteZMQAddress>(params),
+        std::get<LocalConfigZMQAddress>(params),
+        std::get<RemoteConfigZMQAddress>(params),
         std::get<LocalHostKukaKoniUDPAddress>(params),
         std::get<LocalHostKukaKoniUDPPort>(params),
         std::get<RemoteHostKukaKoniUDPAddress>(params),
