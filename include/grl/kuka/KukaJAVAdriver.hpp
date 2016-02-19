@@ -24,8 +24,8 @@
 #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
-#include "grl/flatbuffer/ArmConfiguration_generated.h"
-#include "grl/flatbuffer/ObjectConfiguration_generated.h"
+#include "grl/flatbuffer/KUKAiiwaConfiguration_generated.h"
+#include "grl/flatbuffer/Object_generated.h"
 
 
 
