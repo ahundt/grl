@@ -2,12 +2,12 @@ package grl.zmqDriver;
 
 import grl.flatbuffer.Quaternion;
 import grl.flatbuffer.Vector3d;
-import grl.flatbuffer.kuka.iiwa.KUKAiiwaArmConfiguration;
+import grl.flatbuffer.KUKAiiwaArmConfiguration;
 
 import java.lang.Runnable;
 import java.nio.ByteBuffer;
 
-import org.jeromq.ZMQ.Socket;
+import org.zeromq.ZMQ;
 
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
@@ -16,11 +16,11 @@ import com.kuka.roboticsAPI.userInterface.ServoMotionUtilities;
 public class UpdateConfigurationRunnable implements Runnable {
 
     private PhysicalObject _toolAttachedToLBR;
-	private Socket sub;
+	private ZMQ.Socket sub;
 	private LBR _lbr;
 	private boolean stop;
 	
-	public UpdateConfigurationRunnable(Socket socket, LBR lbr, PhysicalObject tool) {
+	public UpdateConfigurationRunnable(ZMQ.Socket socket, LBR lbr, PhysicalObject tool) {
 		sub = socket;
 		_toolAttachedToLBR = tool;
 		_lbr = lbr;

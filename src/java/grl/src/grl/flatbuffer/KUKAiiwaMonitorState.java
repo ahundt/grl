@@ -1,9 +1,6 @@
 // automatically generated, do not modify
 
-package grl.flatbuffer.kuka.iiwa;
-
-import grl.flatbuffer.JointState;
-import grl.flatbuffer.Pose;
+package grl.flatbuffer;
 
 import java.nio.*;
 import java.lang.*;

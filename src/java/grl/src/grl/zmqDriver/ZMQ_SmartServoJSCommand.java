@@ -4,9 +4,7 @@ import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 import java.nio.ByteBuffer;
 
-import org.jeromq.ZMQ;
-import org.jeromq.ZMQ.Context;
-import org.jeromq.ZMQ.Socket;
+import org.zeromq.ZMQ;
 
 import com.kuka.connectivity.fri.FRIConfiguration;
 import com.kuka.connectivity.fri.FRISession;
@@ -74,8 +72,8 @@ public class ZMQ_SmartServoJSCommand extends RoboticsAPIApplication
 
         
        // Prepare ZeroMQ context and dealer
-        Context context = ZMQ.context(1);
-        Socket subscriber = context.socket(ZMQ.DEALER);
+        ZMQ.Context context = ZMQ.context(1);
+        ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
         subscriber.connect(_controllingLaptopIPAddress);
         subscriber.setRcvHWM(1000000);
      
