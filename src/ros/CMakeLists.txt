@@ -48,6 +48,7 @@ if(ROS_FOUND)
     ${Boost_LIBRARIES}
     ${Boost_LIBRARIES}
     ${Boost_LOG_LIBRARY}
+    ${Boost_CRONO_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     ${ZeroMQ_LIBRARIES}
     ${FRI-Client-SDK_Cpp_LIBRARIES}

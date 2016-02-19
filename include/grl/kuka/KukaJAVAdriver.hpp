@@ -46,6 +46,8 @@ namespace grl { namespace robot { namespace arm {
      * Initally:
      * 
      *
+     * @todo make sure mutex is locked when appropriate
+     *
      */
     class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
     public:
@@ -216,7 +218,7 @@ namespace grl { namespace robot { namespace arm {
         
           auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
           
-          auto shutdownCommand = flatbuffer::CreateShutdownArm(*fbbP);
+          boost::lock_guard<boost::mutex> lock(jt_mutex);
           
           double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
           
@@ -249,20 +251,128 @@ namespace grl { namespace robot { namespace arm {
           driver_threadP->join();
         }
       }
-
-      /// @brief perform the main update spin once, call this function repeatedly
-      /// @todo ADD SUPPORT FOR READING ARM STATE OVER JAVA INTERFACE
-      bool run_one(){
-
-        // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
-        //if(!m_haveReceivedRealDataCount) return;
+      
+      bool startArm(){
         
-        bool haveNewData = false;
+          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+          
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+          
+          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+          
+          /// @todo is this the best string to pass for the full arm's name?
+          auto basename = std::get<RobotTargetBaseName>(params_);
+          
+          auto bns = fbbP->CreateString(basename);
+          
+          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_StartArm,flatbuffer::CreateStartArm(*fbbP).Union());
+          
+          
+          auto jointPos = fbbP->CreateVector(&controlState, 1);
+          
+          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
+          
+          
+          
+            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
+            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          
+          return false;
+      }
+      
+      
+      bool teachArm(){
+        
+          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+          
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+          
+          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+          
+          /// @todo is this the best string to pass for the full arm's name?
+          auto basename = std::get<RobotTargetBaseName>(params_);
+          
+          auto bns = fbbP->CreateString(basename);
+          
+          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_TeachArm,flatbuffer::CreateTeachArm(*fbbP).Union());
+          
+          
+          auto jointPos = fbbP->CreateVector(&controlState, 1);
+          
+          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
+          
+          
+          
+            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
+            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          
+          return false;
+      }
 
-        /// @todo make this handled by template driver implementations/extensions
+      
+      
+      bool pauseArm(){
+        
+          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+          
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+          
+          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+          
+          /// @todo is this the best string to pass for the full arm's name?
+          auto basename = std::get<RobotTargetBaseName>(params_);
+          
+          auto bns = fbbP->CreateString(basename);
+          
+          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_PauseArm,flatbuffer::CreateTeachArm(*fbbP).Union());
+          
+          
+          auto jointPos = fbbP->CreateVector(&controlState, 1);
+          
+          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
+          
+          
+          
+            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
+            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          
+          return false;
+      }
 
-        if(kukaJavaDriverP)
-        {
+      
+      
+      bool stopArm(){
+        
+          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+          
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+          
+          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+          
+          /// @todo is this the best string to pass for the full arm's name?
+          auto basename = std::get<RobotTargetBaseName>(params_);
+          
+          auto bns = fbbP->CreateString(basename);
+          
+          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_StopArm,flatbuffer::CreateTeachArm(*fbbP).Union());
+          
+          
+          auto jointPos = fbbP->CreateVector(&controlState, 1);
+          
+          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
+          
+          
+          
+            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
+            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          
+          return false;
+      }
+      
+      
+      /// @todo add optional parameter? possibly additional config?
+      bool sendJointPositions(){
+      
           /////////////////////////////////////////
           // Client sends to server asynchronously!
 
@@ -295,8 +405,74 @@ namespace grl { namespace robot { namespace arm {
             boost::copy(armState.torque, std::back_inserter(joints));
             auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
             auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
+          
+          
+            
+        
+              auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+              
+              double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+              
+              /// @todo is this the best string to pass for the full arm's name?
+              auto basename = std::get<RobotTargetBaseName>(params_);
+              
+              auto bns = fbbP->CreateString(basename);
+              
+              auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_TeachArm,flatbuffer::CreateTeachArm(*fbbP).Union());
+              
+              
+              auto jointPos = fbbP->CreateVector(&controlState, 1);
+              
+              auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
+          
+          
+          
+            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
+            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          
             grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
             kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          }
+          
+          return false;
+      }
+      
+
+      /// @brief perform the main update spin once, call this function repeatedly
+      /// @todo ADD SUPPORT FOR READING ARM STATE OVER JAVA INTERFACE
+      bool run_one(){
+
+        // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
+        //if(!m_haveReceivedRealDataCount) return;
+        
+        bool haveNewData = false;
+
+        /// @todo make this handled by template driver implementations/extensions
+
+        if(kukaJavaDriverP)
+        {
+          switch (armControlMode) {
+          
+              case flatbuffer::ArmState::ArmState_StartArm:
+                 sendJointPositions();
+                 break;
+              case flatbuffer::ArmState::ArmState_MoveArmJointServo:
+                 sendJointPositions();
+                 break;
+              case flatbuffer::ArmState::ArmState_TeachArm:
+                 teachArm();
+                 break;
+              case flatbuffer::ArmState::ArmState_PauseArm:
+                 pauseArm();
+                 break;
+              case flatbuffer::ArmState::ArmState_StopArm:
+                 stopArm();
+                 break;
+              case flatbuffer::ArmState::ArmState_ShutdownArm:
+                 destruct();
+                 break;
+              default:
+                 std::cerr << "KukaJAVAdriver unsupported use case\n";
           }
 
         }
@@ -392,6 +568,7 @@ namespace grl { namespace robot { namespace arm {
 
     private:
 
+      flatbuffer::ArmState armControlMode;
       KukaState armState;
 
       boost::mutex jt_mutex;
