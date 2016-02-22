@@ -27,7 +27,6 @@
 #include "grl/tags.hpp"
 #include "grl/exception.hpp"
 #include "grl/kuka/Kuka.hpp"
-#include "grl/DoubleClock.hpp"
 #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
