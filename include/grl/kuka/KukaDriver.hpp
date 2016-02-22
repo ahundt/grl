@@ -13,6 +13,7 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
 
+#include <boost/make_shared.hpp>
 
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #include <boost/thread.hpp>
@@ -22,8 +23,6 @@
 #include "grl/kuka/KukaJAVAdriver.hpp"
 #include "grl/kuka/KukaFRIdriver.hpp"
 #include "grl/tags.hpp"
-
-
 
 
 namespace grl { namespace robot { namespace arm {
@@ -137,7 +136,7 @@ namespace grl { namespace robot { namespace arm {
       
       bool startArm(){ return JAVAdriverP_->startArm(); }
       
-      bool teachMode(){ return JAVAdriverP_->teachArm(); }
+      bool teachArm(){ return JAVAdriverP_->teachArm(); }
       
       bool pauseArm(){ return JAVAdriverP_->pauseArm(); }
       

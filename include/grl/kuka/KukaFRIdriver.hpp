@@ -702,15 +702,14 @@ public:
                     //A5 - 130 °/s == 2.268928027593 rad/s
                     //A6 - 135 °/s == 2.356194490192 rad/s
                     //A1 - 135 °/s == 2.356194490192 rad/s
-                    KukaState::joint_state maxVel = {
-                                                        1.483529864195*secondsPerTick,
-                                                        1.483529864195*secondsPerTick,
-                                                        1.745329251994*secondsPerTick,
-                                                        1.308996938996*secondsPerTick,
-                                                        2.268928027593*secondsPerTick,
-                                                        2.356194490192*secondsPerTick,
-                                                        2.356194490192*secondsPerTick
-                                                        };
+            		KukaState::joint_state maxVel;
+                    maxVel.push_back(1.483529864195*secondsPerTick);
+                    maxVel.push_back(1.483529864195*secondsPerTick);
+                    maxVel.push_back(1.745329251994*secondsPerTick);
+                    maxVel.push_back(1.308996938996*secondsPerTick);
+                    maxVel.push_back(2.268928027593*secondsPerTick);
+                    maxVel.push_back(2.356194490192*secondsPerTick);
+                    maxVel.push_back(2.356194490192*secondsPerTick);
                     return maxVel;
     }
         

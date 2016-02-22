@@ -38,12 +38,8 @@ inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream
 }
 
 namespace grl {
+
   namespace ros {
-
-    enum RobotMode {
-      MODE_TEACH, MODE_SERVO, MODE_IDLE
-    };
-
 
     /** 
      *
@@ -229,15 +225,14 @@ namespace grl {
       /// ROS callback to set current interaction mode; determines whether commands will be send in SERVO, TEACH, etc
       void mode_callback(const std_msgs::StringConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
-        if (msg->data == "teach") { 
-          interaction_mode = MODE_TEACH;
-        } else if (msg->data == "servo") {
-          interaction_mode = MODE_SERVO;
-        } else if (msg->data == "idle") {
-          interaction_mode = MODE_IDLE;
-        } else {
-          interaction_mode = MODE_IDLE;
+
+        unsigned int ArmStateLen = 9;
+        for (unsigned int i = 0; i < ArmStateLen; ++i) {
+          if (msg->data == grl::flatbuffer::EnumNamesArmState()[i]) {
+            interaction_mode = i;
+          }
         }
+
       }
 
       /// ROS joint trajectory callback
@@ -282,37 +277,49 @@ namespace grl {
      bool run_one()
      {
 
-        bool haveNewData = false;
+       bool haveNewData = false;
 
-         if(KukaDriverP_){
+       if(KukaDriverP_){
 
-             //grl::robot::arm::set(*KukaDriverP_, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+
+         switch(interaction_mode) {
+           case grl::flatbuffer::ArmState_MoveArmJointServo:
              if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
              if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
-             
-             haveNewData = KukaDriverP_->run_one();
+             break;
+           case grl::flatbuffer::ArmState_TeachArm:
+             KukaDriverP_->teachArm(); break;
+           case grl::flatbuffer::ArmState_StopArm:
+             KukaDriverP_->stopArm(); break;
+           case grl::flatbuffer::ArmState_PauseArm:
+             KukaDriverP_->pauseArm(); break;
+           case grl::flatbuffer::ArmState_StartArm:
+             KukaDriverP_->startArm(); break;
+         }
 
-             if(haveNewData)
-             {
+         haveNewData = KukaDriverP_->run_one();
 
-               // We have the real kuka state read from the device now
-               // update real joint angle data
-               current_js_.position.clear();
-               KukaDriverP_->get(std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
+         if(haveNewData)
+         {
 
-               current_js_.effort.clear();
-               KukaDriverP_->get(std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
+           // We have the real kuka state read from the device now
+           // update real joint angle data
+           current_js_.position.clear();
+           KukaDriverP_->get(std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
 
-               current_js_.velocity.clear();
-               //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+           current_js_.effort.clear();
+           KukaDriverP_->get(std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
 
-               js_pub_.publish(current_js_);
-            }
-        
-        }
-     
-        return haveNewData;
-      }
+           current_js_.velocity.clear();
+           //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+
+           js_pub_.publish(current_js_);
+         }
+
+       }
+
+       return haveNewData;
+     }
 
       boost::asio::io_service device_driver_io_service;
       std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
@@ -332,7 +339,7 @@ namespace grl {
 
     private:
 
-      RobotMode interaction_mode;
+      unsigned int interaction_mode;
 
       boost::mutex jt_mutex;
       boost::shared_ptr<robot::arm::KukaDriver> KukaDriverP_;
