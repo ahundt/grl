@@ -31,7 +31,7 @@
 
 
 #TODO: HACK: find_backage(Boost) shouldn't be necessary, boost.log isn't found properly... remove when possible
-find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log)
+find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log chrono)
 #TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
 if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_FOUND AND Boost_FOUND AND Boost_LOG_FOUND)
     #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
