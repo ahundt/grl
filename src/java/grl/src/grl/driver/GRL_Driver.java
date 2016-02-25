@@ -1,7 +1,10 @@
-package grl;
+package grl.driver;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
+
+import grl.UpdateConfiguration;
+import grl.flatbuffer.MoveArmJointServo;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
@@ -15,10 +18,12 @@ import com.kuka.connectivity.fri.FRIJointOverlay;
 import com.kuka.connectivity.fri.FRISession;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
+import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.CartDOF;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
+import com.kuka.roboticsAPI.geometricModel.Tool;
 import com.kuka.roboticsAPI.motionModel.IMotionContainer;
 import com.kuka.roboticsAPI.motionModel.ISmartServoRuntime;
 import com.kuka.roboticsAPI.motionModel.MotionBatch;
@@ -29,8 +34,6 @@ import com.kuka.roboticsAPI.motionModel.controlModeModel.JointImpedanceControlMo
 import com.kuka.roboticsAPI.motionModel.controlModeModel.PositionControlMode;
 import com.kuka.roboticsAPI.userInterface.ServoMotionUtilities;
 
-import grl.zmqDriver.TeachMode;
-import grl.zmqDriver.UpdateConfigurationRunnable;
 
 /**
  * Creates a FRI Session.
@@ -39,41 +42,58 @@ public class GRL_Driver extends RoboticsAPIApplication
 {
     private Controller _lbrController;
     private LBR _lbr;
-    private String _hostName;
-    private String _controllingLaptopIPAddress;
-    private PhysicalObject _toolAttachedToLBR;
+    private String __controllingLaptopIPAddress;
+    private String _RobotIPAddress;
+    private String _FRI_KONI_RobotIPAddress;
+    private String _FRI_KONI_LaptopIPAddress;
     private ISmartServoRuntime theSmartServoRuntime = null;
 	private String _controllingLaptopIPAddressConfig;
 	private grl.flatbuffer.KUKAiiwaArmConfiguration _currentActiveConfiguration = null;
 	private AbstractMotionControlMode _activeMotionControlMode;
+	private UpdateConfiguration _updateConfiguration;
+	private IRecovery _pausedApplicationRecovery = null;
+
+	/**
+	 *  gripper or other physically attached object
+	 *  see "Template Data" panel in top right pane
+	 *  of Sunrise Workbench. This can't be created
+	 *  at runtime so we create one for you.
+	 */
+	private Tool    _flangeAttachment;
 
     @Override
     public void initialize()
     {
         _lbrController = (Controller) getContext().getControllers().toArray()[0];
         _lbr = (LBR) _lbrController.getDevices().toArray()[0];
+        _flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
+
+
+        _updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
         // **********************************************************************
         // *** change next line to the FRIClient's IP address                 ***
         // **********************************************************************
-        _hostName = getApplicationData().getProcessData("hostAddress").getValue(); //"192.170.10.100";
+        __controllingLaptopIPAddress = getApplicationData().getProcessData("Laptop_IP").getValue(); //"192.170.10.100";
+
         
         // **********************************************************************
         // *** change next line to the KUKA address and Port Number           ***
         // **********************************************************************
-        _controllingLaptopIPAddress = getApplicationData().getProcessData("controlAddress").getValue(); //"tcp://172.31.1.100:30010";
-        _controllingLaptopIPAddressConfig = getApplicationData().getProcessData("configAddress").getValue(); //"tcp://172.31.1.100:30011";
-        
+        _RobotIPAddress = getApplicationData().getProcessData("Robot_IP").getValue(); //"tcp://172.31.1.100:30010";
 
-        // FIXME: Set proper Weights or use the plugin feature
-        double[] translationOfTool =
-        { 0, 0, 0 };
-        double mass = 0;
-        double[] centerOfMassInMillimeter =
-        { 0, 0, 0 };
-        _toolAttachedToLBR = ServoMotionUtilities.createTool(_lbr,
-                "SimpleJointMotionSampleTool", translationOfTool, mass,
-                centerOfMassInMillimeter);
+        // **********************************************************************
+        // *** change next line to the FRIClient's IP address                 ***
+        // **********************************************************************
+        _FRI_KONI_LaptopIPAddress = getApplicationData().getProcessData("Laptop_KONI_FRI_IP").getValue(); //"192.170.10.100";
+
         
+        // **********************************************************************
+        // *** change next line to the KUKA address and Port Number           ***
+        // **********************************************************************
+        _FRI_KONI_RobotIPAddress = getApplicationData().getProcessData("Robot_KONI_FRI_IP").getValue(); //"tcp://172.31.1.100:30010";
+        
+        
+        _pausedApplicationRecovery = getRecovery();
     }
 
     @Override
@@ -82,41 +102,31 @@ public class GRL_Driver extends RoboticsAPIApplication
 
         ZMQ.Context context = ZMQ.context(1);
         
-        ZMQ.Socket configSubscriber = context.socket(ZMQ.DEALER);
-        configSubscriber.connect(_controllingLaptopIPAddressConfig);
-        configSubscriber.setRcvHWM(1000000);
-
-        UpdateConfigurationRunnable ucr = new UpdateConfigurationRunnable(configSubscriber,_lbr,_toolAttachedToLBR);
-        // blocking call, don't really run until at least one configuration message was received
-        ucr.getOneUpdate();
-        grl.flatbuffer.KUKAiiwaArmConfiguration latestConfig = ucr.getLatestConfiguration();
-        Thread updateConfigThread = new Thread(ucr);
-        updateConfigThread.start();
-        
 
         ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
-        subscriber.connect(_controllingLaptopIPAddress);
-        subscriber.setRcvHWM(1000000);
+        subscriber.connect(_RobotIPAddress);
+        subscriber.setRcvHWM(1000);
         
+        int statesLength = 0;
+        grl.flatbuffer.KUKAiiwaStates currentKUKAiiwaStates = null;
+        byte [] data = null;
+        ByteBuffer bb = null;
+        
+        while(statesLength<1 && currentKUKAiiwaStates == null){
+            data = subscriber.recv();
+            bb = ByteBuffer.wrap(data);
 
-    	// TODO: IMPORTANT: this recv call must be made asynchronous
-        byte [] data = subscriber.recv();
-        ByteBuffer bb = ByteBuffer.wrap(data);
+            currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb);
+            statesLength = currentKUKAiiwaStates.statesLength();
+        }
+        // TODO: support more than one state per message?
+        grl.flatbuffer.KUKAiiwaState currentKUKAiiwaState = currentKUKAiiwaStates.states(0);
         
         // TODO: remove default start pose
         // move do default start pose
         //_toolAttachedToLBR.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
 
         
-        // Configure and start FRI session
-        FRIConfiguration friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
-        grl.flatbuffer.FRI friConfigBuf = null;
-        friConfigBuf = latestConfig.FRIConfig(friConfigBuf);
-        if(friConfigBuf !=null && friConfigBuf.sendPeriodMillisec() >0){
-            friConfiguration.setSendPeriodMilliSec(friConfigBuf.sendPeriodMillisec());
-        }
-        
-        FRISession friSession = new FRISession(friConfiguration);
         
        // Prepare ZeroMQ context and dealer
         //getArmConfiguration(configSubscriber);
@@ -131,6 +141,7 @@ public class GRL_Driver extends RoboticsAPIApplication
         aSmartServoMotion.setJointAccelerationRel(jointVelRel);
         aSmartServoMotion.setJointVelocityRel(jointAccRel);
 
+        // TODO: read from SmartServo config
         aSmartServoMotion.setMinimumTrajectoryExecutionTime(20e-3);
 
         //_toolAttachedToLBR.getDefaultMotionFrame().moveAsync(aSmartServoMotion);
@@ -148,44 +159,43 @@ public class GRL_Driver extends RoboticsAPIApplication
         teachModeThread.start();
         
 
-        grl.flatbuffer.ArmControlState armControlState = grl.flatbuffer.ArmControlState.getRootAsArmControlState(bb);
         IMotionContainer currentMotion = null;
         
-        
-        // TODO: Current active configuration and associated real application states should now be fully set before main loop.
-        _currentActiveConfiguration = latestConfig;
-        
         boolean stop = false;
-        boolean newCommand = false;
+        boolean newIncomingKUKAiiwaState = false;
         boolean newConfig = false;
+        
+        grl.flatbuffer.ArmState state = null;
+        grl.flatbuffer.ArmControlState armControlState = null;
+        grl.flatbuffer.ArmState        armState = null;
         
         // Receive Flat Buffer and Move to Position
         // TODO: add a message that we send to the driver with data log strings
         while (!stop) {
         	// TODO: IMPORTANT: this recv call must be made asynchronous
-        	
-        	if(ucr.haveNewConfiguration()) {
-        		latestConfig = ucr.getLatestConfiguration();
-        		newConfig = true;
-        	}
+        	boolean isRecoveryRequired = _pausedApplicationRecovery.isRecoveryRequired();
         	
             if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
-            	newCommand = true;
+            	newIncomingKUKAiiwaState = true;
                 bb = ByteBuffer.wrap(data);
             
+                currentKUKAiiwaState.armControlState(armControlState);
             
 	            synchronized(_lbr) {
 		            bb = ByteBuffer.wrap(data);
 		
-		            armControlState = grl.flatbuffer.ArmControlState.getRootAsArmControlState(bb);
-		            long num = armControlState.sequenceNumber();
-		            double time = armControlState.timeStamp();
-		            byte state = armControlState.stateType();
+		            currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, currentKUKAiiwaStates);
 		            
-		            if(state == grl.flatbuffer.ArmState.ShutdownArm){
+		            if(currentKUKAiiwaStates.statesLength()>0)
+
+		                // TODO: support more than one state per message?
+		                currentKUKAiiwaState = currentKUKAiiwaStates.states(0);
+		                currentKUKAiiwaState.armControlState(armControlState);
+		            
+		            if(armControlState.stateType() == grl.flatbuffer.ArmState.ShutdownArm){
 		            	stop = true;
 		            }
-		            else if (state == grl.flatbuffer.ArmState.MoveArmTrajectory) {
+		            else if (armControlState.stateType() == grl.flatbuffer.ArmState.MoveArmTrajectory) {
 		            	tm.setActive(false);
 		            	theSmartServoRuntime.stopMotion();
 		            	if (currentMotion != null) {
@@ -207,7 +217,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				            }
 				            
 			            }
-		            } else if (state == grl.flatbuffer.ArmState.MoveArmJointServo) {
+		            } else if (armControlState.stateType() == grl.flatbuffer.ArmState.MoveArmJointServo) {
 		            	if (currentMotion != null) {
 		            		currentMotion.cancel();
 		            	}
@@ -215,7 +225,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		            	
 		            	
 		            	
-		            	grl.flatbuffer.MoveArmServo mas = null;
+		            	MoveArmJointServo mas = null;
 		            	armControlState.state(mas);
 		            	
 		            	if(_currentActiveConfiguration.commandInterface() == grl.flatbuffer.KUKAiiwaInterface.SmartServo){
@@ -229,6 +239,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		            		
 		            	} else if(_currentActiveConfiguration.commandInterface()==grl.flatbuffer.KUKAiiwaInterface.FRI){
 	
+		            		FRISession friSession = _updateConfiguration.get_FRISession();
 		            		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
 		            		
 		            		 try {
@@ -244,14 +255,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 		            		 
 		            	}
 		            	
-		            } else if (state == grl.flatbuffer.ArmState.StopArm) {
+		            } else if (armControlState.stateType() == grl.flatbuffer.ArmState.StopArm) {
 		            	theSmartServoRuntime.stopMotion();
 		            	if (currentMotion != null) {
 		            		currentMotion.cancel();
 		            	}
 		            	tm.setActive(false);
 		            	
-		            } else if (state == grl.flatbuffer.ArmState.TeachArm) {
+		            } else if (armControlState.stateType() == grl.flatbuffer.ArmState.TeachArm) {
 		            	theSmartServoRuntime.stopMotion();
 		            	if (currentMotion != null) {
 		            		currentMotion.cancel();
@@ -263,22 +274,15 @@ public class GRL_Driver extends RoboticsAPIApplication
 		            }
 		            
 		            // done processing new command
-		            newCommand = false;
+		            newIncomingKUKAiiwaState = false;
 	            }
         }}
             
         
         // done
-        ucr.stop();
         subscriber.close();
         context.term();
-        try {
-			updateConfigThread.join();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        friSession.close();
+        _updateConfiguration.get_FRISession().close();
         System.exit(1);
     }
     

@@ -1,4 +1,4 @@
-package grl.zmqDriver;
+package grl.driver;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 

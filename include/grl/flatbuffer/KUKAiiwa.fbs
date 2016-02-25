@@ -1,0 +1,290 @@
+
+include "LinkObject.fbs";
+include "JointState.fbs";
+include "Euler.fbs";
+include "ArmControlState.fbs";
+
+namespace grl.flatbuffer;
+
+enum KUKAiiwaInterface : byte {
+   Disabled = 0,
+   SmartServo,
+   DirectServo,
+   FRI
+}
+
+enum ESessionState : byte
+{
+   /// No session
+   IDLE = 0,         
+   /// Monitoring mode, receive state but connection too inconsistent to command
+   MONITORING_WAIT,  
+   /// Monitoring mode 
+   MONITORING_READY, 
+    /// About to command (Overlay created in Java interface)
+   COMMANDING_WAIT, 
+   /// Actively commanding the arm with FRI
+   COMMANDING_ACTIVE 
+}
+
+enum EConnectionQuality :byte
+{
+  POOR = 0,
+  FAIR = 1,
+  GOOD = 2,
+  EXCELLENT = 3
+}
+
+
+enum ESafetyState : byte {
+  NORMAL_OPERATION = 0,
+  SAFETY_STOP_LEVEL_0,
+  SAFETY_STOP_LEVEL_1,
+  SAFETY_STOP_LEVEL_2
+}
+
+// Full autonomous vs 2 speeds of safety modes
+enum EOperationMode : byte {
+  TEST_MODE_1 = 0,
+  TEST_MODE_2 = 1,
+  AUTOMATIC_MODE = 2
+}
+
+enum EDriveState : byte {
+  /// Driving mode currently unused
+  OFF=1,         
+  /// About to drive
+  TRANSITIONING, 
+  /// Actively commanding arm
+  ACTIVE         
+}
+
+enum EControlMode : byte {
+  POSITION_CONTROL_MODE=0,
+  CART_IMP_CONTROL_MODE=1,
+  JOINT_IMP_CONTROL_MODE=2,
+  NO_CONTROL=3
+}
+
+
+/// Type of command being sent to the arm (Dimensonal units)
+enum EClientCommandMode : byte {
+   NO_COMMAND_MODE = 0,
+   POSITION,
+   WRENCH,
+   TORQUE
+}
+
+enum EOverlayType : byte {
+  NO_OVERLAY=0,
+  JOINT,
+  CARTESIAN
+}
+
+
+table CartesianImpedenceControlMode {
+  /// actual stiffness to set rot:[nm/rad]
+  stiffness:EulerPoseParams; 
+  
+  /// maximum deviation from set goal in mm and radians
+  maxPathDeviation:EulerPose;
+  /// sets the maximum joint speed
+  maxJointSpeed:[double]; 
+  /// trans: [mm/s] rot: [rad/s]
+  maxCartesianVelocity:EulerPose; 
+  /// xyz: Newtons rpy:Nm (all >=0)
+  maxControlForce:EulerPose;  
+  /// stop if max control force is exceeded
+  maxControlForceExceededStop:bool = 0; 
+  /// must be between 0.3-1.0 suggested is 0.7
+  nullspaceDamping:double; 
+  /// [Nm/rad] must be => 0.0
+  nullspaceStiffness:double; 
+}
+
+
+table JointImpedenceControlMode {
+  stiffness:[double]; //  rot:[nm/rad]
+  damping:[double]; // must be between 0 and 1
+}
+
+
+
+
+table Disabled {
+}
+
+table FRI {
+  overlayType:EOverlayType = JOINT;
+
+  /// Set the value for the send period of the connection from the KUKA controller to the remote side in [ms]. 
+  /// This means, the KUKA controller will send cyclic FRI messages every sendPeriod milliseconds to the remote side. 
+  /// 
+  /// 
+  /// Parameters:
+  /// sendPeriod - the send period in milliseconds, 1 <= sendPeriod <= 100. 
+  /// Note: The recommended value for good performance should be between 1-5 milliseconds. 
+
+  sendPeriodMillisec:int = 4;
+  
+  /// Set the receive multiplier of the cycle time from the remote side to the KUKA controller. 
+  /// This multiplier defines the value of the receivePeriod which is calculated:
+  /// receivePeriod = receiveMultiplier * sendPeriod 
+  /// 
+  /// The KUKA controller will expect a FRI response message every receivePeriod milliseconds from the remote side. 
+  /// 
+  /// The receivePeriod has to be within the range of:
+  /// 1 <= receivePeriod <= 100. 
+   
+  setReceiveMultiplier:int = 5;
+
+
+  updatePortOnRemote:bool = false;
+  /// Set the port ID of the socket at the controller side. 
+  /// Note: Do not change this port ID, unless your application requires different port IDs on both ends of the FRI channel.
+  /// For changing the FRI port ID on both sides, it is sufficient to call setPortOnRemote(int). 
+  /// Values of controllerPortID:  
+  /// "-1" - The configuration of setPortOnRemote(int) is used. This is the default. 
+  /// recommended range of port IDs: 30200 <= controllerPortID < 30210
+  portOnRemote:short;
+
+  updatePortOnController:bool = false;
+  ///  Set the port ID of the FRI channel at the remote side. 
+  ///  By default, this port ID is used on both sides of the FRI channel, unless specified otherwise by setPortOnController(int). 
+  ///
+  ///  Values of portID: 
+  ///
+  ///  default port ID: 30200 
+  ///  recommended range of port IDs: 30200 <= portID < 30210 
+  ///  Since the FRI channel utilizes UDP as connection layer, make sure, that your network topology (firewall, network services) are chosen accordingly. 
+  ///
+  ///  Parameters:
+  ///  portID - the port ID > 0 (also known as UDP port number)
+  portOnController:short;
+}
+
+table SmartServo {
+  /// normalized joint accelerations from 0 to 1 relative to system capabilities
+  jointAccelerationRel:[double];
+  
+  /// normalized joint velocity from 0 to 1 relative to system capabilities
+  jointVelocityRel:[double];
+  
+  updateMinimumTrajectoryExecutionTime:bool=false;
+  minimumTrajectoryExecutionTime:double;
+}
+
+
+/// "ProcessData" is a field that appears 
+/// on your physical kuka tablet. 
+/// This message allows you to update these
+/// fields on the tablet yourself.
+table ProcessData {
+  dataType:string;
+  defaultValue:string;
+  displayName:string;
+  id:string;
+  min:string;
+  max:string;
+  unit:string;
+  value:string;
+  
+  /// should the data be removed completely?
+  shouldRemove:bool = false;
+  /// should the data be updated to these values? 
+  shouldUpdate:bool = false;
+}
+
+// Set the configuration of the Kuka iiwa
+table KUKAiiwaArmConfiguration {
+  name:string; // set the robot name
+  /// how commands will be sent to robot
+  commandInterface:KUKAiiwaInterface; 
+  /// how robot state will be sent to driver
+  monitorInterface:KUKAiiwaInterface; 
+  /// motion command mode: cartesian, wrench, torque commands
+  clientCommandMode:EClientCommandMode; 
+  /// The type of commands FRI will use: cartesian, joint
+  overlayType:EOverlayType; 
+  /// position, cartesian impedence, or joint impedence low level controller adjustments   
+  controlMode:EControlMode; 
+  
+  smartServoConfig:SmartServo;
+  FRIConfig:FRI;
+  
+  tools:[LinkObject];
+  
+  /// set kuka tablet "processData" panel UI config strings
+  processData:[ProcessData]; 
+  currentMotionCenter:string;
+
+  // TODO: add support
+  requestMonitorProcessData:bool = false;
+}
+
+// Get configuration data from the arm that doesn't change often
+table KUKAiiwaMonitorConfiguration {
+   hardwareVersion:string;
+   torqueSensorLimits:[double];
+   isReadyToMove:bool;
+   isMastered:bool; // check if all joints are mastered (built in calibration of joints)
+   /// set kuka tablet "processData" panel UI config strings
+   // TODO: add support
+   processData:[ProcessData]; 
+}
+
+// Get state data for the arm (things that change often)
+table KUKAiiwaMonitorState {
+   measuredState:JointState;
+   cartesianFlangePose:Pose; // cartesian pose of the flange relative to the base of the arm
+   jointStateReal:JointState; // this is the real current state of the arm joints 
+   
+   /// FRI can adjust the java commanded position. "Interpolated" is the original Java commanded position.
+   // TODO: verify this description is correct
+   jointStateInterpolated:JointState;
+   
+   /// The state of the arm as calculated by kuka after 
+   /// subtracting the known weights of the arm
+   /// and any attachments configured to be present.
+   ///
+   /// Most likely only contains torque.
+   externalState:JointState; 
+   
+   operationMode:EOperationMode;
+   
+   
+}
+
+
+table KUKAiiwaState {
+  name:string; // The name of the robot to update (identifier used when applicable, doesn't ever change or set the name)
+  destination:string; // where this message is going (URI)
+  source:string; // where this message came from (URI)
+  timestamp:double; // timestamp in seconds
+  
+  setArmControlState:bool = false; // only actually change the arm state when this is true.
+  armControlState:ArmControlState; // Command state and mode of the arm 
+  
+  setArmConfiguration:bool = false; // only actually change the arm configuration when this is true
+  armConfiguration:KUKAiiwaArmConfiguration;  // Command change in configuration of the arm
+  
+  hasMonitorState:bool = false;
+  monitorState:KUKAiiwaMonitorState;
+  
+  hasMonitorConfig:bool = false;
+  monitorConfig:KUKAiiwaMonitorConfiguration;
+  
+}
+
+// Full message that is sent back and forth
+// between KUKA iiwa and driver
+// This is used because they can also be
+// accumulated and saved to disk as a log
+// very easily!
+table KUKAiiwaStates {
+  states:[KUKAiiwaState];
+}
+
+root_type KUKAiiwaStates;
+file_identifier "iiwa";
+file_extension  "iiwa";

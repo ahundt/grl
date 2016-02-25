@@ -2,13 +2,7 @@
 #define GRL_KUKA_HPP
 
 #include <boost/container/static_vector.hpp>
-
-/// @todo the FRI headers below depend on code that can't be shared, find a way to remove them so the java interface can work without the FRI source.
-#include "friClientIf.h"
-#include "friClientData.h"
-#include "FRIMessages.pb.h"
-#include "friCommandMessageEncoder.h"
-#include "friMonitoringMessageDecoder.h"
+#include "grl/flatbuffer/KUKAiiwa_generated.h"
 
 namespace KUKA {
 	namespace LBRState {
@@ -28,7 +22,7 @@ namespace grl { namespace robot { namespace arm {
 /// @todo replace with something generic
 /// @deprecated this is an old implemenation that will be removed in the future
 struct KukaState {
-	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF+1> joint_state;
+	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
     typedef boost::container::static_vector<double,7> cartesian_state;
     
 	joint_state     position;
@@ -39,11 +33,15 @@ struct KukaState {
     
 	joint_state     ipoJointPosition;
     joint_state     ipoJointPositionOffsets;
-	KUKA::FRI::ESessionState      sessionState;
-	KUKA::FRI::EConnectionQuality connectionQuality;
-	KUKA::FRI::ESafetyState       safetyState;
-	KUKA::FRI::EOperationMode     operationMode;
-	KUKA::FRI::EDriveState        driveState;
+    
+    //  Each of the following have an equivalent in kuka's friClientIf.h
+    //  which needed to be reimplemented due to licensing restrictions
+    //  in the corresponding C++ code
+	flatbuffer::ESessionState      sessionState;      // KUKA::FRI::ESessionState
+	flatbuffer::EConnectionQuality connectionQuality; // KUKA::FRI::EConnectionQuality
+	flatbuffer::ESafetyState       safetyState;       // KUKA::FRI::ESafetyState
+	flatbuffer::EOperationMode     operationMode;     // KUKA::FRI::EOperationMode
+	flatbuffer::EDriveState        driveState;        // KUKA::FRI::EDriveState
 	
 	std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     

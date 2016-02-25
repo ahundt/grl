@@ -2,6 +2,9 @@
 
 package grl.flatbuffer;
 
+/**
+ * Type of command being sent to the arm (Dimensonal units)
+ */
 public final class EClientCommandMode {
   private EClientCommandMode() { }
   public static final byte NO_COMMAND_MODE = 0;

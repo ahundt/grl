@@ -38,29 +38,19 @@ namespace grl { namespace robot { namespace arm {
     public:
 
       enum ParamIndex {
-        RobotTipName,
-        RobotTargetName,
-        RobotTargetBaseName,
+        RobotName,
         LocalZMQAddress,
         RemoteZMQAddress,
-        LocalZMQConfigAddress,
-        RemoteZMQConfigAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
         RemoteHostKukaKoniUDPPort,
         KukaCommandMode,
-        KukaMonitorMode,
-        IKGroupName
+        KukaMonitorMode
       };
 
       /// @todo allow default params
       typedef std::tuple<
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
         std::string,
         std::string,
         std::string,
@@ -75,55 +65,17 @@ namespace grl { namespace robot { namespace arm {
 
       static const Params defaultParams(){
         return std::make_tuple(
-            "RobotMillTip"            , // RobotTipHandle,
-            "RobotMillTipTarget"      , // RobotTargetHandle,
-            "Robotiiwa"               , // RobotTargetBaseHandle,
+            "Robotiiwa"               , // RobotName,
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
-            "tcp://0.0.0.0:30011"     , // LocalZMQConfigAddress
-            "tcp://172.31.1.147:30011", // RemoteZMQConfigAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
-            "JAVA"                     , // KukaCommandMode (options are FRI, JAVA)
-            "JAVA"                     , // KukaMonitorMode (options are FRI, JAVA)
-            "IK_Group1_iiwa"            // IKGroupName
+            "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+            "JAVA"                      // KukaMonitorMode (options are FRI, JAVA)
             );
       }
-
-
-      /// unique tag type so State never
-      /// conflicts with a similar tuple
-      struct JointStateTag{};
-
-      enum JointStateIndex {
-        JointPosition,
-        JointForce,
-        JointTargetPosition,
-        JointLowerPositionLimit,
-        JointUpperPositionLimit,
-        JointMatrix,
-        JointStateTagIndex
-      };
-
-
-      typedef std::vector<double>               JointScalar;
-
-      /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simGetJointMatrix for data layout information
-      typedef std::array<double,12> TransformationMatrix;
-      typedef std::vector<TransformationMatrix> TransformationMatrices;
-
-      typedef std::tuple<
-        JointScalar,            // jointPosition
-        //  JointScalar             // JointVelocity  // no velocity yet
-        JointScalar,            // jointForce
-        JointScalar,            // jointTargetPosition
-        JointScalar,            // JointLowerPositionLimit
-        JointScalar,            // JointUpperPositionLimit
-        TransformationMatrices, // jointTransformation
-        JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
-          > State;
 
 
       KukaDriver(Params params = defaultParams())
@@ -196,7 +148,6 @@ namespace grl { namespace robot { namespace arm {
 
 
 
-      bool setState(State& state) { return true; }
 
 
       const Params & getParams(){

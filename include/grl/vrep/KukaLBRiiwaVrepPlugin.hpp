@@ -147,20 +147,15 @@ void construct(Params params){
   device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
   kukaDriverP_=std::make_shared<robot::arm::KukaDriver>(std::make_tuple(
       
-        std::get<RobotTipName>(params),
-        std::get<RobotTargetName>(params),
         std::get<RobotTargetBaseName>(params),
         std::get<LocalZMQAddress>(params),
         std::get<RemoteZMQAddress>(params),
-        std::get<LocalConfigZMQAddress>(params),
-        std::get<RemoteConfigZMQAddress>(params),
         std::get<LocalHostKukaKoniUDPAddress>(params),
         std::get<LocalHostKukaKoniUDPPort>(params),
         std::get<RemoteHostKukaKoniUDPAddress>(params),
         std::get<RemoteHostKukaKoniUDPPort>(params),
         std::get<KukaCommandMode>(params),
-        std::get<KukaMonitorMode>(params),
-        std::get<IKGroupName>(params)
+        std::get<KukaMonitorMode>(params)
 
         
   ));
