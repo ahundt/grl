@@ -8,6 +8,12 @@ import java.util.*;
 import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
+/**
+ * "ProcessData" is a field that appears 
+ * on your physical kuka tablet. 
+ * This message allows you to update these
+ * fields on the tablet yourself.
+ */
 public final class ProcessData extends Table {
   public static ProcessData getRootAsProcessData(ByteBuffer _bb) { return getRootAsProcessData(_bb, new ProcessData()); }
   public static ProcessData getRootAsProcessData(ByteBuffer _bb, ProcessData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
@@ -29,6 +35,14 @@ public final class ProcessData extends Table {
   public ByteBuffer unitAsByteBuffer() { return __vector_as_bytebuffer(16, 1); }
   public String value() { int o = __offset(18); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer valueAsByteBuffer() { return __vector_as_bytebuffer(18, 1); }
+  /**
+   * should the data be removed completely?
+   */
+  public boolean shouldRemove() { int o = __offset(20); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
+  /**
+   * should the data be updated to these values? 
+   */
+  public boolean shouldUpdate() { int o = __offset(22); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
 
   public static int createProcessData(FlatBufferBuilder builder,
       int dataType,
@@ -38,8 +52,10 @@ public final class ProcessData extends Table {
       int min,
       int max,
       int unit,
-      int value) {
-    builder.startObject(8);
+      int value,
+      boolean shouldRemove,
+      boolean shouldUpdate) {
+    builder.startObject(10);
     ProcessData.addValue(builder, value);
     ProcessData.addUnit(builder, unit);
     ProcessData.addMax(builder, max);
@@ -48,10 +64,12 @@ public final class ProcessData extends Table {
     ProcessData.addDisplayName(builder, displayName);
     ProcessData.addDefaultValue(builder, defaultValue);
     ProcessData.addDataType(builder, dataType);
+    ProcessData.addShouldUpdate(builder, shouldUpdate);
+    ProcessData.addShouldRemove(builder, shouldRemove);
     return ProcessData.endProcessData(builder);
   }
 
-  public static void startProcessData(FlatBufferBuilder builder) { builder.startObject(8); }
+  public static void startProcessData(FlatBufferBuilder builder) { builder.startObject(10); }
   public static void addDataType(FlatBufferBuilder builder, int dataTypeOffset) { builder.addOffset(0, dataTypeOffset, 0); }
   public static void addDefaultValue(FlatBufferBuilder builder, int defaultValueOffset) { builder.addOffset(1, defaultValueOffset, 0); }
   public static void addDisplayName(FlatBufferBuilder builder, int displayNameOffset) { builder.addOffset(2, displayNameOffset, 0); }
@@ -60,6 +78,8 @@ public final class ProcessData extends Table {
   public static void addMax(FlatBufferBuilder builder, int maxOffset) { builder.addOffset(5, maxOffset, 0); }
   public static void addUnit(FlatBufferBuilder builder, int unitOffset) { builder.addOffset(6, unitOffset, 0); }
   public static void addValue(FlatBufferBuilder builder, int valueOffset) { builder.addOffset(7, valueOffset, 0); }
+  public static void addShouldRemove(FlatBufferBuilder builder, boolean shouldRemove) { builder.addBoolean(8, shouldRemove, false); }
+  public static void addShouldUpdate(FlatBufferBuilder builder, boolean shouldUpdate) { builder.addBoolean(9, shouldUpdate, false); }
   public static int endProcessData(FlatBufferBuilder builder) {
     int o = builder.endObject();
     return o;

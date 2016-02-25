@@ -25,6 +25,7 @@
 #include "grl/exception.hpp"
 
 #include "Kuka.hpp"
+#include "KukaFRI.hpp"
 
 struct KukaState;
 
@@ -191,11 +192,11 @@ void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
 	copy(monitoringMsg,std::back_inserter(state.commandedPosition),revolute_joint_angle_open_chain_command_tag());
 	copy(monitoringMsg,std::back_inserter(state.commandedTorque),revolute_joint_torque_open_chain_command_tag());
 	copy(monitoringMsg,std::back_inserter(state.ipoJointPosition),revolute_joint_angle_interpolated_open_chain_state_tag());
-	state.sessionState = get(monitoringMsg,KUKA::FRI::ESessionState());
-	state.connectionQuality = get(monitoringMsg,KUKA::FRI::EConnectionQuality());
-	state.safetyState = get(monitoringMsg,KUKA::FRI::ESafetyState());
-	state.operationMode = get(monitoringMsg,KUKA::FRI::EOperationMode());
-	state.driveState = get(monitoringMsg,KUKA::FRI::EDriveState());
+	state.sessionState = static_cast<flatbuffer::ESessionState>(get(monitoringMsg,KUKA::FRI::ESessionState()));
+	state.connectionQuality = static_cast<flatbuffer::EConnectionQuality>(get(monitoringMsg,KUKA::FRI::EConnectionQuality()));
+	state.safetyState = static_cast<flatbuffer::ESafetyState>(get(monitoringMsg,KUKA::FRI::ESafetyState()));
+	state.operationMode = static_cast<flatbuffer::EOperationMode>(get(monitoringMsg,KUKA::FRI::EOperationMode()));
+	state.driveState = static_cast<flatbuffer::EDriveState>(get(monitoringMsg,KUKA::FRI::EDriveState()));
 		
 	/// @todo fill out missing state update steps
 	
