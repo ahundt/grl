@@ -3,6 +3,7 @@ package grl.driver;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
+import grl.TeachMode;
 import grl.UpdateConfiguration;
 import grl.flatbuffer.MoveArmJointServo;
 
@@ -153,11 +154,6 @@ public class GRL_Driver extends RoboticsAPIApplication
         JointPosition destination = new JointPosition(
                 _lbr.getJointCount());
         
-        
-        TeachMode tm = new TeachMode(_lbr);
-        Thread teachModeThread = new Thread(tm);
-        teachModeThread.start();
-        
 
         IMotionContainer currentMotion = null;
         
@@ -168,7 +164,9 @@ public class GRL_Driver extends RoboticsAPIApplication
         grl.flatbuffer.ArmState state = null;
         grl.flatbuffer.ArmControlState armControlState = null;
         grl.flatbuffer.ArmState        armState = null;
-        
+
+        TeachMode tm = new TeachMode(_lbr); 
+        Thread teachModeThread = new Thread(tm); 
         // Receive Flat Buffer and Move to Position
         // TODO: add a message that we send to the driver with data log strings
         while (!stop) {
@@ -267,7 +265,11 @@ public class GRL_Driver extends RoboticsAPIApplication
 		            	if (currentMotion != null) {
 		            		currentMotion.cancel();
 		            	}
-		            	tm.setActive(true);
+		            	if (! tm.getActive()){
+			            	tm.setActive(true);
+			            	teachModeThread=new Thread(tm);
+			                teachModeThread.start();
+		            	}
 		            } else {
 		            	System.out.println("Unsupported Mode! stopping");
 		            	stop = true;
