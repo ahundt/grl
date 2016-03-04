@@ -10,5 +10,6 @@
         <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.mapping.HandGuidingMapper"/>
         <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.DirectServoMapper"/>
         <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.SmartServoMapper"/>
+        <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.SmartServoLINMapper"/>
     </Controller>
 </RoboticsAPI>
