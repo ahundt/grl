@@ -86,7 +86,7 @@ namespace grl {
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
             "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
-            "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
+            "JAVA"                       // KukaMonitorMode (options are FRI, JAVA)
             );
       }
 
@@ -210,6 +210,9 @@ namespace grl {
       void mode_callback(const std_msgs::StringConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
 
+        //std::cerr << "Mode command = " << msg->data.c_str() << "\n";
+        ROS_INFO("Receiving mode command: %s", msg->data.c_str());
+
         unsigned int ArmStateLen = 9;
         for (unsigned int i = 0; i < ArmStateLen; ++i) {
           if (msg->data == grl::flatbuffer::EnumNamesArmState()[i]) {
@@ -272,12 +275,14 @@ namespace grl {
              if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
              break;
            case grl::flatbuffer::ArmState_TeachArm:
+             ROS_INFO("Putting the robot in TEACH mode");
              KukaDriverP_->teachArm(); break;
            case grl::flatbuffer::ArmState_StopArm:
              KukaDriverP_->stopArm(); break;
            case grl::flatbuffer::ArmState_PauseArm:
              KukaDriverP_->pauseArm(); break;
            case grl::flatbuffer::ArmState_StartArm:
+             ROS_INFO("Sending start!");
              KukaDriverP_->startArm(); break;
          }
 

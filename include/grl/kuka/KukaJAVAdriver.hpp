@@ -125,7 +125,7 @@ namespace grl { namespace robot { namespace arm {
 
 
       KukaJAVAdriver(Params params = defaultParams())
-        : params_(params)
+        : params_(params), armControlMode(flatbuffer::ArmState::ArmState_NONE)
       {}
 
       void construct(){ construct(params_); sequenceNumber = 0;}
@@ -267,10 +267,14 @@ namespace grl { namespace robot { namespace arm {
           
           auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
           
+          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState);
           
+          auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
           
-            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
-            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
+          
+          grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
+          kukaJavaDriverP->async_send_flatbuffer(fbbP);
           
           return false;
       }
@@ -438,8 +442,11 @@ namespace grl { namespace robot { namespace arm {
               case flatbuffer::ArmState::ArmState_ShutdownArm:
                  destruct();
                  break;
+              case flatbuffer::ArmState::ArmState_NONE:
+                 //std::cerr << "Waiting for interation mode... (currently NONE)\n";
+                 break;
               default:
-                 std::cerr << "KukaJAVAdriver unsupported use case\n";
+                 std::cerr << "KukaJAVAdriver unsupported use case: " << armControlMode << "\n";
           }
 
         }

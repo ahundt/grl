@@ -3,8 +3,11 @@ package grl.driver;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
+import grl.ProcessDataManager;
+import grl.StartStopSwitchUI;
 import grl.TeachMode;
 import grl.UpdateConfiguration;
+import grl.flatbuffer.ArmState;
 import grl.flatbuffer.MoveArmJointServo;
 
 import java.nio.ByteBuffer;
@@ -41,19 +44,17 @@ import com.kuka.roboticsAPI.userInterface.ServoMotionUtilities;
  */
 public class GRL_Driver extends RoboticsAPIApplication
 {
-    private Controller _lbrController;
-    private LBR _lbr;
-    private String __controllingLaptopIPAddress;
-    private String _RobotIPAddress;
-    private String _FRI_KONI_RobotIPAddress;
-    private String _FRI_KONI_LaptopIPAddress;
-    private ISmartServoRuntime theSmartServoRuntime = null;
-	private String _controllingLaptopIPAddressConfig;
-	private grl.flatbuffer.KUKAiiwaArmConfiguration _currentActiveConfiguration = null;
+	private ProcessDataManager _processDataManager = null; // Stores variables that can be modified by teach pendant in "Process Data" Menu
+	private Controller _lbrController;
+	private LBR _lbr;
+	private StartStopSwitchUI _startStopUI = null;
+	private ISmartServoRuntime theSmartServoRuntime = null;
+	private grl.flatbuffer.KUKAiiwaState _currentKUKAiiwaState = null;
+	private grl.flatbuffer.KUKAiiwaState _previousKUKAiiwaState = null;
 	private AbstractMotionControlMode _activeMotionControlMode;
 	private UpdateConfiguration _updateConfiguration;
 	private IRecovery _pausedApplicationRecovery = null;
-
+	private PhysicalObject _toolAttachedToLBR;
 	/**
 	 *  gripper or other physically attached object
 	 *  see "Template Data" panel in top right pane
@@ -62,277 +63,289 @@ public class GRL_Driver extends RoboticsAPIApplication
 	 */
 	private Tool    _flangeAttachment;
 
-    @Override
-    public void initialize()
-    {
-        _lbrController = (Controller) getContext().getControllers().toArray()[0];
-        _lbr = (LBR) _lbrController.getDevices().toArray()[0];
-        _flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
+	@Override
+	public void initialize()
+	{
+		_startStopUI = new StartStopSwitchUI(this);
+		_processDataManager = new ProcessDataManager(this);
+		_lbrController = (Controller) getContext().getControllers().toArray()[0];
+		_lbr = (LBR) _lbrController.getDevices().toArray()[0];
+		_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
+		_updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
+		_pausedApplicationRecovery = getRecovery();
+
+		_toolAttachedToLBR = this.createFromTemplate("FlangeAttachment");
+	}
+
+	@Override
+	public void run()
+	{
+
+		ZMQ.Context context = ZMQ.context(1);
 
 
-        _updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
-        // **********************************************************************
-        // *** change next line to the FRIClient's IP address                 ***
-        // **********************************************************************
-        __controllingLaptopIPAddress = getApplicationData().getProcessData("Laptop_IP").getValue(); //"192.170.10.100";
+		getLogger().info("ZMQ Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
+		ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
+		subscriber.connect(_processDataManager.get_ZMQ_MASTER_URI());
+		subscriber.setRcvHWM(1000);
 
-        
-        // **********************************************************************
-        // *** change next line to the KUKA address and Port Number           ***
-        // **********************************************************************
-        _RobotIPAddress = getApplicationData().getProcessData("Robot_IP").getValue(); //"tcp://172.31.1.100:30010";
+		int statesLength = 0;
+		grl.flatbuffer.KUKAiiwaStates currentKUKAiiwaStates = null;
+		byte [] data = null;
+		ByteBuffer bb = null;
 
-        // **********************************************************************
-        // *** change next line to the FRIClient's IP address                 ***
-        // **********************************************************************
-        _FRI_KONI_LaptopIPAddress = getApplicationData().getProcessData("Laptop_KONI_FRI_IP").getValue(); //"192.170.10.100";
+		getLogger().info("Waiting for initialization...");
+		while(statesLength<1 && currentKUKAiiwaStates == null){
+			if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
+				bb = ByteBuffer.wrap(data);
+				getLogger().info("Flatbuffer received");
 
-        
-        // **********************************************************************
-        // *** change next line to the KUKA address and Port Number           ***
-        // **********************************************************************
-        _FRI_KONI_RobotIPAddress = getApplicationData().getProcessData("Robot_KONI_FRI_IP").getValue(); //"tcp://172.31.1.100:30010";
-        
-        
-        _pausedApplicationRecovery = getRecovery();
-    }
+				currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb);
+				statesLength = currentKUKAiiwaStates.statesLength();
+			}
 
-    @Override
-    public void run()
-    {
+			if (_startStopUI.is_stopped()) {
+				getLogger().info("Stopping program.");
+				return;
+			}
+		}
 
-        ZMQ.Context context = ZMQ.context(1);
-        
+		getLogger().info("States initialized...");
 
-        ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
-        subscriber.connect(_RobotIPAddress);
-        subscriber.setRcvHWM(1000);
-        
-        int statesLength = 0;
-        grl.flatbuffer.KUKAiiwaStates currentKUKAiiwaStates = null;
-        byte [] data = null;
-        ByteBuffer bb = null;
-        
-        while(statesLength<1 && currentKUKAiiwaStates == null){
-            data = subscriber.recv();
-            bb = ByteBuffer.wrap(data);
+		// TODO: remove default start pose
+		// move do default start pose
+		//_toolAttachedToLBR.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
 
-            currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb);
-            statesLength = currentKUKAiiwaStates.statesLength();
-        }
-        // TODO: support more than one state per message?
-        grl.flatbuffer.KUKAiiwaState currentKUKAiiwaState = currentKUKAiiwaStates.states(0);
-        
-        // TODO: remove default start pose
-        // move do default start pose
-        //_toolAttachedToLBR.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
 
-        
-        
-       // Prepare ZeroMQ context and dealer
-        //getArmConfiguration(configSubscriber);
 
-        JointPosition initialPosition = new JointPosition(
-                _lbr.getCurrentJointPosition());
-        SmartServo aSmartServoMotion = new SmartServo(initialPosition);
+		// Prepare ZeroMQ context and dealer
+		//getArmConfiguration(configSubscriber);
 
-        // Set the motion properties to 20% of systems abilities
-        double jointVelRel = getApplicationData().getProcessData("jointVelRel").getValue();
-        double jointAccRel = getApplicationData().getProcessData("jointAccRel").getValue();
-        aSmartServoMotion.setJointAccelerationRel(jointVelRel);
-        aSmartServoMotion.setJointVelocityRel(jointAccRel);
+		//		JointPosition initialPosition = new JointPosition(
+		//				_lbr.getCurrentJointPosition());
+		//SmartServo aSmartServoMotion = null;
+		//
+		//		// Set the motion properties to 20% of systems abilities
+		//		double jointVelRel = getApplicationData().getProcessData("jointVelRel").getValue();
+		//		double jointAccRel = getApplicationData().getProcessData("jointAccRel").getValue();
+		//		aSmartServoMotion.setJointAccelerationRel(jointVelRel);
+		//		aSmartServoMotion.setJointVelocityRel(jointAccRel);
+		//		aSmartServoMotion.setTimeoutAfterGoalReach(300);
 
-        // TODO: read from SmartServo config
-        aSmartServoMotion.setMinimumTrajectoryExecutionTime(20e-3);
+		// TODO: read from SmartServo config
+		//		aSmartServoMotion.setMinimumTrajectoryExecutionTime(20e-3);
 
-        //_toolAttachedToLBR.getDefaultMotionFrame().moveAsync(aSmartServoMotion);
-        
-        // Fetch the Runtime of the Motion part
-        theSmartServoRuntime = aSmartServoMotion.getRuntime();
-        
-     	// create an JointPosition Instance, to play with
-        JointPosition destination = new JointPosition(
-                _lbr.getJointCount());
-        
+		//JointImpedanceControlMode controlMode = new JointImpedanceControlMode(7); // TODO!!
+		//aSmartServoMotion.setMode(controlMode);
+		//		_lbr.moveAsync(aSmartServoMotion);
+		//		theSmartServoRuntime = aSmartServoMotion.getRuntime();
 
-        IMotionContainer currentMotion = null;
-        
-        boolean stop = false;
-        boolean newIncomingKUKAiiwaState = false;
-        boolean newConfig = false;
-        
-        grl.flatbuffer.ArmState state = null;
-        grl.flatbuffer.ArmControlState armControlState = null;
-        grl.flatbuffer.ArmState        armState = null;
+		// create an JointPosition Instance, to play with
+		JointPosition destination = new JointPosition(
+				_lbr.getJointCount());
 
-        TeachMode tm = new TeachMode(_lbr); 
-        Thread teachModeThread = new Thread(tm); 
-        // Receive Flat Buffer and Move to Position
-        // TODO: add a message that we send to the driver with data log strings
-        while (!stop) {
-        	// TODO: IMPORTANT: this recv call must be made asynchronous
-        	boolean isRecoveryRequired = _pausedApplicationRecovery.isRecoveryRequired();
-        	
-            if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
-            	newIncomingKUKAiiwaState = true;
-                bb = ByteBuffer.wrap(data);
-            
-                currentKUKAiiwaState.armControlState(armControlState);
-            
-	            synchronized(_lbr) {
-		            bb = ByteBuffer.wrap(data);
-		
-		            currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, currentKUKAiiwaStates);
-		            
-		            if(currentKUKAiiwaStates.statesLength()>0)
 
-		                // TODO: support more than one state per message?
-		                currentKUKAiiwaState = currentKUKAiiwaStates.states(0);
-		                currentKUKAiiwaState.armControlState(armControlState);
-		            
-		            if(armControlState.stateType() == grl.flatbuffer.ArmState.ShutdownArm){
-		            	stop = true;
-		            }
-		            else if (armControlState.stateType() == grl.flatbuffer.ArmState.MoveArmTrajectory) {
-		            	tm.setActive(false);
-		            	theSmartServoRuntime.stopMotion();
-		            	if (currentMotion != null) {
-		            		currentMotion.cancel();
-		            	}
-		            	
-		            	grl.flatbuffer.MoveArmTrajectory maj = null;
-		            	armControlState.state(maj);
-		
-			            for (int j = 0; j < maj.trajLength(); j++) {
-			            	
-			            	JointPosition pos = new JointPosition(_lbr.getCurrentJointPosition());
-			            	
-				            for (int k = 0; k < destination.getAxisCount(); ++k)
-				            {
-				            	//destination.set(k, maj.traj(j).position(k));
-				            	pos.set(k, maj.traj(j).position(k));
-					        	currentMotion = _lbr.moveAsync(ptp(pos));
-				            }
-				            
-			            }
-		            } else if (armControlState.stateType() == grl.flatbuffer.ArmState.MoveArmJointServo) {
-		            	if (currentMotion != null) {
-		            		currentMotion.cancel();
-		            	}
-		            	tm.setActive(false);
-		            	
-		            	
-		            	
-		            	MoveArmJointServo mas = null;
-		            	armControlState.state(mas);
-		            	
-		            	if(_currentActiveConfiguration.commandInterface() == grl.flatbuffer.KUKAiiwaInterface.SmartServo){
-		            		grl.flatbuffer.JointState jointState = mas.goal();
-			            	
-			            	for (int k = 0; k < destination.getAxisCount(); ++k)
-			                {
-			                	destination.set(k, jointState.position(k));
-			                }
-			                theSmartServoRuntime.setDestination(destination);
-		            		
-		            	} else if(_currentActiveConfiguration.commandInterface()==grl.flatbuffer.KUKAiiwaInterface.FRI){
-	
-		            		FRISession friSession = _updateConfiguration.get_FRISession();
-		            		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
-		            		
-		            		 try {
-		            			friSession.await(10, TimeUnit.SECONDS);
-	
-			            		_lbr.moveAsync(positionHold(_activeMotionControlMode, -1, TimeUnit.SECONDS).addMotionOverlay(motionOverlay));
-		            		} catch (TimeoutException e) {
-		            			// TODO Automatisch generierter Erfassungsblock
-		            			e.printStackTrace();
-		            			friSession.close();
-		            			return;
-		            		}
-		            		 
-		            	}
-		            	
-		            } else if (armControlState.stateType() == grl.flatbuffer.ArmState.StopArm) {
-		            	theSmartServoRuntime.stopMotion();
-		            	if (currentMotion != null) {
-		            		currentMotion.cancel();
-		            	}
-		            	tm.setActive(false);
-		            	
-		            } else if (armControlState.stateType() == grl.flatbuffer.ArmState.TeachArm) {
-		            	theSmartServoRuntime.stopMotion();
-		            	if (currentMotion != null) {
-		            		currentMotion.cancel();
-		            	}
-		            	if (! tm.getActive()){
-			            	tm.setActive(true);
-			            	teachModeThread=new Thread(tm);
-			                teachModeThread.start();
-		            	}
-		            } else {
-		            	System.out.println("Unsupported Mode! stopping");
-		            	stop = true;
-		            }
-		            
-		            // done processing new command
-		            newIncomingKUKAiiwaState = false;
-	            }
-        }}
-            
-        
-        // done
-        subscriber.close();
-        context.term();
-        _updateConfiguration.get_FRISession().close();
-        System.exit(1);
-    }
-    
-    
-    boolean updateConfig(grl.flatbuffer.KUKAiiwaArmConfiguration newConfig){
-    	
-    	if(newConfig == null) return false;
-    	
-    	if(_currentActiveConfiguration.controlMode()!=newConfig.controlMode())
-    	{
-    		if(newConfig.controlMode()==grl.flatbuffer.EControlMode.POSITION_CONTROL_MODE){
-    			_activeMotionControlMode = new PositionControlMode();
-    		} else if(newConfig.controlMode()==grl.flatbuffer.EControlMode.CART_IMP_CONTROL_MODE){
-    			CartesianImpedanceControlMode cicm = new CartesianImpedanceControlMode();
-    			// TODO: read relevant stiffness/damping params
-    			//cicm.parametrize(CartDOF.X).setStiffness(stiffnessX);
-    			//cicm.parametrize(CartDOF.Y).setStiffness(stiffnessY);
-    			//cicm.parametrize(CartDOF.Z).setStiffness(stiffnessZ);
-    			
-    			_activeMotionControlMode = cicm;
-    		} else if(newConfig.controlMode()==grl.flatbuffer.EControlMode.JOINT_IMP_CONTROL_MODE){
-    			JointImpedanceControlMode cicm = new JointImpedanceControlMode();
-    			// TODO: read relevant stiffness/damping params
-    			//cicm.parametrize(CartDOF.X).setStiffness(stiffnessX);
-    			//cicm.parametrize(CartDOF.Y).setStiffness(stiffnessY);
-    			//cicm.parametrize(CartDOF.Z).setStiffness(stiffnessZ);
-    			
-    			_activeMotionControlMode = cicm;
-    		}
-    		
-    		theSmartServoRuntime.changeControlModeSettings(_activeMotionControlMode);
-    	}
-    	
-    	
-    	
-    	return true;
-    }
+		IMotionContainer currentMotion = null;
+
+		boolean stop = false;
+		boolean newConfig = false;
+
+		// TODO: Let user set mode (teach/joint control from tablet as a backup!)
+		//this.getApplicationData().getProcessData("DefaultMode").
+
+		int abort_counter = 0;
+		// TODO: this teach mode is broken!
+		//TeachMode tm = new TeachMode(_lbr); 
+		//Thread teachModeThread = new Thread(tm); 
+		// Receive Flat Buffer and Move to Position
+		// TODO: add a message that we send to the driver with data log strings
+		while (!stop && !_startStopUI.is_stopped()) {
+			
+			// TODO: IMPORTANT: this recv call must be made asynchronous
+			boolean isRecoveryRequired = _pausedApplicationRecovery.isRecoveryRequired();
+
+			// TODO: Allow updates via zmq and tablet
+			if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
+				abort_counter+=1;if (abort_counter > 100) { getLogger().warn("Aborting!"); break; }
+				bb = ByteBuffer.wrap(data);
+
+				currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, currentKUKAiiwaStates);
+
+				// TODO: this loop needs to be initialized in the right order and account for runtime changes on tablet and ZMQ, then sync them
+
+				if(currentKUKAiiwaStates.statesLength()>0) {
+					// initialize the fist state
+					grl.flatbuffer.KUKAiiwaState tmp = currentKUKAiiwaStates.states(0);
+					if (tmp == null || tmp.armControlState() == null) {
+						getLogger().warn("NULL ArmControlState message!");
+						abort_counter += 1;
+						if (abort_counter > 100) { return; }
+						continue;
+					} else {
+						_previousKUKAiiwaState = _currentKUKAiiwaState;
+						_currentKUKAiiwaState = tmp;
+					}
+
+					synchronized(_lbr) {
+
+						if(_previousKUKAiiwaState != null &&
+								_currentKUKAiiwaState.armControlState() != _previousKUKAiiwaState.armControlState())
+						{
+							getLogger()
+							.info("Switching mode: "
+									+ ArmState.name(_currentKUKAiiwaState.armControlState().stateType()));
+						}
+
+						if(_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.ShutdownArm){
+							stop = true;
+						}
+						else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmTrajectory) {
+							//tm.setActive(false);
+							theSmartServoRuntime.stopMotion();
+							if (currentMotion != null) {
+								currentMotion.cancel();
+							}
+
+							grl.flatbuffer.MoveArmTrajectory maj = null;
+							_currentKUKAiiwaState.armControlState().state(maj);
+
+							for (int j = 0; j < maj.trajLength(); j++) {
+
+								JointPosition pos = new JointPosition(_lbr.getCurrentJointPosition());
+
+								for (int k = 0; k < destination.getAxisCount(); ++k)
+								{
+									//destination.set(k, maj.traj(j).position(k));
+									pos.set(k, maj.traj(j).position(k));
+									currentMotion = _lbr.moveAsync(ptp(pos));
+								}
+
+							}
+						} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmJointServo) {
+							if (currentMotion != null) {
+								currentMotion.cancel();
+							}
+
+							MoveArmJointServo mas = null;
+							_currentKUKAiiwaState.armControlState().state(mas);
+
+							if(_currentKUKAiiwaState.armConfiguration().commandInterface() == grl.flatbuffer.KUKAiiwaInterface.SmartServo){
+								grl.flatbuffer.JointState jointState = mas.goal();
+
+								for (int k = 0; k < destination.getAxisCount(); ++k)
+								{
+									destination.set(k, jointState.position(k));
+								}
+								theSmartServoRuntime.setDestination(destination);
+
+							} else if(_currentKUKAiiwaState.armConfiguration().commandInterface()==grl.flatbuffer.KUKAiiwaInterface.FRI){
+
+								FRISession friSession = _updateConfiguration.get_FRISession();
+								FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
+
+								try {
+									friSession.await(10, TimeUnit.SECONDS);
+
+									_lbr.moveAsync(positionHold(_activeMotionControlMode, -1, TimeUnit.SECONDS).addMotionOverlay(motionOverlay));
+								} catch (TimeoutException e) {
+									// TODO Automatisch generierter Erfassungsblock
+									e.printStackTrace();
+									friSession.close();
+									return;
+								}
+
+							}
+
+						} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.StopArm) {
+
+							theSmartServoRuntime.stopMotion();
+							if (currentMotion != null) {
+								currentMotion.cancel();
+							}
+							//tm.setActive(false);
+
+						} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.TeachArm) {
+
+							if(_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null) {
+								continue;
+							}
+							else if( _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()){
+								
+								if (currentMotion != null) {
+									currentMotion.cancel();
+								}
+								
+								getLogger().warn("Enabling Teach Mode (grav comp): current = " +
+										_currentKUKAiiwaState.armControlState().stateType() + ", prev = " +
+										_previousKUKAiiwaState.armControlState().stateType());
+								
+								JointImpedanceControlMode controlMode2 = new JointImpedanceControlMode(7); // TODO!!
+								controlMode2.setStiffnessForAllJoints(0.1);
+								controlMode2.setDampingForAllJoints(0.7);
+								_lbr.moveAsync(positionHold(controlMode2, -1, TimeUnit.SECONDS));
+							}
+						} else {
+							System.out.println("Unsupported Mode! stopping");
+							stop = true;
+						}
+					}
+				}
+			}
+		}
+
+
+		// done
+		subscriber.close();
+		context.term();
+		_updateConfiguration.get_FRISession().close();
+		//System.exit(1);
+	}
+
+
+	boolean updateConfig(grl.flatbuffer.KUKAiiwaArmConfiguration newConfig){
+
+		if(newConfig == null) return false;
+
+		if(_currentKUKAiiwaState.armConfiguration().controlMode()!=_previousKUKAiiwaState.armConfiguration().controlMode())
+		{
+			if(newConfig.controlMode()==grl.flatbuffer.EControlMode.POSITION_CONTROL_MODE){
+				_activeMotionControlMode = new PositionControlMode();
+			} else if(newConfig.controlMode()==grl.flatbuffer.EControlMode.CART_IMP_CONTROL_MODE){
+				CartesianImpedanceControlMode cicm = new CartesianImpedanceControlMode();
+				// TODO: read relevant stiffness/damping params
+				//cicm.parametrize(CartDOF.X).setStiffness(stiffnessX);
+				//cicm.parametrize(CartDOF.Y).setStiffness(stiffnessY);
+				//cicm.parametrize(CartDOF.Z).setStiffness(stiffnessZ);
+
+				_activeMotionControlMode = cicm;
+			} else if(newConfig.controlMode()==grl.flatbuffer.EControlMode.JOINT_IMP_CONTROL_MODE){
+				JointImpedanceControlMode cicm = new JointImpedanceControlMode();
+				// TODO: read relevant stiffness/damping params
+				//cicm.parametrize(CartDOF.X).setStiffness(stiffnessX);
+				//cicm.parametrize(CartDOF.Y).setStiffness(stiffnessY);
+				//cicm.parametrize(CartDOF.Z).setStiffness(stiffnessZ);
+
+				_activeMotionControlMode = cicm;
+			}
+
+			theSmartServoRuntime.changeControlModeSettings(_activeMotionControlMode);
+		}
+
+
+
+		return true;
+	}
 
 	/**
-     * main.
-     * 
-     * @param args
-     *            args
-     */
-    public static void main(final String[] args)
-    {
-        final GRL_Driver app = new GRL_Driver();
-        app.runApplication();
-    }
+	 * main.
+	 * 
+	 * @param args
+	 *            args
+	 */
+	public static void main(final String[] args)
+	{
+		final GRL_Driver app = new GRL_Driver();
+		app.runApplication();
+	}
 
 }
