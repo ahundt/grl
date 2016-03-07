@@ -6,9 +6,9 @@ import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.kuka.connectivity.fri.FRIConfiguration;
-import com.kuka.connectivity.fri.FRIJointOverlay;
-import com.kuka.connectivity.fri.FRISession;
+import com.kuka.connectivity.fastRobotInterface.FRIConfiguration;
+import com.kuka.connectivity.fastRobotInterface.FRIJointOverlay;
+import com.kuka.connectivity.fastRobotInterface.FRISession;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.deviceModel.LBR;
