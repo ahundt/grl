@@ -2,14 +2,13 @@
 <RoboticsAPI>
     <Engine Class="com.kuka.roboticsAPI.persistenceModel.PersistenceEngine"/>
     <DataSource Class="com.kuka.roboticsAPI.persistenceModel.XmlApplicationDataSource" DataFile="RoboticsAPI.data.xml" Name="robotApplicationDataSource"/>
-    <Engine Class="com.kuka.roboticsAPI.uiModel.UIEngine"/>
-    <Engine Class="com.kuka.roboticsAPI.applicationModel.tasks.RoboticsAPITaskEngine"/>
     <Controller Class="com.kuka.roboticsAPI.controllerModel.sunrise.SunriseController" KeepAliveSendTimeout="30000" Name="KUKA_Sunrise_Cabinet_1" NameserverAddress="172.31.1.147" NameserverPort="23456">
-        <Mapper Class="com.kuka.connectivity.fri.FRIMotionOverlayMapper"/>
+        <Mapper Class="com.kuka.connectivity.controllerModel.directServo.DirectServoMapper"/>
+        <Mapper Class="com.kuka.connectivity.fastRobotInterface.FRIMotionOverlayMapper"/>
+        <Mapper Class="com.kuka.connectivity.controllerModel.sunrise.smartServo.SmartServoMapper"/>
+        <Mapper Class="com.kuka.connectivity.controllerModel.smartServoLIN.SmartServoLINMapper"/>
         <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.mapping.HandGuidingControlModeMapper"/>
         <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.mapping.HandGuidingMapper"/>
-        <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.DirectServoMapper"/>
-        <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.SmartServoMapper"/>
-        <Mapper Class="com.kuka.roboticsAPI.controllerModel.sunrise.SmartServoLINMapper"/>
     </Controller>
+    <Engine Class="com.kuka.roboticsAPI.uiModel.UIEngine"/>
 </RoboticsAPI>

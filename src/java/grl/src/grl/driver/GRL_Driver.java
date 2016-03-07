@@ -17,9 +17,10 @@ import java.util.concurrent.TimeoutException;
 import org.zeromq.ZMQ;
 
 import com.google.flatbuffers.Table;
-import com.kuka.connectivity.fri.FRIConfiguration;
-import com.kuka.connectivity.fri.FRIJointOverlay;
-import com.kuka.connectivity.fri.FRISession;
+import com.kuka.connectivity.fastRobotInterface.FRIConfiguration;
+import com.kuka.connectivity.fastRobotInterface.FRIJointOverlay;
+import com.kuka.connectivity.fastRobotInterface.FRISession;
+import com.kuka.connectivity.motionModel.smartServo.ISmartServoRuntime;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
@@ -29,14 +30,11 @@ import com.kuka.roboticsAPI.geometricModel.CartDOF;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
 import com.kuka.roboticsAPI.geometricModel.Tool;
 import com.kuka.roboticsAPI.motionModel.IMotionContainer;
-import com.kuka.roboticsAPI.motionModel.ISmartServoRuntime;
 import com.kuka.roboticsAPI.motionModel.MotionBatch;
-import com.kuka.roboticsAPI.motionModel.SmartServo;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.AbstractMotionControlMode;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.CartesianImpedanceControlMode;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.JointImpedanceControlMode;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.PositionControlMode;
-import com.kuka.roboticsAPI.userInterface.ServoMotionUtilities;
 
 
 /**

@@ -6,16 +6,16 @@ import java.nio.ByteBuffer;
 
 import org.zeromq.ZMQ;
 
-import com.kuka.connectivity.fri.FRIConfiguration;
-import com.kuka.connectivity.fri.FRISession;
+import com.kuka.connectivity.fastRobotInterface.FRIConfiguration;
+import com.kuka.connectivity.fastRobotInterface.FRISession;
+import com.kuka.connectivity.motionModel.smartServo.ISmartServoRuntime;
+import com.kuka.connectivity.motionModel.smartServo.SmartServo;
+import com.kuka.connectivity.userInterface.smartServo.ServoMotionUtilities;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
-import com.kuka.roboticsAPI.motionModel.ISmartServoRuntime;
-import com.kuka.roboticsAPI.motionModel.SmartServo;
-import com.kuka.roboticsAPI.userInterface.ServoMotionUtilities;
 
 import grl.flatbuffer.JointState;
 
