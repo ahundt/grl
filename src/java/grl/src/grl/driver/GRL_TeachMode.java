@@ -30,6 +30,7 @@ import com.kuka.roboticsAPI.geometricModel.CartDOF;
 import com.kuka.roboticsAPI.geometricModel.LoadData;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
 import com.kuka.roboticsAPI.geometricModel.Tool;
+import com.kuka.roboticsAPI.motionModel.HandGuidingMotion;
 import com.kuka.roboticsAPI.motionModel.IMotionContainer;
 import com.kuka.roboticsAPI.motionModel.MotionBatch;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.AbstractMotionControlMode;
@@ -66,16 +67,20 @@ public class GRL_TeachMode extends RoboticsAPIApplication
 		_startStopUI = new StartStopSwitchUI(this);
 		_processDataManager = new ProcessDataManager(this);
 		_lbrController = (Controller) getContext().getControllers().toArray()[0];
+		_lbr = (LBR) _lbrController.getDevices().toArray()[0];
 
 		// TODO: fix these, right now they're useless
 		//_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
 		//_updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
 		_pausedApplicationRecovery = getRecovery();
-		
-        LoadData _loadData = new LoadData();
-        _loadData.setMass(_processDataManager.getEndEffectorWeight());
-        _toolAttachedToLBR = new Tool("Tool", _loadData);
-        _toolAttachedToLBR.attachTo(_lbr.getFlange());
+
+		LoadData _loadData = new LoadData();
+		_loadData.setMass(_processDataManager.getEndEffectorWeight());
+		_loadData.setCenterOfMass(_processDataManager.getEndEffectorX(),
+				_processDataManager.getEndEffectorY(),
+				_processDataManager.getEndEffectorZ());
+		_toolAttachedToLBR = new Tool("Tool", _loadData);
+		_toolAttachedToLBR.attachTo(_lbr.getFlange());
 	}
 
 	@Override
@@ -106,22 +111,16 @@ public class GRL_TeachMode extends RoboticsAPIApplication
 		controlMode2.setStiffnessForAllJoints(0.1);
 		controlMode2.setDampingForAllJoints(0.7);
 		_lbr.moveAsync(positionHold(controlMode2, -1, TimeUnit.SECONDS));
-		try {
-		int abort_counter = 0;
-		while (!stop && !_startStopUI.is_stopped()) {
-			
-			abort_counter += 1;
-			
-			//if (abort_counter > 1000000) {
-			//	getLogger().info("Done!");
-			//	break;
-			//}
+
+		HandGuidingMotion handGuidingMotion = new HandGuidingMotion();
+		for (int i = 0; i < 10; i++) {
+			try {
+				_lbr.move(handGuidingMotion);
+			} catch(Exception e) {
+				break;
+			}
 		}
-		} catch (Exception e){
-			e.printStackTrace();
-			System.exit(0);
-		}
-}
+	}
 
 
 

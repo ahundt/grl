@@ -22,6 +22,9 @@ public class ProcessDataManager {
     private String _ROS_MASTER_URI;
     private String _ZMQ_MASTER_URI;
     private double eeWeight;
+    private double eeX;
+    private double eeY;
+    private double eeZ;
     
 	public String get_ZMQ_MASTER_URI() {
 		return _ZMQ_MASTER_URI;
@@ -29,6 +32,18 @@ public class ProcessDataManager {
 
 	public double getEndEffectorWeight() {
 		return eeWeight;
+	}
+	
+	public double getEndEffectorX() {
+		return eeX;
+	}
+	
+	public double getEndEffectorY() {
+		return eeY;
+	}
+	
+	public double getEndEffectorZ() {
+		return eeZ;
 	}
 
 	private void update_ZMQ_MASTER_URI() {
@@ -123,6 +138,9 @@ public class ProcessDataManager {
         _FRI_KONI_RobotIPAddress = _app.getApplicationData().getProcessData("Robot_KONI_FRI_IP").getValue(); //"tcp://172.31.1.100:30010";
         
         eeWeight = _app.getApplicationData().getProcessData("eeWeight").getValue();
+        eeX = _app.getApplicationData().getProcessData("eeX").getValue();
+        eeY = _app.getApplicationData().getProcessData("eeY").getValue();
+        eeZ = _app.getApplicationData().getProcessData("eeZ").getValue();
         
         update_ROS_MASTER_URI();
         update_ZMQ_MASTER_URI();
