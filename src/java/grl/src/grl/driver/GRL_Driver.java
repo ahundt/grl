@@ -27,6 +27,7 @@ import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.CartDOF;
+import com.kuka.roboticsAPI.geometricModel.LoadData;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
 import com.kuka.roboticsAPI.geometricModel.Tool;
 import com.kuka.roboticsAPI.motionModel.IMotionContainer;
@@ -68,11 +69,16 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_processDataManager = new ProcessDataManager(this);
 		_lbrController = (Controller) getContext().getControllers().toArray()[0];
 		_lbr = (LBR) _lbrController.getDevices().toArray()[0];
-		_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
-		_updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
+		
+		// TODO: fix these, right now they're useless
+		//_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
+		//_updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
 		_pausedApplicationRecovery = getRecovery();
 
-		_toolAttachedToLBR = this.createFromTemplate("FlangeAttachment");
+        LoadData _loadData = new LoadData();
+        _loadData.setMass(_processDataManager.getEndEffectorWeight());
+        _toolAttachedToLBR = new Tool("Tool", _loadData);
+        _toolAttachedToLBR.attachTo(_lbr.getFlange());
 	}
 
 	@Override
@@ -295,7 +301,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 		// done
 		subscriber.close();
 		context.term();
-		_updateConfiguration.get_FRISession().close();
+		if (_updateConfiguration.get_FRISession() != null) {
+			_updateConfiguration.get_FRISession().close();
+		}
 		//System.exit(1);
 	}
 
