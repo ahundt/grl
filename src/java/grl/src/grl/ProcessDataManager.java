@@ -21,11 +21,15 @@ public class ProcessDataManager {
     private String _FRI_KONI_LaptopIPAddress;
     private String _ROS_MASTER_URI;
     private String _ZMQ_MASTER_URI;
+    private double eeWeight;
     
 	public String get_ZMQ_MASTER_URI() {
 		return _ZMQ_MASTER_URI;
 	}
 
+	public double getEndEffectorWeight() {
+		return eeWeight;
+	}
 
 	private void update_ZMQ_MASTER_URI() {
 		this._ZMQ_MASTER_URI = "tcp://" + _controllingLaptopIPAddress + ":" + _controllingLaptopZMQPort;
@@ -117,6 +121,8 @@ public class ProcessDataManager {
         // *** change next line to the KUKA address and Port Number           ***
         // **********************************************************************
         _FRI_KONI_RobotIPAddress = _app.getApplicationData().getProcessData("Robot_KONI_FRI_IP").getValue(); //"tcp://172.31.1.100:30010";
+        
+        eeWeight = _app.getApplicationData().getProcessData("eeWeight").getValue();
         
         update_ROS_MASTER_URI();
         update_ZMQ_MASTER_URI();

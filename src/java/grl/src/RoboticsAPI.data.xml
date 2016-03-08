@@ -7,10 +7,14 @@
         <toolTemplate class="" name="FlangeAttachment">
             <loadData cogA="0.0" cogB="0.0" cogC="0.0" cogX="0.0" cogY="0.0" cogZ="0.0" inertiaX="0.0" inertiaY="0.0" inertiaZ="0.0" mass="0.0"/>
         </toolTemplate>
+        <toolTemplate class="" name="AdaptiveGripper">
+            <loadData cogA="0.0" cogB="0.0" cogC="0.0" cogX="0.0" cogY="0.0" cogZ="0.0" inertiaX="0.0" inertiaY="0.0" inertiaZ="0.0" mass="3.0"/>
+        </toolTemplate>
     </objectTemplates>
     <processDataContainer>
         <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Velocity Relative" id="jointVelRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
         <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Acceleration Relative" id="jointAccRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
+        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector Weight" id="eeWeight" max="10.0" min="0.0" unit="kg" value="3"/>
         <processData dataType="java.lang.String" defaultValue="172.31.1.147" displayName="Robot JAVA (self) / ROS_HOST_NAME" id="Robot_IP" unit="IP4 Address" value="172.31.1.147"/>
         <processData dataType="java.lang.String" defaultValue="172.31.1.100" displayName="Laptop JAVA / ROS_MASTER" id="Laptop_IP" unit="IP4 Address" value="172.31.1.100"/>
         <processData dataType="java.lang.String" defaultValue="30010" displayName="Laptop JAVA Port" id="Laptop_Port" unit="IP4 Port" value="30010"/>
