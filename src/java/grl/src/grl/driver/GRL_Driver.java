@@ -30,6 +30,7 @@ import com.kuka.roboticsAPI.geometricModel.CartDOF;
 import com.kuka.roboticsAPI.geometricModel.LoadData;
 import com.kuka.roboticsAPI.geometricModel.PhysicalObject;
 import com.kuka.roboticsAPI.geometricModel.Tool;
+import com.kuka.roboticsAPI.motionModel.HandGuidingMotion;
 import com.kuka.roboticsAPI.motionModel.IMotionContainer;
 import com.kuka.roboticsAPI.motionModel.MotionBatch;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.AbstractMotionControlMode;
@@ -54,6 +55,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 	private UpdateConfiguration _updateConfiguration;
 	private IRecovery _pausedApplicationRecovery = null;
 	private PhysicalObject _toolAttachedToLBR;
+	private HandGuidingMotion handGuidingMotion;
 	/**
 	 *  gripper or other physically attached object
 	 *  see "Template Data" panel in top right pane
@@ -69,16 +71,19 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_processDataManager = new ProcessDataManager(this);
 		_lbrController = (Controller) getContext().getControllers().toArray()[0];
 		_lbr = (LBR) _lbrController.getDevices().toArray()[0];
-		
+
 		// TODO: fix these, right now they're useless
 		//_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
 		//_updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
 		_pausedApplicationRecovery = getRecovery();
 
-        LoadData _loadData = new LoadData();
-        _loadData.setMass(_processDataManager.getEndEffectorWeight());
-        _toolAttachedToLBR = new Tool("Tool", _loadData);
-        _toolAttachedToLBR.attachTo(_lbr.getFlange());
+		LoadData _loadData = new LoadData();
+		_loadData.setMass(_processDataManager.getEndEffectorWeight());
+		_toolAttachedToLBR = new Tool("Tool", _loadData);
+		_toolAttachedToLBR.attachTo(_lbr.getFlange());
+
+
+		handGuidingMotion = new HandGuidingMotion();
 	}
 
 	@Override
@@ -157,6 +162,11 @@ public class GRL_Driver extends RoboticsAPIApplication
 		// TODO: Let user set mode (teach/joint control from tablet as a backup!)
 		//this.getApplicationData().getProcessData("DefaultMode").
 
+
+		JointImpedanceControlMode controlMode2 = new JointImpedanceControlMode(7); // TODO!!
+		controlMode2.setStiffnessForAllJoints(0.1);
+		controlMode2.setDampingForAllJoints(0.7);
+
 		int abort_counter = 0;
 		// TODO: this teach mode is broken!
 		//TeachMode tm = new TeachMode(_lbr); 
@@ -164,7 +174,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		// Receive Flat Buffer and Move to Position
 		// TODO: add a message that we send to the driver with data log strings
 		while (!stop && !_startStopUI.is_stopped()) {
-			
+
 			// TODO: IMPORTANT: this recv call must be made asynchronous
 			boolean isRecoveryRequired = _pausedApplicationRecovery.isRecoveryRequired();
 
@@ -175,15 +185,16 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 				currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, currentKUKAiiwaStates);
 
-				// TODO: this loop needs to be initialized in the right order and account for runtime changes on tablet and ZMQ, then sync them
-
+				// TODO: this loop needs to be initialized in the right order
+				// and account for runtime changes on tablet and ZMQ, then sync them
 				if(currentKUKAiiwaStates.statesLength()>0) {
 					// initialize the fist state
 					grl.flatbuffer.KUKAiiwaState tmp = currentKUKAiiwaStates.states(0);
 					if (tmp == null || tmp.armControlState() == null) {
-						getLogger().warn("NULL ArmControlState message!");
+						if (abort_counter % 100 == 0) {
+							getLogger().warn("NULL ArmControlState message!");
+						}
 						abort_counter += 1;
-						if (abort_counter > 100) { return; }
 						continue;
 					} else {
 						_previousKUKAiiwaState = _currentKUKAiiwaState;
@@ -250,9 +261,8 @@ public class GRL_Driver extends RoboticsAPIApplication
 								try {
 									friSession.await(10, TimeUnit.SECONDS);
 
-									_lbr.moveAsync(positionHold(_activeMotionControlMode, -1, TimeUnit.SECONDS).addMotionOverlay(motionOverlay));
+									currentMotion = _lbr.moveAsync(positionHold(_activeMotionControlMode, -1, TimeUnit.SECONDS).addMotionOverlay(motionOverlay));
 								} catch (TimeoutException e) {
-									// TODO Automatisch generierter Erfassungsblock
 									e.printStackTrace();
 									friSession.close();
 									return;
@@ -273,20 +283,21 @@ public class GRL_Driver extends RoboticsAPIApplication
 							if(_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null) {
 								continue;
 							}
-							else if( _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()){
-								
+							else if( _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()) {
+
 								if (currentMotion != null) {
 									currentMotion.cancel();
 								}
-								
-								getLogger().warn("Enabling Teach Mode (grav comp): current = " +
-										_currentKUKAiiwaState.armControlState().stateType() + ", prev = " +
-										_previousKUKAiiwaState.armControlState().stateType());
-								
-								JointImpedanceControlMode controlMode2 = new JointImpedanceControlMode(7); // TODO!!
-								controlMode2.setStiffnessForAllJoints(0.1);
-								controlMode2.setDampingForAllJoints(0.7);
-								_lbr.moveAsync(positionHold(controlMode2, -1, TimeUnit.SECONDS));
+
+								if (abort_counter % 100 == 0) {
+									getLogger().warn("Enabling Teach Mode (grav comp): current = " +
+											_currentKUKAiiwaState.armControlState().stateType() + ", prev = " +
+											_previousKUKAiiwaState.armControlState().stateType());
+								}
+
+
+								currentMotion = _toolAttachedToLBR.moveAsync(positionHold(controlMode2, -1, TimeUnit.SECONDS));
+
 							}
 						} else {
 							System.out.println("Unsupported Mode! stopping");
