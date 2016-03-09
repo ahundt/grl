@@ -217,6 +217,9 @@ namespace grl {
         for (unsigned int i = 0; i < ArmStateLen; ++i) {
           if (msg->data == grl::flatbuffer::EnumNamesArmState()[i]) {
             interaction_mode = i;
+            grl::flatbuffer::ArmState armState(static_cast<grl::flatbuffer::ArmState>(i));
+            KukaDriverP_->set(armState);
+            break;
           }
         }
 

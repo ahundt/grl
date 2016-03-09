@@ -21,6 +21,9 @@ import com.kuka.connectivity.fastRobotInterface.FRIConfiguration;
 import com.kuka.connectivity.fastRobotInterface.FRIJointOverlay;
 import com.kuka.connectivity.fastRobotInterface.FRISession;
 import com.kuka.connectivity.motionModel.smartServo.ISmartServoRuntime;
+import com.kuka.connectivity.motionModel.smartServo.ServoMotion;
+import com.kuka.connectivity.motionModel.smartServo.ServoMotionJP;
+import com.kuka.connectivity.motionModel.smartServo.SmartServo;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
@@ -48,7 +51,12 @@ public class GRL_Driver extends RoboticsAPIApplication
 	private Controller _lbrController;
 	private LBR _lbr;
 	private StartStopSwitchUI _startStopUI = null;
-	private ISmartServoRuntime theSmartServoRuntime = null;
+	
+	private SmartServo         _smartServoMotion = null;
+	private ISmartServoRuntime _smartServoRuntime = null;
+    // create an JointPosition Instance, to play with
+    private JointPosition              _smartServoDestination = null;
+	
 	private grl.flatbuffer.KUKAiiwaState _currentKUKAiiwaState = null;
 	private grl.flatbuffer.KUKAiiwaState _previousKUKAiiwaState = null;
 	private AbstractMotionControlMode _activeMotionControlMode;
@@ -92,11 +100,11 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		ZMQ.Context context = ZMQ.context(1);
 
-
+		boolean first_run = true;
 		getLogger().info("ZMQ Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
 		ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
 		subscriber.connect(_processDataManager.get_ZMQ_MASTER_URI());
-		subscriber.setRcvHWM(1000);
+		subscriber.setRcvHWM(1000000);
 
 		int statesLength = 0;
 		grl.flatbuffer.KUKAiiwaStates currentKUKAiiwaStates = null;
@@ -180,7 +188,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 			// TODO: Allow updates via zmq and tablet
 			if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
-				abort_counter+=1;if (abort_counter > 100) { getLogger().warn("Aborting!"); break; }
+				abort_counter+=1;if (abort_counter > 1000) { getLogger().warn("Aborting!"); break; }
 				bb = ByteBuffer.wrap(data);
 
 				currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, currentKUKAiiwaStates);
@@ -202,6 +210,11 @@ public class GRL_Driver extends RoboticsAPIApplication
 					}
 
 					synchronized(_lbr) {
+						
+						if (_currentKUKAiiwaState == null) {
+							getLogger().error("Missing current state message!");
+							continue;
+						}
 
 						if(_previousKUKAiiwaState != null &&
 								_currentKUKAiiwaState.armControlState() != _previousKUKAiiwaState.armControlState())
@@ -216,7 +229,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 						}
 						else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmTrajectory) {
 							//tm.setActive(false);
-							theSmartServoRuntime.stopMotion();
+							_smartServoRuntime.stopMotion();
 							if (currentMotion != null) {
 								currentMotion.cancel();
 							}
@@ -237,23 +250,48 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 							}
 						} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmJointServo) {
+							/// TODO: this check isn't correct, if we are already in jointServo and are just updating, we don't want to cancel the current motion
 							if (currentMotion != null) {
 								currentMotion.cancel();
 							}
 
-							MoveArmJointServo mas = null;
+							MoveArmJointServo mas = new MoveArmJointServo();
+							if(_currentKUKAiiwaState.armControlState() != null) {
 							_currentKUKAiiwaState.armControlState().state(mas);
+							} else {
+								getLogger().error("Received null armControlState in servo!");
+								continue;
+							
+							}
+							
+							if(_smartServoRuntime == null || _smartServoMotion == null) {
+								// make sure this is up
+								// also make sure this is running
+						        destination = new JointPosition(
+						                _lbr.getCurrentJointPosition());
+						        _smartServoMotion = new SmartServo(destination);
+						        
+						        // Set the motion properties to 20% of systems abilities
+						        _smartServoMotion.setJointAccelerationRel(0.2);
+						        _smartServoMotion.setJointVelocityRel(0.2);
+						        _smartServoMotion.setMinimumTrajectoryExecutionTime(20e-3);
+						        _toolAttachedToLBR.getDefaultMotionFrame().moveAsync(_smartServoMotion);
 
-							if(_currentKUKAiiwaState.armConfiguration().commandInterface() == grl.flatbuffer.KUKAiiwaInterface.SmartServo){
+						        _smartServoRuntime = _smartServoMotion.getRuntime();
+							}
+
+							//if(_currentKUKAiiwaState.armConfiguration().commandInterface() == grl.flatbuffer.KUKAiiwaInterface.SmartServo){
 								grl.flatbuffer.JointState jointState = mas.goal();
 
 								for (int k = 0; k < destination.getAxisCount(); ++k)
 								{
 									destination.set(k, jointState.position(k));
 								}
-								theSmartServoRuntime.setDestination(destination);
+								
+								// TODO: we need to make sure this is running, and we need to cancel the current motion
+								_smartServoRuntime.setDestination(destination);
 
-							} else if(_currentKUKAiiwaState.armConfiguration().commandInterface()==grl.flatbuffer.KUKAiiwaInterface.FRI){
+							/*} else if(_currentKUKAiiwaState.armConfiguration().commandInterface()==grl.flatbuffer.KUKAiiwaInterface.FRI){
 
 								FRISession friSession = _updateConfiguration.get_FRISession();
 								FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
@@ -268,11 +306,11 @@ public class GRL_Driver extends RoboticsAPIApplication
 									return;
 								}
 
-							}
+							}*/
 
 						} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.StopArm) {
 
-							theSmartServoRuntime.stopMotion();
+							_smartServoRuntime.stopMotion();
 							if (currentMotion != null) {
 								currentMotion.cancel();
 							}
@@ -280,24 +318,21 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 						} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.TeachArm) {
 
-							if(_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null) {
+							if(!first_run && (_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null)) {
 								continue;
 							}
-							else if( _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()) {
+							else if(first_run || _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()) {
 
 								if (currentMotion != null) {
 									currentMotion.cancel();
 								}
 
-								if (abort_counter % 100 == 0) {
-									getLogger().warn("Enabling Teach Mode (grav comp): current = " +
-											_currentKUKAiiwaState.armControlState().stateType() + ", prev = " +
-											_previousKUKAiiwaState.armControlState().stateType());
-								}
+								getLogger().warn("Enabling Teach Mode (grav comp): current = " +
+										_currentKUKAiiwaState.armControlState().stateType());// + ", prev = " +						_previousKUKAiiwaState.armControlState().stateType());
 
 
 								currentMotion = _toolAttachedToLBR.moveAsync(positionHold(controlMode2, -1, TimeUnit.SECONDS));
-
+								first_run = false;
 							}
 						} else {
 							System.out.println("Unsupported Mode! stopping");
@@ -312,7 +347,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		// done
 		subscriber.close();
 		context.term();
-		if (_updateConfiguration.get_FRISession() != null) {
+		if (_updateConfiguration!=null && _updateConfiguration.get_FRISession() != null) {
 			_updateConfiguration.get_FRISession().close();
 		}
 		//System.exit(1);
@@ -345,7 +380,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				_activeMotionControlMode = cicm;
 			}
 
-			theSmartServoRuntime.changeControlModeSettings(_activeMotionControlMode);
+			_smartServoRuntime.changeControlModeSettings(_activeMotionControlMode);
 		}
 
 

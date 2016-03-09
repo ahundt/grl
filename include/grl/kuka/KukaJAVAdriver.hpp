@@ -125,7 +125,7 @@ namespace grl { namespace robot { namespace arm {
 
 
       KukaJAVAdriver(Params params = defaultParams())
-        : params_(params), armControlMode(flatbuffer::ArmState::ArmState_NONE)
+        : params_(params), armControlMode_(flatbuffer::ArmState::ArmState_NONE)
       {}
 
       void construct(){ construct(params_); sequenceNumber = 0;}
@@ -262,11 +262,6 @@ namespace grl { namespace robot { namespace arm {
           
           auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_TeachArm,flatbuffer::CreateTeachArm(*fbbP).Union());
           
-          
-          auto jointPos = fbbP->CreateVector(&controlState, 1);
-          
-          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
-          
           auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState);
           
           auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
@@ -355,7 +350,7 @@ namespace grl { namespace robot { namespace arm {
           joints.clear();
           {
             boost::lock_guard<boost::mutex> lock(jt_mutex);
-            boost::copy(armState.commandedPosition, std::back_inserter(joints));
+            //TODO boost::copy(armState.commandedPosition, std::back_inserter(joints));
           }
           auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
 
@@ -370,9 +365,10 @@ namespace grl { namespace robot { namespace arm {
             boost::lock_guard<boost::mutex> lock(jt_mutex);
             // no velocity data available directly in this arm at time of writing
             //boost::copy(simJointVelocity, std::back_inserter(joints));
+          
             auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
             joints.clear();
-            boost::copy(armState.torque, std::back_inserter(joints));
+            //boost::copy(armState_.torque, std::back_inserter(joints));
             auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
             auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
           
@@ -419,36 +415,73 @@ namespace grl { namespace robot { namespace arm {
         bool haveNewData = false;
 
         /// @todo make this handled by template driver implementations/extensions
+          
 
         if(kukaJavaDriverP)
         {
-          switch (armControlMode) {
+        
+          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
           
-              case flatbuffer::ArmState::ArmState_StartArm:
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+          
+          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+          
+          /// @todo is this the best string to pass for the full arm's name?
+          auto basename = std::get<RobotName>(params_);
+          
+          auto bns = fbbP->CreateString(basename);
+          
+          flatbuffers::Offset<flatbuffer::ArmControlState> controlState;
+        
+        
+          switch (armControlMode_) {
+          
+              case flatbuffer::ArmState::ArmState_StartArm: {
                  sendJointPositions();
                  break;
-              case flatbuffer::ArmState::ArmState_MoveArmJointServo:
-                 sendJointPositions();
+              }
+              case flatbuffer::ArmState::ArmState_MoveArmJointServo: {
+                 
+                /// @todo when new
+                JointScalar                          armPosVelAccelEmpty;
+                auto armPositionBuffer = fbbP->CreateVector(&armPosition_[0],armPosition_.size());
+                auto jointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer);
+                controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_MoveArmJointServo,jointState.Union());
                  break;
-              case flatbuffer::ArmState::ArmState_TeachArm:
-                 teachArm();
+              }
+              case flatbuffer::ArmState::ArmState_TeachArm: {
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_TeachArm,flatbuffer::CreateTeachArm(*fbbP).Union());
                  break;
-              case flatbuffer::ArmState::ArmState_PauseArm:
+              }
+              case flatbuffer::ArmState::ArmState_PauseArm: {
                  pauseArm();
                  break;
-              case flatbuffer::ArmState::ArmState_StopArm:
+              }
+              case flatbuffer::ArmState::ArmState_StopArm: {
                  stopArm();
                  break;
-              case flatbuffer::ArmState::ArmState_ShutdownArm:
+              }
+              case flatbuffer::ArmState::ArmState_ShutdownArm: {
                  destruct();
                  break;
-              case flatbuffer::ArmState::ArmState_NONE:
+              }
+              case flatbuffer::ArmState::ArmState_NONE: {
                  //std::cerr << "Waiting for interation mode... (currently NONE)\n";
                  break;
+              }
               default:
-                 std::cerr << "KukaJAVAdriver unsupported use case: " << armControlMode << "\n";
+                 std::cerr << "KukaJAVAdriver unsupported use case: " << armControlMode_ << "\n";
           }
-
+          
+          
+          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState);
+          
+          auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
+          
+          auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
+          
+          grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
+          kukaJavaDriverP->async_send_flatbuffer(fbbP);
         }
        
          return haveNewData;
@@ -475,8 +508,8 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState.commandedPosition.clear();
-      boost::copy(range, std::back_inserter(armState.commandedPosition));
+       //armState_.commandedPosition.clear();
+      //boost::copy(range, std::back_inserter(armState.commandedPosition));
     }
   
      /**
@@ -493,8 +526,8 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState.commandedTorque.clear();
-      boost::copy(range, std::back_inserter(armState.commandedTorque));
+       //armState.commandedTorque.clear();
+      //boost::copy(range, std::back_inserter(armState.commandedTorque));
     }
  
    
@@ -522,7 +555,7 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::cartesian_wrench_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-      std::copy(range,armState.commandedCartesianWrenchFeedForward);
+      //std::copy(range,armState.commandedCartesianWrenchFeedForward);
     }
     
     /// @todo implement get function
@@ -536,17 +569,34 @@ namespace grl { namespace robot { namespace arm {
    void get(KukaState & state)
    {
      boost::lock_guard<boost::mutex> lock(jt_mutex);
-     state = armState;
+     //state = armState;
+   }
+   
+   /// set the mode of the arm. Examples: Teach or MoveArmJointServo
+   /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
+   void set(const flatbuffer::ArmState& armControlMode)
+   {
+        armControlMode_ = armControlMode;
    }
 
     private:
-
-      flatbuffer::ArmState armControlMode;
-      KukaState armState;
-
-      boost::mutex jt_mutex;
+    
 
       Params params_;
+      flatbuffer::ArmState                 armControlMode_;
+      JointScalar                          armPosition_;
+//      flatbuffers::FlatBufferBuilder       builder_;
+//      
+//      flatbuffer::JointStateBuilder        jointStateServoBuilder_;
+//      flatbuffer::MoveArmJointServoBuilder moveArmJointServoBuilder_;
+//      flatbuffer::TeachArmBuilder          teachArmBuilder_;
+//      flatbuffer::ArmControlStateBuilder   armControlStateBuilder_;
+//      flatbuffer::KUKAiiwaStateBuilder     iiwaStateBuilder_;
+//      flatbuffer::KUKAiiwaStatesBuilder    iiwaStatesBuilder_;
+//      
+//      flatbuffers::Offset<flatbuffer::KUKAiiwaState> iiwaState;
+
+      boost::mutex jt_mutex;
       
       int64_t sequenceNumber;
 
