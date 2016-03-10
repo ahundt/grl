@@ -216,9 +216,10 @@ namespace grl {
         unsigned int ArmStateLen = 9;
         for (unsigned int i = 0; i < ArmStateLen; ++i) {
           if (msg->data == grl::flatbuffer::EnumNamesArmState()[i]) {
-            interaction_mode = i;
-            grl::flatbuffer::ArmState armState(static_cast<grl::flatbuffer::ArmState>(i));
-            KukaDriverP_->set(armState);
+             std::string info = std::string("Valid grl::flatbuffer::ArmState command received for ") + grl::flatbuffer::EnumNamesArmState()[i] + std::string(" mode");
+             ROS_INFO(info.c_str());
+            interaction_mode = static_cast<grl::flatbuffer::ArmState>(i);
+            KukaDriverP_->set(interaction_mode);
             break;
           }
         }
@@ -274,19 +275,25 @@ namespace grl {
 
          switch(interaction_mode) {
            case grl::flatbuffer::ArmState_MoveArmJointServo:
+             ROS_INFO("Arm is in SERVO Mode");
              if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-             if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
+             /// @todo setting joint position clears joint force in KukaDriverP_. Is this right or should position and force be configurable simultaeously?
+             //if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
              break;
            case grl::flatbuffer::ArmState_TeachArm:
-             ROS_INFO("Putting the robot in TEACH mode");
-             KukaDriverP_->teachArm(); break;
+             ROS_INFO("Arm is in TEACH mode");
+             //KukaDriverP_->teachArm(); break;
            case grl::flatbuffer::ArmState_StopArm:
-             KukaDriverP_->stopArm(); break;
+             //KukaDriverP_->stopArm(); break;
            case grl::flatbuffer::ArmState_PauseArm:
-             KukaDriverP_->pauseArm(); break;
+             //KukaDriverP_->pauseArm(); break;
            case grl::flatbuffer::ArmState_StartArm:
              ROS_INFO("Sending start!");
-             KukaDriverP_->startArm(); break;
+             //KukaDriverP_->startArm(); break;
+           case grl::flatbuffer::ArmState_ShutdownArm:
+             //KukaDriverP_->shutdownArm(); break;
+           default:
+             ROS_INFO("TODO: KukaLBRiiwaROSPlugin Unsupported mode!");
          }
 
          haveNewData = KukaDriverP_->run_one();
@@ -331,7 +338,7 @@ namespace grl {
 
     private:
 
-      unsigned int interaction_mode;
+      grl::flatbuffer::ArmState interaction_mode;
 
       boost::mutex jt_mutex;
       boost::shared_ptr<robot::arm::KukaDriver> KukaDriverP_;

@@ -175,7 +175,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		controlMode2.setStiffnessForAllJoints(0.1);
 		controlMode2.setDampingForAllJoints(0.7);
 
-		int abort_counter = 0;
+		int message_counter = 0;
 		// TODO: this teach mode is broken!
 		//TeachMode tm = new TeachMode(_lbr); 
 		//Thread teachModeThread = new Thread(tm); 
@@ -188,7 +188,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 			// TODO: Allow updates via zmq and tablet
 			if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
-				abort_counter+=1;if (abort_counter > 1000) { getLogger().warn("Aborting!"); break; }
+				message_counter+=1;
 				bb = ByteBuffer.wrap(data);
 
 				currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, currentKUKAiiwaStates);
@@ -199,10 +199,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 					// initialize the fist state
 					grl.flatbuffer.KUKAiiwaState tmp = currentKUKAiiwaStates.states(0);
 					if (tmp == null || tmp.armControlState() == null) {
-						if (abort_counter % 100 == 0) {
+						if (message_counter % 100 == 0) {
 							getLogger().warn("NULL ArmControlState message!");
 						}
-						abort_counter += 1;
 						continue;
 					} else {
 						_previousKUKAiiwaState = _currentKUKAiiwaState;
@@ -216,8 +215,8 @@ public class GRL_Driver extends RoboticsAPIApplication
 							continue;
 						}
 
-						if(_previousKUKAiiwaState != null &&
-								_currentKUKAiiwaState.armControlState() != _previousKUKAiiwaState.armControlState())
+						if(_previousKUKAiiwaState != null && _previousKUKAiiwaState.armControlState() != null &&
+								_currentKUKAiiwaState.armControlState().stateType() != _previousKUKAiiwaState.armControlState().stateType())
 						{
 							getLogger()
 							.info("Switching mode: "
@@ -284,11 +283,15 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 							//if(_currentKUKAiiwaState.armConfiguration().commandInterface() == grl.flatbuffer.KUKAiiwaInterface.SmartServo){
 								grl.flatbuffer.JointState jointState = mas.goal();
-
+								String pos = "pos:";
 								for (int k = 0; k < destination.getAxisCount(); ++k)
 								{
-									destination.set(k, jointState.position(k));
+									double position = jointState.position(k);
+									destination.set(k, position);
+									pos = " " + k + ": " + position;
 								}
+								getLogger()
+								.info(pos);
 								
 								// TODO: we need to make sure this is running, and we need to cancel the current motion
 								_smartServoRuntime.setDestination(destination);
