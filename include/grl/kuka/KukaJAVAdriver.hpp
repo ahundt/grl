@@ -33,6 +33,20 @@
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 
 
+/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
+template<typename T>
+inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)
+{
+  out << "[";
+  size_t last = v.size() - 1;
+  for(size_t i = 0; i < v.size(); ++i) {
+    out << v[i];
+    if (i != last) 
+      out << ", ";
+  }
+  out << "]";
+  return out;
+}
 
 
 namespace grl { namespace robot { namespace arm {
@@ -218,191 +232,6 @@ namespace grl { namespace robot { namespace arm {
         }
       }
       
-      bool startArm(){
-        
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-          
-            boost::lock_guard<boost::mutex> lock(jt_mutex);
-          
-          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-          
-          /// @todo is this the best string to pass for the full arm's name?
-          auto basename = std::get<RobotName>(params_);
-          
-          auto bns = fbbP->CreateString(basename);
-          
-          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_StartArm,flatbuffer::CreateStartArm(*fbbP).Union());
-          
-          
-          auto jointPos = fbbP->CreateVector(&controlState, 1);
-          
-          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
-          
-          
-          
-            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
-            kukaJavaDriverP->async_send_flatbuffer(fbbP);
-          
-          return false;
-      }
-      
-      
-      bool teachArm(){
-        
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-          
-            boost::lock_guard<boost::mutex> lock(jt_mutex);
-          
-          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-          
-          /// @todo is this the best string to pass for the full arm's name?
-          auto basename = std::get<RobotName>(params_);
-          
-          auto bns = fbbP->CreateString(basename);
-          
-          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_TeachArm,flatbuffer::CreateTeachArm(*fbbP).Union());
-          
-          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState);
-          
-          auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
-          
-          auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
-          
-          grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
-          kukaJavaDriverP->async_send_flatbuffer(fbbP);
-          
-          return false;
-      }
-
-      
-      
-      bool pauseArm(){
-        
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-          
-            boost::lock_guard<boost::mutex> lock(jt_mutex);
-          
-          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-          
-          /// @todo is this the best string to pass for the full arm's name?
-          auto basename = std::get<RobotName>(params_);
-          
-          auto bns = fbbP->CreateString(basename);
-          
-          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_PauseArm,flatbuffer::CreateTeachArm(*fbbP).Union());
-          
-          
-          auto jointPos = fbbP->CreateVector(&controlState, 1);
-          
-          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
-          
-          
-          
-            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
-            kukaJavaDriverP->async_send_flatbuffer(fbbP);
-          
-          return false;
-      }
-
-      
-      
-      bool stopArm(){
-        
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-          
-            boost::lock_guard<boost::mutex> lock(jt_mutex);
-          
-          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-          
-          /// @todo is this the best string to pass for the full arm's name?
-          auto basename = std::get<RobotName>(params_);
-          
-          auto bns = fbbP->CreateString(basename);
-          
-          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_StopArm,flatbuffer::CreateTeachArm(*fbbP).Union());
-          
-          
-          auto jointPos = fbbP->CreateVector(&controlState, 1);
-          
-          auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
-          
-          
-          
-            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
-            kukaJavaDriverP->async_send_flatbuffer(fbbP);
-          
-          return false;
-      }
-      
-      
-      /// @todo add optional parameter? possibly additional config?
-      bool sendJointPositions(){
-      
-          /////////////////////////////////////////
-          // Client sends to server asynchronously!
-
-          /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
-          std::vector<double> joints;
-
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-
-          /// @todo should we use simJointTargetPosition here?
-          joints.clear();
-          {
-            boost::lock_guard<boost::mutex> lock(jt_mutex);
-            //TODO boost::copy(armState.commandedPosition, std::back_inserter(joints));
-          }
-          auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
-
-#if 0 //BOOST_VERSION < 105900
-          BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
-#endif
-
-          /// @note we don't have a velocity right now, sending empty!
-          joints.clear();
-          //boost::copy(simJointVelocity, std::back_inserter(joints));
-          {
-            boost::lock_guard<boost::mutex> lock(jt_mutex);
-            // no velocity data available directly in this arm at time of writing
-            //boost::copy(simJointVelocity, std::back_inserter(joints));
-          
-            auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
-            joints.clear();
-            //boost::copy(armState_.torque, std::back_inserter(joints));
-            auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
-            auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
-          
-          
-            
-        
-              auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-              
-              double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-              
-              /// @todo is this the best string to pass for the full arm's name?
-              auto basename = std::get<RobotName>(params_);
-              
-              auto bns = fbbP->CreateString(basename);
-              
-              auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_TeachArm,flatbuffer::CreateTeachArm(*fbbP).Union());
-              
-              
-              auto jointPos = fbbP->CreateVector(&controlState, 1);
-              
-              auto armSeries = flatbuffer::CreateArmControlSeries(*fbbP,jointPos);
-          
-          
-          
-            grl::flatbuffer::FinishArmControlSeriesBuffer(*fbbP, armSeries);
-            kukaJavaDriverP->async_send_flatbuffer(fbbP);
-          
-            grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
-            kukaJavaDriverP->async_send_flatbuffer(fbbP);
-          }
-          
-          return false;
-      }
-      
 
       /// @brief SEND COMMAND TO ARM. Call this often
       /// Performs the main update spin once.
@@ -437,7 +266,7 @@ namespace grl { namespace robot { namespace arm {
           switch (armControlMode_) {
           
               case flatbuffer::ArmState::ArmState_StartArm: {
-                 sendJointPositions();
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStartArm(*fbbP).Union());
                  break;
               }
               case flatbuffer::ArmState::ArmState_MoveArmJointServo: {
@@ -447,6 +276,7 @@ namespace grl { namespace robot { namespace arm {
                 auto armPositionBuffer = fbbP->CreateVector(&armPosition_[0],armPosition_.size());
                 auto jointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer);
                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,jointState.Union());
+                std::cout << "KukaJAVAdriver sending armposition command:" <<armPosition_<<"\n";
                  break;
               }
               case flatbuffer::ArmState::ArmState_TeachArm: {
@@ -508,8 +338,8 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       //armState_.commandedPosition.clear();
-      //boost::copy(range, std::back_inserter(armState.commandedPosition));
+       armPosition_.clear();
+       boost::copy(range, std::back_inserter(armPosition_));
     }
   
      /**
