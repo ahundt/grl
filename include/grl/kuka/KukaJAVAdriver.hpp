@@ -446,23 +446,23 @@ namespace grl { namespace robot { namespace arm {
                 JointScalar                          armPosVelAccelEmpty;
                 auto armPositionBuffer = fbbP->CreateVector(&armPosition_[0],armPosition_.size());
                 auto jointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer);
-                controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_MoveArmJointServo,jointState.Union());
+                controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,jointState.Union());
                  break;
               }
               case flatbuffer::ArmState::ArmState_TeachArm: {
-                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_TeachArm,flatbuffer::CreateTeachArm(*fbbP).Union());
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateTeachArm(*fbbP).Union());
                  break;
               }
               case flatbuffer::ArmState::ArmState_PauseArm: {
-                 pauseArm();
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreatePauseArm(*fbbP).Union());
                  break;
               }
               case flatbuffer::ArmState::ArmState_StopArm: {
-                 stopArm();
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
                  break;
               }
               case flatbuffer::ArmState::ArmState_ShutdownArm: {
-                 destruct();
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
                  break;
               }
               case flatbuffer::ArmState::ArmState_NONE: {
