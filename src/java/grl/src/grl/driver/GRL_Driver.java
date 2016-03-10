@@ -101,7 +101,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		ZMQ.Context context = ZMQ.context(1);
 
 		boolean first_run = true;
-		getLogger().info("ZMQ Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
+		getLogger().info("GRL_Driver from github.com/ahundt/grl starting...\nZMQ Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
 		ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
 		subscriber.connect(_processDataManager.get_ZMQ_MASTER_URI());
 		subscriber.setRcvHWM(1000000);
@@ -225,6 +225,8 @@ public class GRL_Driver extends RoboticsAPIApplication
 						}
 
 						if(_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.ShutdownArm){
+							getLogger()
+							.info("ShutdownArm command received, stopping GRL_Driver...");
 							stop = true;
 						}
 						else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmTrajectory) {
@@ -350,6 +352,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 		if (_updateConfiguration!=null && _updateConfiguration.get_FRISession() != null) {
 			_updateConfiguration.get_FRISession().close();
 		}
+		
+		getLogger()
+		.info("ZMQ connection closed.\nExiting...\nThanks for using the\nGRL_Driver from github.com/ahundt/grl\nGoodbye!");
 		//System.exit(1);
 	}
 
