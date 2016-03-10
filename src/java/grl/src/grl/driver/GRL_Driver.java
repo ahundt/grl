@@ -256,9 +256,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 								currentMotion.cancel();
 							}
 
-							MoveArmJointServo mas = new MoveArmJointServo();
+							MoveArmJointServo mas;;
 							if(_currentKUKAiiwaState.armControlState() != null) {
-							_currentKUKAiiwaState.armControlState().state(mas);
+							 mas = (MoveArmJointServo)_currentKUKAiiwaState.armControlState().state(new MoveArmJointServo());
 							} else {
 								getLogger().error("Received null armControlState in servo!");
 								continue;
@@ -283,15 +283,15 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 							//if(_currentKUKAiiwaState.armConfiguration().commandInterface() == grl.flatbuffer.KUKAiiwaInterface.SmartServo){
 								grl.flatbuffer.JointState jointState = mas.goal();
-								String pos = "pos:";
+								//String pos = "pos:";
 								for (int k = 0; k < destination.getAxisCount(); ++k)
 								{
 									double position = jointState.position(k);
 									destination.set(k, position);
-									pos = " " + k + ": " + position;
+									//pos = " " + k + ": " + position;
 								}
-								getLogger()
-								.info(pos);
+								//getLogger()
+								//.info(pos);
 								
 								// TODO: we need to make sure this is running, and we need to cancel the current motion
 								_smartServoRuntime.setDestination(destination);
