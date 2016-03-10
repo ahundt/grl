@@ -273,9 +273,10 @@ namespace grl { namespace robot { namespace arm {
                  
                 /// @todo when new
                 JointScalar                          armPosVelAccelEmpty;
-                auto armPositionBuffer = fbbP->CreateVector(&armPosition_[0],armPosition_.size());
-                auto jointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer);
-                controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,jointState.Union());
+                auto armPositionBuffer = fbbP->CreateVector(armPosition_.data(),armPosition_.size());
+                auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer);
+                auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
+                controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
                 std::cout << "KukaJAVAdriver sending armposition command:" <<armPosition_<<"\n";
                  break;
               }
@@ -311,6 +312,23 @@ namespace grl { namespace robot { namespace arm {
           auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
           
           grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
+        
+          flatbuffers::Verifier verifier(fbbP->GetBufferPointer(),fbbP->GetSize());
+          BOOST_VERIFY(grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier));
+        
+        
+          if(armControlMode_ == flatbuffer::ArmState::ArmState_MoveArmJointServo)
+          {
+              auto states2 = flatbuffer::GetKUKAiiwaStates(fbbP->GetBufferPointer());
+              auto movearm = static_cast<const flatbuffer::MoveArmJointServo*>(states2->states()->Get(0)->armControlState()->state());
+              std::cout << "re-extracted " << movearm->goal()->position()->size() << " joint angles: ";
+              for(std::size_t i = 0; i <  movearm->goal()->position()->size(); ++i)
+              {
+                std::cout << i << "=" << movearm->goal()->position()->Get(i) << ", ";
+              }
+              std::cout << "\n";
+          }
+        
           kukaJavaDriverP->async_send_flatbuffer(fbbP);
         }
        
