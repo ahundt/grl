@@ -282,16 +282,17 @@ namespace grl {
              break;
            case grl::flatbuffer::ArmState_TeachArm:
              ROS_INFO("Arm is in TEACH mode");
-             //KukaDriverP_->teachArm(); break;
+             break;
+             break;
            case grl::flatbuffer::ArmState_StopArm:
-             //KukaDriverP_->stopArm(); break;
+             break;
            case grl::flatbuffer::ArmState_PauseArm:
-             //KukaDriverP_->pauseArm(); break;
+             break;
            case grl::flatbuffer::ArmState_StartArm:
              ROS_INFO("Sending start!");
-             //KukaDriverP_->startArm(); break;
+             break;
            case grl::flatbuffer::ArmState_ShutdownArm:
-             //KukaDriverP_->shutdownArm(); break;
+             break;
            default:
              ROS_INFO("TODO: KukaLBRiiwaROSPlugin Unsupported mode!");
          }
