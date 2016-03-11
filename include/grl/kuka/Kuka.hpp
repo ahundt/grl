@@ -33,6 +33,8 @@ struct KukaState {
     
 	joint_state     position;
 	joint_state     torque;
+    joint_state     externalTorque;
+    cartesian_state externalForce;
 	joint_state     commandedPosition;
     cartesian_state commandedCartesianWrenchFeedForward;
 	joint_state     commandedTorque;
@@ -57,6 +59,8 @@ struct KukaState {
     void clear(){
       position.clear();
       torque.clear();
+      externalTorque.clear();
+      externalForce.clear();
       commandedPosition.clear();
       commandedTorque.clear();
       commandedCartesianWrenchFeedForward.clear();

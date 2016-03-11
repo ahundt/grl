@@ -775,6 +775,7 @@ public:
 
           if(haveNewData)
           {
+              boost::lock_guard<boost::mutex> lock(jt_mutex);
               // if there were problems sending commands, start by sending the current position
 //            if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands-1)
 //            {
@@ -799,6 +800,33 @@ public:
 
             armState.torque.clear();
             grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.torque), grl::revolute_joint_torque_open_chain_state_tag());
+              
+            armState.externalTorque.clear();
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.externalTorque), grl::revolute_joint_torque_external_open_chain_state_tag());
+            
+            armState.externalForce.clear();
+            grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.externalForce), grl::cartesian_external_force_tag());
+              
+//              std::cout << "Measured Torque: ";
+//              std::cout << std::setw(6);
+//              for (float t:armState.torque) {
+//                  std::cout << t << " ";
+//              }
+//              std::cout << '\n';
+//              
+//              std::cout << "External Torque: ";
+//              std::cout << std::setw(6);
+//              for (float t:armState.externalTorque) {
+//                  std::cout << t << " ";
+//              }
+//              std::cout << '\n';
+//              
+//              std::cout << "External Force: ";
+//              for (float t:armState.externalForce) {
+//                  std::cout << t << " ";
+//              }
+//              std::cout << '\n';
+              
 
           }
           else
