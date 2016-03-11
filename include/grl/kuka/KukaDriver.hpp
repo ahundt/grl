@@ -293,7 +293,7 @@ namespace grl { namespace robot { namespace arm {
     void get(OutputIterator output, grl::revolute_joint_torque_open_chain_state_tag)
     {
        boost::unique_lock<boost::mutex> lock(jt_mutex);
-       boost::copy(armState.torque,output);
+       boost::copy(armState_.torque,output);
 
     }
     
@@ -301,7 +301,7 @@ namespace grl { namespace robot { namespace arm {
     void get(OutputIterator output, grl::revolute_joint_torque_external_open_chain_state_tag)
     {
         boost::unique_lock<boost::mutex> lock(jt_mutex);
-        boost::copy(armState.externalTorque,output);
+        boost::copy(armState_.externalTorque,output);
             
     }
         
@@ -309,7 +309,7 @@ namespace grl { namespace robot { namespace arm {
     void get(OutputIterator output, grl::cartesian_external_force_tag)
     {
         boost::unique_lock<boost::mutex> lock(jt_mutex);
-        boost::copy(armState.externalForce,output);
+        boost::copy(armState_.externalForce,output);
             
     }
     
