@@ -5,24 +5,24 @@
     </world>
     <objectTemplates>
         <toolTemplate class="" name="FlangeAttachment">
-            <loadData cogA="0.0" cogB="0.0" cogC="0.0" cogX="0.0" cogY="0.0" cogZ="0.0" inertiaX="0.0" inertiaY="0.0" inertiaZ="0.0" mass="0.0"/>
+            <loadData cogA="0.0" cogB="0.0" cogC="0.0" cogX="4.127863104112745" cogY="-9.993113705576018" cogZ="94.61357480681313" inertiaX="0.0" inertiaY="0.0" inertiaZ="0.0" mass="2.5518968014359267"/>
         </toolTemplate>
         <toolTemplate class="" name="AdaptiveGripper">
             <loadData cogA="0.0" cogB="0.0" cogC="0.0" cogX="0.0" cogY="0.0" cogZ="0.0" inertiaX="0.0" inertiaY="0.0" inertiaZ="0.0" mass="3.0"/>
         </toolTemplate>
     </objectTemplates>
     <processDataContainer>
-        <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Velocity Relative" id="jointVelRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
-        <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Acceleration Relative" id="jointAccRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
-        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector Weight" id="eeWeight" max="10.0" min="0.0" unit="kg" value="3"/>
-        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector X" id="eeX" max="200.0" min="0.0" unit="mm" value="0"/>
-        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector Y" id="eeY" max="200.0" min="0.0" unit="mm" value="0"/>
-        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector Z" id="eeZ" max="200.0" min="0.0" unit="mm" value="0"/>
         <processData dataType="java.lang.String" defaultValue="172.31.1.147" displayName="Robot JAVA (self) / ROS_HOST_NAME" id="Robot_IP" unit="IP4 Address" value="172.31.1.147"/>
         <processData dataType="java.lang.String" defaultValue="172.31.1.100" displayName="Laptop JAVA / ROS_MASTER" id="Laptop_IP" unit="IP4 Address" value="172.31.1.100"/>
         <processData dataType="java.lang.String" defaultValue="30010" displayName="Laptop JAVA Port" id="Laptop_Port" unit="IP4 Port" value="30010"/>
         <processData dataType="java.lang.String" defaultValue="11311" displayName="Laptop ROS_MASTER_URI Port" id="Laptop_ROS_MASTER_URI_Port" unit="IP4 Port" value="11311"/>
         <processData dataType="java.lang.String" defaultValue="192.170.10.100" displayName="Laptop KONI FRI IPv4" id="Laptop_KONI_FRI_IP" unit="IP4 Address" value="192.170.10.100"/>
         <processData dataType="java.lang.String" defaultValue="192.170.10.2" displayName="Robot KONI FRI IPv4" id="Robot_KONI_FRI_IP" unit="IP4 Address" value="192.170.10.2"/>
+        <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Velocity Relative" id="jointVelRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
+        <processData dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Acceleration Relative" id="jointAccRel" max="1.0" min="0.01" unit="%/100" value="0.2"/>
+        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector Weight" id="eeWeight" max="10.0" min="0.0" unit="kg" value="2.55"/>
+        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector X" id="eeX" max="1000.0" min="-1000.0" unit="mm" value="4.13"/>
+        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector Y" id="eeY" max="1000.0" min="-1000.0" unit="mm" value="-9.99"/>
+        <processData dataType="java.lang.Double" defaultValue="0" displayName="End Effector Z" id="eeZ" max="1000.0" min="-1000.0" unit="mm" value="94.61"/>
     </processDataContainer>
 </RoboticsAPIData>
