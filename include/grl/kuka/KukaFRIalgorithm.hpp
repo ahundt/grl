@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <stdexcept>
+#include <algorithm>
 
 #include <boost/range/adaptor/copied.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -43,6 +44,25 @@ namespace grl { namespace robot {
 				void copyJointState(T values,OutputIterator it, bool dataAvailable = true){
 					if(dataAvailable) std::copy(static_cast<double*>(static_cast<tRepeatedDoubleArguments*>(values)->value),static_cast<double*>(static_cast<tRepeatedDoubleArguments*>(values)->value)+KUKA::LBRState::NUM_DOF,it);
 				}
+                
+               /**
+                * copies double data from a _CartesianVector to
+                * an Output iterator which is assumed to contain doubles
+                * as well, for example std::back_inserter(std::vector<double>)
+                * The wrench vector consists of:
+                * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
+                *
+                * F ... forces (in N) applied along the Cartesian axes of the
+                * currently used motion center.
+                * tau ... torques (in Nm) applied along the orientation angles
+                * (Euler angles A, B, C) of the currently used motion center.
+                template<typename T, typename OutputIterator>
+                */
+                template<typename T, typename OutputIterator>
+                void copyCartesianState(T values,OutputIterator it, bool dataAvailable = true){
+                    // min of element_count and 6 to prevent buffer overflow attack
+                    if(dataAvailable) std::copy(&values.element[0],&values.element[0]+std::min(values.element_count,static_cast<std::size_t>(6)),it);
+                }
 				
 			    /// @todo handle dataAvaliable = false case
 				/// @todo support tRepeatedIntArguments, and perhaps const versions
@@ -85,6 +105,22 @@ namespace grl { namespace robot {
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_external_open_chain_state_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.externalTorque.value.arg,it, monitoringMsg.monitorData.has_externalTorque);
 	}
+        
+    /// copy measured external force to output iterator
+    /// note that this has a strange layout and actually contains
+    /// an array of values for cartesian space.
+    /// order is from the kuka documentation:
+    ///
+    /// The wrench vector consists of: [F_x, F_y, F_z, tau_A, tau_B, tau_C]
+    ///
+    /// F ... forces (in N) applied along the Cartesian axes of the currently used
+    /// motion center. tau ... torques (in Nm) applied along the orientation angles
+    /// (Euler angles A, B, C) of the currently used motion center.
+    template<typename OutputIterator>
+    void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, cartesian_external_force_tag){
+            kuka::detail::copyCartesianState(monitoringMsg.monitorData.externalForce,it, monitoringMsg.monitorData.has_externalForce);
+        }
+
 	
 	/// copy commanded  joint torque to output iterator
 	template<typename OutputIterator>
