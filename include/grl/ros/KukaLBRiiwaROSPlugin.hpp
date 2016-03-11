@@ -90,6 +90,21 @@ namespace grl {
             );
       }
 
+      Params& loadRosParams(Params& params) {
+            ::ros::NodeHandle nh_tilde("~");
+            
+            nh_tilde.getParam("RobotName",std::get<RobotName>(params));
+            nh_tilde.getParam("LocalZMQAddress",std::get<LocalZMQAddress>(params));
+            nh_tilde.getParam("RemoteZMQAddress",std::get<RemoteZMQAddress>(params));
+            nh_tilde.getParam("LocalHostKukaKoniUDPAddress",std::get<LocalHostKukaKoniUDPAddress>(params));
+            nh_tilde.getParam("LocalHostKukaKoniUDPPort",std::get<LocalHostKukaKoniUDPPort>(params));
+            nh_tilde.getParam("RemoteHostKukaKoniUDPAddress",std::get<RemoteHostKukaKoniUDPAddress>(params));
+            nh_tilde.getParam("RemoteHostKukaKoniUDPPort",std::get<RemoteHostKukaKoniUDPPort>(params));
+            nh_tilde.getParam("KukaCommandMode",std::get<KukaCommandMode>(params));
+            nh_tilde.getParam("KukaMonitorMode",std::get<KukaMonitorMode>(params));
+            
+          return params;
+      }
 
       /// unique tag type so State never
       /// conflicts with a similar tuple
@@ -120,13 +135,14 @@ namespace grl {
         JointScalar,            // JointLowerPositionLimit
         JointScalar,            // JointUpperPositionLimit
         TransformationMatrices, // jointTransformation
-        JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
+        robot::arm::KukaJAVAdriver::JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
           > State;
 
 
       KukaLBRiiwaROSPlugin(Params params = defaultParams())
-        : params_(params), nh_()
+        : params_(params), nh_("")
       {
+        loadRosParams(params_);
       }
 
       void construct(){ construct(params_);}
@@ -152,10 +168,10 @@ namespace grl {
                 //device_driver_io_service,
                 params
                 // std::make_tuple(
-                //     std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
-                //     std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
-                //     std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
-                //     std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
+                //     std::string(std::std::get<LocalHostKukaKoniUDPAddress >        (params)),
+                //     std::string(std::std::get<LocalHostKukaKoniUDPPort    >        (params)),
+                //     std::string(std::std::get<RemoteHostKukaKoniUDPAddress>        (params)),
+                //     std::string(std::std::get<RemoteHostKukaKoniUDPPort   >        (params)),
                 //     grl::robot::arm::KukaFRIClientDataDriver::run_automatically
                 //     )
                 )
