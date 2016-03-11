@@ -14,6 +14,7 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
 
+#include <boost/make_shared.hpp>
 
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #include <boost/thread.hpp>
@@ -23,8 +24,6 @@
 #include "grl/kuka/KukaJAVAdriver.hpp"
 #include "grl/kuka/KukaFRIdriver.hpp"
 #include "grl/tags.hpp"
-
-
 
 
 namespace grl { namespace robot { namespace arm {
@@ -40,9 +39,7 @@ namespace grl { namespace robot { namespace arm {
     public:
 
       enum ParamIndex {
-        RobotTipName,
-        RobotTargetName,
-        RobotTargetBaseName,
+        RobotName,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
@@ -50,15 +47,11 @@ namespace grl { namespace robot { namespace arm {
         RemoteHostKukaKoniUDPAddress,
         RemoteHostKukaKoniUDPPort,
         KukaCommandMode,
-        KukaMonitorMode,
-        IKGroupName
+        KukaMonitorMode
       };
 
       /// @todo allow default params
       typedef std::tuple<
-        std::string,
-        std::string,
-        std::string,
         std::string,
         std::string,
         std::string,
@@ -73,9 +66,7 @@ namespace grl { namespace robot { namespace arm {
 
       static const Params defaultParams(){
         return std::make_tuple(
-            "RobotMillTip"            , // RobotTipHandle,
-            "RobotMillTipTarget"      , // RobotTargetHandle,
-            "Robotiiwa"               , // RobotTargetBaseHandle,
+            "Robotiiwa"               , // RobotName,
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
@@ -83,43 +74,9 @@ namespace grl { namespace robot { namespace arm {
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
             "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
-            "FRI"                     , // KukaMonitorMode (options are FRI, JAVA)
-            "IK_Group1_iiwa"            // IKGroupName
+            "JAVA"                      // KukaMonitorMode (options are FRI, JAVA)
             );
       }
-
-
-      /// unique tag type so State never
-      /// conflicts with a similar tuple
-      struct JointStateTag{};
-
-      enum JointStateIndex {
-        JointPosition,
-        JointForce,
-        JointTargetPosition,
-        JointLowerPositionLimit,
-        JointUpperPositionLimit,
-        JointMatrix,
-        JointStateTagIndex
-      };
-
-
-      typedef std::vector<double>               JointScalar;
-
-      /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simGetJointMatrix for data layout information
-      typedef std::array<double,12> TransformationMatrix;
-      typedef std::vector<TransformationMatrix> TransformationMatrices;
-
-      typedef std::tuple<
-        JointScalar,            // jointPosition
-        //  JointScalar             // JointVelocity  // no velocity yet
-        JointScalar,            // jointForce
-        JointScalar,            // jointTargetPosition
-        JointScalar,            // JointLowerPositionLimit
-        JointScalar,            // JointUpperPositionLimit
-        TransformationMatrices, // jointTransformation
-        JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
-          > State;
 
 
       KukaDriver(Params params = defaultParams())
@@ -127,6 +84,9 @@ namespace grl { namespace robot { namespace arm {
       {}
 
       void construct(){ construct(params_);}
+      
+      bool destruct(){ return JAVAdriverP_->destruct(); }
+      
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
@@ -179,7 +139,6 @@ namespace grl { namespace robot { namespace arm {
 
 
 
-      bool setState(State& state) { return true; }
 
 
       const Params & getParams(){
@@ -209,33 +168,36 @@ namespace grl { namespace robot { namespace arm {
 
         if(JAVAdriverP_.get() != nullptr)
         {
+          std::cout << "commandedpos:" << armState_.commandedPosition;
           /////////////////////////////////////////
           // Client sends to server asynchronously!
           if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
           {
-            JAVAdriverP_->set(armState.commandedPosition,revolute_joint_angle_open_chain_command_tag());
+            JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
           }
+          std::cout << "commandedpos:" << armState_.commandedPosition;
         
           haveNewData = JAVAdriverP_->run_one();
         
           if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("JAVA")))
           {
-            JAVAdriverP_->get(armState);
+            JAVAdriverP_->get(armState_);
           }
+          std::cout << "commandedpos:" << armState_.commandedPosition;
         }
         
         if(FRIdriverP_.get() != nullptr)
         {
           if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
           {
-            FRIdriverP_->set(armState.commandedPosition,revolute_joint_angle_open_chain_command_tag());
+            FRIdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
           }
         
           haveNewData = FRIdriverP_->run_one();
         
           if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
           {
-            FRIdriverP_->get(armState);
+            FRIdriverP_->get(armState_);
           }
         }
         
@@ -243,6 +205,16 @@ namespace grl { namespace robot { namespace arm {
       }
 
 
+   /// set the mode of the arm. Examples: Teach or MoveArmJointServo
+   /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
+   void set(const flatbuffer::ArmState & armControlMode)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(armControlMode);
+        }
+   }
+   
      /**
       * \brief Set the joint positions for the current interpolation step.
       * 
@@ -254,9 +226,11 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        boost::unique_lock<boost::mutex> lock(jt_mutex);
-       armState.clearCommands();
-       boost::copy(range, std::back_inserter(armState.commandedPosition));
-       boost::copy(range, std::back_inserter(armState.commandedPosition_goal));
+       armState_.clearCommands();
+       boost::copy(range, std::back_inserter(armState_.commandedPosition));
+       boost::copy(range, std::back_inserter(armState_.commandedPosition_goal));
+       
+          std::cout << "set commandedpos:" << armState_.commandedPosition;
     }
   
      /**
@@ -273,8 +247,8 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
        boost::unique_lock<boost::mutex> lock(jt_mutex);
-       armState.clearCommands();
-       boost::copy(range, std::back_inserter(armState.commandedTorque));
+       armState_.clearCommands();
+       boost::copy(range, std::back_inserter(armState_.commandedTorque));
     }
  
    
@@ -302,8 +276,8 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::cartesian_wrench_command_tag) {
        boost::unique_lock<boost::mutex> lock(jt_mutex);
-       armState.clearCommands();
-       std::copy(range,armState.commandedCartesianWrenchFeedForward);
+       armState_.clearCommands();
+       std::copy(range,armState_.commandedCartesianWrenchFeedForward);
     }
     
     /// @todo implement get function
@@ -311,7 +285,7 @@ namespace grl { namespace robot { namespace arm {
     void get(OutputIterator output, grl::revolute_joint_angle_open_chain_state_tag)
     {
        boost::unique_lock<boost::mutex> lock(jt_mutex);
-        boost::copy(armState.position,output);
+        boost::copy(armState_.position,output);
     }
     
     /// @todo implement get function
@@ -354,7 +328,7 @@ namespace grl { namespace robot { namespace arm {
 
       /// @todo read ms_per_tick from JAVA interface
       std::size_t ms_per_tick = 1;
-      KukaState armState;
+      KukaState armState_;
 
       boost::mutex jt_mutex;
       boost::shared_ptr<KukaFRIdriver> FRIdriverP_;

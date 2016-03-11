@@ -1,0 +1,11 @@
+
+include "Geometry.fbs";
+
+namespace grl.flatbuffer;
+
+table LinkObject {
+  name:string;
+  parent:string;
+  pose:Pose;
+  inertia:Inertia;
+}

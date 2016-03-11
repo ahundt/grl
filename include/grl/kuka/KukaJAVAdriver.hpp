@@ -1,6 +1,10 @@
 #ifndef GRL_KUKA_JAVA_DRIVER
 #define GRL_KUKA_JAVA_DRIVER
 
+#include <iostream>
+#include <chrono>
+#include <ratio>
+#include <thread>
 
 #include <tuple>
 #include <memory>
@@ -12,6 +16,8 @@
 
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
+#include <boost/chrono/include.hpp>
+#include <boost/chrono/duration.hpp>
 
 
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
@@ -24,10 +30,23 @@
 #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
-#include "grl/flatbuffer/ArmConfiguration_generated.h"
-#include "grl/flatbuffer/ObjectConfiguration_generated.h"
+#include "grl/flatbuffer/KUKAiiwa_generated.h"
 
 
+/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
+template<typename T>
+inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)
+{
+  out << "[";
+  size_t last = v.size() - 1;
+  for(size_t i = 0; i < v.size(); ++i) {
+    out << v[i];
+    if (i != last) 
+      out << ", ";
+  }
+  out << "]";
+  return out;
+}
 
 
 namespace grl { namespace robot { namespace arm {
@@ -40,16 +59,14 @@ namespace grl { namespace robot { namespace arm {
      * Initally:
      * 
      *
+     * @todo make sure mutex is locked when appropriate
+     *
      */
     class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
     public:
 
-      const std::size_t KUKA_LBR_DOF = 7;
-
       enum ParamIndex {
-        RobotTipName,
-        RobotTargetName,
-        RobotTargetBaseName,
+        RobotName,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
@@ -57,15 +74,10 @@ namespace grl { namespace robot { namespace arm {
         RemoteHostKukaKoniUDPAddress,
         RemoteHostKukaKoniUDPPort,
         KukaCommandMode,
-        KukaMonitorMode,
-        IKGroupName
+        KukaMonitorMode
       };
 
-      /// @todo allow default params
       typedef std::tuple<
-        std::string,
-        std::string,
-        std::string,
         std::string,
         std::string,
         std::string,
@@ -80,18 +92,15 @@ namespace grl { namespace robot { namespace arm {
 
       static const Params defaultParams(){
         return std::make_tuple(
-            "RobotMillTip"            , // RobotTipHandle,
-            "RobotMillTipTarget"      , // RobotTargetHandle,
-            "Robotiiwa"               , // RobotTargetBaseHandle,
+            "Robotiiwa"               , // RobotName,
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
-            "JAVA"                     , // KukaCommandMode (options are FRI, JAVA)
-            "JAVA"                     , // KukaMonitorMode (options are FRI, JAVA)
-            "IK_Group1_iiwa"            // IKGroupName
+            "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+            "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
             );
       }
 
@@ -130,10 +139,10 @@ namespace grl { namespace robot { namespace arm {
 
 
       KukaJAVAdriver(Params params = defaultParams())
-        : params_(params)
+        : params_(params), armControlMode_(flatbuffer::ArmState::ArmState_NONE)
       {}
 
-      void construct(){ construct(params_);}
+      void construct(){ construct(params_); sequenceNumber = 0;}
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
@@ -153,9 +162,6 @@ namespace grl { namespace robot { namespace arm {
           socket.connect(std::get<RemoteZMQAddress>            (params_).c_str()   );
           kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
 
-          // start up the driver thread
-          /// @todo perhaps allow user to control this?
-          driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
         } catch( boost::exception &e) {
           e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to ZeroMQ Socket from " + 
                            std::get<LocalZMQAddress>             (params_) + " to " + 
@@ -163,15 +169,58 @@ namespace grl { namespace robot { namespace arm {
           throw;
         }
       }
-
-
-
-
-      bool setState(State& state) { return true; }
+      
+      
 
 
       const Params & getParams(){
         return params_;
+      }
+      
+      /// shuts down the arm
+      bool destruct(){
+        
+          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+          
+          boost::lock_guard<boost::mutex> lock(jt_mutex);
+          
+          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+          
+          /// @todo is this the best string to pass for the full arm's name?
+          auto basename = std::get<RobotName>(params_);
+          
+          auto bns = fbbP->CreateString(basename);
+          
+          
+          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_ShutdownArm,flatbuffer::CreateShutdownArm(*fbbP).Union());
+          
+//          auto KUKAiiwa = CreateKUKAiiwaState(*fbbP,
+//   flatbuffers::Offset<flatbuffers::String> name = 0,
+//   flatbuffers::Offset<flatbuffers::String> destination = 0,
+//   flatbuffers::Offset<flatbuffers::String> source = 0,
+//   double timestamp = 0,
+//   uint8_t setArmControlState = 0,
+//   flatbuffers::Offset<grl::flatbuffer::ArmControlState> armControlState = 0,
+//   uint8_t setArmConfiguration = 0,
+//   flatbuffers::Offset<KUKAiiwaArmConfiguration> armConfiguration = 0,
+//   uint8_t hasMonitorState = 0,
+//   flatbuffers::Offset<KUKAiiwaMonitorState> monitorState = 0,
+//   uint8_t hasMonitorConfig = 0,
+//   flatbuffers::Offset<KUKAiiwaMonitorConfiguration> monitorConfig = 0)
+   
+          
+          auto KUKAiiwa = CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,0,0,0,0,0,0);
+   
+          auto iiwaStateVec = fbbP->CreateVector(&KUKAiiwa, 1);
+          
+          auto iiwaStates = flatbuffer::CreateKUKAiiwaStates(*fbbP,iiwaStateVec);
+          
+          
+          
+          grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, iiwaStates);
+          kukaJavaDriverP->async_send_flatbuffer(fbbP);
+          
+          return true;
       }
 
       ~KukaJAVAdriver(){
@@ -182,8 +231,10 @@ namespace grl { namespace robot { namespace arm {
           driver_threadP->join();
         }
       }
+      
 
-      /// @brief perform the main update spin once, call this function repeatedly
+      /// @brief SEND COMMAND TO ARM. Call this often
+      /// Performs the main update spin once.
       /// @todo ADD SUPPORT FOR READING ARM STATE OVER JAVA INTERFACE
       bool run_one(){
 
@@ -193,45 +244,92 @@ namespace grl { namespace robot { namespace arm {
         bool haveNewData = false;
 
         /// @todo make this handled by template driver implementations/extensions
+          
 
         if(kukaJavaDriverP)
         {
-          /////////////////////////////////////////
-          // Client sends to server asynchronously!
-
-          /// @todo if allocation is a performance problem use boost::container::static_vector<double,7>
-          std::vector<double> joints;
-
+        
           auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-
-          /// @todo should we use simJointTargetPosition here?
-          joints.clear();
-          {
+          
             boost::lock_guard<boost::mutex> lock(jt_mutex);
-            boost::copy(armState.commandedPosition, std::back_inserter(joints));
+          
+          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+          
+          /// @todo is this the best string to pass for the full arm's name?
+          auto basename = std::get<RobotName>(params_);
+          
+          auto bns = fbbP->CreateString(basename);
+          
+          flatbuffers::Offset<flatbuffer::ArmControlState> controlState;
+        
+        
+          switch (armControlMode_) {
+          
+              case flatbuffer::ArmState::ArmState_StartArm: {
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStartArm(*fbbP).Union());
+                 break;
+              }
+              case flatbuffer::ArmState::ArmState_MoveArmJointServo: {
+                 
+                /// @todo when new
+                JointScalar                          armPosVelAccelEmpty;
+                auto armPositionBuffer = fbbP->CreateVector(armPosition_.data(),armPosition_.size());
+                auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer);
+                auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
+                controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
+                std::cout << "KukaJAVAdriver sending armposition command:" <<armPosition_<<"\n";
+                 break;
+              }
+              case flatbuffer::ArmState::ArmState_TeachArm: {
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateTeachArm(*fbbP).Union());
+                 break;
+              }
+              case flatbuffer::ArmState::ArmState_PauseArm: {
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreatePauseArm(*fbbP).Union());
+                 break;
+              }
+              case flatbuffer::ArmState::ArmState_StopArm: {
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
+                 break;
+              }
+              case flatbuffer::ArmState::ArmState_ShutdownArm: {
+                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
+                 break;
+              }
+              case flatbuffer::ArmState::ArmState_NONE: {
+                 //std::cerr << "Waiting for interation mode... (currently NONE)\n";
+                 break;
+              }
+              default:
+                 std::cerr << "KukaJAVAdriver unsupported use case: " << armControlMode_ << "\n";
           }
-          auto jointPos = fbbP->CreateVector(&joints[0], joints.size());
-
-#if 0 //BOOST_VERSION < 105900
-          BOOST_LOG_TRIVIAL(info) << "sending joint angles: " << joints << " from local zmq: " << std::get<LocalZMQAddress>            (params_) << " to remote zmq: " << std::get<RemoteZMQAddress>            (params_);
-#endif
-
-          /// @note we don't have a velocity right now, sending empty!
-          joints.clear();
-          //boost::copy(simJointVelocity, std::back_inserter(joints));
+          
+          
+          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState);
+          
+          auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
+          
+          auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
+          
+          grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
+        
+          flatbuffers::Verifier verifier(fbbP->GetBufferPointer(),fbbP->GetSize());
+          BOOST_VERIFY(grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier));
+        
+        
+          if(armControlMode_ == flatbuffer::ArmState::ArmState_MoveArmJointServo)
           {
-            boost::lock_guard<boost::mutex> lock(jt_mutex);
-            // no velocity data available directly in this arm at time of writing
-            //boost::copy(simJointVelocity, std::back_inserter(joints));
-            auto jointVel = fbbP->CreateVector(&joints[0], joints.size());
-            joints.clear();
-            boost::copy(armState.torque, std::back_inserter(joints));
-            auto jointAccel = fbbP->CreateVector(&joints[0], joints.size());
-            auto jointState = grl::flatbuffer::CreateJointState(*fbbP,jointPos,jointVel,jointAccel);
-            grl::flatbuffer::FinishJointStateBuffer(*fbbP, jointState);
-            kukaJavaDriverP->async_send_flatbuffer(fbbP);
+              auto states2 = flatbuffer::GetKUKAiiwaStates(fbbP->GetBufferPointer());
+              auto movearm = static_cast<const flatbuffer::MoveArmJointServo*>(states2->states()->Get(0)->armControlState()->state());
+              std::cout << "re-extracted " << movearm->goal()->position()->size() << " joint angles: ";
+              for(std::size_t i = 0; i <  movearm->goal()->position()->size(); ++i)
+              {
+                std::cout << i << "=" << movearm->goal()->position()->Get(i) << ", ";
+              }
+              std::cout << "\n";
           }
-
+        
+          kukaJavaDriverP->async_send_flatbuffer(fbbP);
         }
        
          return haveNewData;
@@ -258,8 +356,8 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState.commandedPosition.clear();
-      boost::copy(range, std::back_inserter(armState.commandedPosition));
+       armPosition_.clear();
+       boost::copy(range, std::back_inserter(armPosition_));
     }
   
      /**
@@ -276,8 +374,8 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState.commandedTorque.clear();
-      boost::copy(range, std::back_inserter(armState.commandedTorque));
+       //armState.commandedTorque.clear();
+      //boost::copy(range, std::back_inserter(armState.commandedTorque));
     }
  
    
@@ -305,12 +403,12 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::cartesian_wrench_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-      std::copy(range,armState.commandedCartesianWrenchFeedForward);
+      //std::copy(range,armState.commandedCartesianWrenchFeedForward);
     }
     
     /// @todo implement get function
     template<typename OutputIterator>
-    void get(OutputIterator output, grl::revolute_joint_angle_open_chain_state_tag)
+    void get(OutputIterator /*output*/, grl::revolute_joint_angle_open_chain_state_tag)
     {
         BOOST_VERIFY(false); // not implemented yet
     }
@@ -319,17 +417,36 @@ namespace grl { namespace robot { namespace arm {
    void get(KukaState & state)
    {
      boost::lock_guard<boost::mutex> lock(jt_mutex);
-     state = armState;
+     //state = armState;
+   }
+   
+   /// set the mode of the arm. Examples: Teach or MoveArmJointServo
+   /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
+   void set(const flatbuffer::ArmState& armControlMode)
+   {
+        armControlMode_ = armControlMode;
    }
 
     private:
-
-      KukaState armState;
-
-      boost::mutex jt_mutex;
+    
 
       Params params_;
-      std::shared_ptr<KUKA::FRI::ClientData> friData_;
+      flatbuffer::ArmState                 armControlMode_;
+      JointScalar                          armPosition_;
+//      flatbuffers::FlatBufferBuilder       builder_;
+//      
+//      flatbuffer::JointStateBuilder        jointStateServoBuilder_;
+//      flatbuffer::MoveArmJointServoBuilder moveArmJointServoBuilder_;
+//      flatbuffer::TeachArmBuilder          teachArmBuilder_;
+//      flatbuffer::ArmControlStateBuilder   armControlStateBuilder_;
+//      flatbuffer::KUKAiiwaStateBuilder     iiwaStateBuilder_;
+//      flatbuffer::KUKAiiwaStatesBuilder    iiwaStatesBuilder_;
+//      
+//      flatbuffers::Offset<flatbuffer::KUKAiiwaState> iiwaState;
+
+      boost::mutex jt_mutex;
+      
+      int64_t sequenceNumber;
 
     };    
 

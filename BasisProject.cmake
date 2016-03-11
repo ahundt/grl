@@ -107,7 +107,7 @@ basis_project (
     ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq 
 	AZMQ        # https://github.com/zeromq/azmq
 	FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
-	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log}
+	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log,chrono}
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>

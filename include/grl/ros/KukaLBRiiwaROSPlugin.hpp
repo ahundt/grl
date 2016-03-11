@@ -38,12 +38,8 @@ inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream
 }
 
 namespace grl {
+
   namespace ros {
-
-    enum RobotMode {
-      MODE_TEACH, MODE_SERVO, MODE_IDLE
-    };
-
 
     /** 
      *
@@ -56,9 +52,7 @@ namespace grl {
     public:
 
       enum ParamIndex {
-        RobotTipName,
-        RobotTargetName,
-        RobotTargetBaseName,
+        RobotName,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
@@ -66,15 +60,10 @@ namespace grl {
         RemoteHostKukaKoniUDPAddress,
         RemoteHostKukaKoniUDPPort,
         KukaCommandMode,
-        KukaMonitorMode,
-        IKGroupName
+        KukaMonitorMode
       };
 
-      /// @todo allow default params
       typedef std::tuple<
-        std::string,
-        std::string,
-        std::string,
         std::string,
         std::string,
         std::string,
@@ -89,9 +78,7 @@ namespace grl {
 
       static const Params defaultParams(){
         return std::make_tuple(
-            "RobotMillTip"            , // RobotTipHandle,
-            "RobotMillTipTarget"      , // RobotTargetHandle,
-            "Robotiiwa"               , // RobotTargetBaseHandle,
+            "Robotiiwa"               , // RobotName,
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
@@ -99,8 +86,7 @@ namespace grl {
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
             "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
-            "FRI"                     , // KukaMonitorMode (options are FRI, JAVA)
-            "IK_Group1_iiwa"            // IKGroupName
+            "JAVA"                       // KukaMonitorMode (options are FRI, JAVA)
             );
       }
 
@@ -223,15 +209,21 @@ namespace grl {
       /// ROS callback to set current interaction mode; determines whether commands will be send in SERVO, TEACH, etc
       void mode_callback(const std_msgs::StringConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
-        if (msg->data == "teach") { 
-          interaction_mode = MODE_TEACH;
-        } else if (msg->data == "servo") {
-          interaction_mode = MODE_SERVO;
-        } else if (msg->data == "idle") {
-          interaction_mode = MODE_IDLE;
-        } else {
-          interaction_mode = MODE_IDLE;
+
+        //std::cerr << "Mode command = " << msg->data.c_str() << "\n";
+        ROS_INFO("Receiving mode command: %s", msg->data.c_str());
+
+        unsigned int ArmStateLen = 9;
+        for (unsigned int i = 0; i < ArmStateLen; ++i) {
+          if (msg->data == grl::flatbuffer::EnumNamesArmState()[i]) {
+             std::string info = std::string("Valid grl::flatbuffer::ArmState command received for ") + grl::flatbuffer::EnumNamesArmState()[i] + std::string(" mode");
+             ROS_INFO(info.c_str());
+            interaction_mode = static_cast<grl::flatbuffer::ArmState>(i);
+            KukaDriverP_->set(interaction_mode);
+            break;
+          }
         }
+
       }
 
       /// ROS joint trajectory callback
@@ -276,37 +268,58 @@ namespace grl {
      bool run_one()
      {
 
-        bool haveNewData = false;
+       bool haveNewData = false;
 
-         if(KukaDriverP_){
+       if(KukaDriverP_){
 
-             //grl::robot::arm::set(*KukaDriverP_, simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+
+         switch(interaction_mode) {
+           case grl::flatbuffer::ArmState_MoveArmJointServo:
+             ROS_INFO("Arm is in SERVO Mode");
              if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-             if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
-             
-             haveNewData = KukaDriverP_->run_one();
+             /// @todo setting joint position clears joint force in KukaDriverP_. Is this right or should position and force be configurable simultaeously?
+             //if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
+             break;
+           case grl::flatbuffer::ArmState_TeachArm:
+             ROS_INFO("Arm is in TEACH mode");
+             break;
+             break;
+           case grl::flatbuffer::ArmState_StopArm:
+             break;
+           case grl::flatbuffer::ArmState_PauseArm:
+             break;
+           case grl::flatbuffer::ArmState_StartArm:
+             ROS_INFO("Sending start!");
+             break;
+           case grl::flatbuffer::ArmState_ShutdownArm:
+             break;
+           default:
+             ROS_INFO("TODO: KukaLBRiiwaROSPlugin Unsupported mode!");
+         }
 
-             if(haveNewData)
-             {
+         haveNewData = KukaDriverP_->run_one();
 
-               // We have the real kuka state read from the device now
-               // update real joint angle data
-               current_js_.position.clear();
-               KukaDriverP_->get(std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
+         if(haveNewData)
+         {
 
-               current_js_.effort.clear();
-               KukaDriverP_->get(std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
+           // We have the real kuka state read from the device now
+           // update real joint angle data
+           current_js_.position.clear();
+           KukaDriverP_->get(std::back_inserter(current_js_.position), grl::revolute_joint_angle_open_chain_state_tag());
 
-               current_js_.velocity.clear();
-               //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+           current_js_.effort.clear();
+           KukaDriverP_->get(std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
 
-               js_pub_.publish(current_js_);
-            }
-        
-        }
-     
-        return haveNewData;
-      }
+           current_js_.velocity.clear();
+           //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
+
+           js_pub_.publish(current_js_);
+         }
+
+       }
+
+       return haveNewData;
+     }
 
       boost::asio::io_service device_driver_io_service;
       std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
@@ -326,7 +339,7 @@ namespace grl {
 
     private:
 
-      RobotMode interaction_mode;
+      grl::flatbuffer::ArmState interaction_mode;
 
       boost::mutex jt_mutex;
       boost::shared_ptr<robot::arm::KukaDriver> KukaDriverP_;

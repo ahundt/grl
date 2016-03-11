@@ -19,9 +19,9 @@ public final class ArmControlSeries extends Table {
   public int statesLength() { int o = __offset(4); return o != 0 ? __vector_len(o) : 0; }
 
   public static int createArmControlSeries(FlatBufferBuilder builder,
-      int statesOffset) {
+      int states) {
     builder.startObject(1);
-    ArmControlSeries.addStates(builder, statesOffset);
+    ArmControlSeries.addStates(builder, states);
     return ArmControlSeries.endArmControlSeries(builder);
   }
 

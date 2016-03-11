@@ -7,13 +7,6 @@ struct Vector3d {
   z:double;
 }
 
-// euler angles in DEGREES
-struct EulerXYZd {
-  rx:double;
-  ry:double;
-  rz:double;
-}
-
 struct Quaternion {
   x:double;
   y:double;
@@ -21,7 +14,30 @@ struct Quaternion {
   w:double;
 }
 
-struct Frame {
+struct Pose {
   position:Vector3d;
   orientation:Quaternion;
 }
+
+struct Wrench {
+  force:Vector3d;
+  torque:Vector3d;
+  force_offset:Vector3d;
+}
+
+struct Inertia {
+  mass:double; // Mass [kg]
+  pose:Pose; // Center of mass [meters]
+  
+  // Inertia Tensor [kg-m^2]
+  //     | ixx ixy ixz |
+  // I = | ixy iyy iyz |
+  //     | ixz iyz izz |
+  ixx:double;
+  ixy:double;
+  ixz:double;
+  iyy:double;
+  iyz:double;
+  izz:double;
+}
+

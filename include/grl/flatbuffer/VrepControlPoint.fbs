@@ -2,6 +2,7 @@
 // http://www.coppeliarobotics.com/helpFiles/en/pathImportExport.htm
 
 include "Geometry.fbs";
+include "Euler.fbs";
 
 namespace grl.flatbuffer;
 

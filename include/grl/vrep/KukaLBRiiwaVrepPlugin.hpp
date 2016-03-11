@@ -57,6 +57,8 @@ public:
         RobotTargetBaseName,
         LocalZMQAddress,
         RemoteZMQAddress,
+        LocalConfigZMQAddress,
+        RemoteConfigZMQAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -68,6 +70,8 @@ public:
     
     typedef std::tuple<
         std::vector<std::string>,
+        std::string,
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -100,6 +104,8 @@ public:
                     "Robotiiwa"               , // RobotTargetBaseHandle,
                     "tcp://0.0.0.0:30010"     , // LocalZMQAddress
                     "tcp://172.31.1.147:30010", // RemoteZMQAddress
+                    "tcp://0.0.0.0:30011"     , // LocalConfigZMQAddress
+                    "tcp://172.31.1.147:30011", // RemoteConfigZMQAddress
                     "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -170,8 +176,6 @@ void construct(Params params){
   device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
   kukaDriverP_=std::make_shared<robot::arm::KukaDriver>(std::make_tuple(
       
-        std::get<RobotTipName>(params),
-        std::get<RobotTargetName>(params),
         std::get<RobotTargetBaseName>(params),
         std::get<LocalZMQAddress>(params),
         std::get<RemoteZMQAddress>(params),
@@ -180,8 +184,7 @@ void construct(Params params){
         std::get<RemoteHostKukaKoniUDPAddress>(params),
         std::get<RemoteHostKukaKoniUDPPort>(params),
         std::get<KukaCommandMode>(params),
-        std::get<KukaMonitorMode>(params),
-        std::get<IKGroupName>(params)
+        std::get<KukaMonitorMode>(params)
 
         
   ));

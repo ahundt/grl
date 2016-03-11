@@ -2,9 +2,7 @@ package grl.flatBufferTesting;
 
 import java.nio.ByteBuffer;
  
-import org.jeromq.ZMQ;
-import org.jeromq.ZMQ.Context;
-import org.jeromq.ZMQ.Socket;
+import org.zeromq.ZMQ;
 
 import grl.flatbuffer.VrepControlPoint;
 import grl.flatbuffer.Vector3d;
@@ -14,8 +12,8 @@ public class FlatBuffer_Receive {
     static final String ADDRESS = "tcp://127.0.0.1:9998";
     public static void main(String[] args) throws Exception {
  
-        Context context = ZMQ.context(1);
-        Socket subscriber = context.socket(ZMQ.DEALER);
+        ZMQ.Context context = ZMQ.context(1);
+        ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
  
         subscriber.connect("tcp://127.0.0.1:9998");
         subscriber.setRcvHWM(1000000);

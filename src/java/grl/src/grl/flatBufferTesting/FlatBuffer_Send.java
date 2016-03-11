@@ -3,9 +3,7 @@ package grl.flatBufferTesting;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import org.jeromq.ZMQ;
-import org.jeromq.ZMQ.Context;
-import org.jeromq.ZMQ.Socket;
+import org.zeromq.ZMQ;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 import grl.flatbuffer.VrepControlPoint;
@@ -17,8 +15,8 @@ public class FlatBuffer_Send {
     public static void main(String[] args) throws Exception {
         
         // Prepare our context and publisher
-        Context context = ZMQ.context(1);
-        Socket publisher = context.socket(ZMQ.DEALER);
+        ZMQ.Context context = ZMQ.context(1);
+        ZMQ.Socket publisher = context.socket(ZMQ.DEALER);
         publisher.bind(ADDRESS);
         publisher.setHWM(1000000);
         publisher.setSndHWM(1000000);
@@ -50,7 +48,7 @@ public class FlatBuffer_Send {
         int c = 0;
         while (c < NUM_MSG) {
             c++;
-            publisher.send(sendByteArray);
+            publisher.send(sendByteArray,0);
         }
         Thread.sleep(2000);
         publisher.close();

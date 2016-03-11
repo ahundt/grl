@@ -87,7 +87,7 @@ If some of the modules are missing, you may not have the Sunrise Connectivity Su
     - Simple Tutorials for SmartServo (optional)
     - Direct Servo Motion Extension
     - Smart Servo Motion Extension
-    - Fast Robot Interface
+    - Fast Robot Interface (strongly recommended for grl)
 
 	
 Setup Java Driver Software
