@@ -12,7 +12,7 @@
 #include "grl/kuka/KukaDriver.hpp"
 #include "grl/vrep/Vrep.hpp"
 #include "grl/vrep/VrepRobotArmDriver.hpp"
-
+#include <iterator>
 #include "v_repLib.h"
 
 /// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
@@ -109,6 +109,35 @@ public:
                     "IK_Group1_iiwa"            // IKGroupName
                 );
     }
+    
+    // parameters for measured arm
+    static const Params measuredArmParams(){
+        std::vector<std::string> jointHandles;
+        
+        jointHandles.push_back("LBR_iiwa_14_R820_joint1#0"); // Joint1Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint2#0"); // Joint2Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint3#0"); // Joint3Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint4#0"); // Joint4Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint5#0"); // Joint5Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint6#0"); // Joint6Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint7#0"); // Joint7Handle,
+        return std::make_tuple(
+                    jointHandles              , // JointHandles,
+                    "RobotMillTip#0"            , // RobotTipHandle,
+                    "RobotMillTipTarget#0"      , // RobotTargetHandle,
+                    "Robotiiwa#0"               , // RobotTargetBaseHandle,
+                    "tcp://0.0.0.0:30010"     , // LocalZMQAddress
+                    "tcp://172.31.1.147:30010", // RemoteZMQAddress
+                    "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
+                    "30200"                   , // LocalHostKukaKoniUDPPort,
+                    "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
+                    "30200"                   , // RemoteHostKukaKoniUDPPort
+                    "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+                    "FRI"                     , // KukaMonitorMode (options are FRI, JAVA)
+                    "IK_Group1_iiwa#0"            // IKGroupName
+                );
+    }
+
 
 
 
@@ -168,9 +197,7 @@ void run_one(){
   bool isError = getStateFromVrep(); // true if there is an error
   allHandlesSet = !isError;
   /// @todo re-enable simulation feedback based on actual kuka state
-  //updateVrepFromKuka();
-  sendSimulatedJointAnglesToKuka();
-
+  syncVrepAndKuka();
 }
 
 
@@ -199,7 +226,22 @@ void initHandles() {
             std::get<IKGroupName>            (params_)
         )
     );
+    
+    
     vrepRobotArmDriverP_->construct();
+    
+    measuredParams_ = measuredArmParams();
+    vrepMeasuredRobotArmDriverP_ = std::make_shared<VrepRobotArmDriver>
+    (
+        std::make_tuple(
+            std::get<JointNames>             (measuredParams_),
+            std::get<RobotTipName>           (measuredParams_),
+            std::get<RobotTargetName>        (measuredParams_),
+            std::get<RobotTargetBaseName>    (measuredParams_),
+            std::get<IKGroupName>            (measuredParams_)
+        )
+    );
+    vrepMeasuredRobotArmDriverP_->construct();
     /// @todo remove this assumption
 	allHandlesSet  = true;
 }
@@ -212,11 +254,11 @@ void getRealKukaAngles() {
 
 }
 
-void sendSimulatedJointAnglesToKuka(){
+void syncVrepAndKuka(){
     
         if(!allHandlesSet || !m_haveReceivedRealData) return;
     
-/// @todo make this handled by template driver implementations/extensions
+        /// @todo make this handled by template driver implementations/extensions
         kukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
         if(0) kukaDriverP_->set( simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());        
     
@@ -226,9 +268,42 @@ void sendSimulatedJointAnglesToKuka(){
         realJointPosition.clear();
         kukaDriverP_->get(std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
         
-        
         realJointForce.clear();
         kukaDriverP_->get(std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
+    
+        realExternalJointTorque.clear();
+        kukaDriverP_->get(std::back_inserter(realExternalJointTorque), grl::revolute_joint_torque_external_open_chain_state_tag());
+    
+        realExternalForce.clear();
+        kukaDriverP_->get(std::back_inserter(realExternalForce), grl::cartesian_external_force_tag());
+    
+    std::cout << "Measured Torque: ";
+    std::cout << std::setw(6);
+    for (float t:realJointForce) {
+        std::cout << t << " ";
+    }
+    std::cout << '\n';
+    
+    std::cout << "External Torque: ";
+    std::cout << std::setw(6);
+    for (float t:realExternalJointTorque) {
+        std::cout << t << " ";
+    }
+    std::cout << '\n';
+    
+    std::cout << "External Force: ";
+    for (float t:realExternalForce) {
+        std::cout << t << " ";
+    }
+    std::cout << '\n';
+    
+    if(!allHandlesSet || !vrepMeasuredRobotArmDriverP_) return;
+    
+    VrepRobotArmDriver::State measuredArmState;
+    std::get<VrepRobotArmDriver::JointPosition>(measuredArmState) = realJointPosition;
+    std::get<VrepRobotArmDriver::JointForce>(measuredArmState) = realJointForce;
+    
+    vrepMeasuredRobotArmDriverP_->setState(measuredArmState);
     
 }
 
@@ -313,7 +388,6 @@ bool updateVrepFromKuka() {
             
 				//simSetJointTargetVelocity(jointHandle[i],realJointTargetVelocity[i]);  //Sets the intrinsic target velocity of a non-spherical joint. This command makes only sense when the joint mode is: (a) motion mode: the joint's motion handling feature must be enabled (simHandleJoint must be called (is called by default in the main script), and the joint motion properties must be set in the joint settings dialog), (b) torque/force mode: the dynamics functionality and the joint motor have to be enabled (position control should however be disabled)
 			}
-    
             return false;
 }
 
@@ -325,6 +399,7 @@ std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
 std::unique_ptr<std::thread> driver_threadP;
 std::shared_ptr<grl::robot::arm::KukaDriver> kukaDriverP_;
 std::shared_ptr<VrepRobotArmDriver> vrepRobotArmDriverP_;
+std::shared_ptr<VrepRobotArmDriver> vrepMeasuredRobotArmDriverP_;
 //boost::asio::deadline_timer sendToJavaDelay;
 
 /// @todo replace all these simJoint elements with simple VrepRobotArmDriver::State
@@ -341,9 +416,11 @@ std::vector<float> realJointPosition        = { 0, 0, 0, 0, 0, 0, 0 };
 std::vector<float> realJointForce           = { 0, 0, 0, 0, 0, 0, 0 };
 // does not exist yet
 //std::vector<float> realJointTargetVelocity  = { 0, 0, 0, 0, 0, 0, 0 };
-
+std::vector<float> realExternalJointTorque  = { 0, 0, 0, 0, 0, 0, 0};
+std::vector<float> realExternalForce = { 0, 0, 0, 0, 0, 0};
 private:
 Params params_;
+Params measuredParams_;
 /// for use in FRI clientdata mode
 std::shared_ptr<KUKA::FRI::ClientData> friData_;
 };

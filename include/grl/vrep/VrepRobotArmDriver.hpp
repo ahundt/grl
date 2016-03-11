@@ -66,6 +66,7 @@ public:
                 );
     }
     
+    
     /// unique tag type so State never
     /// conflicts with a similar tuple
     struct JointStateTag{};
@@ -77,7 +78,8 @@ public:
         JointLowerPositionLimit,
         JointUpperPositionLimit,
         JointMatrix,
-        JointStateTagIndex
+        JointStateTagIndex,
+        ExternalTorque
     };
     
     
@@ -95,7 +97,8 @@ public:
         JointScalar,            // JointLowerPositionLimit
         JointScalar,            // JointUpperPositionLimit
         TransformationMatrices, // jointTransformation
-        JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
+        JointStateTag,          // JointStateTag unique identifying type so tuple doesn't conflict
+        JointScalar             // externalTorque
     > State;
     
     
@@ -192,26 +195,44 @@ bool setState(State& state) {
 			// then use the functions below to set the simulation state
 			// to match
 
-			/////////////////// assuming given real joint position (angles), forces, target position and target velocity 
-
+			/////////////////// assuming given real joint position (angles), forces, target position and target velocity
+            if(!allHandlesSet) return false;
+            const std::vector<int>& jointHandle = std::get<JointNames>(handleParams_);
+            std::vector<float> realJointPosition = std::get<JointPosition>(state);
+            std::vector<float> realJointForce = std::get<JointForce>(state);
+            std::vector<float> externalJointForce = std::get<ExternalTorque>(state);
 
 			// setting the simulation variables to data from real robot (here they have been assumed given)
 
 			for (int i=0 ; i < 7 ; i++)
 			{
-				//simSetJointPosition(jointHandle[i],realJointPosition[i]); //Sets the intrinsic position of a joint. May have no effect depending on the joint mode
+				simSetJointPosition(jointHandle[i],realJointPosition[i]); //Sets the intrinsic position of a joint. May have no effect depending on the joint mode
             
             
 				//simSetJointTargetPosition(jointHandle[i],realJointTargetPosition[i]);  //Sets the target position of a joint if the joint is in torque/force mode (also make sure that the joint's motor and position control are enabled
             
-				//simSetJointForce(jointHandle[i],realJointForce[i]);  //Sets the maximum force or torque that a joint can exert. This function has no effect when the joint is not dynamically enabled
+				simSetJointForce(jointHandle[i],realJointForce[i]);  //Sets the maximum force or torque that a joint can exert. This function has no effect when the joint is not dynamically enabled
             
             
 				//simSetJointTargetVelocity(jointHandle[i],realJointTargetVelocity[i]);  //Sets the intrinsic target velocity of a non-spherical joint. This command makes only sense when the joint mode is: (a) motion mode: the joint's motion handling feature must be enabled (simHandleJoint must be called (is called by default in the main script), and the joint motion properties must be set in the joint settings dialog), (b) torque/force mode: the dynamics functionality and the joint motor have to be enabled (position control should however be disabled)
 			}
     
+            if (externalHandlesSet) {
+                
+            }
+    
+            else {
+                
+                for (int i=0 ; i < 7 ; i++) {
+                    
+                    //simAddObjectCustomData(jointHandle[i], externalTorqueHandle, externalTorqueBytes, externalTorqueBytes.length);
+                }
+            }
+    
             return true;
 }
+
+
 
 /// @todo deal with !allHandlesSet()
 const std::vector<int>& getJointHandles()
@@ -231,8 +252,10 @@ private:
 
 Params params_;
 VrepHandleParams handleParams_;
+int externalTorqueHandle = 310832412;
 
 volatile bool allHandlesSet = false;
+volatile bool externalHandlesSet = false;
 
 
 
