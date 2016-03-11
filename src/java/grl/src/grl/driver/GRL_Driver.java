@@ -8,6 +8,7 @@ import grl.StartStopSwitchUI;
 import grl.TeachMode;
 import grl.UpdateConfiguration;
 import grl.flatbuffer.ArmState;
+import grl.flatbuffer.CartesianImpedenceControlMode;
 import grl.flatbuffer.MoveArmJointServo;
 
 import java.nio.ByteBuffer;
@@ -27,6 +28,7 @@ import com.kuka.connectivity.motionModel.smartServo.SmartServo;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
+import com.kuka.roboticsAPI.deviceModel.JointLimits;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.CartDOF;
@@ -52,6 +54,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 	private LBR _lbr;
 	private StartStopSwitchUI _startStopUI = null;
 	
+	private FRIConfiguration _friConfiguration = null;
+	private FRISession       _friSession = null;
+	
 	private SmartServo         _smartServoMotion = null;
 	private ISmartServoRuntime _smartServoRuntime = null;
     // create an JointPosition Instance, to play with
@@ -71,6 +76,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 	 *  at runtime so we create one for you.
 	 */
 	private Tool    _flangeAttachment;
+	private JointLimits _jointLimits;
 
 	@Override
 	public void initialize()
@@ -79,6 +85,12 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_processDataManager = new ProcessDataManager(this);
 		_lbrController = (Controller) getContext().getControllers().toArray()[0];
 		_lbr = (LBR) _lbrController.getDevices().toArray()[0];
+		
+
+        FRIConfiguration _friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _processDataManager.get_FRI_KONI_LaptopIPAddress());
+        _friConfiguration.setSendPeriodMilliSec(4);
+
+        FRISession _friSession = new FRISession(_friConfiguration);
 
 		// TODO: fix these, right now they're useless
 		//_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
@@ -87,11 +99,16 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		LoadData _loadData = new LoadData();
 		_loadData.setMass(_processDataManager.getEndEffectorWeight());
+		_loadData.setCenterOfMass(_processDataManager.getEndEffectorX(),
+				_processDataManager.getEndEffectorY(),
+				_processDataManager.getEndEffectorZ());
 		_toolAttachedToLBR = new Tool("Tool", _loadData);
 		_toolAttachedToLBR.attachTo(_lbr.getFlange());
 
 
 		handGuidingMotion = new HandGuidingMotion();
+
+		_jointLimits = _lbr.getJointLimits();
 	}
 
 	@Override
@@ -100,7 +117,6 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		ZMQ.Context context = ZMQ.context(1);
 
-		boolean first_run = true;
 		getLogger().info("GRL_Driver from github.com/ahundt/grl starting...\nZMQ Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
 		ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
 		subscriber.connect(_processDataManager.get_ZMQ_MASTER_URI());
@@ -166,6 +182,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		boolean stop = false;
 		boolean newConfig = false;
+		boolean switchingMode = true;
 
 		// TODO: Let user set mode (teach/joint control from tablet as a backup!)
 		//this.getApplicationData().getProcessData("DefaultMode").
@@ -215,12 +232,16 @@ public class GRL_Driver extends RoboticsAPIApplication
 							continue;
 						}
 
-						if(_previousKUKAiiwaState != null && _previousKUKAiiwaState.armControlState() != null &&
-								_currentKUKAiiwaState.armControlState().stateType() != _previousKUKAiiwaState.armControlState().stateType())
+						// Print out a notice when switching modes
+						if( message_counter == 1 || (_previousKUKAiiwaState != null && _previousKUKAiiwaState.armControlState() != null &&
+								_currentKUKAiiwaState.armControlState().stateType() != _previousKUKAiiwaState.armControlState().stateType()))
 						{
 							getLogger()
 							.info("Switching mode: "
 									+ ArmState.name(_currentKUKAiiwaState.armControlState().stateType()));
+							switchingMode = true;
+						} else {
+							switchingMode = false;
 						}
 
 						if(_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.ShutdownArm){
@@ -256,7 +277,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 								currentMotion.cancel();
 							}
 
-							MoveArmJointServo mas;;
+							MoveArmJointServo mas;
 							if(_currentKUKAiiwaState.armControlState() != null) {
 							 mas = (MoveArmJointServo)_currentKUKAiiwaState.armControlState().state(new MoveArmJointServo());
 							} else {
@@ -265,7 +286,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 							
 							}
 							
-							if(_smartServoRuntime == null || _smartServoMotion == null) {
+							if( _smartServoMotion == null) {
 								// make sure this is up
 								// also make sure this is running
 						        destination = new JointPosition(
@@ -277,12 +298,30 @@ public class GRL_Driver extends RoboticsAPIApplication
 						        _smartServoMotion.setJointVelocityRel(0.2);
 						        _smartServoMotion.setMinimumTrajectoryExecutionTime(20e-3);
 						        _toolAttachedToLBR.getDefaultMotionFrame().moveAsync(_smartServoMotion);
-
-						        _smartServoRuntime = _smartServoMotion.getRuntime();
+						        getLogger().info("Setting up SmartServo");
+						        
 							}
+							
+							if (_smartServoRuntime == null) {
+								getLogger().info("Setting up Smart Servo runtime");
+								try {
+									_smartServoRuntime = _smartServoMotion.getRuntime();
+								} catch (java.lang.IllegalStateException ex) {
+									getLogger().error("Could not retrieve SmartServo runtime!");
+									_smartServoRuntime = null;
+									_smartServoMotion = null;
+									getLogger().error(ex.getMessage());
+								}
+							}
+							
+							
 
 							//if(_currentKUKAiiwaState.armConfiguration().commandInterface() == grl.flatbuffer.KUKAiiwaInterface.SmartServo){
 								grl.flatbuffer.JointState jointState = mas.goal();
+								if(jointState.positionLength()!=destination.getAxisCount()){
+									getLogger().error("Didn't receive correct number of joints! skipping to start of loop...");
+									continue;
+								}
 								//String pos = "pos:";
 								for (int k = 0; k < destination.getAxisCount(); ++k)
 								{
@@ -294,7 +333,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 								//.info(pos);
 								
 								// TODO: we need to make sure this is running, and we need to cancel the current motion
+								try {
 								_smartServoRuntime.setDestination(destination);
+								} catch (java.lang.IllegalStateException ex) {
+									getLogger().error("Could not update smart servo destination! Clearing SmartServo.");
+									_smartServoMotion = null;
+									_smartServoRuntime = null;
+									getLogger().error(ex.getMessage());
+								}
 
 							/*} else if(_currentKUKAiiwaState.armConfiguration().commandInterface()==grl.flatbuffer.KUKAiiwaInterface.FRI){
 
@@ -323,21 +369,26 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 						} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.TeachArm) {
 
-							if(!first_run && (_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null)) {
+							if(message_counter!=1 && (_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null)) {
 								continue;
 							}
-							else if(first_run || _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()) {
+							else if(message_counter==1 || _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()) {
 
 								if (currentMotion != null) {
 									currentMotion.cancel();
 								}
+								
+								if (_smartServoRuntime != null) {
+									_smartServoRuntime.stopMotion();
+									_smartServoMotion = null;
+									_smartServoRuntime = null;
+									getLogger().info("Destroying smart servo!");
+								}
 
 								getLogger().warn("Enabling Teach Mode (grav comp): current = " +
-										_currentKUKAiiwaState.armControlState().stateType());// + ", prev = " +						_previousKUKAiiwaState.armControlState().stateType());
-
-
+										_currentKUKAiiwaState.armControlState().stateType());
+								
 								currentMotion = _toolAttachedToLBR.moveAsync(positionHold(controlMode2, -1, TimeUnit.SECONDS));
-								first_run = false;
 							}
 						} else {
 							System.out.println("Unsupported Mode! stopping");
@@ -346,7 +397,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 					}
 				}
 			}
-		}
+		} // end primary while loop
 
 
 		// done
