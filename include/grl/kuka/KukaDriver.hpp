@@ -10,6 +10,7 @@
 #include <boost/exception/all.hpp>
 #include <boost/config.hpp>
 
+#include <boost/make_shared.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
 
@@ -292,8 +293,26 @@ namespace grl { namespace robot { namespace arm {
     void get(OutputIterator output, grl::revolute_joint_torque_open_chain_state_tag)
     {
        boost::unique_lock<boost::mutex> lock(jt_mutex);
-        boost::copy(armState_.torque,output);
+       boost::copy(armState.torque,output);
+
     }
+    
+    template<typename OutputIterator>
+    void get(OutputIterator output, grl::revolute_joint_torque_external_open_chain_state_tag)
+    {
+        boost::unique_lock<boost::mutex> lock(jt_mutex);
+        boost::copy(armState.externalTorque,output);
+            
+    }
+        
+    template<typename OutputIterator>
+    void get(OutputIterator output, grl::cartesian_external_force_tag)
+    {
+        boost::unique_lock<boost::mutex> lock(jt_mutex);
+        boost::copy(armState.externalForce,output);
+            
+    }
+    
       volatile std::size_t m_haveReceivedRealDataCount = 0;
       volatile std::size_t m_attemptedCommunicationCount = 0;
       volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
