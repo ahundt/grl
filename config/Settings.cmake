@@ -24,7 +24,7 @@
 # @ingroup BasisSettings
 ##############################################################################
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR})
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}  ${CMAKE_CURRENT_PROJECT_DIR}/config)
 
 # Enable C++11
 include(CheckCXXCompilerFlag)
@@ -77,13 +77,14 @@ basis_include_directories(${GRL_FLATBUFFERS_INCLUDE_DIR} )
 
 # workaround so that compilation will work if FindFRI-Client-SDK_Cpp is a module
 # it may also be an external, see config/FindFRI-Client-SDK_Cpp 
-if(MODULE_FRI-Client-SDK_Cpp)
-    set(FRI-Client-SDK_Cpp_LIBRARIES  KukaFRIClient)
+# if(MODULE_FRI-Client-SDK_Cpp)
+#     set(FRI-Client-SDK_Cpp_LIBRARIES  KukaFRIClient)
+#
+#     if(NOT Nanopb_FOUND)
+#         set(Nanopb_LIBRARIES nanopb)
+#     endif()
+# endif()
 
-    if(NOT Nanopb_FOUND)
-        set(Nanopb_LIBRARIES nanopb)
-    endif()
-endif()
 
 
 if(CISSTNETLIB_FOUND)
