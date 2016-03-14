@@ -1,4 +1,16 @@
 # Sets up KUKA Sunrise FRI Cpp SDK with KUKA connectivity suite
+
+# Variables
+# FRI_Client_SDK_Cpp_zip_PATH - Path to folder containing FRI-Client-SDK_Cpp.zip
+#
+# Targets
+# KukaFRIClient     - KukaFRIClient Libraries you should link to to use Kuka FRI APIs
+# nanopb            - nanopb library used to communicate with FRI on Kuka controller
+# friUdpConnection  - UDP components for demo code (not needed by github.com/ahundt/grl)
+#
+# Author: Andrew Hundt <ATHundt@gmail.com>
+
+# Sets up KUKA Sunrise FRI Cpp SDK with KUKA connectivity suite
 message(STATUS "Looking for File Path to FRI-Client-SDK_Cpp.zip KUKA FRI C++ API zip file from sunrise connectivity suite v1.9")
 set(FRI_Client_SDK_Cpp_zip_PATH "${CMAKE_SOURCE_DIR}/data/" CACHE FILEPATH "File Path to FRI-Client-SDK_Cpp.zip KUKA FRI C++ API zip file from sunrise connectivity suite v1.9")
 
