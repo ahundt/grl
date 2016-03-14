@@ -27,6 +27,8 @@ See build and installation instructions given in the [INSTALL](/INSTALL.md) file
 Documentation
 =============
 
+[Documentation Website](https://ahundt.github.io/grl/index.html)
+
 See the software manual for details on the software including a demonstration
 of how to apply the software tools provided by this package.
 
