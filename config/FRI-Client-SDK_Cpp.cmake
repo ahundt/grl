@@ -1,25 +1,25 @@
 # Sets up KUKA Sunrise FRI Cpp SDK with KUKA connectivity suite
 message(STATUS "Looking for File Path to FRI-Client-SDK_Cpp.zip KUKA FRI C++ API zip file from sunrise connectivity suite v1.9")
-set(FRI_Client_SDK_Cpp_zip_PATH "${CMAKE_CURRENT_PROJECT_DIR}/data/FRI-Client-SDK_Cpp.zip" CACHE FILEPATH "File Path to FRI-Client-SDK_Cpp.zip KUKA FRI C++ API zip file from sunrise connectivity suite v1.9")
+set(FRI_Client_SDK_Cpp_zip_PATH "${CMAKE_SOURCE_DIR}/data/" CACHE FILEPATH "File Path to FRI-Client-SDK_Cpp.zip KUKA FRI C++ API zip file from sunrise connectivity suite v1.9")
 
-find_path(FRI_Client_SDK_Cpp_zip RI-Client-SDK_Cpp.zip HINTS ${CMAKE_PROJECT_DIR}/data/ ${CMAKE_CURRENT_PROJECT_DIR}/data/ FRI_Client_SDK_Cpp_zip_PATH)
+find_path(FRI_Client_SDK_Cpp_zip_FILEPATH FRI-Client-SDK_Cpp.zip HINTS ${FRI_Client_SDK_Cpp_zip_PATH} ${CMAKE_PROJECT_DIR}/data/ ${CMAKE_CURRENT_PROJECT_DIR}/data/ )
 
-if(EXISTS "${FRI_Client_SDK_Cpp_zip}")
-    message(STATUS "Found FRI-Client-SDK_Cpp.zip in ${FRI_Client_SDK_Cpp_zip}/FRI-Client-SDK_Cpp.zip")
+if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}")
+    message(STATUS "Found FRI-Client-SDK_Cpp.zip in ${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip")
     # directory where fri code will be extracted
     set(FRI_DIR ${CMAKE_BINARY_DIR}/FRI_Client_SDK_Cpp)
     set(FRI_SRC_DIR ${FRI_DIR}/src)
     
-    message(STATUS "extracting FRI C++ SDK... ${FRI_Client_SDK_Cpp_zip} to ${CMAKE_CURRENT_BINARY_DIR}")
+    message(STATUS "extracting FRI C++ SDK... ${FRI_Client_SDK_Cpp_zip_FILEPATH} to ${CMAKE_CURRENT_BINARY_DIR}")
     file(MAKE_DIRECTORY ${FRI_DIR})
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${FRI_Client_SDK_Cpp_zip}/FRI-Client-SDK_Cpp.zip
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip
       WORKING_DIRECTORY ${FRI_DIR}
       RESULT_VARIABLE rv)
 
     if(NOT rv EQUAL 0)
       message(STATUS "extracting... FRI-Client-SDK_Cpp [error clean up]")
       file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/FRI-Client-SDK_Cpp")
-      message(FATAL_ERROR "error: extract of '${FRI_Client_SDK_Cpp_zip}' failed")
+      message(FATAL_ERROR "error: extract of '${FRI_Client_SDK_Cpp_zip_FILEPATH}' failed")
     else()
 
         if(Nanopb_FOUND)
