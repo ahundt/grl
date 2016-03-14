@@ -8,4 +8,4 @@ Getting Help
 ============
 
 Please report any issues with grl, including bug reports, feature requests,
-or support questions, on `GitHub <https://github.com/schuhschuh/grl/issues>`__.
+or support questions, on `GitHub <https://github.com/ahundt/grl/issues>`__.
