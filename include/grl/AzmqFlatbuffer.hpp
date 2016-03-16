@@ -72,13 +72,32 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
   {
     auto self(shared_from_this());
 	
-	
+#if 0
 	 socket_.async_send(boost::asio::buffer(fbbP->GetBufferPointer(), fbbP->GetSize()), [this,self,fbbP] (boost::system::error_code const& ec, size_t bytes_transferred) {
 			if(ec) std::cout << "SendFlatBuffer error! todo: figure out how to handle this\n";
 			std::lock_guard<std::mutex> lock(this->unusedFlatBufferBuildersLock_);
 			fbbP->Clear();
 			this->unusedFlatBufferBuilders_.push_back(fbbP);
         });
+#endif
+
+   //Without +/-:
+
+    //char test[] = {1,1,1,1,0};
+
+    size_t res = socket_.send(boost::asio::buffer(fbbP->GetBufferPointer(), fbbP->GetSize()));
+
+    //size_t res = socket_.send(boost::asio::buffer(test, 5));
+     if (not res) {
+        std::cerr << "empty\n";
+     }
+
+     /*, [this,self,fbbP] (boost::system::error_code const& ec, size_t bytes_transferred) {
+            if(ec) std::cout << "SendFlatBuffer error! todo: figure out how to handle this\n";
+            std::lock_guard<std::mutex> lock(this->unusedFlatBufferBuildersLock_);
+            fbbP->Clear();
+            this->unusedFlatBufferBuilders_.push_back(fbbP);
+        });*/
 		
   }
   
