@@ -33,6 +33,11 @@ if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}")
       file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/FRI-Client-SDK_Cpp")
       message(FATAL_ERROR "error: extract of '${FRI_Client_SDK_Cpp_zip_FILEPATH}' failed")
     else()
+        
+        # TODO: DONT HARDCODE DEFINITIONS, Use cmake CHECK_INCLUDE_FILE() to dynamically configure compile definitions
+        set(FRI_Client_SDK_Cpp_COMPILE_DEFINITIONS
+			"-DHAVE_SOCKLEN_T;-DPB_SYSTEM_HEADER=\"pb_syshdr.h\";-DPB_FIELD_16BIT;-DHAVE_STDINT_H;-DHAVE_STDDEF_H;-DHAVE_STDBOOL_H;-DHAVE_STDLIB_H;-DHAVE_STRING_H"
+        )
 
         if(Nanopb_FOUND)
             basis_include_directories(${NANOPB_INCLUDE_DIRS})
@@ -44,9 +49,9 @@ if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}")
                 ${FRI_SRC_DIR}/nanopb-0.2.8/pb_encode.c
                 ${FRI_SRC_DIR}/nanopb-0.2.8/pb_decode.c
             )
-            target_compile_definitions(nanopb INTERFACE PB_FIELD_32BIT)
+            target_compile_definitions(nanopb PUBLIC ${FRI_Client_SDK_Cpp_COMPILE_DEFINITIONS})
             
-            target_include_directories(nanopb INTERFACE $<BUILD_INTERFACE:${FRI_SRC_DIR}/nanopb-0.2.8/>)
+            target_include_directories(nanopb PUBLIC $<BUILD_INTERFACE:${FRI_SRC_DIR}/nanopb-0.2.8/>)
     
             set(Nanopb_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIRS/nanopb-0.2.8})
             set(Nanopb_LIBRARIES nanopb)
@@ -70,7 +75,9 @@ if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}")
                     ${FRI_SRC_DIR}/client_trafo/friTransformationContainer.cpp
                 )
 
-        target_include_directories(KukaFRIClient INTERFACE 
+        target_compile_definitions(KukaFRIClient PUBLIC ${FRI_Client_SDK_Cpp_COMPILE_DEFINITIONS})
+
+        target_include_directories(KukaFRIClient PUBLIC 
             $<BUILD_INTERFACE:${FRI_DIR}/include>
             $<BUILD_INTERFACE:${FRI_SRC_DIR}/base>
             $<BUILD_INTERFACE:${FRI_SRC_DIR}/client_lbr>
@@ -82,10 +89,12 @@ if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}")
 
         if(CMAKE_SYSTEM_NAME EQUAL "LINUX")
             basis_add_library(friUdpConnection ${FRI_SRC_DIR}/connection/friUdpConnection.cpp)
+            target_compile_definitions(friUdpConnection ${FRI_Client_SDK_Cpp_COMPILE_DEFINITIONS})
         endif()
         
         basis_target_link_libraries(KukaFRIClient nanopb)
     endif()
+    set(FRI_Client_SDK_Cpp_FOUND TRUE PARENT_SCOPE)
 else()
     message(AUTHOR_WARNING "FRI-Client-SDK_Cpp.zip NOT_FOUND, skipping...")
 endif()

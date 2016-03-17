@@ -30,11 +30,27 @@
 #       BASIS will automatically add a library build target for these modules.
 
 find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log chrono)
-if(FRI-Client-SDK_Cpp_FOUND AND AZMQ_FOUND  AND Boost_FOUND AND Boost_LOG_FOUND AND Boost_CHRONO_FOUND)
-basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
-basis_add_library(v_repExtKukaLBRiiwa SHARED v_repExtKukaLBRiiwa.cpp )
-basis_target_link_libraries(v_repExtKukaLBRiiwa ${Boost_LIBRARIES}  ${Boost_LIBRARIES}  ${Boost_LOG_LIBRARY} ${Boost_REGEX_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ZeroMQ_LIBRARIES} ${FRI-Client-SDK_Cpp_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Nanopb_LIBRARIES} v_repLib)
-basis_add_dependencies(v_repExtKukaLBRiiwa grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
+if(TARGET KukaFRIClient AND AZMQ_FOUND  AND Boost_FOUND AND Boost_LOG_FOUND AND Boost_CHRONO_FOUND)
+    basis_include_directories(
+        ${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS}
+        ${FRI-Client-SDK_Cpp_INCLUDE_DIRS}
+        ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include
+    )
+    basis_add_library(v_repExtKukaLBRiiwa SHARED v_repExtKukaLBRiiwa.cpp )
+    basis_target_link_libraries(v_repExtKukaLBRiiwa 
+        ${Boost_LIBRARIES}  
+        ${Boost_LIBRARIES}  
+        ${Boost_LOG_LIBRARY} 
+        ${Boost_REGEX_LIBRARY} 
+        ${Boost_CHRONO_LIBRARY} 
+        ${ZeroMQ_LIBRARIES} 
+        ${CMAKE_THREAD_LIBS_INIT} 
+        ${Nanopb_LIBRARIES}
+        v_repLib
+        KukaFRIClient
+    )
+    basis_add_dependencies(v_repExtKukaLBRiiwa grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
+    target_compile_definitions(v_repExtKukaLBRiiwa PUBLIC $<TARGET_PROPERTY:KukaFRIClient,INTERFACE_COMPILE_DEFINITIONS>)
 endif()
 
 
