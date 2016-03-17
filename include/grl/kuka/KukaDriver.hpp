@@ -74,7 +74,7 @@ namespace grl { namespace robot { namespace arm {
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
             "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
-            "JAVA"                      // KukaMonitorMode (options are FRI, JAVA)
+            "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
             );
       }
 
@@ -90,7 +90,7 @@ namespace grl { namespace robot { namespace arm {
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
-      void construct(Params params) {
+      void construct(Params params ) {
 
         params_ = params;
         // keep driver threads from exiting immediately after creation, because they have work to do!

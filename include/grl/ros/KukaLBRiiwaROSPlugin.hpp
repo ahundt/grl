@@ -86,7 +86,7 @@ namespace grl {
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
             "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
-            "JAVA"                       // KukaMonitorMode (options are FRI, JAVA)
+            "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
             );
       }
 
