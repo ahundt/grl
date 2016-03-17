@@ -151,11 +151,29 @@ namespace grl {
       /// @warning getting the ik group is optional, so it does not throw an exception
       void construct(Params params) {
 
+          current_js_.name.resize(7);
+          current_js_.name[0] = "iiwa_joint_1";
+          current_js_.name[1] = "iiwa_joint_2";
+          current_js_.name[2] = "iiwa_joint_3";
+          current_js_.name[3] = "iiwa_joint_4";
+          current_js_.name[4] = "iiwa_joint_5";
+          current_js_.name[5] = "iiwa_joint_6";
+          current_js_.name[6] = "iiwa_joint_7";
+          current_js_.velocity.resize(7);
+          current_js_.velocity[0] = 0.;
+          current_js_.velocity[1] = 0.;
+          current_js_.velocity[2] = 0.;
+          current_js_.velocity[3] = 0.;
+          current_js_.velocity[4] = 0.;
+          current_js_.velocity[5] = 0.;
+          current_js_.velocity[6] = 0.;
+
           ::ros::NodeHandle nh;
-          js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_state",100);
+          js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states",100);
           jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_callback, this);
           jt_pt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectoryPoint>("joint_traj_pt_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_pt_callback, this);
           mode_sub_ = nh.subscribe<std_msgs::String>("interaction_mode", 1000, &KukaLBRiiwaROSPlugin::mode_callback, this);
+          ROS_INFO("done creating subscribers");
           //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
 
         params_ = params;
@@ -326,9 +344,11 @@ namespace grl {
            current_js_.effort.clear();
            KukaDriverP_->get(std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
 
-           current_js_.velocity.clear();
+           //current_js_.velocity.clear();
            //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
 
+           current_js_.header.stamp = ::ros::Time::now();
+           current_js_.header.seq += 1;
            js_pub_.publish(current_js_);
          }
 
