@@ -9,9 +9,18 @@ People
 Software Development
 --------------------
 
+Primary Developer
+~~~~~~~~~~~~~~~~~
+
 - Andrew Hundt
+
+
+Contributing Developers
+~~~~~~~~~~~~~~~~~~~~~~~
+
 - Alex Strickland
 - Shahriar Sefati
+- Chris Paxton
 
 
 .. Contributors

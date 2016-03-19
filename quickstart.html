@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     'b2015.03.31 (05:42 UTC)',
+        VERSION:     'v3.0 (3278da2)',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -74,30 +74,30 @@ Note, however, that grl can also be installed and used on Windows.</p>
 <div class="highlight-bash"><div class="highlight"><pre>mkdir -p ~/local/src
 <span class="nb">cd</span> ~/local/src
 git clone https://github.com/ahundt/grl.git
-<span class="nb">cd </span>grl
+<span class="nb">cd</span> grl
 </pre></div>
 </div>
-<p>or <a class="reference internal" href="download.html"><em>Download</em></a> a pre-packaged <tt class="docutils literal"><span class="pre">.tar.gz</span></tt> of the latest release and unpack it using the following command:</p>
+<p>or <a class="reference internal" href="download.html"><em>Download</em></a> a pre-packaged <code class="docutils literal"><span class="pre">.tar.gz</span></code> of the latest release and unpack it using the following command:</p>
 <div class="highlight-bash"><div class="highlight"><pre>mkdir -p ~/local/src
 <span class="nb">cd</span> ~/local/src
-tar xzf /path/to/downloaded/grl-<span class="nv">$version</span>.tar.gz
-<span class="nb">cd </span>grl-<span class="nv">$version</span>
+tar xzf /path/to/downloaded/grl-$version.tar.gz
+<span class="nb">cd</span> grl-$version
 </pre></div>
 </div>
 </div>
 <div class="section" id="configure-the-build">
 <h4>Configure the build<a class="headerlink" href="#configure-the-build" title="Permalink to this headline">¶</a></h4>
 <p>Configure the build system using CMake 2.8.4 or a more recent version:</p>
-<div class="highlight-bash"><div class="highlight"><pre>mkdir build <span class="o">&amp;&amp;</span> <span class="nb">cd </span>build
+<div class="highlight-bash"><div class="highlight"><pre>mkdir build <span class="o">&amp;&amp;</span> <span class="nb">cd</span> build
 ccmake ..
 </pre></div>
 </div>
 <ul class="simple">
-<li>Press <tt class="docutils literal"><span class="pre">c</span></tt> to configure the project.</li>
-<li>Change <tt class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></tt> to <tt class="docutils literal"><span class="pre">~/local</span></tt>.</li>
-<li>Set option <tt class="docutils literal"><span class="pre">BUILD_EXAMPLE</span></tt> to <tt class="docutils literal"><span class="pre">ON</span></tt>.</li>
-<li>Make sure that option <tt class="docutils literal"><span class="pre">BUILD_PROJECT_TOOL</span></tt> is enabled.</li>
-<li>Press <tt class="docutils literal"><span class="pre">g</span></tt> to generate the Makefiles.</li>
+<li>Press <code class="docutils literal"><span class="pre">c</span></code> to configure the project.</li>
+<li>Change <code class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></code> to <code class="docutils literal"><span class="pre">~/local</span></code>.</li>
+<li>Set option <code class="docutils literal"><span class="pre">BUILD_EXAMPLE</span></code> to <code class="docutils literal"><span class="pre">ON</span></code>.</li>
+<li>Make sure that option <code class="docutils literal"><span class="pre">BUILD_PROJECT_TOOL</span></code> is enabled.</li>
+<li>Press <code class="docutils literal"><span class="pre">g</span></code> to generate the Makefiles.</li>
 </ul>
 </div>
 <div class="section" id="build-and-install-grl">
@@ -111,12 +111,12 @@ ccmake ..
 </pre></div>
 </div>
 <p>As a result, CMake copies the built files into the installation tree as specified by the
-<tt class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></tt> variable.</p>
+<code class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></code> variable.</p>
 </div>
 <div class="section" id="set-up-the-environment">
 <span id="gettingstartedenvironment"></span><h4>Set up the environment<a class="headerlink" href="#set-up-the-environment" title="Permalink to this headline">¶</a></h4>
 <p>For the following tutorial steps, set up your environment as follows. In general, however,
-only the change of the <tt class="docutils literal"><span class="pre">PATH</span></tt> environment variable is recommended. The other environment
+only the change of the <code class="docutils literal"><span class="pre">PATH</span></code> environment variable is recommended. The other environment
 variables are only needed for the tutorial sessions.</p>
 <p>Using the C or TC shell (csh/tcsh):</p>
 <div class="highlight-bash"><div class="highlight"><pre>setenv PATH <span class="s2">&quot;~/local/bin:</span><span class="si">${</span><span class="nv">PATH</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -124,8 +124,8 @@ setenv grl_EXAMPLE_DIR <span class="s2">&quot;~/local/share/grl/example&quot;</s
 </pre></div>
 </div>
 <p>Using the Bourne Again SHell (bash):</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;~/local/bin:</span><span class="si">${</span><span class="nv">PATH</span><span class="si">}</span><span class="s2"> &quot;</span>
-<span class="nb">export </span><span class="nv">grl_EXAMPLE_DIR</span><span class="o">=</span><span class="s2">&quot;~/local/share/basis/example&quot;</span>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;~/local/bin:</span><span class="si">${</span><span class="nv">PATH</span><span class="si">}</span><span class="s2"> &quot;</span>
+<span class="nb">export</span> <span class="nv">grl_EXAMPLE_DIR</span><span class="o">=</span><span class="s2">&quot;~/local/share/basis/example&quot;</span>
 </pre></div>
 </div>
 </div>
@@ -149,7 +149,7 @@ id est laborum.</p>
 <div class="section" id="next-steps">
 <h3>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this headline">¶</a></h3>
 <p>Congratulations! You just finished your first grl tutorial.</p>
-<p>Now check out the <a class="reference internal" href="#tutorials"><em>Advanced Tutorials</em></a> for more details regarding each of the
+<p>Now check out the <a class="reference internal" href="#tutorials"><span>Advanced Tutorials</span></a> for more details regarding each of the
 above steps and in-depth information about the used commands if you like,
 or move on to the various <a class="reference internal" href="howto.html"><em>How-to Guides</em></a>.</p>
 </div>
@@ -158,7 +158,7 @@ or move on to the various <a class="reference internal" href="howto.html"><em>Ho
 <span id="tutorials"></span><h2>Advanced Tutorials<a class="headerlink" href="#advanced-tutorials" title="Permalink to this headline">¶</a></h2>
 <p>The advanced tutorial slides give a more in-depth introduction to grl and
 its use including in-depth information and references to further documentation. For a less
-comprehensive tutorial-like introduction, please refer to the <a class="reference internal" href="#firststeps"><em>First Steps</em></a> above.</p>
+comprehensive tutorial-like introduction, please refer to the <a class="reference internal" href="#firststeps"><span>First Steps</span></a> above.</p>
 </div>
 </div>
 
@@ -213,8 +213,8 @@ comprehensive tutorial-like introduction, please refer to the <a class="referenc
       <div class="clearer"></div>
     </div>
   <div class="footer">
-    &copy; Copyright 2015 Andrew Hundt, Alex Strickland, Shahriar Sefati.
-    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    &copy; Copyright 2015-2016 Andrew Hundt et al.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.4.
   </div>
   
   </body>

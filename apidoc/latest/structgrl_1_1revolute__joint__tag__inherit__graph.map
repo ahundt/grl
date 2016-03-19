@@ -1,0 +1,9 @@
+<map id="grl::revolute_joint_tag" name="grl::revolute_joint_tag">
+<area shape="rect" id="node3" href="$structgrl_1_1revolute__joint__angle__interpolated__open__chain__state__tag.html" title="{grl::revolute_joint\l_angle_interpolated\l_open_chain_state_tag\n||}" alt="" coords="5,248,165,348"/>
+<area shape="rect" id="node4" href="$structgrl_1_1revolute__joint__angle__open__chain__command__tag.html" title="{grl::revolute_joint\l_angle_open_chain_command_tag\n||}" alt="" coords="189,255,419,341"/>
+<area shape="rect" id="node5" href="$structgrl_1_1revolute__joint__angle__open__chain__state__tag.html" title="{grl::revolute_joint\l_angle_open_chain_state_tag\n||}" alt="" coords="443,255,643,341"/>
+<area shape="rect" id="node6" href="$structgrl_1_1revolute__joint__torque__external__open__chain__state__tag.html" title="{grl::revolute_joint\l_torque_external_open\l_chain_state_tag\n||}" alt="" coords="666,248,825,348"/>
+<area shape="rect" id="node7" href="$structgrl_1_1revolute__joint__torque__open__chain__command__tag.html" title="{grl::revolute_joint\l_torque_open_chain_command_tag\n||}" alt="" coords="848,255,1083,341"/>
+<area shape="rect" id="node8" href="$structgrl_1_1revolute__joint__torque__open__chain__state__tag.html" title="{grl::revolute_joint\l_torque_open_chain_state_tag\n||}" alt="" coords="1107,255,1312,341"/>
+<area shape="rect" id="node2" href="$structgrl_1_1joint__tag.html" title="{grl::joint_tag\n||}" alt="" coords="597,5,691,79"/>
+</map>

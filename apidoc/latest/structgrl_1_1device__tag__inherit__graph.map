@@ -1,0 +1,4 @@
+<map id="grl::device_tag" name="grl::device_tag">
+<area shape="rect" id="node2" href="$structgrl_1_1device__command__tag.html" title="{grl::device_command_tag\n||}" alt="" coords="5,127,179,200"/>
+<area shape="rect" id="node3" href="$structgrl_1_1device__state__tag.html" title="{grl::device_state_tag\n||}" alt="" coords="203,127,347,200"/>
+</map>

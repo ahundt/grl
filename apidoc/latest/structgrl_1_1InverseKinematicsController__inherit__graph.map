@@ -1,0 +1,3 @@
+<map id="grl::InverseKinematicsController" name="grl::InverseKinematicsController">
+<area shape="rect" id="node3" href="$classgrl_1_1VrepInverseKinematicsController.html" title="{grl::VrepInverseKinematics\lController\n|+ currentArmState_\l+ ikGroupHandle_\l+ jointHandles_\l+ positionLimitsName\l+ velocityLimitsName\l+ VrepRobotArmDriverP_\l|+ construct()\l+ run_one()\l+ solve()\l+ updateKinematics()\l+ VrepInverseKinematicsController()\l+ defaultParams()\l}" alt="" coords="5,355,241,575"/>
+</map>

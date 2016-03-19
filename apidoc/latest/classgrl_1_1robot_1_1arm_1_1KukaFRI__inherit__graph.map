@@ -1,0 +1,4 @@
+<map id="grl::robot::arm::KukaFRI" name="grl::robot::arm::KukaFRI">
+<area shape="rect" id="node2" href="$classgrl_1_1robot_1_1arm_1_1KukaFRIClientDataDriver.html" title="Simple low level driver to communicate over the Kuka iiwa FRI interface using KUKA::FRI::ClientData s..." alt="" coords="5,247,204,427"/>
+<area shape="rect" id="node3" href="$classgrl_1_1robot_1_1arm_1_1KukaFRIdriver.html" title="Primary Kuka FRI driver, only talks over realtime network FRI KONI ethernet port. ..." alt="" coords="229,167,456,507"/>
+</map>

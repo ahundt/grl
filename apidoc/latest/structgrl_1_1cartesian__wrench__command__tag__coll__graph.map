@@ -1,0 +1,4 @@
+<map id="grl::cartesian_wrench_command_tag" name="grl::cartesian_wrench_command_tag">
+<area shape="rect" id="node3" href="$structgrl_1_1state__tag.html" title="{grl::state_tag\n||}" alt="" coords="112,5,210,79"/>
+<area shape="rect" id="node4" href="$structgrl_1_1command__tag.html" title="{grl::command_tag\n||}" alt="" coords="234,5,362,79"/>
+</map>

@@ -1,0 +1,12 @@
+<map id="grl::state_tag" name="grl::state_tag">
+<area shape="rect" id="node2" href="$structgrl_1_1cartesian__wrench__command__tag.html" title="{grl::cartesian_wrench\l_command_tag\n||}" alt="" coords="138,127,286,213"/>
+<area shape="rect" id="node3" href="$structgrl_1_1device__command__tag.html" title="{grl::device_command_tag\n||}" alt="" coords="310,133,484,207"/>
+<area shape="rect" id="node4" href="$structgrl_1_1device__state__tag.html" title="{grl::device_state_tag\n||}" alt="" coords="508,133,652,207"/>
+<area shape="rect" id="node5" href="$structgrl_1_1open__chain__tag.html" title="{grl::open_chain_tag\n||}" alt="" coords="676,133,815,207"/>
+<area shape="rect" id="node11" href="$structgrl_1_1revolute__joint__torque__open__chain__state__tag.html" title="{grl::revolute_joint\l_torque_open_chain_state_tag\n||}" alt="" coords="1107,268,1312,355"/>
+<area shape="rect" id="node6" href="$structgrl_1_1revolute__joint__angle__interpolated__open__chain__state__tag.html" title="{grl::revolute_joint\l_angle_interpolated\l_open_chain_state_tag\n||}" alt="" coords="5,261,165,361"/>
+<area shape="rect" id="node7" href="$structgrl_1_1revolute__joint__angle__open__chain__command__tag.html" title="{grl::revolute_joint\l_angle_open_chain_command_tag\n||}" alt="" coords="189,268,419,355"/>
+<area shape="rect" id="node8" href="$structgrl_1_1revolute__joint__angle__open__chain__state__tag.html" title="{grl::revolute_joint\l_angle_open_chain_state_tag\n||}" alt="" coords="443,268,643,355"/>
+<area shape="rect" id="node9" href="$structgrl_1_1revolute__joint__torque__external__open__chain__state__tag.html" title="{grl::revolute_joint\l_torque_external_open\l_chain_state_tag\n||}" alt="" coords="666,261,825,361"/>
+<area shape="rect" id="node10" href="$structgrl_1_1revolute__joint__torque__open__chain__command__tag.html" title="{grl::revolute_joint\l_torque_open_chain_command_tag\n||}" alt="" coords="848,268,1083,355"/>
+</map>

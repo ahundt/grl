@@ -11,7 +11,9 @@ It is important that you use the Sunrise Connectivity Suite, as this contains
 the high performance tools needed for this system. If your installer doesn't
 have the word "Connectivity" in it ask KUKA to send you the Sunrise Connectivity suite.
 
- - Install Sunrise Connectivity Suite using the SunriseWorkbench-1.5.1.8Connectivity-Setup.exe installer
+ - Install Sunrise Connectivity Suite using the SunriseWorkbench 1.9 Connectivity Setup installer
+
+.. note:: While KUKA installation steps are done on windows, grl itself runs on OS X and Linux Ubuntu 14.04
 
 
 Connect the KUKA Controller
@@ -87,7 +89,36 @@ If some of the modules are missing, you may not have the Sunrise Connectivity Su
     - Simple Tutorials for SmartServo (optional)
     - Direct Servo Motion Extension
     - Smart Servo Motion Extension
-    - Fast Robot Interface
+    - Fast Robot Interface (required for grl)
+
+Your Software should have each box checked and things should look similar to the image below.
+
+.. image:: FRI-Client-SDK_Cpp.png
+    :width: 1024px
+    :align: center
+    :height: 768px
+    :alt: FRI-Client-SDK_Cpp
+
+Go to the "Installation" tab visible in the image 
+and click the button to install the software to the robot.
+
+After installation is complete the FRI-Client-SDK_Cpp.zip 
+file should be present as visible in the image above. 
+Copy the FRI-Client-SDK_Cpp.zip file into the folder ${GRL_DIR}/data/ 
+on your linux or OS X box with GRL for running the drivers.
+
+Follow the C++ build steps specified in `Configure the build`_
+
+If that doesn't work, set the path to FRI-Client-SDK_Cpp.zip in CMake as follows:
+
+.. code-block:: bash
+
+    cd path/to/grl
+    mkdir build
+    cd build
+    cmake .. -DFRI_Client_SDK_Cpp_zip_PATH="path/to/FRI-Client-SDK_Cpp.zip_folder"
+    make
+
 
 	
 Setup Java Driver Software
@@ -97,7 +128,7 @@ Copy the folders in
 
 .. code-block:: bash
 
-    ${ROBONE_DIR}/src/java/grl/
+    ${GRL_DIR}/src/java/grl/
  
 into the directory where your Sunrise Project is located.
 
@@ -162,3 +193,7 @@ Your application should be running.
 
 - The red square button pauses
 - The picture of a page with an X kills the application.
+
+
+
+
