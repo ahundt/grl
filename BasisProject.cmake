@@ -83,7 +83,7 @@ basis_project (
   # --------------------------------------------------------------------------
   # meta-data
   NAME             "grl"
-  VERSION          "0.0.0"
+  VERSION          "3.0.0"
   AUTHORS          "Andrew Hundt"
                    #<author>
   DESCRIPTION      "Generic Robotics Library - Robotics software and drivers aiming to be implemented using generic programming"
