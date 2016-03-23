@@ -95,7 +95,7 @@ basis_project (
   DIVISION_NAME    #<division-name>
   DIVISION_LOGO    #<division-logo>
   DIVISION_WEBSITE "http://www.github.com/ahundt/grl"
-  COPYRIGHT        "2015 Andrew Hundt, Alex Strickland, Shahriar Sefati"
+  COPYRIGHT        "2015-2016 Andrew Hundt et al"
   LICENSE          "BSD license, See COPYING file for license information."
   CONTACT          "Andrew Hundt <ATHundt@gmail.com>"
   TEMPLATE         "basis/1.1"

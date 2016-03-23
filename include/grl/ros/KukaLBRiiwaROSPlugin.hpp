@@ -86,10 +86,25 @@ namespace grl {
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
             "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
-            "JAVA"                       // KukaMonitorMode (options are FRI, JAVA)
+            "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
             );
       }
 
+      Params& loadRosParams(Params& params) {
+            ::ros::NodeHandle nh_tilde("~");
+            
+            nh_tilde.getParam("RobotName",std::get<RobotName>(params));
+            nh_tilde.getParam("LocalZMQAddress",std::get<LocalZMQAddress>(params));
+            nh_tilde.getParam("RemoteZMQAddress",std::get<RemoteZMQAddress>(params));
+            nh_tilde.getParam("LocalHostKukaKoniUDPAddress",std::get<LocalHostKukaKoniUDPAddress>(params));
+            nh_tilde.getParam("LocalHostKukaKoniUDPPort",std::get<LocalHostKukaKoniUDPPort>(params));
+            nh_tilde.getParam("RemoteHostKukaKoniUDPAddress",std::get<RemoteHostKukaKoniUDPAddress>(params));
+            nh_tilde.getParam("RemoteHostKukaKoniUDPPort",std::get<RemoteHostKukaKoniUDPPort>(params));
+            nh_tilde.getParam("KukaCommandMode",std::get<KukaCommandMode>(params));
+            nh_tilde.getParam("KukaMonitorMode",std::get<KukaMonitorMode>(params));
+            
+          return params;
+      }
 
       /// unique tag type so State never
       /// conflicts with a similar tuple
@@ -120,13 +135,14 @@ namespace grl {
         JointScalar,            // JointLowerPositionLimit
         JointScalar,            // JointUpperPositionLimit
         TransformationMatrices, // jointTransformation
-        JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
+        robot::arm::KukaJAVAdriver::JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
           > State;
 
 
       KukaLBRiiwaROSPlugin(Params params = defaultParams())
-        : params_(params), nh_()
+        : params_(params), nh_("")
       {
+        loadRosParams(params_);
       }
 
       void construct(){ construct(params_);}
@@ -135,11 +151,29 @@ namespace grl {
       /// @warning getting the ik group is optional, so it does not throw an exception
       void construct(Params params) {
 
+          current_js_.name.resize(7);
+          current_js_.name[0] = "iiwa_joint_1";
+          current_js_.name[1] = "iiwa_joint_2";
+          current_js_.name[2] = "iiwa_joint_3";
+          current_js_.name[3] = "iiwa_joint_4";
+          current_js_.name[4] = "iiwa_joint_5";
+          current_js_.name[5] = "iiwa_joint_6";
+          current_js_.name[6] = "iiwa_joint_7";
+          current_js_.velocity.resize(7);
+          current_js_.velocity[0] = 0.;
+          current_js_.velocity[1] = 0.;
+          current_js_.velocity[2] = 0.;
+          current_js_.velocity[3] = 0.;
+          current_js_.velocity[4] = 0.;
+          current_js_.velocity[5] = 0.;
+          current_js_.velocity[6] = 0.;
+
           ::ros::NodeHandle nh;
-          js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_state",100);
+          js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states",100);
           jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_callback, this);
           jt_pt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectoryPoint>("joint_traj_pt_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_pt_callback, this);
           mode_sub_ = nh.subscribe<std_msgs::String>("interaction_mode", 1000, &KukaLBRiiwaROSPlugin::mode_callback, this);
+          ROS_INFO("done creating subscribers");
           //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
 
         params_ = params;
@@ -152,10 +186,10 @@ namespace grl {
                 //device_driver_io_service,
                 params
                 // std::make_tuple(
-                //     std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
-                //     std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
-                //     std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
-                //     std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
+                //     std::string(std::std::get<LocalHostKukaKoniUDPAddress >        (params)),
+                //     std::string(std::std::get<LocalHostKukaKoniUDPPort    >        (params)),
+                //     std::string(std::std::get<RemoteHostKukaKoniUDPAddress>        (params)),
+                //     std::string(std::std::get<RemoteHostKukaKoniUDPPort   >        (params)),
                 //     grl::robot::arm::KukaFRIClientDataDriver::run_automatically
                 //     )
                 )
@@ -310,9 +344,11 @@ namespace grl {
            current_js_.effort.clear();
            KukaDriverP_->get(std::back_inserter(current_js_.effort), grl::revolute_joint_torque_open_chain_state_tag());
 
-           current_js_.velocity.clear();
+           //current_js_.velocity.clear();
            //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
 
+           current_js_.header.stamp = ::ros::Time::now();
+           current_js_.header.seq += 1;
            js_pub_.publish(current_js_);
          }
 
