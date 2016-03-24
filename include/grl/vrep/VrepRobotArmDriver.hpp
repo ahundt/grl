@@ -211,7 +211,7 @@ bool setState(State& state) {
             
 				//simSetJointTargetPosition(jointHandle[i],realJointTargetPosition[i]);  //Sets the target position of a joint if the joint is in torque/force mode (also make sure that the joint's motor and position control are enabled
             
-				simSetJointForce(jointHandle[i],realJointForce[i]);  //Sets the maximum force or torque that a joint can exert. This function has no effect when the joint is not dynamically enabled
+				//simSetJointForce(jointHandle[i],realJointForce[i]);  //Sets the maximum force or torque that a joint can exert. This function has no effect when the joint is not dynamically enabled
             
             
 				//simSetJointTargetVelocity(jointHandle[i],realJointTargetVelocity[i]);  //Sets the intrinsic target velocity of a non-spherical joint. This command makes only sense when the joint mode is: (a) motion mode: the joint's motion handling feature must be enabled (simHandleJoint must be called (is called by default in the main script), and the joint motion properties must be set in the joint settings dialog), (b) torque/force mode: the dynamics functionality and the joint motor have to be enabled (position control should however be disabled)
@@ -224,8 +224,11 @@ bool setState(State& state) {
             else {
                 
                 for (int i=0 ; i < 7 ; i++) {
+                    std::string torqueString = boost::lexical_cast<std::string>(externalJointForce[i]);
+                    char * externalTorqueBytes = new char[torqueString.length()+1];
+                    std::strcpy(externalTorqueBytes, torqueString.c_str());
                     
-                    //simAddObjectCustomData(jointHandle[i], externalTorqueHandle, externalTorqueBytes, externalTorqueBytes.length);
+                    simAddObjectCustomData(jointHandle[i], externalTorqueHandle, externalTorqueBytes, torqueString.length()+1);
                 }
             }
     
