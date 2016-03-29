@@ -128,8 +128,6 @@ public:
                     "Robotiiwa#0"               , // RobotTargetBaseHandle,
                     "tcp://0.0.0.0:30010"     , // LocalZMQAddress
                     "tcp://172.31.1.147:30010", // RemoteZMQAddress
-                    "tcp://0.0.0.0:30011"     , // LocalConfigZMQAddress
-                    "tcp://172.31.1.147:30011", // RemoteConfigZMQAddress
                     "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -185,6 +183,7 @@ void construct(Params params){
         
   ));
   kukaDriverP_->construct();
+    std::cout << "KUKA COMMAND MODE: " << std::get<KukaCommandMode>(params) << '\n';
   initHandles();
 }
 
@@ -260,7 +259,7 @@ void syncVrepAndKuka(){
         /// @todo make this handled by template driver implementations/extensions
         kukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
         if(0) kukaDriverP_->set( simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());        
-    
+
         kukaDriverP_->run_one();
         // We have the real kuka state read from the device now
         // update real joint angle data
@@ -298,11 +297,14 @@ void syncVrepAndKuka(){
     
     if(!allHandlesSet || !vrepMeasuredRobotArmDriverP_) return;
     
-    VrepRobotArmDriver::State measuredArmState;
-    std::get<VrepRobotArmDriver::JointPosition>(measuredArmState) = realJointPosition;
-    std::get<VrepRobotArmDriver::JointForce>(measuredArmState) = realJointForce;
-    
-    vrepMeasuredRobotArmDriverP_->setState(measuredArmState);
+    if (realJointPosition.size() > 0) { // if there are valid measured states
+        VrepRobotArmDriver::State measuredArmState;
+        std::get<VrepRobotArmDriver::JointPosition>(measuredArmState) = realJointPosition;
+        std::get<VrepRobotArmDriver::JointForce>(measuredArmState) = realJointForce;
+        std::get<VrepRobotArmDriver::ExternalTorque>(measuredArmState) = realExternalJointTorque;
+        
+        vrepMeasuredRobotArmDriverP_->setState(measuredArmState);
+    }
     
 }
 
