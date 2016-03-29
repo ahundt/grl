@@ -183,7 +183,8 @@ void construct(Params params){
         
   ));
   kukaDriverP_->construct();
-    std::cout << "KUKA COMMAND MODE: " << std::get<KukaCommandMode>(params) << '\n';
+  kukaDriverP_->set(flatbuffer::ArmState::ArmState_MoveArmJointServo);
+    std::cout << "KUKA COMMAND MODE: " << std::get<KukaCommandMode>(params) << "\n";
   initHandles();
 }
 
