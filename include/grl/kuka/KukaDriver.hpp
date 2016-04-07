@@ -80,7 +80,7 @@ namespace grl { namespace robot { namespace arm {
 
 
       KukaDriver(Params params = defaultParams())
-        : params_(params)
+        : params_(params), debug(false)
       {}
 
       void construct(){ construct(params_);}
@@ -168,14 +168,16 @@ namespace grl { namespace robot { namespace arm {
 
         if(JAVAdriverP_.get() != nullptr)
         {
-          std::cout << "commandedpos:" << armState_.commandedPosition;
+          if (debug) {
+            std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
+          }
+
           /////////////////////////////////////////
           // Client sends to server asynchronously!
           if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
           {
             JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
           }
-          std::cout << "commandedpos:" << armState_.commandedPosition;
         
           haveNewData = JAVAdriverP_->run_one();
         
@@ -183,7 +185,6 @@ namespace grl { namespace robot { namespace arm {
           {
             JAVAdriverP_->get(armState_);
           }
-          std::cout << "commandedpos:" << armState_.commandedPosition;
         }
         
         if(FRIdriverP_.get() != nullptr)
@@ -335,6 +336,8 @@ namespace grl { namespace robot { namespace arm {
       boost::shared_ptr<KukaJAVAdriver> JAVAdriverP_;
 
       Params params_;
+
+      bool debug;
 
     };    
 
