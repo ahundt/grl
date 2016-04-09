@@ -140,7 +140,7 @@ namespace grl {
 
 
       KukaLBRiiwaROSPlugin(Params params = defaultParams())
-        : params_(params), nh_("")
+        : params_(params), nh_(""), debug(false)
       {
         loadRosParams(params_);
       }
@@ -245,13 +245,19 @@ namespace grl {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
 
         //std::cerr << "Mode command = " << msg->data.c_str() << "\n";
-        ROS_INFO("Receiving mode command: %s", msg->data.c_str());
+        if (debug) {
+          ROS_INFO("Receiving mode command: %s", msg->data.c_str());
+        }
 
         unsigned int ArmStateLen = 9;
         for (unsigned int i = 0; i < ArmStateLen; ++i) {
           if (msg->data == grl::flatbuffer::EnumNamesArmState()[i]) {
-             std::string info = std::string("Valid grl::flatbuffer::ArmState command received for ") + grl::flatbuffer::EnumNamesArmState()[i] + std::string(" mode");
-             ROS_INFO(info.c_str());
+
+            if (debug) {
+              std::string info = std::string("Valid grl::flatbuffer::ArmState command received for ") + grl::flatbuffer::EnumNamesArmState()[i] + std::string(" mode");
+              ROS_INFO(info.c_str());
+            }
+
             interaction_mode = static_cast<grl::flatbuffer::ArmState>(i);
             KukaDriverP_->set(interaction_mode);
             break;
@@ -309,13 +315,17 @@ namespace grl {
 
          switch(interaction_mode) {
            case grl::flatbuffer::ArmState_MoveArmJointServo:
-             ROS_INFO("Arm is in SERVO Mode");
+             if (debug) {
+              ROS_INFO("Arm is in SERVO Mode");
+             }
              if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
              /// @todo setting joint position clears joint force in KukaDriverP_. Is this right or should position and force be configurable simultaeously?
              //if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
              break;
            case grl::flatbuffer::ArmState_TeachArm:
-             ROS_INFO("Arm is in TEACH mode");
+             if (debug) {
+              ROS_INFO("Arm is in TEACH mode");
+             }
              break;
              break;
            case grl::flatbuffer::ArmState_StopArm:
@@ -323,12 +333,14 @@ namespace grl {
            case grl::flatbuffer::ArmState_PauseArm:
              break;
            case grl::flatbuffer::ArmState_StartArm:
-             ROS_INFO("Sending start!");
+             if (debug) {
+              ROS_INFO("Sending start!");
+             }
              break;
            case grl::flatbuffer::ArmState_ShutdownArm:
              break;
            default:
-             ROS_INFO("TODO: KukaLBRiiwaROSPlugin Unsupported mode!");
+             ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode!");
          }
 
          haveNewData = KukaDriverP_->run_one();
@@ -375,6 +387,7 @@ namespace grl {
 
     private:
 
+      bool debug;
       grl::flatbuffer::ArmState interaction_mode;
 
       boost::mutex jt_mutex;
