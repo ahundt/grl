@@ -2,6 +2,7 @@ package grl.driver;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
+import static com.kuka.roboticsAPI.motionModel.MMCMotions.handGuiding;
 
 import grl.ProcessDataManager;
 import grl.StartStopSwitchUI;
@@ -24,6 +25,7 @@ import com.kuka.connectivity.motionModel.smartServo.ISmartServoRuntime;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
+import com.kuka.roboticsAPI.deviceModel.JointLimits;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.CartDOF;
@@ -52,6 +54,7 @@ public class GRL_HandGuiding extends RoboticsAPIApplication
 	private UpdateConfiguration _updateConfiguration;
 	private IRecovery _pausedApplicationRecovery = null;
 	private PhysicalObject _toolAttachedToLBR;
+	private HandGuidingMotion _handGuidingMotion;
 	/**
 	 *  gripper or other physically attached object
 	 *  see "Template Data" panel in top right pane
@@ -59,6 +62,9 @@ public class GRL_HandGuiding extends RoboticsAPIApplication
 	 *  at runtime so we create one for you.
 	 */
 	private Tool    _flangeAttachment;
+	private JointLimits _jointLimits;
+	private double[] _maxAllowedJointLimits;
+	private double[] _minAllowedJointLimits;
 
 	@Override
 	public void initialize()
@@ -69,7 +75,7 @@ public class GRL_HandGuiding extends RoboticsAPIApplication
 		_lbr = (LBR) _lbrController.getDevices().toArray()[0];
 
 		// TODO: fix these, right now they're useless
-		//_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
+		_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
 		//_updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
 		_pausedApplicationRecovery = getRecovery();
 
@@ -80,6 +86,21 @@ public class GRL_HandGuiding extends RoboticsAPIApplication
 				_processDataManager.getEndEffectorZ());
 		_toolAttachedToLBR = new Tool("Tool", _loadData);
 		_toolAttachedToLBR.attachTo(_lbr.getFlange());
+		
+
+
+		_jointLimits = _lbr.getJointLimits();
+		
+		
+		// used when setting limits in _HandGuidingMotion
+		_maxAllowedJointLimits = _jointLimits.getMaxJointPosition().get();
+		_minAllowedJointLimits = _jointLimits.getMinJointPosition().get();
+		for (int i = 0; i < _lbr.getJointCount(); i++) {
+			_maxAllowedJointLimits[i] -= 0.1;
+			_minAllowedJointLimits[i] += 0.1;
+		}
+
+
 	}
 
 	@Override
@@ -103,16 +124,29 @@ public class GRL_HandGuiding extends RoboticsAPIApplication
 		// TODO: Let user set mode (teach/joint control from tablet as a backup!)
 		//this.getApplicationData().getProcessData("DefaultMode").
 
+		while(!stop){
+			getLogger().warn("Enabling Teach Mode (grav comp)");
 
-		getLogger().warn("Enabling Teach Mode (grav comp)");
+			JointImpedanceControlMode controlMode2 = new JointImpedanceControlMode(7); // TODO!!
+			controlMode2.setStiffnessForAllJoints(0.1);
+			controlMode2.setDampingForAllJoints(0.7);
+			//_lbr.moveAsync(positionHold(controlMode2, -1, TimeUnit.SECONDS));
 
-		JointImpedanceControlMode controlMode2 = new JointImpedanceControlMode(7); // TODO!!
-		controlMode2.setStiffnessForAllJoints(0.1);
-		controlMode2.setDampingForAllJoints(0.7);
-		//_lbr.moveAsync(positionHold(controlMode2, -1, TimeUnit.SECONDS));
+			//HandGuidingMotion handGuidingMotion = new HandGuidingMotion();
+			//_toolAttachedToLBR.move(handGuidingMotion);
+			
 
-		HandGuidingMotion handGuidingMotion = new HandGuidingMotion();
-		_toolAttachedToLBR.move(handGuidingMotion);
+			// see kuka documentation 1.9 for details
+			_handGuidingMotion = handGuiding()
+			   .setAxisLimitsMax(_maxAllowedJointLimits)
+			   .setAxisLimitsMin(_minAllowedJointLimits)
+			.setAxisLimitsEnabled(true, true, true, true, true, true, true)
+			.setAxisLimitViolationFreezesAll(false).setPermanentPullOnViolationAtStart(true);
+			currentMotion = _toolAttachedToLBR.move(_handGuidingMotion);//move(_handGuidingMotion);
+			getLogger().info("Done hand guiding");
+			
+		}
+
 	}
 
 
