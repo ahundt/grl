@@ -497,8 +497,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 		} else if(controlMode==grl.flatbuffer.EControlMode.CART_IMP_CONTROL_MODE){
 
 			// TODO: make motion control mode configurable over zmq interface
+			/// @note setMaxCartesianVelocity STOPS THE ROBOT ABOVE THAT VELOCITY RATHER THAN CAPPING THE VELOCITY
 	        CartesianImpedanceControlMode cicm = new CartesianImpedanceControlMode()
-										.setMaxCartesianVelocity(1000, 1000, 1000, 1, 1, 1)
+										.setMaxCartesianVelocity(1000, 1000, 1000, 6.3, 6.3, 6.3)
 										.setMaxPathDeviation(1000, 1000, 1000, 5, 5, 5)
 										.setNullSpaceDamping(0.5)
 										.setNullSpaceStiffness(2)
