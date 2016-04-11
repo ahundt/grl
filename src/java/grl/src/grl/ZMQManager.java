@@ -11,6 +11,7 @@ import com.kuka.task.ITaskLogger;
  * 
  * @author Andrew Hundt
  *
+ * @todo support sending data back to the controller PC
  */
 public class ZMQManager {
 	ZMQ.Context context = null;
@@ -28,6 +29,7 @@ public class ZMQManager {
 	byte [] data = null;
 	ByteBuffer bb = null;
 	boolean stop;
+
 	long startTime;
 	long elapsedTime;
 	long lastMessageStartTime;
@@ -40,8 +42,13 @@ public class ZMQManager {
 		this.logger = errorlogger;
 		_ZMQ_MASTER_URI = ZMQ_MASTER_URI;
 	}
-	
-	public void connect(){
+
+	/**
+	 * Blocks until a connection is established or stop() is called.
+	 * 
+	 * @return error code: false on success, otherwise failure (or told to stop)
+	 */
+	public boolean connect(){
 
 		logger.info("Waiting for ZMQ connection initialization...");
 		subscriber = context.socket(ZMQ.DEALER);
@@ -49,19 +56,25 @@ public class ZMQManager {
 		subscriber.setRcvHWM(100000);
 		startTime = System.currentTimeMillis();
 		elapsedTime = 0L;
-		while(statesLength<1 && _currentKUKAiiwaStates == null){
+		grl.flatbuffer.KUKAiiwaStates newKUKAiiwaStates = null;
+		int newStatesLength = 0; 
+		
+		while(newStatesLength<1 && newKUKAiiwaStates == null){
 			if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
 				bb = ByteBuffer.wrap(data);
 
-				_currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb);
-				statesLength = _currentKUKAiiwaStates.statesLength();
+				newKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb);
+				newStatesLength = newKUKAiiwaStates.statesLength();
 			}
 
 			if (stop) {
 				logger.info("Stopping program.");
-				return;
+				return true; // asked to exit
 			}
 		}
+		
+		_currentKUKAiiwaStates = newKUKAiiwaStates;
+		statesLength = newStatesLength;
 
 		logger.info("States initialized...");
 		
@@ -70,23 +83,29 @@ public class ZMQManager {
 		lastMessageElapsedTime = System.currentTimeMillis() - lastMessageStartTime;
 		elapsedTime = 0L;
 
+		return false; // no error
 	}
-	
-	public void reconnect(){
+
+	/**
+	 * Blocks until a connection is re-established or stop() is called.
+	 * 
+	 * @return error code: false on success, otherwise failure (or told to stop)
+	 */
+	public boolean reconnect(){
 		logger.info("Disconnecting...");
 		subscriber.disconnect(_ZMQ_MASTER_URI);
 		subscriber.close();
-		this.connect();
+		return this.connect();
 	}
 	
 	public grl.flatbuffer.KUKAiiwaState waitForNextMessage()
 	{
 		boolean haveNextMessage = false;
 		while(!stop && !haveNextMessage) {
-			// TODO: Allow updates via zmq and tablet
+			
 			elapsedTime = System.currentTimeMillis() - startTime;
-
 			lastMessageElapsedTime = System.currentTimeMillis() - lastMessageStartTime;
+			
 			if(lastMessageElapsedTime > lastMessageTimeoutMilliseconds)
 			{
 
@@ -107,8 +126,6 @@ public class ZMQManager {
 	
 				_currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, _currentKUKAiiwaStates);
 	
-				// TODO: this loop needs to be initialized in the right order
-				// and account for runtime changes on tablet and ZMQ, then sync them
 				if(_currentKUKAiiwaStates.statesLength()>0) {
 					// initialize the fist state
 					grl.flatbuffer.KUKAiiwaState tmp = _currentKUKAiiwaStates.states(0);
@@ -147,11 +164,25 @@ public class ZMQManager {
 		return _previousKUKAiiwaState;
 	}
 
+	
+	
+	public boolean isStop() {
+		return stop;
+	}
+
+	public void setStop(boolean stop) {
+		if(stop)
+		{
+			// done
+			subscriber.close();
+			context.term();
+			this.stop = stop;
+			
+		}
+	}
+	
 	public void stop(){
-		stop = true;
-		// done
-		subscriber.close();
-		context.term();
+		setStop(true);
 	}
 	
 }

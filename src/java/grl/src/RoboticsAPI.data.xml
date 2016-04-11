@@ -18,7 +18,7 @@
         <processData dataType="java.lang.String" defaultValue="11311" displayName="Laptop ROS_MASTER_URI Port" id="Laptop_ROS_MASTER_URI_Port" unit="IP4 Port" value="11311"/>
         <processData dataType="java.lang.String" defaultValue="192.170.10.100" displayName="Laptop KONI FRI IPv4" id="Laptop_KONI_FRI_IP" unit="IP4 Address" value="192.170.10.100"/>
         <processData dataType="java.lang.String" defaultValue="192.170.10.2" displayName="Robot KONI FRI IPv4" id="Robot_KONI_FRI_IP" unit="IP4 Address" value="192.170.10.2"/>
-        <processData comment="Arm will Move with SmartServo at X% of system abilities. DANGER: HIGH NUMBERS ARE EXTREMELY FAST" dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Servo Velocity Relative (DANGEROUS)" id="JointVelRel" max="1.0" min="0.01" unit="0-1" value="0.3"/>
+        <processData comment="Arm will Move with SmartServo at X% of system abilities. DANGER: HIGH NUMBERS ARE EXTREMELY FAST. max can be increased to 1.0 in RoboticsAPI.data.xml" dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Servo Velocity Relative (DANGEROUS)" id="JointVelRel" max="0.5" min="0.01" unit="0-1" value="0.3"/>
         <processData comment="Arm will Accelerate with SmartServo at X% of system abilities. DANGER: HIGH NUMBERS ARE EXTREMELY FAST" dataType="java.lang.Double" defaultValue="0.2" displayName="Joint Servo Acceleration Relative (DANGEROUS)" id="JointAccelRel" max="1.0" min="0.01" unit="0-1" value="0.3"/>
         <processData dataType="java.lang.Double" defaultValue="200" displayName="Joint Stiffness SmartServo" id="JointImpedenceStiffness" max="10000.0" min="0.0" unit="Nm/rad" value="50.0"/>
         <processData dataType="java.lang.Double" defaultValue="0.7" displayName="Joint Damping SmartServo" id="JointImpedenceDamping" max="1.0" min="0.0" unit="0-1" value="0.3"/>
@@ -28,9 +28,9 @@
         <processData dataType="java.lang.Double" defaultValue="0.7" displayName="Cart Damping SmartServo Alpha" id="CartesianImpedenceDampingA" max="1.0" min="0.0" unit="0-1" value="0.3"/>
         <processData dataType="java.lang.Double" defaultValue="0.7" displayName="Cart Damping SmartServo Beta" id="CartesianImpedenceDampingB" max="1.0" min="0.0" unit="0-1" value="0.3"/>
         <processData dataType="java.lang.Double" defaultValue="0.7" displayName="Cart Damping SmartServo Gamma" id="CartesianImpedenceDampingC" max="1.0" min="0.0" unit="0-1" value="0.3"/>
-        <processData dataType="java.lang.Double" defaultValue="1000" displayName="Cart Stiffness SmartServo X" id="CartesianImpedenceStiffnessX" max="5000.0" min="0.0" unit="Nm" value="1000"/>
-        <processData dataType="java.lang.Double" defaultValue="1000" displayName="Cart Stiffness SmartServo Y" id="CartesianImpedenceStiffnessY" max="5000.0" min="0.0" unit="Nm" value="1000"/>
-        <processData dataType="java.lang.Double" defaultValue="1000" displayName="Cart Stiffness SmartServo Z" id="CartesianImpedenceStiffnessZ" max="5000.0" min="0.0" unit="Nm" value="1000"/>
+        <processData dataType="java.lang.Double" defaultValue="1000" displayName="Cart Stiffness SmartServo X" id="CartesianImpedenceStiffnessX" max="5000.0" min="0.0" unit="Nm" value="500"/>
+        <processData dataType="java.lang.Double" defaultValue="1000" displayName="Cart Stiffness SmartServo Y" id="CartesianImpedenceStiffnessY" max="5000.0" min="0.0" unit="Nm" value="500"/>
+        <processData dataType="java.lang.Double" defaultValue="1000" displayName="Cart Stiffness SmartServo Z" id="CartesianImpedenceStiffnessZ" max="5000.0" min="0.0" unit="Nm" value="500"/>
         <processData dataType="java.lang.Double" defaultValue="200" displayName="Cart Stiffness SmartServo Alpha" id="CartesianImpedenceStiffnessA" max="300.0" min="0.0" unit="Nm/rad" value="200"/>
         <processData dataType="java.lang.Double" defaultValue="200" displayName="Cart Stiffness SmartServo Beta" id="CartesianImpedenceStiffnessB" max="300.0" min="0.0" unit="Nm/rad" value="200"/>
         <processData dataType="java.lang.Double" defaultValue="200" displayName="Cart Stiffness SmartServo Gamma" id="CartesianImpedenceStiffnessC" max="300.0" min="0.0" unit="Nm/rad" value="200"/>

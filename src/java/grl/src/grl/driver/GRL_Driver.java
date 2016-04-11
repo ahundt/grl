@@ -5,7 +5,6 @@ import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 import grl.ProcessDataManager;
 import grl.StartStopSwitchUI;
-import grl.TeachMode;
 import grl.UpdateConfiguration;
 import grl.ZMQManager;
 import grl.flatbuffer.ArmState;
@@ -14,11 +13,8 @@ import grl.flatbuffer.KUKAiiwaInterface;
 import grl.flatbuffer.MoveArmJointServo;
 import grl.flatbuffer.MoveArmTrajectory;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import org.zeromq.ZMQ;
 
 import com.google.flatbuffers.Table;
 import com.kuka.connectivity.fastRobotInterface.FRIConfiguration;
@@ -106,9 +102,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
         _friSession = new FRISession(_friConfiguration);
 
-		// TODO: fix these, right now they're useless
 		_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
-		//_updateConfiguration = new UpdateConfiguration(_lbr,_flangeAttachment);
 		_pausedApplicationRecovery = getRecovery();
 
 		LoadData _loadData = new LoadData();
@@ -143,16 +137,15 @@ public class GRL_Driver extends RoboticsAPIApplication
 	public void run()
 	{
 
-
 		getLogger().info("GRL_Driver from github.com/ahundt/grl starting...\nZMQ Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
-
 
 		// connect to the controlling application via ZeroMQ
 		ZMQManager zmq = new ZMQManager(_processDataManager.get_ZMQ_MASTER_URI(),getLogger());
-		zmq.connect();
+		
+		// if stop is ever set to true the program stops running and exits
+		boolean stop = zmq.connect();
 		IMotionContainer currentMotion = null;
 
-		boolean stop = false;
 		boolean newConfig = false;
 		boolean switchingMode = true;
 
