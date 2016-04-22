@@ -120,6 +120,7 @@ public class ZMQManager {
 			
 			
 			if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
+				/// TODO: BUG! noMessageCounter is always set to 0 here and only incremented below, so it will only ever be 0 or 1
 				noMessageCounter = 0;
 				message_counter+=1;
 				bb = ByteBuffer.wrap(data);
@@ -148,6 +149,8 @@ public class ZMQManager {
 					
 					haveNextMessage=true;
 					lastMessageStartTime = System.currentTimeMillis();
+				} else {
+					logger.error("got a ZMQ message but it isn't a valid message, this is an unexpected state that shouldn't occur. please debug me.");
 				}
 			}
 			
