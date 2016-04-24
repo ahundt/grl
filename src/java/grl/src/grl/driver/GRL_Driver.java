@@ -5,6 +5,7 @@ import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 import grl.ProcessDataManager;
 import grl.StartStopSwitchUI;
+import grl.TeachMode;
 import grl.UpdateConfiguration;
 import grl.ZMQManager;
 import grl.flatbuffer.ArmState;
@@ -87,7 +88,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 	private double[] _maxAllowedJointLimits;
 	private double[] _minAllowedJointLimits;
 	private JointImpedanceControlMode _teachControlMode;
+	private TeachMode _teachModeRunnable = null;
+	private Thread _teachModeThread = null;
 
+	private boolean _canServo = true;
+	// when we receive a message
+	int message_counter = 0;
+	int message_counter_since_last_mode_change = 0;
+	
 	@Override
 	public void initialize()
 	{
@@ -129,7 +137,15 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_teachControlMode = new JointImpedanceControlMode(_lbr.getJointCount())
 								.setStiffnessForAllJoints(0.1)
 								.setDampingForAllJoints(0.7);
-		
+	
+
+		_teachModeRunnable = new TeachMode(
+				_flangeAttachment,
+				_maxAllowedJointLimits,
+				_minAllowedJointLimits);
+		_teachModeRunnable.setLogger(getLogger());
+		_teachModeThread = new Thread(_teachModeRunnable);
+		_teachModeThread.start();
 	}
 	
 
@@ -152,8 +168,6 @@ public class GRL_Driver extends RoboticsAPIApplication
 		// TODO: Let user set mode (teach/joint control from tablet as a backup!)
 		//this.getApplicationData().getProcessData("DefaultMode").
 		
-		// when we receive a message
-		int message_counter = 0;
 		
 		// TODO: add a message that we send to the driver with data log strings
 		while (!stop && !_startStopUI.is_stopped()) {
@@ -169,7 +183,10 @@ public class GRL_Driver extends RoboticsAPIApplication
 				.info("Switching mode: "
 						+ ArmState.name(_currentKUKAiiwaState.armControlState().stateType()));
 				switchingMode = true;
+				message_counter_since_last_mode_change  = 0;
 			} else {
+
+				message_counter_since_last_mode_change++;
 				switchingMode = false;
 			}
 
@@ -179,6 +196,58 @@ public class GRL_Driver extends RoboticsAPIApplication
 				getLogger()
 				.info("ShutdownArm command received, stopping GRL_Driver...");
 				stop = true;
+			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.TeachArm) {
+				///////////////////////////////////////////////
+				///////////////////////////////////////////////
+				// Teach mode
+				///////////////////////////////////////////////
+				///////////////////////////////////////////////
+
+				if(message_counter!=1 && (_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null)) {
+					continue;
+				}
+				else if(message_counter==1  
+						|| _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()
+						|| (currentMotion != null && currentMotion.isFinished()) ) {
+					// Teach mode, changing from some other mode
+
+					if (currentMotion != null) {
+						if(!currentMotion.isFinished()) {
+							currentMotion.cancel();
+						} else {
+							getLogger().info("Hand Guiding Motion has finished!");
+						}
+					}
+					
+					if (_smartServoRuntime != null) {
+						_smartServoRuntime.stopMotion();
+						_smartServoMotion = null;
+						_smartServoRuntime = null;
+						getLogger().info("Ending smart servo!");
+					}
+
+
+					getLogger().warn("Enabling Teach Mode with gravity compensation. mode id code = " +
+							_currentKUKAiiwaState.armControlState().stateType());
+
+					// trying to use kuka's provided handguidingmotion but it isn't working now.
+					// using an if statement to default to old behavior.
+					boolean useHandGuidingMotion = true;
+					
+					if(useHandGuidingMotion)
+					{
+						
+						_teachModeRunnable.enable();
+							
+						getLogger().warn("Started teach thread!");
+					}
+					else
+					{
+						currentMotion = _flangeAttachment.moveAsync(positionHold(_teachControlMode, -1, TimeUnit.SECONDS));
+					}
+				}
+				
+				//_toolAttachedToLBR.
 			}
 			else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmTrajectory) {
 				///////////////////////////////////////////////
@@ -194,6 +263,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				{
 					currentMotion.cancel();
 				}
+				if(!cancelTeachMode()) continue;
 
 
 				MoveArmTrajectory mat;
@@ -231,6 +301,12 @@ public class GRL_Driver extends RoboticsAPIApplication
 				if (currentMotion != null) {
 					currentMotion.cancel();
 				}
+				if(!cancelTeachMode()) continue;
+				
+				//if (!_canServo) {
+				//	if(message_counter % 1000 == 0) getLogger().error("Cannot servo until teach move completed!");
+				//	continue;
+				//}
 
 				MoveArmJointServo mas;
 				if(_currentKUKAiiwaState.armControlState() != null) {
@@ -308,16 +384,16 @@ public class GRL_Driver extends RoboticsAPIApplication
 				
 				grl.flatbuffer.JointState jointState = mas.goal();
 				if(jointState.positionLength()!=destination.getAxisCount()){
-					getLogger().error("Didn't receive correct number of joints! skipping to start of loop...");
+					if(message_counter % 1000 == 0) getLogger().error("Didn't receive correct number of joints! skipping to start of loop...");
 					continue;
 					//return;
 				}
-				//String pos = "pos:";
+				String pos = "pos:";
 				for (int k = 0; k < destination.getAxisCount(); ++k)
 				{
 					double position = jointState.position(k);
 					destination.set(k, position);
-					//pos = " " + k + ": " + position;
+				    pos = pos + " " + k + ": " + position;
 				}
 				
 				if(_lbrInterface==grl.flatbuffer.KUKAiiwaInterface.FRI){
@@ -337,6 +413,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 					}
 				} else if(_smartServoRuntime != null )  {
 					try {
+						if(message_counter % 1000 == 0) getLogger().info("Setting Smart Servo Joint destination to " + pos);
 						_smartServoRuntime.setDestination(destination);
 					} catch (java.lang.IllegalStateException ex) {
 						getLogger().error("Could not update smart servo destination! Clearing SmartServo.");
@@ -354,64 +431,23 @@ public class GRL_Driver extends RoboticsAPIApplication
 				if (currentMotion != null) {
 					currentMotion.cancel();
 				}
-				//tm.setActive(false);
-
-			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.TeachArm) {
-				///////////////////////////////////////////////
-				///////////////////////////////////////////////
-				// Teach mode
-				///////////////////////////////////////////////
-				///////////////////////////////////////////////
-
-				if(message_counter!=1 && (_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null)) {
-					continue;
-				}
-				else if(message_counter==1  
-						|| _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()
-						|| (currentMotion != null && currentMotion.isFinished()) ) {
-					// Teach mode, changing from some other mode
-
-					if (currentMotion != null) {
-						if(!currentMotion.isFinished()) {
-						 currentMotion.cancel();
-						} else {
-							
-							getLogger().info("Hand Guiding Motion has finished!");
-						}
-					}
-					
-					if (_smartServoRuntime != null) {
-						_smartServoRuntime.stopMotion();
-						_smartServoMotion = null;
-						_smartServoRuntime = null;
-						getLogger().info("Ending smart servo!");
-					}
-
-					getLogger().warn("Enabling Teach Mode with gravity compensation. mode id code = " +
-							_currentKUKAiiwaState.armControlState().stateType());
-
-					// trying to use kuka's provided handguidingmotion but it isn't working now.
-					// using an if statement to default to old behavior.
-					boolean useHandGuidingMotion = true;
-					
-					if(useHandGuidingMotion)
-					{
-						// see kuka documentation 1.9 for details
-						_handGuidingMotion = handGuiding()
-						   .setAxisLimitsMax(_maxAllowedJointLimits)
-						   .setAxisLimitsMin(_minAllowedJointLimits)
-						.setAxisLimitsEnabled(true, true, true, true, true, true, true)
-						.setAxisLimitViolationFreezesAll(false).setPermanentPullOnViolationAtStart(true);
-						currentMotion = _flangeAttachment.moveAsync(_handGuidingMotion);//move(_handGuidingMotion);
-						//getLogger().info("Done hand guiding");
-					}
-					else
-					{
-						currentMotion = _flangeAttachment.moveAsync(positionHold(_teachControlMode, -1, TimeUnit.SECONDS));
-					}
-				}
+				if(!cancelTeachMode()) continue;
 				
-				//_toolAttachedToLBR.
+				//tm.setActive(false);
+			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.PauseArm) {
+				if (_smartServoRuntime != null) {
+					_smartServoRuntime.stopMotion();
+				}
+				if (currentMotion != null) {
+					currentMotion.cancel();
+				}
+				if(!cancelTeachMode()) continue;
+				
+				PositionControlMode controlMode = new PositionControlMode();
+				if(message_counter_since_last_mode_change < 2 || message_counter_since_last_mode_change % 100 == 0){
+					_lbr.move(positionHold(controlMode,10,TimeUnit.MILLISECONDS));
+				}
+
 			} else {
 				System.out.println("Unsupported Mode! stopping");
 				stop = true;
@@ -421,6 +457,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		// done
 		zmq.stop();
+		_teachModeRunnable.stop();
 		if (_updateConfiguration!=null && _updateConfiguration.get_FRISession() != null) {
 			_updateConfiguration.get_FRISession().close();
 		}
@@ -429,6 +466,26 @@ public class GRL_Driver extends RoboticsAPIApplication
 		.info("ZMQ connection closed.\nExiting...\nThanks for using the\nGRL_Driver from github.com/ahundt/grl\nGoodbye!");
 		//System.exit(1);
 	}
+
+	/**
+	 * 
+	 * @return true if teach mode completed successfully; false if we are waiting on a user to press a physical button
+	 */
+	private boolean cancelTeachMode() {
+		if (_teachModeThread != null) {
+			//getLogger().warn("Cancelling teach mode...");
+			_canServo = _teachModeRunnable.cancel();
+
+			if(!_teachModeRunnable.isEnableEnded() && 
+				_currentKUKAiiwaState.armControlState().stateType() != grl.flatbuffer.ArmState.TeachArm){
+				
+				if(message_counter % 30 == 0) getLogger().warn("Can't Exit Teach Mode Yet,\n Did You Press The Hand Guiding Button?");
+				return false;
+			}
+		}
+		return true;
+	}
+
 
 	/**
 	 * Initialize the appropriate control mode based on passed parameters
