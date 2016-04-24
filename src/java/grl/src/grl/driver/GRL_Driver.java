@@ -95,6 +95,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 	// when we receive a message
 	int message_counter = 0;
 	int message_counter_since_last_mode_change = 0;
+    boolean waitingForUserToEndTeachMode = false;
 	
 	@Override
 	public void initialize()
@@ -163,7 +164,6 @@ public class GRL_Driver extends RoboticsAPIApplication
 		IMotionContainer currentMotion = null;
 
 		boolean newConfig = false;
-		boolean switchingMode = true;
 
 		// TODO: Let user set mode (teach/joint control from tablet as a backup!)
 		//this.getApplicationData().getProcessData("DefaultMode").
@@ -182,12 +182,10 @@ public class GRL_Driver extends RoboticsAPIApplication
 				getLogger()
 				.info("Switching mode: "
 						+ ArmState.name(_currentKUKAiiwaState.armControlState().stateType()));
-				switchingMode = true;
 				message_counter_since_last_mode_change  = 0;
 			} else {
 
 				message_counter_since_last_mode_change++;
-				switchingMode = false;
 			}
 
 			if(_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.ShutdownArm){
@@ -199,7 +197,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.TeachArm) {
 				///////////////////////////////////////////////
 				///////////////////////////////////////////////
-				// Teach mode
+				// TeachArm teach mode
 				///////////////////////////////////////////////
 				///////////////////////////////////////////////
 
@@ -219,13 +217,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 						}
 					}
 					
-					if (_smartServoRuntime != null) {
-						_smartServoRuntime.stopMotion();
-						_smartServoMotion = null;
-						_smartServoRuntime = null;
-						getLogger().info("Ending smart servo!");
-					}
-
+                    if(!cancelSmartServo()) continue;
 
 					getLogger().warn("Enabling Teach Mode with gravity compensation. mode id code = " +
 							_currentKUKAiiwaState.armControlState().stateType());
@@ -247,23 +239,22 @@ public class GRL_Driver extends RoboticsAPIApplication
 					}
 				}
 				
-				//_toolAttachedToLBR.
 			}
 			else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmTrajectory) {
 				///////////////////////////////////////////////
 				// MoveArmTrajectory mode (sequence of joint angles)
 				///////////////////////////////////////////////
+                getLogger().error("MoveArmTrajectory Not Yet Implemented!");
 
 				// create an JointPosition Instance, to play with
 				JointPosition destination = new JointPosition(
 						_lbr.getJointCount());
 				// TODO: not fully implemented
-				_smartServoRuntime.stopMotion();
-				if (currentMotion != null) 
-				{
-					currentMotion.cancel();
-				}
+				if(!cancelSmartServo()) continue;
 				if(!cancelTeachMode()) continue;
+                
+				if (currentMotion != null) currentMotion.cancel();
+                
 
 
 				MoveArmTrajectory mat;
@@ -295,35 +286,25 @@ public class GRL_Driver extends RoboticsAPIApplication
 				///////////////////////////////////////////////
 				///////////////////////////////////////////////
 
-				// create an JointPosition Instance, to play with
-				JointPosition destination = new JointPosition(
-						_lbr.getJointCount());
-				if (currentMotion != null) {
-					currentMotion.cancel();
-				}
+				if (currentMotion != null) currentMotion.cancel();
 				if(!cancelTeachMode()) continue;
-				
-				//if (!_canServo) {
-				//	if(message_counter % 1000 == 0) getLogger().error("Cannot servo until teach move completed!");
-				//	continue;
-				//}
+                
+				// create an JointPosition Instance, to play with
+				JointPosition destination = new JointPosition(_lbr.getJointCount());
 
-				MoveArmJointServo mas;
-				if(_currentKUKAiiwaState.armControlState() != null) {
-					mas = (MoveArmJointServo)_currentKUKAiiwaState.armControlState().state(new MoveArmJointServo());
-				} else {
+				if(_currentKUKAiiwaState.armControlState() == null) {
 					getLogger().error("Received null armControlState in servo!");
 					continue;
-					//return;
+                    // return;
 				}
+                
+				MoveArmJointServo mas = (MoveArmJointServo)_currentKUKAiiwaState.armControlState().state(new MoveArmJointServo());
 				
 				// start up the motion if not enabled yet
 				if( _smartServoMotion == null) {
 					// make sure this is up
 					// also make sure this is running
-			        destination = new JointPosition(
-			                _lbr.getCurrentJointPosition());
-			        
+			        destination = new JointPosition(_lbr.getCurrentJointPosition());
 			        _smartServoMotion = new SmartServo(destination);
 
 					// TODO: support more control modes & zmq interface
@@ -413,7 +394,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 					}
 				} else if(_smartServoRuntime != null )  {
 					try {
-						if(message_counter % 1000 == 0) getLogger().info("Setting Smart Servo Joint destination to " + pos);
+						if(message_counter % 1000 == 0) getLogger().info("Sample of new Smart Servo Joint destination " + pos);
 						_smartServoRuntime.setDestination(destination);
 					} catch (java.lang.IllegalStateException ex) {
 						getLogger().error("Could not update smart servo destination! Clearing SmartServo.");
@@ -480,12 +461,33 @@ public class GRL_Driver extends RoboticsAPIApplication
 				_currentKUKAiiwaState.armControlState().stateType() != grl.flatbuffer.ArmState.TeachArm){
 				
 				if(message_counter % 30 == 0) getLogger().warn("Can't Exit Teach Mode Yet,\n Did You Press The Hand Guiding Button?");
+                waitingForUserToEndTeachMode = true;
 				return false;
 			}
+            else if(_teachModeRunnable.isEnableEnded()
+                    && _currentKUKAiiwaState.armControlState().stateType() != grl.flatbuffer.ArmState.TeachArm
+                    && waitingForUserToEndTeachMode)
+            {
+					PositionControlMode controlMode = new PositionControlMode();
+					_lbr.move(positionHold(controlMode,10,TimeUnit.MILLISECONDS));
+                    waitingForUserToEndTeachMode = false;
+            }
 		}
 		return true;
 	}
-
+	/**
+	 * 
+	 * @return true if teach mode completed successfully; false if something went wrong
+	 */
+    private boolean cancelSmartServo(){
+		if (_smartServoRuntime != null) {
+			_smartServoRuntime.stopMotion();
+			_smartServoMotion = null;
+			_smartServoRuntime = null;
+			getLogger().info("Ending smart servo!");
+		}
+        return true;
+    }
 
 	/**
 	 * Initialize the appropriate control mode based on passed parameters
