@@ -22,7 +22,7 @@ public class ZMQManager {
 	int statesLength = 0;
 	long message_counter = 0;
 	long noMessageCounter = 0;
-	long noMessageCounterLimit = 10000;
+	long noMessageCounterLimit = 9999999;
 	private grl.flatbuffer.KUKAiiwaStates _currentKUKAiiwaStates = null;
 	private grl.flatbuffer.KUKAiiwaState _currentKUKAiiwaState = null;
 	private grl.flatbuffer.KUKAiiwaState _previousKUKAiiwaState = null;
@@ -36,9 +36,11 @@ public class ZMQManager {
 	long lastMessageElapsedTime;
 	long lastMessageTimeoutMilliseconds = 1000;
 	
+	int retriesAllowed = 3;
+	int retriesAttempted = 0;
+	
 	public ZMQManager(String ZMQ_MASTER_URI, ITaskLogger errorlogger) {
 		super();
-		this.context = ZMQ.context(1);
 		this.logger = errorlogger;
 		_ZMQ_MASTER_URI = ZMQ_MASTER_URI;
 	}
@@ -51,6 +53,7 @@ public class ZMQManager {
 	public boolean connect(){
 
 		logger.info("Waiting for ZMQ connection initialization...");
+		this.context = ZMQ.context(1);
 		subscriber = context.socket(ZMQ.DEALER);
 		subscriber.connect(_ZMQ_MASTER_URI);
 		subscriber.setRcvHWM(100000);
@@ -93,9 +96,10 @@ public class ZMQManager {
 	 */
 	public boolean reconnect(){
 		logger.info("Disconnecting...");
-		subscriber.disconnect(_ZMQ_MASTER_URI);
-		subscriber.close();
-		return this.connect();
+		//subscriber.disconnect(_ZMQ_MASTER_URI);
+		//subscriber.close();
+		//context.close();
+		return false;// this.connect();
 	}
 	
 	public grl.flatbuffer.KUKAiiwaState waitForNextMessage()
@@ -103,25 +107,34 @@ public class ZMQManager {
 		boolean haveNextMessage = false;
 		while(!stop && !haveNextMessage) {
 			
-			elapsedTime = System.currentTimeMillis() - startTime;
-			lastMessageElapsedTime = System.currentTimeMillis() - lastMessageStartTime;
-			
-			if(lastMessageElapsedTime > lastMessageTimeoutMilliseconds)
-			{
-
-				logger.error("Message rate timeout occurred... ZMQ connection seems dead.\nAttempting to restart connection...\n");				
-				this.reconnect();
-			}
-			else if (noMessageCounter > noMessageCounterLimit)
-			{	
-				logger.error("ZMQ connection seems dead, messages arrive empty.\nAttempting to restart connection...\n");
-				this.reconnect();
-			}
+//			elapsedTime = System.currentTimeMillis() - startTime;
+//			lastMessageElapsedTime = System.currentTimeMillis() - lastMessageStartTime;
+//			
+//			if(lastMessageElapsedTime > lastMessageTimeoutMilliseconds)
+//			{
+//				retriesAttempted++;
+//				logger.error("Message rate timeout occurred... ZMQ connection may be dead. Retrying first. \nAttempting to restart connection...\n");	
+//				
+//				
+//				if(retriesAttempted > retriesAllowed){
+//					logger.error("Attempting to restart connection...\n");
+//					this.reconnect();
+//				} else {
+//					lastMessageStartTime = System.currentTimeMillis();
+//				}
+//
+//			}
+//			
+//			else if (noMessageCounter > noMessageCounterLimit)
+//			{	
+//				logger.error("ZMQ connection seems dead, messages arrive empty.\nAttempting to restart connection...\n");
+//				this.reconnect();
+//			}
 			
 			
 			if((data = subscriber.recv(ZMQ.DONTWAIT))!=null){
 				/// TODO: BUG! noMessageCounter is always set to 0 here and only incremented below, so it will only ever be 0 or 1
-				noMessageCounter = 0;
+
 				message_counter+=1;
 				bb = ByteBuffer.wrap(data);
 	
@@ -148,6 +161,7 @@ public class ZMQManager {
 					}
 					
 					haveNextMessage=true;
+					noMessageCounter = 0;
 					lastMessageStartTime = System.currentTimeMillis();
 				} else {
 					logger.error("got a ZMQ message but it isn't a valid message, this is an unexpected state that shouldn't occur. please debug me.");
