@@ -25,12 +25,15 @@ import com.kuka.connectivity.motionModel.smartServo.ISmartServoRuntime;
 import com.kuka.connectivity.motionModel.smartServo.ServoMotion;
 import com.kuka.connectivity.motionModel.smartServo.ServoMotionJP;
 import com.kuka.connectivity.motionModel.smartServo.SmartServo;
+import com.kuka.generated.ioAccess.FlexFellowIOGroup;
+import com.kuka.generated.ioAccess.MediaFlangeIOGroup;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
 import com.kuka.roboticsAPI.deviceModel.JointLimits;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
+import com.kuka.roboticsAPI.executionModel.CommandInvalidException;
 import com.kuka.roboticsAPI.executionModel.ExecutionState;
 import com.kuka.roboticsAPI.executionModel.IExecutionContainer;
 import com.kuka.roboticsAPI.geometricModel.CartDOF;
@@ -91,11 +94,17 @@ public class GRL_Driver extends RoboticsAPIApplication
 	private TeachMode _teachModeRunnable = null;
 	private Thread _teachModeThread = null;
 
+	private MediaFlangeIOGroup _mediaFlangeIOGroup; // this is an end effector flange with a blue ring and buttons on the arm tip
+	private boolean _flexFellowPresent = true; // this is a white an orange robot cart
+	private boolean _mediaFlangeIOPresent = true;
+	
 	private boolean _canServo = true;
 	// when we receive a message
 	int message_counter = 0;
 	int message_counter_since_last_mode_change = 0;
     boolean waitingForUserToEndTeachMode = false;
+    
+    private FlexFellowIOGroup _flexFellowIOGroup;
 	
 	@Override
 	public void initialize()
@@ -105,6 +114,11 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_lbrController = (Controller) getContext().getControllers().toArray()[0];
 		_lbr = (LBR) _lbrController.getDevices().toArray()[0];
 		
+		if(_flexFellowPresent) _flexFellowIOGroup = new FlexFellowIOGroup(_lbrController);
+		if(_mediaFlangeIOPresent) {
+			_mediaFlangeIOGroup = new MediaFlangeIOGroup(_lbrController);
+			_mediaFlangeIOGroup.setLEDBlue(true);
+		}
 
         _friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _processDataManager.get_FRI_KONI_LaptopIPAddress());
         _friConfiguration.setSendPeriodMilliSec(4);
@@ -222,6 +236,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 					getLogger().warn("Enabling Teach Mode with gravity compensation. mode id code = " +
 							_currentKUKAiiwaState.armControlState().stateType());
 
+
+					if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightYellow(true);
+					if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightRed(false);
 					// trying to use kuka's provided handguidingmotion but it isn't working now.
 					// using an if statement to default to old behavior.
 					boolean useHandGuidingMotion = true;
@@ -337,10 +354,13 @@ public class GRL_Driver extends RoboticsAPIApplication
 			        // Set the motion properties to % of system abilities. For example .2 is 20% of systems abilities
 			        // TODO: load these over C++ interface
 			        _smartServoMotion
+			        	.setSpeedTimeoutAfterGoalReach(0.1)
 			        	.setJointAccelerationRel(_processDataManager.get_jointAccelRel())
 			        	.setJointVelocityRel(_processDataManager.get_jointVelRel())
 			        	.setMinimumTrajectoryExecutionTime(20e-3);
 
+			        // turn on a physical green light bulb attached to the robot base
+					if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightGreen(true);
 			        _toolAttachedToLBR.getDefaultMotionFrame().moveAsync(_smartServoMotion);
 			        getLogger().info("Setting up SmartServo");
 			        
@@ -351,6 +371,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 					try {
 						// TODO: make motion control mode configurable over zmq interface
 						_smartServoRuntime = _smartServoMotion.getRuntime();
+						_smartServoRuntime.activateVelocityPlanning(true);
 				        // _smartServoRuntime.changeControlModeSettings(_smartServoMotionControlMode);
 				        _activeMotionControlMode = _smartServoMotionControlMode;
 					} catch (java.lang.IllegalStateException ex) {
@@ -365,7 +386,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				
 				grl.flatbuffer.JointState jointState = mas.goal();
 				if(jointState.positionLength()!=destination.getAxisCount()){
-					if(message_counter % 1000 == 0) getLogger().error("Didn't receive correct number of joints! skipping to start of loop...");
+					if(message_counter_since_last_mode_change % 500 == 0) getLogger().error("Didn't receive correct number of joints! skipping to start of loop...\n");
 					continue;
 					//return;
 				}
@@ -396,11 +417,17 @@ public class GRL_Driver extends RoboticsAPIApplication
 					try {
 						if(message_counter % 1000 == 0) getLogger().info("Sample of new Smart Servo Joint destination " + pos);
 						_smartServoRuntime.setDestination(destination);
-					} catch (java.lang.IllegalStateException ex) {
+					} catch (CommandInvalidException e) {
 						getLogger().error("Could not update smart servo destination! Clearing SmartServo.");
 						_smartServoMotion = null;
 						_smartServoRuntime = null;
+						continue;
+					} catch (java.lang.IllegalStateException ex) {
+						getLogger().error("Could not update smart servo destination and missed the real exception type! Clearing SmartServo.");
+						_smartServoMotion = null;
+						_smartServoRuntime = null;
 						getLogger().error(ex.getMessage());
+						continue;
 					}
 			   } else {
 					getLogger().error("Couldn't issue motion command, smartServo motion was most likely reset. retrying...");
@@ -416,13 +443,10 @@ public class GRL_Driver extends RoboticsAPIApplication
 				
 				//tm.setActive(false);
 			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.PauseArm) {
-				if (_smartServoRuntime != null) {
-					_smartServoRuntime.stopMotion();
-				}
-				if (currentMotion != null) {
-					currentMotion.cancel();
-				}
+		
+				if (currentMotion != null) currentMotion.cancel();
 				if(!cancelTeachMode()) continue;
+				if(!cancelSmartServo()) continue;
 				
 				PositionControlMode controlMode = new PositionControlMode();
 				if(message_counter_since_last_mode_change < 2 || message_counter_since_last_mode_change % 100 == 0){
@@ -456,12 +480,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 		if (_teachModeThread != null) {
 			//getLogger().warn("Cancelling teach mode...");
 			_canServo = _teachModeRunnable.cancel();
+			if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightYellow(false);
 
 			if(!_teachModeRunnable.isEnableEnded() && 
 				_currentKUKAiiwaState.armControlState().stateType() != grl.flatbuffer.ArmState.TeachArm){
-				
+
 				if(message_counter % 30 == 0) getLogger().warn("Can't Exit Teach Mode Yet,\n Did You Press The Hand Guiding Button?");
                 waitingForUserToEndTeachMode = true;
+				if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightRed(true);
 				return false;
 			}
             else if(_teachModeRunnable.isEnableEnded()
@@ -471,6 +497,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 					PositionControlMode controlMode = new PositionControlMode();
 					_lbr.move(positionHold(controlMode,10,TimeUnit.MILLISECONDS));
                     waitingForUserToEndTeachMode = false;
+        			if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightRed(false);
             }
 		}
 		return true;
@@ -484,6 +511,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			_smartServoRuntime.stopMotion();
 			_smartServoMotion = null;
 			_smartServoRuntime = null;
+			if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightGreen(false);
 			getLogger().info("Ending smart servo!");
 		}
         return true;
