@@ -276,25 +276,27 @@ void syncVrepAndKuka(){
         realExternalForce.clear();
         kukaDriverP_->get(std::back_inserter(realExternalForce), grl::cartesian_external_force_tag());
     
-    std::cout << "Measured Torque: ";
-    std::cout << std::setw(6);
-    for (float t:realJointForce) {
-        std::cout << t << " ";
+    if(0){
+        std::cout << "Measured Torque: ";
+        std::cout << std::setw(6);
+        for (float t:realJointForce) {
+            std::cout << t << " ";
+        }
+        std::cout << '\n';
+        
+        std::cout << "External Torque: ";
+        std::cout << std::setw(6);
+        for (float t:realExternalJointTorque) {
+            std::cout << t << " ";
+        }
+        std::cout << '\n';
+        
+        std::cout << "Measured Position: ";
+        for (float t:realJointPosition) {
+            std::cout << t << " ";
+        }
+        std::cout << '\n';
     }
-    std::cout << '\n';
-    
-    std::cout << "External Torque: ";
-    std::cout << std::setw(6);
-    for (float t:realExternalJointTorque) {
-        std::cout << t << " ";
-    }
-    std::cout << '\n';
-    
-    std::cout << "External Force: ";
-    for (float t:realExternalForce) {
-        std::cout << t << " ";
-    }
-    std::cout << '\n';
     
     if(!allHandlesSet || !vrepMeasuredRobotArmDriverP_) return;
     
