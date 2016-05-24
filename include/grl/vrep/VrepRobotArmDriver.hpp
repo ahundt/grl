@@ -8,6 +8,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "grl/vrep/Vrep.hpp"
 
@@ -16,7 +17,12 @@
 
 namespace grl { namespace vrep {
 
-
+/// @brief C++ interface for any open chain V-REP robot arm
+///
+/// VrepRobotArmDriver makes it easy to specify and interact with the 
+/// joints in a V-REP defined robot arm in a consistent manner. 
+///
+/// @todo write generic getters and setters for this object like in KukaFRIalgorithm.hpp and the member functions of KukaFRIdriver, KukaJAVAdriver
 class VrepRobotArmDriver : public std::enable_shared_from_this<VrepRobotArmDriver> {
 public:
 
@@ -255,6 +261,10 @@ private:
 
 Params params_;
 VrepHandleParams handleParams_;
+
+/// This is a unique identifying handle for external torque values
+/// since they are set as V-REP custom data.
+/// @see simAddObjectCustomData
 int externalTorqueHandle = 310832412;
 
 volatile bool allHandlesSet = false;
