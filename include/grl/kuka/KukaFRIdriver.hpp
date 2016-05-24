@@ -46,7 +46,9 @@ std::ostream& operator<< (std::ostream& out, const boost::container::static_vect
 namespace grl { namespace robot { namespace arm {
 
 
-    // Decode message buffer (using nanopb decoder)
+/// @brief internal function to decode KUKA FRI message buffer (using nanopb decoder) for the KUKA FRI
+///
+/// @note encode needs to be updated for each additional supported command type and when updating to newer FRI versions
 void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
     // The decoder was given a pointer to the monitoringMessage at initialization
     if (!friData.decoder.decode(friData.receiveBuffer, msg_size)) {
@@ -71,7 +73,10 @@ void decode(KUKA::FRI::ClientData& friData, std::size_t msg_size){
 
 
 
-/// encode data in the class into the send buffer
+/// @brief encode data in the class KUKA::FRI::ClientData into the send buffer for the KUKA FRI.
+/// this preps the information for transport over the network
+///
+/// @note encode needs to be updated for each additional supported command type and when updating to newer FRI versions
 std::size_t encode(KUKA::FRI::ClientData& friData,boost::system::error_code& ec){
     // reset send counter
     friData.lastSendCounter = 0;
@@ -97,7 +102,7 @@ std::size_t encode(KUKA::FRI::ClientData& friData,boost::system::error_code& ec)
 	
 	int buffersize = KUKA::FRI::FRI_COMMAND_MSG_MAX_SIZE;
     if (!friData.encoder.encode(friData.sendBuffer, buffersize)){
-        // @todo figure out PB_GET_ERROR
+        // @todo figure out PB_GET_ERROR, integrate with error_code type supported by boost
         ec = boost::system::errc::make_error_code(boost::system::errc::bad_message);
         return 0;
     }
@@ -105,11 +110,15 @@ std::size_t encode(KUKA::FRI::ClientData& friData,boost::system::error_code& ec)
 	return buffersize;
 }
 
+/// @brief Actually talk over the network to receive an update and send out a new KUKA FRI command
+///
+/// Receives an update, performs the necessary checks, then sends a message if appropriate.
+///
 /// @pre socket must already have the endpoint resolved and "connected". While udp is technically stateless the asio socket supports the connection api components for convenience.
 void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& friData, boost::system::error_code& receive_ec,std::size_t& receive_bytes_transferred, boost::system::error_code& send_ec, std::size_t& send_bytes_transferred, boost::asio::ip::udp::endpoint sender_endpoint = boost::asio::ip::udp::endpoint()){
     
-    int message_flags = 0;
-	receive_bytes_transferred = socket.receive_from(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),sender_endpoint);
+    static const int message_flags = 0;
+	receive_bytes_transferred = socket.receive_from(boost::asio::buffer(friData.receiveBuffer,KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),sender_endpoint,message_flags,receive_ec);
 	decode(friData,receive_bytes_transferred);
 
     friData.lastSendCounter++;
@@ -122,17 +131,20 @@ void update_state(boost::asio::ip::udp::socket& socket, KUKA::FRI::ClientData& f
 }
 
 
-/// @brief Internal class, defines some default status variables 
+/// @brief Internal class, defines some default status variables
+///
+/// This class defines some connection functions and parameter definitions
+/// that are shared amongst many of the KUKA API components
 class KukaFRI {
     
 public:
 
     enum ParamIndex {
+        RobotModel, // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
         localhost,  // 192.170.10.100
         localport,  // 30200
         remotehost, // 192.170.10.2
         remoteport,  // 30200
-        send_period_millisec, // number of milliseconds between fri updates (1-5)
         is_running_automatically // true by default, this means that an internal thread will be created to run the driver.
     };
     
@@ -141,11 +153,11 @@ public:
       run_automatically = 1
     };
     
-    typedef std::tuple<std::string,std::string,std::string,std::string,std::size_t,ThreadingRunMode> Params;
+    typedef std::tuple<std::string,std::string,std::string,std::string,std::string,ThreadingRunMode> Params;
     
     
     static const Params defaultParams(){
-        return std::make_tuple(std::string("192.170.10.100"),std::string("30200"),std::string("192.170.10.2"),std::string("30200"),1/* ms per tick */,run_automatically);
+        return std::make_tuple(KUKA_LBR_IIWA_14_R820,std::string("192.170.10.100"),std::string("30200"),std::string("192.170.10.2"),std::string("30200"),run_automatically);
     }
     
     
@@ -205,6 +217,10 @@ void copy(const FRIMonitoringMessage& monitoringMsg, KukaState& state ){
 
 /// @brief Simple low level driver to communicate over the Kuka iiwa FRI interface using KUKA::FRI::ClientData status objects
 ///
+/// @note If you aren't sure, see KukaDriver in KukaDriver.hpp.
+///
+/// @note If you want to change how the lowest level high rate updates are performed see KukaFRIdriver
+///
 /// One important aspect of this design is the is_running_automatically flag. If you are unsure,
 /// the suggested default is run_automatically (true/enabled). When it is enabled,
 /// the driver will create a thread internally and run the event loop (io_service) itself.
@@ -247,7 +263,7 @@ public:
         construct(params);
 	}
 
-    /// Call this to initialize the object
+    /// Call this to initialize the object after the constructor has been called
     void construct(Params params = defaultParams())
     {
         try
@@ -613,16 +629,27 @@ private:
 
 
 
-    enum RobotMode {
-      MODE_TEACH, MODE_SERVO, MODE_IDLE
-    };
-
 
 /// @brief Primary Kuka FRI driver, only talks over realtime network FRI KONI ethernet port
+///
+///
+/// @note If you aren't sure, see KukaDriver in KukaDriver.hpp.
+///
+/// @note If you want to change how the lowest level high rate updates are performed, make another version of this class. @see KukaFRIdriver
+///
+/// KukaFRIdriver is a low level driver at a slightly "higher level" than the the "lowest level" KukaFRIClientDataDriver
+/// to communicate. This is the class you will want to replace if you want to change how low level position
+/// updates are changed between FRI update steps, which occur at a configurable duration of 1-5 ms.
+///
+/// While velocity limits are not provided explicitly by KUKA in their low level C++ API,
+/// if you send a command that violates the velocity limits specified in KUKA's documenation
+/// the arm stops immediately with an error, even over FRI.
 ///
 /// @todo support generic read/write
 /// @todo ensure commands stay within machine limits to avoid lockup
 /// @todo reset and resume if lockup occurs whenever possible
+/// @todo in classes that use this driver, make the use of this class templated so that the low level update algorithm can change.
+/// @todo add getter for number of milliseconds between fri updates (1-5) aka sync_period aka send_period aka ms per tick
 class KukaFRIdriver : public std::enable_shared_from_this<KukaFRIdriver>, public KukaFRI {
     
 public:
@@ -661,11 +688,11 @@ public:
               new grl::robot::arm::KukaFRIClientDataDriver(
                   device_driver_io_service,
                   std::make_tuple(
+                      std::string(std::get<RobotModel>                  (params)),
                       std::string(std::get<localhost >                  (params)),
                       std::string(std::get<localport >                  (params)),
                       std::string(std::get<remotehost>                  (params)),
                       std::string(std::get<remoteport>                  (params)),
-                                  std::get<send_period_millisec>        (params) ,
                       grl::robot::arm::KukaFRIClientDataDriver::run_automatically
                       )
                   )
@@ -689,34 +716,29 @@ public:
         }
       }
 
+    /// @todo make this configurable for different specific robots. Currently set for kuka lbr iiwa 14kg R820
     KukaState::joint_state getMaxVel()
     {
-    
-                    /// @todo make maxVel a parameter rather than hardcoded
-                    /// @todo 0.1 just makes it move at a much smaller fraction of max speed. Properly integrate safety.
-                    double secondsPerTick = (std::get<send_period_millisec>(params_)/1000.0);
-                    // R820 velocity limits
-                    //A1 - 85 °/s  == 1.483529864195 rad/s
-                    //A2 - 85 °/s  == 1.483529864195 rad/s
-                    //A3 - 100 °/s == 1.745329251994 rad/s
-                    //A4 - 75 °/s  == 1.308996938996 rad/s
-                    //A5 - 130 °/s == 2.268928027593 rad/s
-                    //A6 - 135 °/s == 2.356194490192 rad/s
-                    //A1 - 135 °/s == 2.356194490192 rad/s
-            		KukaState::joint_state maxVel;
-                    maxVel.push_back(1.483529864195*secondsPerTick);
-                    maxVel.push_back(1.483529864195*secondsPerTick);
-                    maxVel.push_back(1.745329251994*secondsPerTick);
-                    maxVel.push_back(1.308996938996*secondsPerTick);
-                    maxVel.push_back(2.268928027593*secondsPerTick);
-                    maxVel.push_back(2.356194490192*secondsPerTick);
-                    maxVel.push_back(2.356194490192*secondsPerTick);
-                    return maxVel;
+        // just makes it move at a much smaller fraction of max speed. Properly integrate safety.
+        double secondsPerTick = std::chrono::duration_cast<std::chrono::seconds>(
+                                    std::chrono::milliseconds(grl::robot::arm::get(friData_->monitoringMsg, grl::time_step_tag()))
+                                ).count();
+
+        KukaState::joint_state maxVel;
+        /// get max velocity constraint parameter for this robot model
+        copy(std::get<RobotModel>(params_),std::back_inserter(maxVel),grl::revolute_joint_velocity_open_chain_state_constraint_tag());
+
+        // scale velocity down to a single timestep. In other words multiply each velocity by the number of seconds in a tick, likely 0.001-0.005
+        boost::transform(maxVel,maxVel.begin(),std::bind2nd(std::multiplies<KukaState::joint_state::value_type>(),secondsPerTick));
+
+        return maxVel;
     }
         
 
      /**
-      * spin once 
+      * spin once, this is what you call each time you synchronize the client with the robot over UDP
+      * it is expected to be called at least once per send_period_millisec, which is the time between
+      * each FRI udp packet.
       *
       */
      bool run_one(){
@@ -738,6 +760,7 @@ public:
                     
          
 
+          // This is the key point where the arm's motion goal command is updated and sent to the robot
           // Set the FRI to the simulated joint positions
           if(this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands){
             boost::lock_guard<boost::mutex> lock(jt_mutex);
@@ -745,17 +768,29 @@ public:
               case ControlMode_POSITION_CONTROLMODE:
                     
                     // the current "holdposition" joint angles
+                    /// @todo maybe this should be the revolute_joint_angle_interpolated_open_chain_state_tag()? @see kukaFRIalgorithm.hpp
                     grl::robot::arm::copy(friData_->monitoringMsg,std::back_inserter(currentJointPos),revolute_joint_angle_open_chain_state_tag());
                     
                     boost::transform ( armState.commandedPosition_goal, currentJointPos, std::back_inserter(diffToGoal), std::minus<double>());
                     
+                    // use current time and time to destination to interpolate (scale) goal joint position
+                    /// @todo implement time interpolation here
+                    
+                    
+                    // use std::min to ensure commanded change in position remains under the maximum possible velocity for a single timestep
                     boost::transform(diffToGoal,maxvel,std::back_inserter(amountToMove), [&](double diff,double maxvel) { return boost::math::copysign(std::min(std::abs(diff),maxvel),diff); } );
+                    
+                    // add the current joint position to the amount to move to get the actual position command to send
                     boost::transform ( currentJointPos, amountToMove, std::back_inserter(commandToSend), std::plus<double>());
+                    
+                    // send the command
                     if(0) grl::robot::arm::set(friData_->commandMsg, commandToSend, grl::revolute_joint_angle_open_chain_command_tag());
                     std::cout << "commandToSend: " << commandToSend << "\n" << "currentJointPos: " << currentJointPos << "\n" << "amountToMove: " << amountToMove << "\n" << "maxVel: " << maxvel << "\n";
                 break;
               case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
                 grl::robot::arm::set(friData_->commandMsg, armState.commandedTorque, grl::revolute_joint_torque_open_chain_command_tag());
+                
+                /// @note encode() needs to be updated for each additional supported command type
                 break;
               case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
                 // not yet supported
@@ -806,6 +841,11 @@ public:
             
             armState.externalForce.clear();
             grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(armState.externalForce), grl::cartesian_external_force_tag());
+          
+            armState.ipoJointPosition.clear();
+            grl::robot::arm::copy(friData_->monitoringMsg,std::back_inserter(armState.ipoJointPosition),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+          
+          
               
 //              std::cout << "Measured Torque: ";
 //              std::cout << std::setw(6);
@@ -914,9 +954,15 @@ public:
      state = armState;
    }
 
+      // The total number of times the FRI interface has successfully received a UDP packet
+      // from the robot since this class was initialized.
       volatile std::size_t m_haveReceivedRealDataCount = 0;
+      // The total number of times the FRI interface has attempted to receive a UDP packet
+      // from the robot since this class was initialized, regardless of if it was successful or not.
       volatile std::size_t m_attemptedCommunicationCount = 0;
+      // The number of consecutive FRI receive calls that have failed to get data successfully, resets to 0 on a single success.
       volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
+      // The number of consecutive FRI receive calls that have received data successfully, resets to 0 on a single failure.
       volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
 
       boost::asio::io_service device_driver_io_service;
@@ -935,7 +981,7 @@ public:
     };
     
  
-
+  /// @brief nonmember wrapper function to help integrate KukaFRIdriver objects with generic programming interface
   template<typename Range,typename T>
   static inline void set(KukaFRIdriver & state, Range&& range, T t) {
       state.set(range,t);

@@ -67,6 +67,7 @@ namespace grl { namespace robot { namespace arm {
 
       enum ParamIndex {
         RobotName,
+        RobotModel,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
@@ -86,6 +87,7 @@ namespace grl { namespace robot { namespace arm {
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
           > Params;
 
@@ -93,6 +95,7 @@ namespace grl { namespace robot { namespace arm {
       static const Params defaultParams(){
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
+            "KUKA_LBR_IIWA_14_R820"      , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,

@@ -211,7 +211,11 @@ namespace grl { namespace robot {
 		return KukaQuality;
 	}
 	
-	uint32_t get(const FRIMonitoringMessage& monitoringMsg, const kuka::send_period){
+    /// @brief Get FRI UDP packet time step (1-5ms) in milliseconds between each device sync
+    ///
+    /// "time step" is also known as "time duration", "milliseconds per tick", or "send period"
+    /// gets the time duration between when udp packets are expected to be sent in milliseconds
+	uint32_t get(const FRIMonitoringMessage& monitoringMsg, const grl::time_step_tag){
 		uint32_t KukaSendPeriod = 0;
 	    if (monitoringMsg.has_connectionInfo) {
 	        if (monitoringMsg.connectionInfo.has_sendPeriod)

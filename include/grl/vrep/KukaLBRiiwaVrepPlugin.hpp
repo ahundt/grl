@@ -55,6 +55,7 @@ public:
         RobotTipName,
         RobotTargetName,
         RobotTargetBaseName,
+        RobotModel,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
@@ -68,6 +69,7 @@ public:
     
     typedef std::tuple<
         std::vector<std::string>,
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -98,6 +100,7 @@ public:
                     "RobotMillTip"            , // RobotTipHandle,
                     "RobotMillTipTarget"      , // RobotTargetHandle,
                     "Robotiiwa"               , // RobotTargetBaseHandle,
+                    "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
                     "tcp://0.0.0.0:30010"     , // LocalZMQAddress
                     "tcp://172.31.1.147:30010", // RemoteZMQAddress
                     "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
@@ -110,6 +113,7 @@ public:
                 );
     }
     
+    /// @todo measuredArmParams are hardcoded, parameterize them
     // parameters for measured arm
     static const Params measuredArmParams(){
         std::vector<std::string> jointHandles;
@@ -126,6 +130,7 @@ public:
                     "RobotMillTip#0"            , // RobotTipHandle,
                     "RobotMillTipTarget#0"      , // RobotTargetHandle,
                     "Robotiiwa#0"               , // RobotTargetBaseHandle,
+                    "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
                     "tcp://0.0.0.0:30010"     , // LocalZMQAddress
                     "tcp://172.31.1.147:30010", // RemoteZMQAddress
                     "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
@@ -171,6 +176,7 @@ void construct(Params params){
   kukaDriverP_=std::make_shared<robot::arm::KukaDriver>(std::make_tuple(
       
         std::get<RobotTargetBaseName>(params),
+        std::get<RobotModel>(params),
         std::get<LocalZMQAddress>(params),
         std::get<RemoteZMQAddress>(params),
         std::get<LocalHostKukaKoniUDPAddress>(params),
@@ -277,6 +283,7 @@ void syncVrepAndKuka(){
         kukaDriverP_->get(std::back_inserter(realExternalForce), grl::cartesian_external_force_tag());
     
     if(0){
+        // debug output
         std::cout << "Measured Torque: ";
         std::cout << std::setw(6);
         for (float t:realJointForce) {
