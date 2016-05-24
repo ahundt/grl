@@ -457,6 +457,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 				System.out.println("Unsupported Mode! stopping");
 				stop = true;
 			}
+            
+            /// TODO: add sending commands back to the C++ interface here, add appropriate call to zmq object
+            
 		} // end primary while loop
 
 
