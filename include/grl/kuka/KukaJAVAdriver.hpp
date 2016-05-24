@@ -379,6 +379,7 @@ namespace grl { namespace robot { namespace arm {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
        //armState.commandedTorque.clear();
       //boost::copy(range, std::back_inserter(armState.commandedTorque));
+        BOOST_VERIFY(false); // not implemented yet
     }
  
    
@@ -407,6 +408,7 @@ namespace grl { namespace robot { namespace arm {
    void set(Range&& range, grl::cartesian_wrench_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
       //std::copy(range,armState.commandedCartesianWrenchFeedForward);
+        BOOST_VERIFY(false); // not implemented yet
     }
     
     /// @todo implement get function
@@ -421,6 +423,7 @@ namespace grl { namespace robot { namespace arm {
    {
      boost::lock_guard<boost::mutex> lock(jt_mutex);
      //state = armState;
+        BOOST_VERIFY(false); // not implemented yet
    }
    
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
