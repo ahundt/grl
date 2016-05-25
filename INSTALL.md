@@ -82,6 +82,128 @@ Runtime Requirements
 This software has an optional runtime dependency on [V-REP][10] and [ROS][22], independently or together.
 
 
+
+Installing on Ubuntu 14.04 Manually
+===================================
+
+These instructions are for manually installing the ubuntu 14.04 package dependencies for grl.
+
+```
+sudo apt-get install libtool pkg-config build-essential autoconf automake
+sudo apt-get install libboost-all-dev libeigen3-dev libopencv-dev 
+```
+
+#### [ceres-solver](http://ceres-solver.org/building.html#linux) setup
+
+```
+# CMake
+sudo apt-get install cmake
+# google-glog + gflags
+sudo apt-get install libgoogle-glog-dev
+# BLAS & LAPACK
+sudo apt-get install libatlas-base-dev
+# Eigen3
+sudo apt-get install libeigen3-dev
+
+# SuiteSparse and CXSparse (needed for grl, optional for ceres)
+# - However, if you want to build Ceres as a *shared* library (recommended for grl), you must
+#   add the following PPA:
+sudo add-apt-repository ppa:bzindovic/suitesparse-bugfix-1319687
+sudo apt-get update
+sudo apt-get install libsuitesparse-dev
+
+# - If you want to build Ceres as a *static* library
+#   you can use the SuiteSparse package in the main Ubuntu package
+#   repository:
+sudo apt-get install libsuitesparse-dev
+```
+clone, build and install ceres:
+
+```
+git clone https://ceres-solver.googlesource.com/ceres-solver
+cd ceres-solver
+mkdir build
+cd build
+cmake ..
+sudo make install
+cd ../..
+```
+
+#### [ZeroMQ](http://ceres-solver.org/building.html#linux) setup
+
+
+```
+sudo apt-get install libzmq3-dev
+```
+
+for 14.04 don't use libzmq-dev, it is too out of date
+
+```
+git clone https://github.com/zeromq/azmq.git
+cd azmq
+mkdir build
+cd build
+cmake ..
+sudo make install
+cd ../..
+```
+
+#### [flatbuffers](https://github.com/google/flatbuffers) setup
+
+
+```
+git clone https://github.com/google/flatbuffers.git
+cd flatbuffers
+mkdir build
+cd build
+cmake ..
+sudo make install
+cd ../..
+```
+
+
+optional:
+```
+sudo apt-get install libpcl-1.7-all-dev
+````
+
+
+#### [OpenCV](http://ceres-solver.org/building.html#linux) setup
+
+```
+sudo apt-get install libopencv-dev
+sudo add-apt-repository --yes ppa:xqms/opencv-nonfree
+sudo apt-get update 
+sudo apt-get install libopencv-nonfree-dev
+```
+
+
+#### [Camodocal](https://github.com/hengli/camodocal)
+
+```
+git clone https://ceres-solver.googlesource.com/ceres-solver
+cd ceres-solver
+mkdir build
+cd build
+cmake ..
+sudo make install
+cd ../..
+```
+
+#### [grl](https://github.com/ahundt/grl)
+
+
+
+```
+git clone https://github.com/ahundt/grl.git
+cd grl
+mkdir build
+cd build
+cmake ..
+sudo make install
+cd ../..
+```
+
 Build Dependencies
 ==================
 
