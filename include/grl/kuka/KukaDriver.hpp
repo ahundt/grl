@@ -104,7 +104,7 @@ namespace grl { namespace robot { namespace arm {
             || boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
         {
           FRIdriverP_.reset(
-              new grl::robot::arm::KukaFRIdriver(
+              new grl::robot::arm::KukaFRIdriver<LinearInterpolation>(
                   //device_driver_io_service,
                   std::make_tuple(
                       std::string(std::get<RobotModel                  >        (params)),
@@ -112,7 +112,7 @@ namespace grl { namespace robot { namespace arm {
                       std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
                       std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
                       std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
-                      grl::robot::arm::KukaFRIClientDataDriver::run_automatically
+                      grl::robot::arm::KukaFRIClientDataDriver<LinearInterpolation>::run_automatically
                       )
                   )
 
@@ -330,12 +330,10 @@ namespace grl { namespace robot { namespace arm {
 
     private:
 
-      /// @todo read ms_per_tick from JAVA interface
-      std::size_t ms_per_tick = 1;
       KukaState armState_;
 
       boost::mutex jt_mutex;
-      boost::shared_ptr<KukaFRIdriver> FRIdriverP_;
+      boost::shared_ptr<KukaFRIdriver<LinearInterpolation>> FRIdriverP_;
       boost::shared_ptr<KukaJAVAdriver> JAVAdriverP_;
 
       Params params_;

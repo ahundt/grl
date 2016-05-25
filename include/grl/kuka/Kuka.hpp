@@ -31,6 +31,7 @@ namespace grl { namespace robot { namespace arm {
 struct KukaState {
 	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
     typedef boost::container::static_vector<double,7> cartesian_state;
+    typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_type;
     
 	joint_state     position;
 	joint_state     torque;
@@ -55,7 +56,7 @@ struct KukaState {
     // The point in time associated with the current measured
     // state of the arm (position, torque, etc.). When commanding
     // the arm use commanded_goal_timestamp.
-	std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+	time_point_type timestamp;
     
     /////////////////////////////////////////////////////////////////////////////////////////////
     // members below here define the driver state and are not part of the FRI arm message format
@@ -64,13 +65,13 @@ struct KukaState {
     /// we need to mind arm constraints, so we set a goal then work towards it
     joint_state     commandedPosition_goal;
     
-    /// The time at which commandedPosition_goal is expected to be reached.
+    /// time duration over which commandedPosition_goal is expected to be reached.
     /// this will be used when computing the trajectory with which the low level
     /// algorithm will approach the goal position.
     /// This should be strictly greater than or equal to timestamp.
     ///
     /// @note: this is part of the driver wrapper and is not present in the underlying kuka APIs.
-	std::chrono::time_point<std::chrono::high_resolution_clock> commanded_goal_timestamp;
+	std::chrono::milliseconds goal_position_command_time_duration;
     
     /// velocity_limits we need to mind arm constraints, so we set a goal then work towards it. While velocity limits are not provided explicitly by KUKA in their low level C++ API, if you send a command that violates the velocity limits the arm stops immediately with an error.
     joint_state     velocity_limits;
@@ -86,6 +87,7 @@ struct KukaState {
       commandedCartesianWrenchFeedForward.clear();
       ipoJointPosition.clear();
       commandedPosition_goal.clear();
+      goal_position_command_time_duration = std::chrono::milliseconds(0);
     }
     
     void clearCommands(){
@@ -152,6 +154,8 @@ OutputIterator copy(std::string model, OutputIterator it, grl::revolute_joint_ve
                     };
                     return boost::copy(maxVel,it);
     }
+    
+    else return KukaState::joint_state();
 }
 
 }}}// namespace grl::robot::arm
