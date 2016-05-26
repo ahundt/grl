@@ -4,42 +4,40 @@ import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.MMCMotions.handGuiding;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import com.kuka.connectivity.fastRobotInterface.FRIConfiguration;
+import com.kuka.connectivity.fastRobotInterface.FRIJointOverlay;
+import com.kuka.connectivity.fastRobotInterface.FRISession;
+import com.kuka.connectivity.fastRobotInterface.FRIChannelInformation.FRISessionState;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.executionModel.CommandInvalidException;
 import com.kuka.roboticsAPI.geometricModel.Tool;
 import com.kuka.roboticsAPI.motionModel.HandGuidingMotion;
 import com.kuka.roboticsAPI.motionModel.IMotionContainer;
+import com.kuka.roboticsAPI.motionModel.controlModeModel.AbstractMotionControlMode;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.JointImpedanceControlMode;
 import com.kuka.task.ITaskLogger;
 
 /**
  * 
- * In TeachModeTest you will need to set 
- *       boolean useTeachModeObject = false;
- *       
- * This object is supposed to make it easy to enable/disable teach 
- * mode with a single call to start() and stop() when you want to
- * enable and disable teach mode.
- *  
- *  @todo the method used to simulate teach mode is a little jumpy, needs to be improved.
- * 
- * @author Andrew Hundt
+ * Activate FRI mode in a separate thread
  *
  */
-public class TeachMode implements Runnable {
+public class FRIMode implements Runnable {
 
-	private LBR lbr;	
+	private LBR _lbr;	
 
-	IMotionContainer _handGuidingMotionContainer = null;
-	HandGuidingMotion _handGuidingMotion;
-	private double[] _maxAllowedJointLimits;
-	private double[] _minAllowedJointLimits;
-	Tool _flangeAttachment;
-	JointImpedanceControlMode _teachControlMode;
+	
+
+	private AbstractMotionControlMode _activeMotionControlMode;
+	private FRISession       _friSession = null;
+	private FRIJointOverlay  _motionOverlay = null;
 	private static volatile boolean useHandGuidingMotion;
 	private static volatile boolean isEnableEnded;
 	private static volatile boolean stop = false;
+
+	IMotionContainer currentMotion = null;
 	ITaskLogger _logger = null;
 	int iter = 0;
 
@@ -49,11 +47,9 @@ public class TeachMode implements Runnable {
 	 * @param maxAllowedJoints
 	 * @param minAllowedJoints
 	 */
-	public TeachMode(Tool flangeAttachment, double[] maxAllowedJoints, double[] minAllowedJoints) {
-		_handGuidingMotion = handGuiding();
-		_maxAllowedJointLimits = maxAllowedJoints;
-		_minAllowedJointLimits = minAllowedJoints;
-		_flangeAttachment = flangeAttachment;
+	public FRIMode(LBR lbr, FRISession friSession) {
+		_lbr = lbr;
+		_friSession = friSession;
 		useHandGuidingMotion = false;
 	}
 
@@ -63,10 +59,10 @@ public class TeachMode implements Runnable {
 
 	/**
 	 * 
-	 * @param teachModeControlMode
+	 * @param setControlMode
 	 */
-	public void setTeachModeControlMode(JointImpedanceControlMode teachModeControlMode) {
-		_teachControlMode = teachModeControlMode;
+	public void setControlMode(AbstractMotionControlMode teachModeControlMode) {
+		_activeMotionControlMode = teachModeControlMode;
 	}
 
 	public void enable() {
@@ -85,11 +81,15 @@ public class TeachMode implements Runnable {
 	public synchronized boolean stop(){
 		if(!isEnableEnded) return false;
 		stop = true;
+
+		if(currentMotion !=null) currentMotion.cancel();
+		
 		return true;
 	}
 	
 	
 	/**
+	 * 
 	 * Cancel the motion, thread stays in existence.
 	 */
 	public boolean cancel(){
@@ -99,11 +99,7 @@ public class TeachMode implements Runnable {
 
 			useHandGuidingMotion = false;
 			
-//			if (_handGuidingMotionContainer != null) {
-//				_handGuidingMotionContainer.cancel();
-//				_handGuidingMotionContainer = null;
-//				return true;
-//			}
+			if(currentMotion !=null) currentMotion.cancel();
 		}
 		return true;
 		//warn("Cancel complete");
@@ -143,7 +139,7 @@ public class TeachMode implements Runnable {
 		synchronized(this) {
 			useHandGuidingMotion = false;
 		}
-		_handGuidingMotionContainer = null;
+		_motionOverlay = null;
 		
 		while(!stop) {
 			//warn("Starting new hand guiding motion");
@@ -158,36 +154,56 @@ public class TeachMode implements Runnable {
 						try {
 							if(!isEnableEnded && _logger!=null)
 							{
-								_logger.info("Teach Mode and HandGuidingMotion Complete!");
+								_logger.info("FRI Joint Overlay Complete!");
 							}
 							isEnableEnded = true;
 							this.wait(100);
 						} catch (InterruptedException e) {
-							warn("Interruption in TeachMode: " + e.toString());
+							warn("Interruption in FRIMode: " + e.toString());
 						}
 						continue;
 					}
 					
-					warn("creating hand guiding motion " + useHandGuidingMotion);
+					warn("creating FRI Joint Overlay " + useHandGuidingMotion);
 					isEnableEnded = false;
-					_handGuidingMotion = handGuiding()
-							.setAxisLimitsMax(_maxAllowedJointLimits)
-							.setAxisLimitsMin(_minAllowedJointLimits)
-							.setAxisLimitsEnabled(true, true, true, true, true, true, true)
-							.setAxisLimitViolationFreezesAll(false).setPermanentPullOnViolationAtStart(true);
+					_motionOverlay = new FRIJointOverlay(_friSession);
+//					_handGuidingMotion = handGuiding()
+//							.setAxisLimitsMax(_maxAllowedJointLimits)
+//							.setAxisLimitsMin(_minAllowedJointLimits)
+//							.setAxisLimitsEnabled(true, true, true, true, true, true, true)
+//							.setAxisLimitViolationFreezesAll(false).setPermanentPullOnViolationAtStart(true);
 					isEnableEnded = false;
 				}
 				//warn("hand guiding motion moving... " + useHandGuidingMotion);
 				//if (_handGuidingMotionContainer == null || _handGuidingMotionContainer.isFinished()) {
-				_handGuidingMotionContainer = _flangeAttachment.move(_handGuidingMotion);
+				if(    _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_ACTIVE) != 0
+						&& _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_WAIT) != 0)
+					{
+						_logger.info("FRI Joint Overlay starting...");
+
+						try {
+							_friSession.await(10, TimeUnit.SECONDS);
+
+							currentMotion = _lbr.move(positionHold(_activeMotionControlMode, -1, TimeUnit.SECONDS).addMotionOverlay(_motionOverlay));
+							
+						} catch (TimeoutException e) {
+							_logger.error("FRISession timed out, closing...");
+							e.printStackTrace();
+							_friSession.close();
+							return;
+						}
+					}
+
 				//}
 				//warn("done hand guiding");
 
 			} catch (CommandInvalidException e) {
-				_handGuidingMotionContainer = null;
+				currentMotion = null;
+				//_handGuidingMotionContainer = null;
 				warn(e.toString());
 			} catch (IllegalStateException e) {
-				_handGuidingMotionContainer = null;
+				currentMotion = null;
+				//_handGuidingMotionContainer = null;
 				warn(e.toString());
 			}
 		}

@@ -28,6 +28,7 @@ namespace grl { namespace robot { namespace arm {
 /// @brief Internal implementation class for driver use only, stores all the kuka state data in a simple object
 /// @todo replace with something generic
 /// @deprecated this is an old implemenation that will be removed in the future, do not depend on this struct directly.
+/// @todo commandedPosition and commandedPosition_goal are used a bit ambiguously, figure out the difference and clean it up.
 struct KukaState {
 	typedef boost::container::static_vector<double,KUKA::LBRState::NUM_DOF> joint_state;
     typedef boost::container::static_vector<double,7> cartesian_state;
@@ -43,6 +44,7 @@ struct KukaState {
     
 	joint_state     ipoJointPosition;
     joint_state     ipoJointPositionOffsets;
+    std::chrono::milliseconds sendPeriod; ///< time duration between each FRI low level UDP packet loop update
     
     //  Each of the following have an equivalent in kuka's friClientIf.h
     //  which needed to be reimplemented due to licensing restrictions
@@ -71,7 +73,7 @@ struct KukaState {
     /// This should be strictly greater than or equal to timestamp.
     ///
     /// @note: this is part of the driver wrapper and is not present in the underlying kuka APIs.
-	std::chrono::milliseconds goal_position_command_time_duration;
+	double goal_position_command_time_duration;
     
     /// velocity_limits we need to mind arm constraints, so we set a goal then work towards it. While velocity limits are not provided explicitly by KUKA in their low level C++ API, if you send a command that violates the velocity limits the arm stops immediately with an error.
     joint_state     velocity_limits;
@@ -87,7 +89,7 @@ struct KukaState {
       commandedCartesianWrenchFeedForward.clear();
       ipoJointPosition.clear();
       commandedPosition_goal.clear();
-      goal_position_command_time_duration = std::chrono::milliseconds(0);
+      goal_position_command_time_duration = 0;
     }
     
     void clearCommands(){
@@ -155,7 +157,7 @@ OutputIterator copy(std::string model, OutputIterator it, grl::revolute_joint_ve
                     return boost::copy(maxVel,it);
     }
     
-    else return KukaState::joint_state();
+    else return it;
 }
 
 }}}// namespace grl::robot::arm

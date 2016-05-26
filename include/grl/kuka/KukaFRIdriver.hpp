@@ -87,7 +87,9 @@ struct LinearInterpolation {
     LinearInterpolation(const KukaState& armState_)
         :armState(armState_)
         ,goal_position_command_time_duration_remaining(armState_.goal_position_command_time_duration)
-    {};
+    {
+        boost::copy(armState_.velocity_limits,std::back_inserter(velocity_limits));
+    };
 
     // no action by default
     template<typename ArmDataType, typename CommandModeType>
@@ -95,6 +97,8 @@ struct LinearInterpolation {
       // need to tag dispatch here
     }
     
+    
+    /// @bug motion interpolation and scaling doesn't seem to move in quite the right way, it is much slower and doesn't go to the right place.
     template<typename ArmData>
     void operator()(ArmData& friData, revolute_joint_angle_open_chain_command_tag){
         //switch (friData_->monitoringMsg.robotInfo.controlMode) {
@@ -106,29 +110,68 @@ struct LinearInterpolation {
                     KukaState::joint_state diffToGoal;
                     KukaState::joint_state amountToMove;
                     KukaState::joint_state commandToSend;
+                    
+                    double rcurrentJointPos[7];
+                    double rcommandedGoal[7];
+                    double rdiffToGoal[7];
+                    double ramountToMove[7];
+                    double rcommandToSend[7];
+                    double rvelocity_limits[7];
         
                     // the current "holdposition" joint angles
                     /// @todo maybe this should be the revolute_joint_angle_interpolated_open_chain_state_tag()? @see kukaFRIalgorithm.hpp
                     grl::robot::arm::copy(friData.monitoringMsg,std::back_inserter(currentJointPos),revolute_joint_angle_open_chain_state_tag());
+                    boost::copy(currentJointPos,&rcurrentJointPos[0]);
         
-                    std::chrono::milliseconds thisTimeStep(grl::robot::arm::get(friData.monitoringMsg, grl::time_step_tag()));
-                    double secondsPerTick = std::chrono::duration_cast<std::chrono::seconds>(thisTimeStep).count();
+                    // single timestep in ms
+                    int thisTimeStepMS(grl::robot::arm::get(friData.monitoringMsg, grl::time_step_tag()));
+                    double thisTimeStepS = (static_cast<double>(thisTimeStepMS)/1000);
+//                    double secondsPerTick = std::chrono::duration_cast<std::chrono::seconds>(thisTimeStep).count();
+        
+        
         
                     // the fraction of the distance to the goal that should be traversed this tick
-                    double fractionOfDistanceToTraverse = secondsPerTick/std::chrono::duration_cast<std::chrono::seconds>(goal_position_command_time_duration_remaining).count();
+                    double fractionOfDistanceToTraverse = static_cast<double>(thisTimeStepMS)/static_cast<double>(goal_position_command_time_duration_remaining);
         
+                    
+                    boost::copy(armState.commandedPosition_goal,&rcommandedGoal[0]);
                     // get the angular distance to the goal
                     // use current time and time to destination to interpolate (scale) goal joint position
-                    boost::transform ( armState.commandedPosition_goal, currentJointPos, std::back_inserter(diffToGoal), [&](double commanded_angle, double current_angle) {return(commanded_angle-current_angle)/fractionOfDistanceToTraverse;});
+                    boost::transform ( armState.commandedPosition_goal, currentJointPos, std::back_inserter(diffToGoal), [&](double commanded_angle, double current_angle) {return (commanded_angle-current_angle)*fractionOfDistanceToTraverse;});
+                    boost::copy(diffToGoal,&rdiffToGoal[0]);
         
                     // decrease the time remaining by the current time step
-                    goal_position_command_time_duration_remaining-=thisTimeStep;
+                    goal_position_command_time_duration_remaining-=thisTimeStepMS;
+        
+                    /// @todo correctly pass velocity limits from outside, use "copy" fuction in Kuka.hpp, correctly account for differing robot models. This  *should* be in KukaFRIdriver at the end of this file.
                     
+                    // R820 velocity limits
+                    //A1 - 85 °/s  == 1.483529864195 rad/s
+                    //A2 - 85 °/s  == 1.483529864195 rad/s
+                    //A3 - 100 °/s == 1.745329251994 rad/s
+                    //A4 - 75 °/s  == 1.308996938996 rad/s
+                    //A5 - 130 °/s == 2.268928027593 rad/s
+                    //A6 - 135 °/s == 2.356194490192 rad/s
+                    //A1 - 135 °/s == 2.356194490192 rad/s
+            		velocity_limits = {
+                    1.483529864195*thisTimeStepS,
+                    1.483529864195*thisTimeStepS,
+                    1.745329251994*thisTimeStepS,
+                    1.308996938996*thisTimeStepS,
+                    2.268928027593*thisTimeStepS,
+                    2.356194490192*thisTimeStepS,
+                    2.356194490192*thisTimeStepS
+                    };
+                     boost::copy(velocity_limits,&rvelocity_limits[0]);
                     // use std::min to ensure commanded change in position remains under the maximum possible velocity for a single timestep
-                    boost::transform(diffToGoal,armState.velocity_limits,std::back_inserter(amountToMove), [&](double diff,double maxvel) { return boost::math::copysign(std::min(std::abs(diff),maxvel),diff); } );
+                    boost::transform(diffToGoal,velocity_limits,std::back_inserter(amountToMove), [&](double diff,double maxvel) { return boost::math::copysign(std::min(std::abs(diff),maxvel),diff); } );
+                    
+                    boost::copy(amountToMove,&ramountToMove[0]);
                     
                     // add the current joint position to the amount to move to get the actual position command to send
                     boost::transform ( currentJointPos, amountToMove, std::back_inserter(commandToSend), std::plus<double>());
+                    
+                    boost::copy(commandToSend,&rcommandToSend[0]);
                     
                     // send the command
                     grl::robot::arm::set(friData.commandMsg, commandToSend, grl::revolute_joint_angle_open_chain_command_tag());
@@ -162,7 +205,7 @@ struct LinearInterpolation {
     bool hasCommandData()
     {
         /// @todo check if duration remaining should be greater than zero or greater than the last tick size
-        return goal_position_command_time_duration_remaining > std::chrono::milliseconds(0);
+        return goal_position_command_time_duration_remaining > 0;
     }
 //    template<typename ArmData>
 //    void operator()(ArmData& clientData, revolute_joint_angle_open_chain_command_tag){
@@ -172,7 +215,8 @@ struct LinearInterpolation {
 private:
       // the armstate at initialization of this object
       KukaState armState;
-      std::chrono::milliseconds goal_position_command_time_duration_remaining;
+      KukaState::joint_state velocity_limits;
+      double goal_position_command_time_duration_remaining; // milliseconds
     
 };
 
@@ -907,6 +951,9 @@ public:
         
           std::unique_ptr<LinearInterpolation> lowLevelStepAlgorithmP;
          
+          /// @todo probably only need to set this once
+          armState.velocity_limits.clear();
+          armState.velocity_limits = getMaxVel();
 
           // This is the key point where the arm's motion goal command is updated and sent to the robot
           // Set the FRI to the simulated joint positions
@@ -920,7 +967,9 @@ public:
           }
           else
           {
-            lowLevelStepAlgorithmP.reset(new LinearInterpolation(KukaState()));
+            KukaState tmp;
+            tmp.velocity_limits = getMaxVel();
+            lowLevelStepAlgorithmP.reset(new LinearInterpolation(tmp));
           }
          
          
@@ -968,7 +1017,7 @@ public:
             armState.ipoJointPosition.clear();
             grl::robot::arm::copy(friData_->monitoringMsg,std::back_inserter(armState.ipoJointPosition),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
           
-          
+            armState.sendPeriod = std::chrono::milliseconds(grl::robot::arm::get(friData_->monitoringMsg,grl::time_step_tag()));
               
 //              std::cout << "Measured Torque: ";
 //              std::cout << std::setw(6);
@@ -1035,18 +1084,22 @@ public:
     }
     
     /**
-     * @brief Set the time duration over which the position should be reached using the sampe epoch as the current driver time_point.
+     * @brief Set the time duration expected between new position commands in ms
      *
-     * Use KukaState::time_point_type get(time_point_tag) + time duration
+     * The driver will likely be updated every so often, such as every 25ms, and the lowest level of the
+     * driver may update even more frequently, such as every 1ms. By providing as accurate an
+     * estimate between high level updates the low level driver can smooth out the motion through
+     * interpolation (the default), or another algorithm. See LowLevelStepAlgorithmType template parameter
+     * in the KukaFRIdriver class if you want to change out the low level algorithm.
      *
-     * @see KukaFRIdriver::set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag)
-     * @see KukaFRIdriver::get(time_point_tag)
+     * @see KukaFRIdriver::get(time_duration_command_tag)
+     *
+     * @param duration_to_goal_command std::chrono time format representing the time duration between updates
      *
      */
-    template<typename TimeDuration>
-    void set(TimeDuration && duration_to_goal_command, time_duration_command_tag) {
+    void set(double duration_to_goal_command, time_duration_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       goal_position_command_time_duration_remaining = std::chrono::duration_cast<KukaState::time_point_type>(duration_to_goal_command);
+       armState.goal_position_command_time_duration = duration_to_goal_command;
     }
     
     
@@ -1139,7 +1192,6 @@ public:
     private:
 
       KukaState armState;
-      std::chrono::milliseconds goal_position_command_time_duration_remaining;
       boost::mutex jt_mutex;
 
       Params params_;

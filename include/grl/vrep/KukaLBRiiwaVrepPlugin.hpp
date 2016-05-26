@@ -247,6 +247,8 @@ void initHandles() {
         )
     );
     vrepMeasuredRobotArmDriverP_->construct();
+    
+    
     /// @todo remove this assumption
 	allHandlesSet  = true;
 }
@@ -264,8 +266,10 @@ void syncVrepAndKuka(){
         if(!allHandlesSet || !m_haveReceivedRealData) return;
     
         /// @todo make this handled by template driver implementations/extensions
+        kukaDriverP_->set(simulationTimeStep_,time_duration_command_tag());
         kukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
-        if(0) kukaDriverP_->set( simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());        
+        if(0) kukaDriverP_->set( simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
+    
 
         kukaDriverP_->run_one();
         // We have the real kuka state read from the device now
@@ -340,6 +344,10 @@ bool getStateFromVrep(){
             simJointTargetPosition       = std::get<VrepRobotArmDriver::JointTargetPosition>(armState);
             simJointTransformationMatrix = std::get<VrepRobotArmDriver::JointMatrix>        (armState);
     
+            
+            /// need to provide tick time in double seconds and get from vrep API call
+            simulationTimeStep_ = simGetSimulationTimeStep()*1000;
+    
 //			for (int i=0 ; i < KUKA::LBRState::NUM_DOF ; i++)
 //			{	
 //				simGetJointPosition(jointHandle[i],&simJointPosition[i]);  //retrieves the intrinsic position of a joint (Angle for revolute joint)
@@ -404,6 +412,8 @@ bool updateVrepFromKuka() {
 
 volatile bool allHandlesSet = false;
 volatile bool m_haveReceivedRealData = false;
+
+double simulationTimeStep_; // ms
 
 boost::asio::io_service device_driver_io_service;
 std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;

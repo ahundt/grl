@@ -45,7 +45,7 @@ namespace grl {
      *
      * This class contains code to offer a simple communication layer between ROS and the KUKA LBR iiwa
      *
-     *
+     * @todo Main Loop Update Rate must be supplied to underlying Driver for FRI mode. see KukaLBRiiwaVrepPlugin for reference, particularly kukaDriverP_->set(simulationTimeStep_,time_duration_command_tag());
      */
     class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin> 
     {
@@ -144,7 +144,7 @@ namespace grl {
 
 
       KukaLBRiiwaROSPlugin(Params params = defaultParams())
-        : params_(params), nh_(""), debug(false)
+        : debug(false),params_(params), nh_("")
       {
         loadRosParams(params_);
       }
