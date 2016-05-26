@@ -49,6 +49,22 @@ inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)
 }
 
 
+/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
+template<typename T, std::size_t U>
+inline std::ostream& operator<<(std::ostream& out,  boost::container::static_vector<T,U>& v)
+{
+  out << "[";
+  size_t last = v.size() - 1;
+  for(size_t i = 0; i < v.size(); ++i) {
+    out << v[i];
+    if (i != last) 
+      out << ", ";
+  }
+  out << "]";
+  return out;
+}
+
+
 namespace grl { namespace robot { namespace arm {
     
 
@@ -67,6 +83,7 @@ namespace grl { namespace robot { namespace arm {
 
       enum ParamIndex {
         RobotName,
+        RobotModel,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
@@ -86,6 +103,7 @@ namespace grl { namespace robot { namespace arm {
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
           > Params;
 
@@ -93,6 +111,7 @@ namespace grl { namespace robot { namespace arm {
       static const Params defaultParams(){
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
+            "KUKA_LBR_IIWA_14_R820"      , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
@@ -272,12 +291,12 @@ namespace grl { namespace robot { namespace arm {
               case flatbuffer::ArmState::ArmState_MoveArmJointServo: {
                  
                 /// @todo when new
-                JointScalar                          armPosVelAccelEmpty;
-                auto armPositionBuffer = fbbP->CreateVector(armPosition_.data(),armPosition_.size());
-                auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer);
+                auto armPositionBuffer = fbbP->CreateVector(armState_.commandedPosition_goal.data(),armState_.commandedPosition_goal.size());
+                auto commandedTorque = fbbP->CreateVector(armState_.commandedTorque.data(),armState_.commandedTorque.size());
+                auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
                 auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
-                std::cout << "KukaJAVAdriver sending armposition command:" <<armPosition_<<"\n";
+                std::cout << "\nKukaJAVAdriver sending armposition command:" <<armState_.commandedPosition_goal<<"\n";
                  break;
               }
               case flatbuffer::ArmState::ArmState_TeachArm: {
@@ -303,9 +322,12 @@ namespace grl { namespace robot { namespace arm {
               default:
                  std::cerr << "KukaJAVAdriver unsupported use case: " << armControlMode_ << "\n";
           }
+        
+          auto name = fbbP->CreateString(std::get<RobotName>(params_));
+
+          auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,name,commandInterface_,monitorInterface_);
           
-          
-          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState);
+          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,1,kukaiiwaArmConfiguration);
           
           auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
           
@@ -345,10 +367,23 @@ namespace grl { namespace robot { namespace arm {
       std::unique_ptr<std::thread> driver_threadP;
       std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
  
+ 
+ 
      /**
       * \brief Set the joint positions for the current interpolation step.
-      * 
-      * This method is only effective when the client is in a commanding state.
+      *
+      * This method is only effective when the robot is in a commanding state 
+      * and the set time point for reaching the destination is in the future.
+      * This function sets the goal time point for a motion to the epoch, aka "time 0" (which is in the past) for safety.
+      *
+      *
+      * For position based motion to work, you must set both the position you want and the time you want it to get there.
+      * This is required because the robot can move extremely fast, so accidentally setting the velocity to the max is
+      * very dangerous. If the time point is in the past, the robot will not move. If the time point is too near in the future
+      * to make it, the robot will move at the max speed towards that position.
+      *
+      * @see KukaFRIdriver::set(TimePoint && time, time_point_command_tag) to set the destination time point in the future so the position motion can start.
+      *
       * @param state Object which stores the current state of the robot, including the command to send next
       * @param range Array with the new joint positions (in radians)
       * @param tag identifier object indicating that revolute joint angle commands should be modified
@@ -356,9 +391,63 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armPosition_.clear();
-       boost::copy(range, std::back_inserter(armPosition_));
+       armState_.clearCommands();
+       boost::copy(range, std::back_inserter(armState_.commandedPosition));
+       boost::copy(range, std::back_inserter(armState_.commandedPosition_goal));
     }
+    
+    /**
+     *  @brief set the interface over which commands are sent (FRI interface, alternately SmartServo/DirectServo == JAVA interface, )
+     */
+    void set(flatbuffer::KUKAiiwaInterface cif, command_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       commandInterface_ = cif;
+    }
+    
+    /**
+     *  @brief set the interface over which state is monitored (FRI interface, alternately SmartServo/DirectServo == JAVA interface, )
+     */
+    void set(flatbuffer::KUKAiiwaInterface mif, state_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       commandInterface_ = mif;
+    }
+    
+    /**
+     * @brief Set the time duration expected between new position commands
+     *
+     * The driver will likely be updated every so often, such as every 25ms, and the lowest level of the
+     * driver may update even more frequently, such as every 1ms. By providing as accurate an
+     * estimate between high level updates the low level driver can smooth out the motion through
+     * interpolation (the default), or another algorithm. See LowLevelStepAlgorithmType template parameter
+     * in the KukaFRIdriver class if you want to change out the low level algorithm.
+     *
+     * @see KukaFRIdriver::get(time_duration_command_tag)
+     *
+     * @param duration_to_goal_command std::chrono time format representing the time duration between updates
+     *
+     */
+    template<typename TimeDuration>
+    void set(TimeDuration && duration_to_goal_command, time_duration_command_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       armState_.goal_position_command_time_duration = duration_to_goal_command;
+    }
+    
+    
+    
+    /**
+     * @brief Get the timestamp of the most recent armState
+     *
+     *
+     *
+     * @see KukaFRIdriver::set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag)
+     *
+     */
+    KukaState::time_point_type get(time_point_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       return armState_.timestamp;
+    }
+    
+    
   
      /**
       * \brief Set the applied joint torques for the current interpolation step.
@@ -374,8 +463,8 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       //armState.commandedTorque.clear();
-      //boost::copy(range, std::back_inserter(armState.commandedTorque));
+       armState_.clearCommands();
+      boost::copy(range, armState_.commandedTorque);
     }
  
    
@@ -403,21 +492,15 @@ namespace grl { namespace robot { namespace arm {
    template<typename Range>
    void set(Range&& range, grl::cartesian_wrench_command_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-      //std::copy(range,armState.commandedCartesianWrenchFeedForward);
-    }
-    
-    /// @todo implement get function
-    template<typename OutputIterator>
-    void get(OutputIterator /*output*/, grl::revolute_joint_angle_open_chain_state_tag)
-    {
-        BOOST_VERIFY(false); // not implemented yet
+       armState_.clearCommands();
+      std::copy(range,armState_.commandedCartesianWrenchFeedForward);
     }
     
    /// @todo should this exist? is it written correctly?
    void get(KukaState & state)
    {
      boost::lock_guard<boost::mutex> lock(jt_mutex);
-     //state = armState;
+     state = armState_;
    }
    
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
@@ -431,8 +514,21 @@ namespace grl { namespace robot { namespace arm {
     
 
       Params params_;
+      KukaState armState_;
+        // armControlMode is the current GRL_Driver.java configuration to which the arm is currently set.
+        // Options are:
+        //  ArmState_NONE = 0,
+        //  ArmState_StartArm = 1,
+        //  ArmState_StopArm = 2,
+        //  ArmState_PauseArm = 3,
+        //  ArmState_ShutdownArm = 4,
+        //  ArmState_TeachArm = 5,
+        //  ArmState_MoveArmTrajectory = 6,
+        //  ArmState_MoveArmJointServo = 7,
+        //  ArmState_MoveArmCartesianServo = 8
       flatbuffer::ArmState                 armControlMode_;
-      JointScalar                          armPosition_;
+      flatbuffer::KUKAiiwaInterface commandInterface_ = flatbuffer::KUKAiiwaInterface_SmartServo;// KUKAiiwaInterface_SmartServo;
+       flatbuffer::KUKAiiwaInterface monitorInterface_ = flatbuffer::KUKAiiwaInterface_FRI;
 //      flatbuffers::FlatBufferBuilder       builder_;
 //      
 //      flatbuffer::JointStateBuilder        jointStateServoBuilder_;

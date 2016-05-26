@@ -40,6 +40,7 @@ namespace grl { namespace robot { namespace arm {
 
       enum ParamIndex {
         RobotName,
+        RobotModel,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
@@ -60,6 +61,7 @@ namespace grl { namespace robot { namespace arm {
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
           > Params;
 
@@ -67,6 +69,7 @@ namespace grl { namespace robot { namespace arm {
       static const Params defaultParams(){
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
+            "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
@@ -101,15 +104,15 @@ namespace grl { namespace robot { namespace arm {
             || boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
         {
           FRIdriverP_.reset(
-              new grl::robot::arm::KukaFRIdriver(
+              new grl::robot::arm::KukaFRIdriver<LinearInterpolation>(
                   //device_driver_io_service,
                   std::make_tuple(
+                      std::string(std::get<RobotModel                  >        (params)),
                       std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
                       std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
                       std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
                       std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
-                      ms_per_tick ,
-                      grl::robot::arm::KukaFRIClientDataDriver::run_automatically
+                      grl::robot::arm::KukaFRIClientDataDriver<LinearInterpolation>::run_automatically
                       )
                   )
 
@@ -118,7 +121,9 @@ namespace grl { namespace robot { namespace arm {
         }
 
         /// @todo implement reading configuration in both FRI and JAVA mode from JAVA interface
-        if(    boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA"))){
+        if(    boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA"))
+            || boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+        {
         try {
           JAVAdriverP_ = boost::make_shared<KukaJAVAdriver>(params_);
           JAVAdriverP_->construct();
@@ -171,19 +176,43 @@ namespace grl { namespace robot { namespace arm {
           if (debug) {
             std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
           }
+        
+        
+          /////////////////////////////////////////
+          // Do some configuration
+          if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+          {
+            // configure to send commands over FRI interface
+            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface_FRI,command_tag());
+          }
+        
+          if(boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
+          {
+            // configure to send commands over FRI interface
+            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface_FRI,state_tag());
+          }
+
 
           /////////////////////////////////////////
-          // Client sends to server asynchronously!
+          // set new destination
+        
           if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
           {
             JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
+          
+            // configure to send commands over JAVA interface
+            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface_SmartServo,command_tag());
+          
           }
         
+          // sync JAVA driver with the robot, note client sends to server asynchronously!
           haveNewData = JAVAdriverP_->run_one();
         
           if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("JAVA")))
           {
             JAVAdriverP_->get(armState_);
+            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface_SmartServo,state_tag());
+          
           }
         }
         
@@ -253,6 +282,47 @@ namespace grl { namespace robot { namespace arm {
     }
  
    
+    /**
+     * @brief Set the time duration expected between new position commands in ms
+     *
+     * The driver will likely be updated every so often, such as every 25ms, and the lowest level of the
+     * driver may update even more frequently, such as every 1ms. By providing as accurate an
+     * estimate between high level updates the low level driver can smooth out the motion through
+     * interpolation (the default), or another algorithm. See LowLevelStepAlgorithmType template parameter
+     * in the KukaFRIdriver class if you want to change out the low level algorithm.
+     *
+     * @see KukaFRIdriver::get(time_duration_command_tag)
+     *
+     * @param duration_to_goal_command std::chrono time format representing the time duration between updates
+     *
+     */
+    void set(double duration_to_goal_command, time_duration_command_tag tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       armState_.goal_position_command_time_duration = duration_to_goal_command;
+       if(FRIdriverP_)
+       {
+         FRIdriverP_->set(duration_to_goal_command,tag);
+       }
+       if(JAVAdriverP_)
+       {
+         JAVAdriverP_->set(duration_to_goal_command,tag);
+       }
+    }
+    
+    
+    /**
+     * @brief Get the timestamp of the most recent armState
+     *
+     *
+     *
+     * @see KukaFRIdriver::set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag)
+     *
+     */
+    KukaState::time_point_type get(time_point_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       return armState_.timestamp;
+    }
+
      /**
       * \brief Set the applied wrench vector of the current interpolation step.
       * 
@@ -327,12 +397,10 @@ namespace grl { namespace robot { namespace arm {
 
     private:
 
-      /// @todo read ms_per_tick from JAVA interface
-      std::size_t ms_per_tick = 1;
       KukaState armState_;
 
       boost::mutex jt_mutex;
-      boost::shared_ptr<KukaFRIdriver> FRIdriverP_;
+      boost::shared_ptr<KukaFRIdriver<LinearInterpolation>> FRIdriverP_;
       boost::shared_ptr<KukaJAVAdriver> JAVAdriverP_;
 
       Params params_;

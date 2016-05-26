@@ -45,7 +45,7 @@ namespace grl {
      *
      * This class contains code to offer a simple communication layer between ROS and the KUKA LBR iiwa
      *
-     *
+     * @todo Main Loop Update Rate must be supplied to underlying Driver for FRI mode. see KukaLBRiiwaVrepPlugin for reference, particularly kukaDriverP_->set(simulationTimeStep_,time_duration_command_tag());
      */
     class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin> 
     {
@@ -53,6 +53,7 @@ namespace grl {
 
       enum ParamIndex {
         RobotName,
+        RobotModel,
         LocalZMQAddress,
         RemoteZMQAddress,
         LocalHostKukaKoniUDPAddress,
@@ -72,6 +73,7 @@ namespace grl {
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
           > Params;
 
@@ -79,6 +81,7 @@ namespace grl {
       static const Params defaultParams(){
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
+            "KUKA_LBR_IIWA_14_R820"      , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
@@ -94,6 +97,7 @@ namespace grl {
             ::ros::NodeHandle nh_tilde("~");
             
             nh_tilde.getParam("RobotName",std::get<RobotName>(params));
+            nh_tilde.getParam("RobotModel",std::get<RobotModel>(params));
             nh_tilde.getParam("LocalZMQAddress",std::get<LocalZMQAddress>(params));
             nh_tilde.getParam("RemoteZMQAddress",std::get<RemoteZMQAddress>(params));
             nh_tilde.getParam("LocalHostKukaKoniUDPAddress",std::get<LocalHostKukaKoniUDPAddress>(params));
@@ -140,7 +144,7 @@ namespace grl {
 
 
       KukaLBRiiwaROSPlugin(Params params = defaultParams())
-        : params_(params), nh_(""), debug(false)
+        : debug(false),params_(params), nh_("")
       {
         loadRosParams(params_);
       }
