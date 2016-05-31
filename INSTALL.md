@@ -9,14 +9,14 @@ Easy Installation for OS X and Linux
 
 The easy installation instructions work on OS X via homebrew and Ubuntu 14.04 Linux via Linuxbrew.
 
-**ROS users:** 
+**ROS users:**
 
 Install ROS before following these instructions.
 
 **Linux users:**
 
 Please note that on Linux these instructions will build many dependencies from source
-and install them in `~/.linuxbrew`, so if you need to use specific versions that are 
+and install them in `~/.linuxbrew`, so if you need to use specific versions that are
 already installed these instructions may not work for you! ROS users, this may mean you!
 
 Also on linux you may want to use `brew install libname --env=inherit`
@@ -35,7 +35,7 @@ so it uses your native environment variable configuration.
     export INFOPATH="$HOME/.linuxbrew/share/info:$INFOPATH"
 3. Check that it is setup correctly `brew help` should output the homebrew help.
 4. OS X only - install [Homebrew Cask](http://caskroom.io/) `brew install caskroom/cask/brew-cask`
-5. 
+5.
 
 ```
 brew tap homebrew/science # [homebrew-science](http://brew.sh/homebrew-science/) contains many scientific libraries, such as OpenCV and pcl
@@ -64,12 +64,12 @@ Now follow the instructions in:
 
 [KUKA LBR iiwa Java Setup](https://ahundt.github.io/grl/howto/iiwaKukaRobotSetup.html)
 
-**ROS Users:** 
+**ROS Users:**
 
-We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack) 
+We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack)
 in addition to grl for full ROS integration.
 
-Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack) 
+Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack)
 which is integrated with grl and provides full blown system integration tools
 for many typical robot arm tasks such as pick and place operations.
 
@@ -90,14 +90,21 @@ These instructions are for manually installing the ubuntu 14.04 package dependen
 
 ```
 sudo apt-get install libtool pkg-config build-essential autoconf automake
-sudo apt-get install libboost-all-dev libeigen3-dev libopencv-dev 
+sudo apt-get install libboost-all-dev libeigen3-dev libopencv-dev
 ```
 
 #### [ceres-solver](http://ceres-solver.org/building.html#linux) setup
 
 ```
+# boost
+You need to install and compile the latest boost version (currently is 1.61)
 # CMake
 sudo apt-get install cmake
+
+*** for using the default basis you need to have cmake 2.8 version.
+Cmake >=3.0 causes issues with the cmake-basis-3.1.0 compilation.
+You need to compile the newest version of [cmake-basis](https://cmake-basis.github.io/download.html) and add to the build directory.***
+
 # google-glog + gflags
 sudo apt-get install libgoogle-glog-dev
 # BLAS & LAPACK
@@ -173,7 +180,7 @@ sudo apt-get install libpcl-1.7-all-dev
 ```
 sudo apt-get install libopencv-dev
 sudo add-apt-repository --yes ppa:xqms/opencv-nonfree
-sudo apt-get update 
+sudo apt-get update
 sudo apt-get install libopencv-nonfree-dev
 ```
 
@@ -216,7 +223,7 @@ Package                       | Version    | Language |     Description
 Sunrise Connectivity Suite    | >= 3.0     | Java     | Provided by KUKA, Eclipse based Java platform
 Fast Robot Interface SDK      | >= 3.0     | C++      | Provided by KUKA, drivers for fast robot control
 [CMake BASIS][1]              | >= 3.2     | C++      | Meta-project which makes it easy to create sharable software and libraries that work together.
-[Boost][4]                    | >= 1.54.0  | C++      | Collection of general use C++ libraries.
+[Boost][4]                    | >= 1.61.0  | C++      | Collection of general use C++ libraries.
 [Eigen][14]                   | >= 3.2     | C++      | C++ template library for linear algebra.
 [ZeroMQ][6]                   | >= 4.0     | C++      | High Performance Network Communication Library
 [libsodium][11]               | >= 1.0.4   | C++      | A modern and easy-to-use crypto library used by ZeroMQ.
@@ -240,7 +247,7 @@ Standalone driver C++ dependencies:
 
 ```
     Threads            # pthreads, see CMake documentation
-    ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq 
+    ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq
 	AZMQ        # https://github.com/zeromq/azmq
 	FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
 	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log,chrono}
@@ -255,7 +262,7 @@ You must follow the instructions at https://ahundt.github.io/grl/howto/iiwaKukaR
 
     ROS    # for ROS driver http://www.ros.org/
     V-REP  # for V-REP driver http://coppeliarobotics.com
-    
+
 
 ### Hand Eye Calibration Dependencies
 
@@ -276,7 +283,7 @@ Constrained Optimization based arm path planning dependencies:
 ```
 
     CisstNetlib        # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
-    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin 
+    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin
     sawConstraintController #  used for inverse kinematics plugin https://github.com/jhu-saw/sawConstraintController
 ```
 
@@ -311,11 +318,11 @@ git clone git@github.com:jedisct1/libsodium.git
 cd libsodium/
 sudo make install
 ```
-  
+
   zeromq >=4.0
-  
+
   [azmq](https://github.com/zeromq/azmq)
-  
+
 ```
 git clone git@github.com:zeromq/azmq.git
 cd azmq
@@ -325,7 +332,7 @@ cmake ..
 sudo make -j8 install
 ```
 
-Required dependencies
+Required dependencies (outdated)
 
 BLAS (Ubuntu package: libblas-dev)
 Boost >= 1.4.0 (Ubuntu package: libboost-all-dev)
@@ -340,11 +347,12 @@ GTest
 OpenMP
 
 
+
+
 Standard cmake-basis build steps
 --------------------------------
 
 **you probably don't want to follow these steps**
-
 These are generic instructions for libraries that use cmake-basis.
 I suggest following the easy install instructions instead!
 
