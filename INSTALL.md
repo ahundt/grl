@@ -95,16 +95,18 @@ sudo apt-get install libboost-all-dev libeigen3-dev libopencv-dev
 
 #### [ceres-solver](http://ceres-solver.org/building.html#linux) setup
 
-```
-# boost
+# Boost
 You need to install and compile the latest boost version (currently is 1.61)
+
+```
 # CMake
 sudo apt-get install cmake
-
+```
 *** for using the default basis you need to have cmake 2.8 version.
 Cmake >=3.0 causes issues with the cmake-basis-3.1.0 compilation.
 You need to compile the newest version of [cmake-basis](https://cmake-basis.github.io/download.html) and add to the build directory.***
 
+```
 # google-glog + gflags
 sudo apt-get install libgoogle-glog-dev
 # BLAS & LAPACK
