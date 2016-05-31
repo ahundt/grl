@@ -13,7 +13,7 @@ Prerequisites
 =============
 
 .. raw:: html
-    
+
     <br />
 
 .. The tabularcolumns directive is required to help with formatting the table properly
@@ -30,7 +30,7 @@ Prerequisites
 +---------------------+---------+--------------------------------------------------------------------------------------+
 |Fast Robot Int. SDK  | >= 3.0  | C++       Provided by KUKA, drivers for fast robot control                           |
 +---------------------+---------+--------------------------------------------------------------------------------------+
-|[Boost][4]           | >= 1.54.| C++       Collection of general use C++ libraries.                                   |
+|[Boost][4]           | >= 1.61.| C++       Collection of general use C++ libraries.                                   |
 +---------------------+---------+--------------------------------------------------------------------------------------+
 |[ZeroMQ][6]          | >= 4.0  | C++       High Performance Network Communication Library                             |
 +---------------------+---------+--------------------------------------------------------------------------------------+
@@ -47,7 +47,7 @@ Prerequisites
 
 
 .. raw:: html
-    
+
     <br />
 
 
@@ -110,7 +110,7 @@ files to the installation directory specified using the ``CMAKE_INSTALL_PREFIX``
 option during the configuration of the build tree::
 
     make install
-    
+
 After the successful installation, the build directory can be removed again.
 
 .. _BASIS: http://opensource.andreasschuh.com/cmake-basis/
