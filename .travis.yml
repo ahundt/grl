@@ -1,0 +1,92 @@
+
+# Enable C++ support
+language: cpp
+
+env:
+  global:
+    - NUM_THREADS=4
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      compiler: gcc
+      addons:
+       apt:
+         sources:
+         - sourceline: 'ppa:bzindovic/suitesparse-bugfix-1319687'
+         - sourceline: 'ppa:xqms/opencv-nonfree'
+         - sourceline: 'ppa:ubuntu-toolchain-r/test'
+         packages:
+         - libtool 
+         - pkg-config 
+         - build-essential 
+         - autoconf 
+         - automake
+         - gfortran
+         - libgflags-dev
+         - libgoogle-glog-dev
+         - libboost-all-dev 
+         - libeigen3-dev 
+         - libopenblas-dev
+         - libopencv-dev
+         - libopencv-nonfree-dev
+         - cmake
+         - libgoogle-glog-dev
+         - libatlas-base-dev
+         - libeigen3-dev
+         - libsuitesparse-dev
+         - libzmq3-dev
+
+# dependency install steps
+before_install:   
+  - git clone https://ceres-solver.googlesource.com/ceres-solver
+  - cd ceres-solver
+  - mkdir build
+  - cd build
+  - cmake ..
+  - sudo make --jobs $NUM_THREADS install
+  - cd ../..
+  - 
+  - git clone https://github.com/schuhschuh/cmake-basis.git
+  - cd cmake-basis
+  - mkdir build
+  - cd build
+  - cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
+  - sudo make --jobs $NUM_THREADS install
+  - cd ../..
+  - 
+  - git clone https://github.com/zeromq/azmq.git
+  - cd azmq
+  - mkdir build
+  - cd build
+  - cmake ..
+  - sudo make --jobs $NUM_THREADS install
+  - cd ../..
+  - 
+  - git clone https://github.com/google/flatbuffers.git
+  - cd flatbuffers
+  - mkdir build
+  - cd build
+  - cmake ..
+  - sudo make --jobs $NUM_THREADS install
+  - cd ../..
+  -
+  - git clone https://github.com/hengli/camodocal.git
+  - cd camodocal
+  - mkdir build
+  - cd build
+  - cmake ..
+  - sudo make --jobs $NUM_THREADS install
+  - cd ../..
+# Build steps
+script:
+  - git clone https://github.com/ahundt/grl.git
+  - cd grl
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+#  - sudo make install
+#  - cd ../..

@@ -171,11 +171,15 @@ struct LinearInterpolation {
     // A5 - 130 °/s == 2.268928027593 rad/s
     // A6 - 135 °/s == 2.356194490192 rad/s
     // A1 - 135 °/s == 2.356194490192 rad/s
-    velocity_limits = {
-        1.483529864195 * thisTimeStepS, 1.483529864195 * thisTimeStepS,
-        1.745329251994 * thisTimeStepS, 1.308996938996 * thisTimeStepS,
-        2.268928027593 * thisTimeStepS, 2.356194490192 * thisTimeStepS,
-        2.356194490192 * thisTimeStepS};
+    KukaState::joint_state velocity_limits;
+    velocity_limits.push_back(1.483529864195); // RK: removed secondsPerTick
+    velocity_limits.push_back(1.483529864195);
+    velocity_limits.push_back(1.745329251994);
+    velocity_limits.push_back(1.308996938996);
+    velocity_limits.push_back(2.268928027593);
+    velocity_limits.push_back(2.356194490192);
+    velocity_limits.push_back(2.356194490192);
+
     boost::copy(velocity_limits, &rvelocity_limits[0]);
     // use std::min to ensure commanded change in position remains under the
     // maximum possible velocity for a single timestep
@@ -286,9 +290,8 @@ std::size_t encode(LowLevelStepAlgorithmType &step_alg,
       break;
     default:
       // this is unhandled at the moment...
-      BOOST_THROW_EXCEPTION_CURRENT_FUNCTION;
-      //  BOOST_THROW_EXCEPTION;
-      // boost::throw_exception;
+      BOOST_VERIFY(false);
+      // BOOST_THROW_EXCEPTION_CURRENT_FUNCTION;
       // ClientCommandMode_NO_COMMAND_MODE, anything else that is added in the
       // future and unimplemented
       /// @todo do nothing if in an unsupported command mode? Or do the same as

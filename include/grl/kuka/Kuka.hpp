@@ -134,11 +134,19 @@ copy(std::string model, OutputIterator it,
     // A5 - 130 °/s == 2.268928027593 rad/s
     // A6 - 135 °/s == 2.356194490192 rad/s
     // A1 - 135 °/s == 2.356194490192 rad/s
-    KukaState::joint_state maxVel = {
-        1.483529864195, 1.483529864195, 1.745329251994, 1.308996938996,
-        2.268928027593, 2.356194490192, 2.356194490192};
+
+    KukaState::joint_state maxVel;
+    maxVel.push_back(1.483529864195); // RK: Commented out secondsPerTick
+    maxVel.push_back(1.483529864195);
+    maxVel.push_back(1.745329251994);
+    maxVel.push_back(1.308996938996);
+    maxVel.push_back(2.268928027593);
+    maxVel.push_back(2.356194490192);
+    maxVel.push_back(2.356194490192);
+
     return boost::copy(maxVel, it);
   } else if (boost::iequals(model, KUKA_LBR_IIWA_7_R800)) {
+
     /// @RK: updated the right joint velocity information based
     //  on the 800 model from the KUKA manual
 
@@ -150,8 +158,16 @@ copy(std::string model, OutputIterator it,
     // A5 - 140 °/s  == 2.44346 rad/s
     // A6 - 180 °/s  == 3.14159 rad/s
     // A1 - 180 °/s  == 3.14159 rad/s
-    KukaState::joint_state maxVel = {1.71042, 1.71042, 1.74533, 2.26893,
-                                     2.44346, 3.14159, 3.14159};
+
+    KukaState::joint_state maxVel;
+    maxVel.push_back(1.71042);
+    maxVel.push_back(1.71042);
+    maxVel.push_back(1.74533);
+    maxVel.push_back(2.26893);
+    maxVel.push_back(2.44346);
+    maxVel.push_back(3.14159);
+    maxVel.push_back(3.14159);
+
     return boost::copy(maxVel, it);
   }
 
