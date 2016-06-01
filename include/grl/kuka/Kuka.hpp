@@ -114,47 +114,49 @@ OutputIterator copy(std::string model, OutputIterator it, grl::revolute_joint_ve
     if(boost::iequals(model,KUKA_LBR_IIWA_14_R820))
     {
 
-                    // R820 velocity limits
-                    //A1 - 85 °/s  == 1.483529864195 rad/s
-                    //A2 - 85 °/s  == 1.483529864195 rad/s
-                    //A3 - 100 °/s == 1.745329251994 rad/s
-                    //A4 - 75 °/s  == 1.308996938996 rad/s
-                    //A5 - 130 °/s == 2.268928027593 rad/s
-                    //A6 - 135 °/s == 2.356194490192 rad/s
-                    //A1 - 135 °/s == 2.356194490192 rad/s
-            		KukaState::joint_state maxVel= {
-                    1.483529864195,
-                    1.483529864195,
-                    1.745329251994,
-                    1.308996938996,
-                    2.268928027593,
-                    2.356194490192,
-                    2.356194490192
-                    };
-                    return boost::copy(maxVel,it);
+        // R820 velocity limits
+        //A1 - 85 °/s  == 1.483529864195 rad/s
+        //A2 - 85 °/s  == 1.483529864195 rad/s
+        //A3 - 100 °/s == 1.745329251994 rad/s
+        //A4 - 75 °/s  == 1.308996938996 rad/s
+        //A5 - 130 °/s == 2.268928027593 rad/s
+        //A6 - 135 °/s == 2.356194490192 rad/s
+        //A1 - 135 °/s == 2.356194490192 rad/s
+        
+		KukaState::joint_state maxVel;
+        maxVel.push_back(1.483529864195*secondsPerTick);
+        maxVel.push_back(1.483529864195*secondsPerTick);
+        maxVel.push_back(1.745329251994*secondsPerTick);
+        maxVel.push_back(1.308996938996*secondsPerTick);
+        maxVel.push_back(2.268928027593*secondsPerTick);
+        maxVel.push_back(2.356194490192*secondsPerTick);
+        maxVel.push_back(2.356194490192*secondsPerTick);
+
+        return boost::copy(maxVel,it);
     }
     else if(boost::iequals(model,KUKA_LBR_IIWA_7_R800))
     {
-                    /// @todo these are R820 limits, find the R800 limits in the docs and use them instead
-      
-                    // R820 velocity limits
-                    //A1 - 85 °/s  == 1.483529864195 rad/s
-                    //A2 - 85 °/s  == 1.483529864195 rad/s
-                    //A3 - 100 °/s == 1.745329251994 rad/s
-                    //A4 - 75 °/s  == 1.308996938996 rad/s
-                    //A5 - 130 °/s == 2.268928027593 rad/s
-                    //A6 - 135 °/s == 2.356194490192 rad/s
-                    //A1 - 135 °/s == 2.356194490192 rad/s
-            		KukaState::joint_state maxVel= {
-                    1.483529864195,
-                    1.483529864195,
-                    1.745329251994,
-                    1.308996938996,
-                    2.268928027593,
-                    2.356194490192,
-                    2.356194490192
-                    };
-                    return boost::copy(maxVel,it);
+        /// @todo these are R820 limits, find the R800 limits in the docs and use them instead
+
+        // R820 velocity limits
+        //A1 - 85 °/s  == 1.483529864195 rad/s
+        //A2 - 85 °/s  == 1.483529864195 rad/s
+        //A3 - 100 °/s == 1.745329251994 rad/s
+        //A4 - 75 °/s  == 1.308996938996 rad/s
+        //A5 - 130 °/s == 2.268928027593 rad/s
+        //A6 - 135 °/s == 2.356194490192 rad/s
+        //A1 - 135 °/s == 2.356194490192 rad/s
+        
+		KukaState::joint_state maxVel;
+        maxVel.push_back(1.483529864195*secondsPerTick);
+        maxVel.push_back(1.483529864195*secondsPerTick);
+        maxVel.push_back(1.745329251994*secondsPerTick);
+        maxVel.push_back(1.308996938996*secondsPerTick);
+        maxVel.push_back(2.268928027593*secondsPerTick);
+        maxVel.push_back(2.356194490192*secondsPerTick);
+        maxVel.push_back(2.356194490192*secondsPerTick);
+
+        return boost::copy(maxVel,it);
     }
     
     else return it;
