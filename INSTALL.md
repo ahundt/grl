@@ -181,8 +181,8 @@ sudo apt-get install libopencv-nonfree-dev
 #### [Camodocal](https://github.com/hengli/camodocal)
 
 ```
-git clone https://ceres-solver.googlesource.com/ceres-solver
-cd ceres-solver
+git clone git@github.com:hengli/camodocal.git
+cd camodocal
 mkdir build
 cd build
 cmake ..
