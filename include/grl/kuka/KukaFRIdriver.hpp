@@ -83,7 +83,6 @@ void decode(KUKA::FRI::ClientData &friData, std::size_t msg_size) {
 /// traits". See boost.geometry access and coorinate_type classes for examples
 struct LinearInterpolation {
 
-<<<<<<< HEAD
   /// Default constructor
   /// @todo verify this doesn't corrupt the state of the system
   LinearInterpolation() : armState(KukaState()) {}
@@ -246,143 +245,6 @@ struct LinearInterpolation {
   //              default:
   //                break;
   //            }
-=======
-    /// Default constructor
-    /// @todo verify this doesn't corrupt the state of the system
-    LinearInterpolation()
-    :armState(KukaState())
-    {
-    }
-
-    LinearInterpolation(const KukaState& armState_)
-        :armState(armState_)
-        ,goal_position_command_time_duration_remaining(armState_.goal_position_command_time_duration)
-    {
-        boost::copy(armState_.velocity_limits,std::back_inserter(velocity_limits));
-    };
-
-    // no action by default
-    template<typename ArmDataType, typename CommandModeType>
-    void operator()(ArmDataType&, CommandModeType&){
-      // need to tag dispatch here
-    }
-
-
-    /// @bug motion interpolation and scaling doesn't seem to move in quite the right way, it is much slower and doesn't go to the right place.
-    template<typename ArmData>
-    void operator()(ArmData& friData, revolute_joint_angle_open_chain_command_tag){
-        //switch (friData_->monitoringMsg.robotInfo.controlMode) {
-              // case ControlMode_POSITION_CONTROLMODE:
-              //case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
-
-                    KukaState::joint_state ipoJointPos;
-                    KukaState::joint_state currentJointPos;
-                    KukaState::joint_state diffToGoal;
-                    KukaState::joint_state amountToMove;
-                    KukaState::joint_state commandToSend;
-
-                    double rcurrentJointPos[7];
-                    double rcommandedGoal[7];
-                    double rdiffToGoal[7];
-                    double ramountToMove[7];
-                    double rcommandToSend[7];
-                    double rvelocity_limits[7];
-
-                    // the current "holdposition" joint angles
-                    /// @todo maybe this should be the revolute_joint_angle_interpolated_open_chain_state_tag()? @see kukaFRIalgorithm.hpp
-                    grl::robot::arm::copy(friData.monitoringMsg,std::back_inserter(currentJointPos),revolute_joint_angle_open_chain_state_tag());
-                    boost::copy(currentJointPos,&rcurrentJointPos[0]);
-
-                    // single timestep in ms
-                    int thisTimeStepMS(grl::robot::arm::get(friData.monitoringMsg, grl::time_step_tag()));
-                    double thisTimeStepS = (static_cast<double>(thisTimeStepMS)/1000);
-//                    double secondsPerTick = std::chrono::duration_cast<std::chrono::seconds>(thisTimeStep).count();
-
-
-
-                    // the fraction of the distance to the goal that should be traversed this tick
-                    double fractionOfDistanceToTraverse = static_cast<double>(thisTimeStepMS)/static_cast<double>(goal_position_command_time_duration_remaining);
-
-
-                    boost::copy(armState.commandedPosition_goal,&rcommandedGoal[0]);
-                    // get the angular distance to the goal
-                    // use current time and time to destination to interpolate (scale) goal joint position
-                    boost::transform ( armState.commandedPosition_goal, currentJointPos, std::back_inserter(diffToGoal), [&](double commanded_angle, double current_angle) {return (commanded_angle-current_angle)*fractionOfDistanceToTraverse;});
-                    boost::copy(diffToGoal,&rdiffToGoal[0]);
-
-                    // decrease the time remaining by the current time step
-                    goal_position_command_time_duration_remaining-=thisTimeStepMS;
-
-                    /// @todo correctly pass velocity limits from outside, use "copy" fuction in Kuka.hpp, correctly account for differing robot models. This  *should* be in KukaFRIdriver at the end of this file.
-
-                    // R820 velocity limits
-                    //A1 - 85 °/s  == 1.483529864195 rad/s
-                    //A2 - 85 °/s  == 1.483529864195 rad/s
-                    //A3 - 100 °/s == 1.745329251994 rad/s
-                    //A4 - 75 °/s  == 1.308996938996 rad/s
-                    //A5 - 130 °/s == 2.268928027593 rad/s
-                    //A6 - 135 °/s == 2.356194490192 rad/s
-                    //A1 - 135 °/s == 2.356194490192 rad/s
-            		KukaState::joint_state velocity_limits;
-                    velocity_limits.push_back(1.483529864195);
-                    velocity_limits.push_back(1.483529864195);
-                    velocity_limits.push_back(1.745329251994);
-                    velocity_limits.push_back(1.308996938996);
-                    velocity_limits.push_back(2.268928027593);
-                    velocity_limits.push_back(2.356194490192);
-                    velocity_limits.push_back(2.356194490192);
-
-                    boost::copy(velocity_limits, &rvelocity_limits[0]);
-                    // use std::min to ensure commanded change in position remains under the maximum possible velocity for a single timestep
-                    boost::transform(diffToGoal,velocity_limits,std::back_inserter(amountToMove), [&](double diff,double maxvel) { return boost::math::copysign(std::min(std::abs(diff),maxvel),diff); } );
-
-                    boost::copy(amountToMove,&ramountToMove[0]);
-
-                    // add the current joint position to the amount to move to get the actual position command to send
-                    boost::transform ( currentJointPos, amountToMove, std::back_inserter(commandToSend), std::plus<double>());
-
-                    boost::copy(commandToSend,&rcommandToSend[0]);
-
-                    // send the command
-                    grl::robot::arm::set(friData.commandMsg, commandToSend, grl::revolute_joint_angle_open_chain_command_tag());
-                //break;
-    }
-
-
-    /// @todo look in FRI_Client_SDK_Cpp.zip to see if position must be set for joint torques. Ref files: LBRTorqueSineOverlayClient.cpp, LBRTorqueSineOverlayClient.h, friLBRCommand.cpp, friLBRCommand.h
-    template<typename ArmData>
-    void operator()(ArmData& friData, revolute_joint_torque_open_chain_command_tag){
-
-              //case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
-                grl::robot::arm::set(friData.commandMsg, armState.commandedTorque, grl::revolute_joint_torque_open_chain_command_tag());
-
-                /// @note encode() needs to be updated for each additional supported command type
-                //break;
-    }
-
-
-    /// @todo look in FRI_Client_SDK_Cpp.zip to see if position must be set for cartesian wrench. Ref files: LBRWrenchSineOverlayClient.cpp, LBRWrenchSineOverlayClient.h, friLBRCommand.cpp, friLBRCommand.h
-    template<typename ArmData>
-    void operator()(ArmData& friData, cartesian_wrench_command_tag){
-              // case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
-                // not yet supported
-                grl::robot::arm::set(friData.commandMsg, armState.commandedCartesianWrenchFeedForward, grl::cartesian_wrench_command_tag());
-                //break;
-    }
-
-
-    /// @todo make this accessible via a nonmember function
-    bool hasCommandData()
-    {
-        /// @todo check if duration remaining should be greater than zero or greater than the last tick size
-        return goal_position_command_time_duration_remaining > 0;
-    }
-//    template<typename ArmData>
-//    void operator()(ArmData& clientData, revolute_joint_angle_open_chain_command_tag){
-//              default:
-//                break;
-//            }
->>>>>>> upstream/master
 private:
   // the armstate at initialization of this object
   KukaState armState;
@@ -394,7 +256,6 @@ private:
 /// for the KUKA FRI.
 /// this preps the information for transport over the network
 ///
-<<<<<<< HEAD
 /// @note encode needs to be updated for each additional supported command type
 /// and when updating to newer FRI versions
 template <typename LowLevelStepAlgorithmType = LinearInterpolation>
@@ -436,58 +297,6 @@ std::size_t encode(LowLevelStepAlgorithmType &step_alg,
       /// @todo do nothing if in an unsupported command mode? Or do the same as
       /// the next else if step?
       break;
-=======
-/// @note encode needs to be updated for each additional supported command type and when updating to newer FRI versions
-template<typename LowLevelStepAlgorithmType = LinearInterpolation>
-std::size_t encode(LowLevelStepAlgorithmType& step_alg, KUKA::FRI::ClientData& friData,boost::system::error_code& ec){
-    // reset send counter
-    friData.lastSendCounter = 0;
-
-    // set sequence counters
-    friData.commandMsg.header.sequenceCounter = friData.sequenceCounter++;
-    friData.commandMsg.header.reflectedSequenceCounter = friData.monitoringMsg.header.sequenceCounter;
-
-    KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData.monitoringMsg,KUKA::FRI::ESessionState());
-
-    if((step_alg.hasCommandData() &&
-        (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE))
-      )
-    {
-        KUKA::FRI::EClientCommandMode commandMode = grl::robot::arm::get(friData.monitoringMsg,KUKA::FRI::EClientCommandMode());
-        switch(commandMode) {
-            case ClientCommandMode_POSITION:
-                    step_alg(friData,revolute_joint_angle_open_chain_command_tag());
-                    break;
-            case ClientCommandMode_WRENCH:
-                    step_alg(friData,cartesian_wrench_command_tag());
-                    break;
-            case ClientCommandMode_TORQUE:
-                    step_alg(friData,revolute_joint_torque_open_chain_command_tag());
-                    break;
-            default:
-                    // this is unhandled at the moment...
-                    BOOST_VERIFY(false);
-                    //BOOST_THROW_EXCEPTION_CURRENT_FUNCTION;
-                    // ClientCommandMode_NO_COMMAND_MODE, anything else that is added in the future and unimplemented
-                    /// @todo do nothing if in an unsupported command mode? Or do the same as the next else if step?
-                    break;
-            }
-
-	}
-    else if (
-        !(friData.commandMsg.has_commandData && step_alg.hasCommandData() &&
-        (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE))
-       )
-    {
-        // copy current measured joint position to commanded position only if we *don't* have new command data
-
-        /// @todo should this be different if it is in torque mode?
-        /// @todo allow copying of data directly between commandmsg and monitoringMsg
-        std::vector<double> msg;
-        copy(friData.monitoringMsg,std::back_inserter(msg),revolute_joint_angle_open_chain_command_tag());
-        // copy the previously recorded command over
-        set(friData.commandMsg,msg, grl::revolute_joint_angle_open_chain_command_tag());
->>>>>>> upstream/master
     }
 
   } else if (!(friData.commandMsg.has_commandData &&
