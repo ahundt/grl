@@ -1,6 +1,8 @@
 
 # Enable C++ support
 language: cpp
+matrix:
+  include:
     - os: linux
       dist: trusty
       sudo: required
