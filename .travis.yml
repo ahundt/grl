@@ -1,6 +1,11 @@
 
 # Enable C++ support
 language: cpp
+
+env:
+  global:
+    - NUM_THREADS=4
+
 matrix:
   include:
     - os: linux
@@ -41,15 +46,15 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make install
+  - sudo make --jobs $NUM_THREADS install
   - cd ../..
   - 
   - git clone https://github.com/schuhschuh/cmake-basis.git
-  - cd azmq
+  - cd cmake-basis
   - mkdir build
   - cd build
   - cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
-  - sudo make install
+  - sudo make --jobs $NUM_THREADS install
   - cd ../..
   - 
   - git clone https://github.com/zeromq/azmq.git
@@ -57,7 +62,7 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make install
+  - sudo make --jobs $NUM_THREADS install
   - cd ../..
   - 
   - git clone https://github.com/google/flatbuffers.git
@@ -65,7 +70,7 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make install
+  - sudo make --jobs $NUM_THREADS install
   - cd ../..
   -
   - git clone git@github.com:hengli/camodocal.git
@@ -73,7 +78,7 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make install
+  - sudo make --jobs $NUM_THREADS install
   - cd ../..
 # Build steps
 script:
