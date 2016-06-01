@@ -73,7 +73,7 @@ before_install:
   - sudo make --jobs $NUM_THREADS install
   - cd ../..
   -
-  - git clone git@github.com:hengli/camodocal.git
+  - git clone https://github.com/hengli/camodocal.git
   - cd camodocal
   - mkdir build
   - cd build
