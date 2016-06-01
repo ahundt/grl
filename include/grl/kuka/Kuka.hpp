@@ -118,7 +118,6 @@ constexpr auto KUKA_LBR_IIWA_7_R800 = "KUKA_LBR_IIWA_7_R800";
 /// @brief copy vector of joint velocity limits in radians/s
 ///
 /// @todo R800 velocity limits aren't correct!
-<<<<<<< HEAD
 /// @todo find a better design where this can be expanded for more models of
 /// robot in the future, maybe a std::unordered_map?
 template <typename OutputIterator>
@@ -147,62 +146,6 @@ copy(std::string model, OutputIterator it,
 
     return boost::copy(maxVel, it);
   } else if (boost::iequals(model, KUKA_LBR_IIWA_7_R800)) {
-=======
-/// @todo find a better design where this can be expanded for more models of robot in the future, maybe a std::unordered_map?
-template<typename OutputIterator>
-OutputIterator copy(std::string model, OutputIterator it, grl::revolute_joint_velocity_open_chain_state_constraint_tag)
-{
-    if(boost::iequals(model,KUKA_LBR_IIWA_14_R820))
-    {
-
-        // R820 velocity limits
-        //A1 - 85 °/s  == 1.483529864195 rad/s
-        //A2 - 85 °/s  == 1.483529864195 rad/s
-        //A3 - 100 °/s == 1.745329251994 rad/s
-        //A4 - 75 °/s  == 1.308996938996 rad/s
-        //A5 - 130 °/s == 2.268928027593 rad/s
-        //A6 - 135 °/s == 2.356194490192 rad/s
-        //A1 - 135 °/s == 2.356194490192 rad/s
-        
-		KukaState::joint_state maxVel;
-        maxVel.push_back(1.483529864195*secondsPerTick);
-        maxVel.push_back(1.483529864195*secondsPerTick);
-        maxVel.push_back(1.745329251994*secondsPerTick);
-        maxVel.push_back(1.308996938996*secondsPerTick);
-        maxVel.push_back(2.268928027593*secondsPerTick);
-        maxVel.push_back(2.356194490192*secondsPerTick);
-        maxVel.push_back(2.356194490192*secondsPerTick);
-
-        return boost::copy(maxVel,it);
-    }
-    else if(boost::iequals(model,KUKA_LBR_IIWA_7_R800))
-    {
-        /// @todo these are R820 limits, find the R800 limits in the docs and use them instead
-
-        // R820 velocity limits
-        //A1 - 85 °/s  == 1.483529864195 rad/s
-        //A2 - 85 °/s  == 1.483529864195 rad/s
-        //A3 - 100 °/s == 1.745329251994 rad/s
-        //A4 - 75 °/s  == 1.308996938996 rad/s
-        //A5 - 130 °/s == 2.268928027593 rad/s
-        //A6 - 135 °/s == 2.356194490192 rad/s
-        //A1 - 135 °/s == 2.356194490192 rad/s
-        
-		KukaState::joint_state maxVel;
-        maxVel.push_back(1.483529864195*secondsPerTick);
-        maxVel.push_back(1.483529864195*secondsPerTick);
-        maxVel.push_back(1.745329251994*secondsPerTick);
-        maxVel.push_back(1.308996938996*secondsPerTick);
-        maxVel.push_back(2.268928027593*secondsPerTick);
-        maxVel.push_back(2.356194490192*secondsPerTick);
-        maxVel.push_back(2.356194490192*secondsPerTick);
-
-        return boost::copy(maxVel,it);
-    }
-    
-    else return it;
-}
->>>>>>> upstream/master
 
     /// @RK: updated the right joint velocity information based
     //  on the 800 model from the KUKA manual
