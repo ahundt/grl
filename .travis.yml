@@ -33,7 +33,6 @@ matrix:
          - libeigen3-dev
          - libsuitesparse-dev
          - libzmq3-dev
-         - libpcl-1.7-all-dev
 
 # dependency install steps
 before_install:   
