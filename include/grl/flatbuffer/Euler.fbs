@@ -35,14 +35,10 @@ struct EulerRotation {
   eulerOrder:EulerOrder = xyz;
 }
 
-struct EulerPose { 
+struct EulerPose {
    position:Vector3d;
    rotation:EulerRotation;
 }
-
-
-
-
 
 // These are params, so fields are optional
 // used for configuration of functionality
@@ -72,8 +68,7 @@ table EulerRotationParams {
 // such as the axis on which cartesian impedence is enabled
 //
 // If you are unsure, use the struct above
-table EulerPoseParams { 
+table EulerPoseParams {
    position:Vector3d;
    rotation:EulerRotation;
 }
-

@@ -27,9 +27,9 @@
 
 
 namespace grl { namespace robot { namespace arm {
-    
 
-    /// 
+
+    ///
     ///
     /// @brief Kuka LBR iiwa Primary Multi Mode Driver, supports communication over FRI and JAVA interfaces
     ///
@@ -87,9 +87,9 @@ namespace grl { namespace robot { namespace arm {
       {}
 
       void construct(){ construct(params_);}
-      
+
       bool destruct(){ return JAVAdriverP_->destruct(); }
-      
+
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
@@ -132,18 +132,14 @@ namespace grl { namespace robot { namespace arm {
           /// @todo perhaps allow user to control this?
           //driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
         } catch( boost::exception &e) {
-          e << errmsg_info("KukaDriver: Unable to connect to ZeroMQ Socket from " + 
-                           std::get<LocalZMQAddress>             (params_) + " to " + 
+          e << errmsg_info("KukaDriver: Unable to connect to ZeroMQ Socket from " +
+                           std::get<LocalZMQAddress>             (params_) + " to " +
                            std::get<RemoteZMQAddress>            (params_));
           throw;
         }
-        
+
         }
       }
-
-
-
-
 
 
       const Params & getParams(){
@@ -160,7 +156,7 @@ namespace grl { namespace robot { namespace arm {
       }
 
      /**
-      * spin once 
+      * spin once
       *
       */
       bool run_one(){
@@ -176,8 +172,8 @@ namespace grl { namespace robot { namespace arm {
           if (debug) {
             std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
           }
-        
-        
+
+
           /////////////////////////////////////////
           // Do some configuration
           if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
@@ -185,7 +181,7 @@ namespace grl { namespace robot { namespace arm {
             // configure to send commands over FRI interface
             JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface_FRI,command_tag());
           }
-        
+
           if(boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
           {
             // configure to send commands over FRI interface
@@ -195,42 +191,42 @@ namespace grl { namespace robot { namespace arm {
 
           /////////////////////////////////////////
           // set new destination
-        
+
           if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
           {
             JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
-          
+
             // configure to send commands over JAVA interface
             JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface_SmartServo,command_tag());
-          
+
           }
-        
+
           // sync JAVA driver with the robot, note client sends to server asynchronously!
           haveNewData = JAVAdriverP_->run_one();
-        
+
           if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("JAVA")))
           {
             JAVAdriverP_->get(armState_);
             JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface_SmartServo,state_tag());
-          
+
           }
         }
-        
+
         if(FRIdriverP_.get() != nullptr)
         {
           if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
           {
             FRIdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
           }
-        
+
           haveNewData = FRIdriverP_->run_one();
-        
+
           if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
           {
             FRIdriverP_->get(armState_);
           }
         }
-        
+
         return haveNewData;
       }
 
@@ -244,10 +240,34 @@ namespace grl { namespace robot { namespace arm {
             JAVAdriverP_->set(armControlMode);
         }
    }
-   
+
+   void set(const std::string dummy_msg)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(dummy_msg);
+        }
+   }
+
+   void set(grl::flatbuffer::Vector3d cart_stifness_trans, grl::flatbuffer::EulerRotation cart_stifness_rot,cart_stiffness_values)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(cart_stifness_trans,cart_stifness_rot,cart_stiffness_values());
+        }
+   }
+
+   void set(grl::flatbuffer::Vector3d cart_dampig_trans, grl::flatbuffer::EulerRotation cart_damping_rot,cart_damping_values)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(cart_dampig_trans,cart_damping_rot,cart_damping_values());
+        }
+   }
+
      /**
       * \brief Set the joint positions for the current interpolation step.
-      * 
+      *
       * This method is only effective when the client is in a commanding state.
       * @param state Object which stores the current state of the robot, including the command to send next
       * @param range Array with the new joint positions (in radians)
@@ -259,17 +279,17 @@ namespace grl { namespace robot { namespace arm {
        armState_.clearCommands();
        boost::copy(range, std::back_inserter(armState_.commandedPosition));
        boost::copy(range, std::back_inserter(armState_.commandedPosition_goal));
-       
+
           std::cout << "set commandedpos:" << armState_.commandedPosition;
     }
-  
+
      /**
       * \brief Set the applied joint torques for the current interpolation step.
-      * 
+      *
       * This method is only effective when the client is in a commanding state.
       * The ControlMode of the robot has to be joint impedance control mode. The
       * Client Command Mode has to be torque.
-      * 
+      *
       * @param state Object which stores the current state of the robot, including the command to send next
       * @param torques Array with the applied torque values (in Nm)
       * @param tag identifier object indicating that the torqe value command should be modified
@@ -280,8 +300,8 @@ namespace grl { namespace robot { namespace arm {
        armState_.clearCommands();
        boost::copy(range, std::back_inserter(armState_.commandedTorque));
     }
- 
-   
+
+
     /**
      * @brief Set the time duration expected between new position commands in ms
      *
@@ -308,8 +328,8 @@ namespace grl { namespace robot { namespace arm {
          JAVAdriverP_->set(duration_to_goal_command,tag);
        }
     }
-    
-    
+
+
     /**
      * @brief Get the timestamp of the most recent armState
      *
@@ -325,19 +345,19 @@ namespace grl { namespace robot { namespace arm {
 
      /**
       * \brief Set the applied wrench vector of the current interpolation step.
-      * 
+      *
       * The wrench vector consists of:
       * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
-      * 
-      * F ... forces (in N) applied along the Cartesian axes of the 
+      *
+      * F ... forces (in N) applied along the Cartesian axes of the
       * currently used motion center.
-      * tau ... torques (in Nm) applied along the orientation angles 
+      * tau ... torques (in Nm) applied along the orientation angles
       * (Euler angles A, B, C) of the currently used motion center.
-      *  
+      *
       * This method is only effective when the client is in a commanding state.
       * The ControlMode of the robot has to be Cartesian impedance control mode. The
       * Client Command Mode has to be wrench.
-      * 
+      *
       * @param state object storing the command data that will be sent to the physical device
       * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
       * @param tag identifier object indicating that the wrench value command should be modified
@@ -350,7 +370,7 @@ namespace grl { namespace robot { namespace arm {
        armState_.clearCommands();
        std::copy(range,armState_.commandedCartesianWrenchFeedForward);
     }
-    
+
     /// @todo implement get function
     template<typename OutputIterator>
     void get(OutputIterator output, grl::revolute_joint_angle_open_chain_state_tag)
@@ -358,7 +378,7 @@ namespace grl { namespace robot { namespace arm {
        boost::unique_lock<boost::mutex> lock(jt_mutex);
         boost::copy(armState_.position,output);
     }
-    
+
     /// @todo implement get function
     template<typename OutputIterator>
     void get(OutputIterator output, grl::revolute_joint_torque_open_chain_state_tag)
@@ -367,23 +387,23 @@ namespace grl { namespace robot { namespace arm {
        boost::copy(armState_.torque,output);
 
     }
-    
+
     template<typename OutputIterator>
     void get(OutputIterator output, grl::revolute_joint_torque_external_open_chain_state_tag)
     {
         boost::unique_lock<boost::mutex> lock(jt_mutex);
         boost::copy(armState_.externalTorque,output);
-            
+
     }
-        
+
     template<typename OutputIterator>
     void get(OutputIterator output, grl::cartesian_external_force_tag)
     {
         boost::unique_lock<boost::mutex> lock(jt_mutex);
         boost::copy(armState_.externalForce,output);
-            
+
     }
-    
+
       volatile std::size_t m_haveReceivedRealDataCount = 0;
       volatile std::size_t m_attemptedCommunicationCount = 0;
       volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
@@ -392,8 +412,8 @@ namespace grl { namespace robot { namespace arm {
       boost::asio::io_service device_driver_io_service;
       std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
       std::unique_ptr<std::thread> driver_threadP;
- 
-    
+
+
 
     private:
 
@@ -407,7 +427,7 @@ namespace grl { namespace robot { namespace arm {
 
       bool debug;
 
-    };    
+    };
 
 }}}// namespace grl::robot::arm
 

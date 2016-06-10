@@ -17,9 +17,12 @@
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/String.h>
 
+#include <cartesian_impedance_msgs/SetCartesianImpedance.h>
+
 #include "grl/kuka/KukaDriver.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
+#include "grl/flatbuffer/KUKAiiwa_generated.h"
 
 
 /// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
@@ -30,7 +33,7 @@ inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream
   size_t last = v.size() - 1;
   for(size_t i = 0; i < v.size(); ++i) {
     out << v[i];
-    if (i != last) 
+    if (i != last)
       out << ", ";
   }
   out << "]";
@@ -41,13 +44,13 @@ namespace grl {
 
   namespace ros {
 
-    /** 
+    /**
      *
      * This class contains code to offer a simple communication layer between ROS and the KUKA LBR iiwa
      *
      * @todo Main Loop Update Rate must be supplied to underlying Driver for FRI mode. see KukaLBRiiwaVrepPlugin for reference, particularly kukaDriverP_->set(simulationTimeStep_,time_duration_command_tag());
      */
-    class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin> 
+    class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin>
     {
     public:
 
@@ -95,7 +98,7 @@ namespace grl {
 
       Params& loadRosParams(Params& params) {
             ::ros::NodeHandle nh_tilde("~");
-            
+
             nh_tilde.getParam("RobotName",std::get<RobotName>(params));
             nh_tilde.getParam("RobotModel",std::get<RobotModel>(params));
             nh_tilde.getParam("LocalZMQAddress",std::get<LocalZMQAddress>(params));
@@ -106,7 +109,7 @@ namespace grl {
             nh_tilde.getParam("RemoteHostKukaKoniUDPPort",std::get<RemoteHostKukaKoniUDPPort>(params));
             nh_tilde.getParam("KukaCommandMode",std::get<KukaCommandMode>(params));
             nh_tilde.getParam("KukaMonitorMode",std::get<KukaMonitorMode>(params));
-            
+
           return params;
       }
 
@@ -177,13 +180,16 @@ namespace grl {
           jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_callback, this);
           jt_pt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectoryPoint>("joint_traj_pt_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_pt_callback, this);
           mode_sub_ = nh.subscribe<std_msgs::String>("interaction_mode", 1000, &KukaLBRiiwaROSPlugin::mode_callback, this);
+
+          dummy_sub_ = nh.subscribe<std_msgs::String>("dummy_topic", 1000, &KukaLBRiiwaROSPlugin::dummy_callback, this);
+          cart_imp_sub_ = nh.subscribe<cartesian_impedance_msgs::SetCartesianImpedance>("set_cartesian_impedance", 1000, &KukaLBRiiwaROSPlugin::set_cartesian_impedance_callback, this);
           ROS_INFO("done creating subscribers");
           //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
 
         params_ = params;
         // keep driver threads from exiting immediately after creation, because they have work to do!
         device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
-        
+
         /// @todo properly support passing of io_service
         KukaDriverP_.reset(
             new grl::robot::arm::KukaDriver(
@@ -269,12 +275,38 @@ namespace grl {
         }
 
       }
+      void dummy_callback(const std_msgs::StringConstPtr &msg)
+      {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+
+        ROS_INFO("Dummy message set!");
+        KukaDriverP_->set(msg->data);
+        //KukaDriverP_->set();
+
+      }
+      void set_cartesian_impedance_callback(const cartesian_impedance_msgs::SetCartesianImpedanceConstPtr &cartImpedance)
+      {
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+            ROS_INFO("stiffness Tx: %f, Ty:%f; Damping: Dx:%f, Dy:%f",cartImpedance->stiffness.translational.x,cartImpedance->stiffness.translational.y,cartImpedance->damping.translational.x,cartImpedance->damping.translational.y);
+
+            //Cartesian stiffness msg values to the flatbuffers
+            grl::flatbuffer::Vector3d cart_stifness_trans(cartImpedance->stiffness.translational.x,cartImpedance->stiffness.translational.y,cartImpedance->stiffness.translational.z);
+            grl::flatbuffer::EulerRotation cart_stifness_rot(cartImpedance->stiffness.rotational.x,cartImpedance->stiffness.rotational.y,cartImpedance->stiffness.rotational.z,grl::flatbuffer::EulerOrder_xyz);
+
+            KukaDriverP_->set(cart_stifness_trans,cart_stifness_rot,cart_stiffness_values());
+
+
+            //Cartesian damping values pass to the flatbuffers
+            grl::flatbuffer::Vector3d cart_damping_trans(cartImpedance->damping.translational.x,cartImpedance->damping.translational.y,cartImpedance->damping.translational.z);
+            grl::flatbuffer::EulerRotation cart_damping_rot(cartImpedance->damping.rotational.x,cartImpedance->damping.rotational.y,cartImpedance->damping.rotational.z,grl::flatbuffer::EulerOrder_xyz);
+
+            KukaDriverP_->set(cart_damping_trans,cart_damping_rot,cart_damping_values());
+      }
 
       /// ROS joint trajectory callback
       /// this code needs to execute the joint trajectory on the robot
       void jt_pt_callback(const trajectory_msgs::JointTrajectoryPointConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
-
 
           // positions velocities ac
           if (msg->positions.size() != KUKA::LBRState::NUM_DOF) {
@@ -305,10 +337,10 @@ namespace grl {
         }
       }
 
-     /// 
+     ///
      /// @brief spin once, call this repeatedly to run the driver
-     /// 
-     /// 
+     ///
+     ///
      bool run_one()
      {
 
@@ -344,7 +376,10 @@ namespace grl {
            case grl::flatbuffer::ArmState_ShutdownArm:
              break;
            default:
-             ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode!");
+            if (debug) {
+            ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode!");
+            }
+
          }
 
          haveNewData = KukaDriverP_->run_one();
@@ -389,18 +424,23 @@ namespace grl {
       // does not exist
       std::vector<double> realJointForce           = { 0, 0, 0, 0, 0, 0, 0 };
 
+      std::string dummy_message;
+
     private:
 
       bool debug;
       grl::flatbuffer::ArmState interaction_mode;
+      // grl::flatbuffer::KUKAiiwaArmConfiguration cart_impedance;
 
       boost::mutex jt_mutex;
       boost::shared_ptr<robot::arm::KukaDriver> KukaDriverP_;
       Params params_;
-      
-      ::ros::Subscriber jt_sub_; // subscribes to joint state trajectories and executes them 
-      ::ros::Subscriber jt_pt_sub_; // subscribes to joint state trajectories and executes them 
+
+      ::ros::Subscriber jt_sub_; // subscribes to joint state trajectories and executes them
+      ::ros::Subscriber jt_pt_sub_; // subscribes to joint state trajectories and executes them
       ::ros::Subscriber mode_sub_; // subscribes to interaction mode messages (strings for now)
+      ::ros::Subscriber dummy_sub_;
+      ::ros::Subscriber cart_imp_sub_;
 
       ::ros::Publisher js_pub_; // publish true joint states from the KUKA
 
@@ -408,6 +448,7 @@ namespace grl {
       sensor_msgs::JointState current_js_;
 
       ::ros::NodeHandle nh_;
+
 
     };
   }

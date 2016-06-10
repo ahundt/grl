@@ -67,26 +67,26 @@ public class GRL_Driver extends RoboticsAPIApplication
 	private Controller _lbrController;
 	private LBR _lbr;
 	private StartStopSwitchUI _startStopUI = null;
-	
+
 	/// The interface on which commands are being sent to the robot controller (this program),
 	/// includes SmartServo, DirectServo, and FRI
 	private byte _commandInterface = KUKAiiwaInterface.SmartServo;
-	
+
 	/// The interface on which monitor data is being sent to the Laptop (C++ program over network)
 	/// This can be FRI (udp packets over KONI port for monitoring state) (works by default)
 	/// or SmartServo/DirectServo (JAVA ZMQ interface will be used to send position/torques back (not yet implemented)
 	private byte _monitorInterface = KUKAiiwaInterface.SmartServo;
-	
+
 	private FRIConfiguration _friConfiguration = null;
 	private FRISession       _friSession = null;
 	private FRIJointOverlay  _motionOverlay = null;
 	private FRIMode _FRIModeRunnable = null;
 	private Thread _FRIModeThread = null;
     boolean waitingForUserToEndFRIMode = false;
-	
+
 	private SmartServo         _smartServoMotion = null;
 	private ISmartServoRuntime _smartServoRuntime = null;
-	
+
 	private grl.flatbuffer.KUKAiiwaState _currentKUKAiiwaState = null;
 	private grl.flatbuffer.KUKAiiwaState _previousKUKAiiwaState = null;
 	private AbstractMotionControlMode _activeMotionControlMode;
@@ -114,14 +114,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 
     static final boolean _flexFellowPresent = false; // this is a white an orange robot cart you can attach your arm to
 	static final boolean _mediaFlangeIOPresent = false;
-	
+
 	private boolean _canServo = true;
 	// when we receive a message
 	int message_counter = 0;
 	int message_counter_since_last_mode_change = 0;
-    
+
 //    private FlexFellowIOGroup _flexFellowIOGroup;
-	
+
 	@Override
 	public void initialize()
 	{
@@ -129,7 +129,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_processDataManager = new ProcessDataManager(this);
 		_lbrController = (Controller) getContext().getControllers().toArray()[0];
 		_lbr = (LBR) _lbrController.getDevices().toArray()[0];
-		
+
 //		if(_flexFellowPresent) _flexFellowIOGroup = new FlexFellowIOGroup(_lbrController);
 		if(_mediaFlangeIOPresent) {
 //			_mediaFlangeIOGroup = new MediaFlangeIOGroup(_lbrController);
@@ -155,7 +155,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_toolAttachedToLBR.attachTo(_lbr.getFlange());
 
 		_jointLimits = _lbr.getJointLimits();
-		
+
 		// used when setting limits in _HandGuidingMotion
 		_maxAllowedJointLimits = _jointLimits.getMaxJointPosition().get();
 		_minAllowedJointLimits = _jointLimits.getMinJointPosition().get();
@@ -168,7 +168,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_teachControlMode = new JointImpedanceControlMode(_lbr.getJointCount())
 								.setStiffnessForAllJoints(0.1)
 								.setDampingForAllJoints(0.7);
-	
+
 
 		_teachModeRunnable = new TeachMode(
 				_flangeAttachment,
@@ -178,7 +178,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_teachModeThread = new Thread(_teachModeRunnable);
 		_teachModeThread.start();
 
-		
+
 
 		_FRIModeRunnable = new FRIMode(
 				_lbr,
@@ -187,7 +187,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_FRIModeThread = new Thread(_FRIModeRunnable);
 		_FRIModeThread.start();
 	}
-	
+
 
 	@Override
 	public void run()
@@ -197,7 +197,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		// connect to the controlling application via ZeroMQ
 		ZMQManager zmq = new ZMQManager(_processDataManager.get_ZMQ_MASTER_URI(),getLogger());
-		
+
 		// if stop is ever set to true the program stops running and exits
 		boolean stop = zmq.connect();
 		IMotionContainer currentMotion = null;
@@ -206,15 +206,17 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		// TODO: Let user set mode (teach/joint control from tablet as a backup!)
 		//this.getApplicationData().getProcessData("DefaultMode").
-		
 
-		
+
+     // Printing dummy message:
+		 getLogger().info("DUMMY: " + _currentKUKAiiwaState.dummy());
+		 
 		// TODO: add a message that we send to the driver with data log strings
 		while (!stop && !_startStopUI.is_stopped()) {
 			message_counter+=1;
 			_currentKUKAiiwaState = zmq.waitForNextMessage();
 			_previousKUKAiiwaState = zmq.getPrevMessage();
-			
+
 
 			//////////////////////////////////////////
 			// Process Arm Configuration staring here, such as Changing from FRI to SmartServo based commanding
@@ -230,9 +232,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 			}
 
 			//////////////////////////////////////////
-			// Process Arm Control Commands staring here, such as new joint angles or switching to teach mode 
+			// Process Arm Control Commands staring here, such as new joint angles or switching to teach mode
 			//////////////////////////////////////////
-			
+
 			// Print out a notice when switching modes
 			if( message_counter == 1 || (_previousKUKAiiwaState != null && _previousKUKAiiwaState.armControlState() != null &&
 					_currentKUKAiiwaState.armControlState().stateType() != _previousKUKAiiwaState.armControlState().stateType()))
@@ -262,7 +264,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				if(message_counter!=1 && (_previousKUKAiiwaState == null || _previousKUKAiiwaState.armControlState()==null)) {
 					continue;
 				}
-				else if(message_counter==1  
+				else if(message_counter==1
 						|| _currentKUKAiiwaState.armControlState().stateType()!=_previousKUKAiiwaState.armControlState().stateType()
 						|| (currentMotion != null && currentMotion.isFinished()) ) {
 					// Teach mode, changing from some other mode
@@ -274,7 +276,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 							getLogger().info("Hand Guiding Motion has finished!");
 						}
 					}
-					
+
                     if(!cancelSmartServo()) continue;
 
 					getLogger().warn("Enabling Teach Mode with gravity compensation. mode id code = " +
@@ -286,12 +288,12 @@ public class GRL_Driver extends RoboticsAPIApplication
 					// trying to use kuka's provided handguidingmotion but it isn't working now.
 					// using an if statement to default to old behavior.
 					boolean useHandGuidingMotion = true;
-					
+
 					if(useHandGuidingMotion)
 					{
-						
+
 						_teachModeRunnable.enable();
-							
+
 						getLogger().warn("Started teach thread!");
 					}
 					else
@@ -299,7 +301,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 						currentMotion = _flangeAttachment.moveAsync(positionHold(_teachControlMode, -1, TimeUnit.SECONDS));
 					}
 				}
-				
+
 			}
 			else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmTrajectory) {
 				///////////////////////////////////////////////
@@ -313,13 +315,13 @@ public class GRL_Driver extends RoboticsAPIApplication
 				// TODO: not fully implemented
 				if(!cancelSmartServo()) continue;
 				if(!cancelTeachMode()) continue;
-                
+
 				if (currentMotion != null) currentMotion.cancel();
-                
+
 
 
 				MoveArmTrajectory mat;
-				if(_currentKUKAiiwaState.armControlState() != null) 
+				if(_currentKUKAiiwaState.armControlState() != null)
 				{
 					mat = (MoveArmTrajectory)_currentKUKAiiwaState.armControlState().state(new MoveArmTrajectory());
 				} else {
@@ -349,7 +351,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 				if (currentMotion != null && _commandInterface!=grl.flatbuffer.KUKAiiwaInterface.FRI) currentMotion.cancel();
 				if(!cancelTeachMode()) continue;
-                
+
 				// create an JointPosition Instance, to play with
 				JointPosition destination = new JointPosition(_lbr.getJointCount());
 
@@ -358,9 +360,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 					continue;
                     // return;
 				}
-                
+
 				MoveArmJointServo mas = (MoveArmJointServo)_currentKUKAiiwaState.armControlState().state(new MoveArmJointServo());
-				
+
 				// start up the motion if not enabled yet
 				if( _smartServoMotion == null) {
 					// make sure this is up
@@ -371,7 +373,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 					// TODO: support more control modes & zmq interface
 					_smartServoMotionControlMode = getMotionControlMode(grl.flatbuffer.EControlMode.CART_IMP_CONTROL_MODE);
 			        /*
-			         * 
+			         *
 			         * Note: The Validation itself justifies, that in this very time
 			         * instance, the load parameter setting was sufficient. This does not
 			         * mean by far, that the parameter setting is valid in the sequel or
@@ -394,7 +396,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			            getLogger().info("Omitting validation failure for this sample\n"
 			                    + e.getMessage());
 			        }
-			        
+
 			        // Set the motion properties to % of system abilities. For example .2 is 20% of systems abilities
 			        // TODO: load these over C++ interface
 			        _smartServoMotion
@@ -407,9 +409,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 //					if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightGreen(true);
 			        _toolAttachedToLBR.getDefaultMotionFrame().moveAsync(_smartServoMotion);
 			        getLogger().info("Setting up SmartServo");
-			        
+
 				}
-				
+
 				if (_smartServoRuntime == null) {
 					getLogger().info("Setting up Smart Servo runtime");
 					try {
@@ -427,7 +429,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 						//return;
 					}
 				}
-				
+
 				if(_commandInterface==grl.flatbuffer.KUKAiiwaInterface.FRI){
 
 					// only start a new motion overlay if there isn't a current one actively commanding
@@ -439,10 +441,10 @@ public class GRL_Driver extends RoboticsAPIApplication
 						_FRIModeRunnable.setControlMode(_smartServoMotionControlMode);
 						_FRIModeRunnable.enable();
 					}
-					
+
 					if(message_counter % 100 == 0) getLogger().info("FRI MotionOverlay Quality Sample: " + _friSession.getFRIChannelInformation().getQuality().toString());
 				} else if(_smartServoRuntime != null )  {
-					
+
 					grl.flatbuffer.JointState jointState = mas.goal();
 					if(jointState.positionLength()!=destination.getAxisCount()){
 						if(message_counter_since_last_mode_change % 500 == 0) getLogger().error("Didn't receive correct number of joints! skipping to start of loop...\n");
@@ -456,8 +458,8 @@ public class GRL_Driver extends RoboticsAPIApplication
 						destination.set(k, position);
 					    pos = pos + " " + k + ": " + position;
 					}
-					
-					
+
+
 					try {
 						if(message_counter % 1000 == 0) getLogger().info("Sample of new Smart Servo Joint destination " + pos);
 						_smartServoRuntime.setDestination(destination);
@@ -484,14 +486,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 					currentMotion.cancel();
 				}
 				if(!cancelTeachMode()) continue;
-				
+
 				//tm.setActive(false);
 			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.PauseArm) {
-		
+
 				if (currentMotion != null) currentMotion.cancel();
 				if(!cancelTeachMode()) continue;
 				if(!cancelSmartServo()) continue;
-				
+
 				PositionControlMode controlMode = new PositionControlMode();
 				if(message_counter_since_last_mode_change < 2 || message_counter_since_last_mode_change % 100 == 0){
 					_lbr.move(positionHold(controlMode,10,TimeUnit.MILLISECONDS));
@@ -501,9 +503,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 				System.out.println("Unsupported Mode! stopping");
 				stop = true;
 			}
-            
+
             /// TODO: add sending commands back to the C++ interface here, add appropriate call to zmq object, pay close attention to _monitorInterface variable
-			
+
 		} // end primary while loop
 
 
@@ -513,14 +515,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 		if (_updateConfiguration!=null && _updateConfiguration.get_FRISession() != null) {
 			_updateConfiguration.get_FRISession().close();
 		}
-		
+
 		getLogger()
 		.info("ZMQ connection closed.\nExiting...\nThanks for using the\nGRL_Driver from github.com/ahundt/grl\nGoodbye!");
 		//System.exit(1);
 	}
 
 	/**
-	 * 
+	 *
 	 * @return true if teach mode completed successfully; false if we are waiting on a user to press a physical button
 	 */
 	private boolean cancelTeachMode() {
@@ -529,7 +531,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			_canServo = _teachModeRunnable.cancel();
 //			if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightYellow(false);
 
-			if(!_teachModeRunnable.isEnableEnded() && 
+			if(!_teachModeRunnable.isEnableEnded() &&
 				_currentKUKAiiwaState.armControlState().stateType() != grl.flatbuffer.ArmState.TeachArm){
 
 				if(message_counter % 30 == 0) getLogger().warn("Can't Exit Teach Mode Yet,\n Did You Press The Hand Guiding Button?");
@@ -549,11 +551,11 @@ public class GRL_Driver extends RoboticsAPIApplication
 		}
 		return true;
 	}
-	
+
 
 
 	/**
-	 * 
+	 *
 	 * @return true if FRI mode completed successfully; false if we are waiting on a user to press a physical button
 	 */
 	private boolean cancelFRIMode() {
@@ -562,7 +564,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			_canServo = _FRIModeRunnable.cancel();
 //			if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightYellow(false);
 
-			if(!_FRIModeRunnable.isEnableEnded() && 
+			if(!_FRIModeRunnable.isEnableEnded() &&
 				_currentKUKAiiwaState.armControlState().stateType() != grl.flatbuffer.ArmState.MoveArmJointServo){
 
 				if(message_counter % 30 == 0) getLogger().warn("Can't Exit FRI Mode Yet, waiting...");
@@ -582,9 +584,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 		}
 		return true;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @return true if teach mode completed successfully; false if something went wrong
 	 */
     private boolean cancelSmartServo(){
@@ -601,7 +603,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 	/**
 	 * Initialize the appropriate control mode based on passed parameters
-	 * 
+	 *
 	 * @param controlMode grl.flatbuffer.EControlMode
 	 * @return
 	 */
@@ -621,7 +623,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 										.setNullSpaceDamping(0.5)
 										.setNullSpaceStiffness(2)
 										.setMaxControlForce(200, 200, 200, 200, 200, 200, true);
-	        
+
 	        cicm.parametrize(CartDOF.X).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessX());
             cicm.parametrize(CartDOF.Y).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessY());
             cicm.parametrize(CartDOF.Z).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessZ());
@@ -638,7 +640,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 			mcm = cicm;
 		} else if(controlMode==grl.flatbuffer.EControlMode.JOINT_IMP_CONTROL_MODE){
-			
+
 			JointImpedanceControlMode jicm =  new JointImpedanceControlMode(_lbr.getJointCount())
 									.setStiffnessForAllJoints(_processDataManager.get_JointImpedenceStiffness())
 									.setDampingForAllJoints(_processDataManager.get_JointImpedenceDamping());
@@ -669,7 +671,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 	/**
 	 * main.
-	 * 
+	 *
 	 * @param args
 	 *            args
 	 */
