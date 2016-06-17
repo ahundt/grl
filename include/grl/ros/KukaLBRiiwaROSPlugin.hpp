@@ -182,7 +182,7 @@ namespace grl {
           mode_sub_ = nh.subscribe<std_msgs::String>("interaction_mode", 1000, &KukaLBRiiwaROSPlugin::mode_callback, this);
 
           dummy_sub_ = nh.subscribe<std_msgs::String>("dummy_topic", 1000, &KukaLBRiiwaROSPlugin::dummy_callback, this);
-          cart_imp_sub_ = nh.subscribe<cartesian_impedance_msgs::SetCartesianImpedance>("set_cartesian_impedance", 1000, &KukaLBRiiwaROSPlugin::set_cartesian_impedance_callback, this);
+          cart_imp_sub_ = nh.subscribe<cartesian_impedance_msgs::SetCartesianImpedance>("set_cartesian_impedance_params", 1000, &KukaLBRiiwaROSPlugin::set_cartesian_impedance_callback, this);
           ROS_INFO("done creating subscribers");
           //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
 
@@ -253,6 +253,11 @@ namespace grl {
       /// ROS callback to set current interaction mode; determines whether commands will be send in SERVO, TEACH, etc
       void mode_callback(const std_msgs::StringConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
+        // simJointPosition.clear();
+        // //simJointVelocity
+        // simJointVelocity.clear();
+        // //simJointForce
+        // simJointForce.clear();
 
         //std::cerr << "Mode command = " << msg->data.c_str() << "\n";
         if (debug) {
@@ -397,7 +402,6 @@ namespace grl {
 
            //current_js_.velocity.clear();
            //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
-
            current_js_.header.stamp = ::ros::Time::now();
            current_js_.header.seq += 1;
            js_pub_.publish(current_js_);

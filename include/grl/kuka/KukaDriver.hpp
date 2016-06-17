@@ -237,6 +237,9 @@ namespace grl { namespace robot { namespace arm {
    {
         if(JAVAdriverP_)
         {
+            armState_.clearCommands();
+            JAVAdriverP_->set(armState_.position,revolute_joint_angle_open_chain_command_tag());
+          //  JAVAdriverP_->set(armState_.torque,revolute_joint_angle_open_chain_command_tag());
             JAVAdriverP_->set(armControlMode);
         }
    }
