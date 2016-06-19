@@ -306,6 +306,32 @@ namespace grl {
             grl::flatbuffer::EulerRotation cart_damping_rot(cartImpedance->damping.rotational.x,cartImpedance->damping.rotational.y,cartImpedance->damping.rotational.z,grl::flatbuffer::EulerOrder_xyz);
 
             KukaDriverP_->set(cart_damping_trans,cart_damping_rot,cart_damping_values());
+
+            //Max Cartesian Path deviation when in cartesian impedance
+            //Cartesian max Cartesian velocities [m] for translation and [rad] for rotation
+            grl::flatbuffer::Vector3d cart_max_path_dev_trans(cartImpedance->max_path_deviation.translation.x,cartImpedance->max_path_deviation.translation.y,cartImpedance->max_path_deviation.translation.z);
+            grl::flatbuffer::EulerRotation cart_max_path_dev_vel_rot(cartImpedance->max_path_deviation.rotation.x,cartImpedance->max_path_deviation.rotation.y,cartImpedance->max_path_deviation.rotation.z,grl::flatbuffer::EulerOrder_xyz);
+
+            grl::flatbuffer::EulerPose cart_max_path_deviation(cart_max_path_dev_trans,cart_max_path_dev_vel_rot);
+            KukaDriverP_->set(cart_max_path_deviation,max_path_deviation());
+
+
+            //Max Cartesian velocities [m/s] for translation and [rad/s] for rotation
+            grl::flatbuffer::Vector3d cart_max_ctrl_vel_trans(cartImpedance->max_cart_vel.set.linear.x,cartImpedance->max_cart_vel.set.linear.y,cartImpedance->max_cart_vel.set.linear.z);
+            grl::flatbuffer::EulerRotation cart_max_ctrl_vel_rot(cartImpedance->max_cart_vel.set.angular.x,cartImpedance->max_cart_vel.set.angular.y,cartImpedance->max_cart_vel.set.angular.z,grl::flatbuffer::EulerOrder_xyz);
+
+            grl::flatbuffer::EulerPose cart_max_ctrl_vel(cart_max_ctrl_vel_trans,cart_max_ctrl_vel_rot);
+            KukaDriverP_->set(cart_max_ctrl_vel,max_cart_vel());
+
+            //Max Control Force [N] for translation and [Nm] for rotation
+            grl::flatbuffer::Vector3d cart_max_ctrl_force_trans(cartImpedance->max_ctrl_force.set.force.x,cartImpedance->max_ctrl_force.set.force.y,cartImpedance->max_ctrl_force.set.force.z);
+            grl::flatbuffer::EulerRotation cart_max_ctrl_force_rot(cartImpedance->max_ctrl_force.set.torque.x,cartImpedance->max_ctrl_force.set.torque.y,cartImpedance->max_ctrl_force.set.torque.z,grl::flatbuffer::EulerOrder_xyz);
+
+            grl::flatbuffer::EulerPose cart_max_ctrl_force(cart_max_ctrl_force_trans,cart_max_ctrl_force_rot);
+            KukaDriverP_->set(cart_max_ctrl_force,max_ctrl_force());
+
+
+
       }
 
       /// ROS joint trajectory callback

@@ -91,19 +91,19 @@ table CartesianImpedenceControlMode {
   damping:EulerPoseParams;
   //
   // /// maximum deviation from set goal in mm and radians
-  // maxPathDeviation:EulerPose;
+    maxPathDeviation:EulerPose;
   // /// sets the maximum joint speed
   // maxJointSpeed:[double];
   // /// trans: [mm/s] rot: [rad/s]
-  // maxCartesianVelocity:EulerPose;
+   maxCartesianVelocity:EulerPose;
   // /// xyz: Newtons rpy:Nm (all >=0)
-  // maxControlForce:EulerPose;
+   maxControlForce:EulerPose;
   // /// stop if max control force is exceeded
   // maxControlForceExceededStop:bool = 0;
   // /// must be between 0.3-1.0 suggested is 0.7
-  // nullspaceDamping:double;
+   nullspaceDamping:double;
   // /// [Nm/rad] must be => 0.0
-  // nullspaceStiffness:double;
+   nullspaceStiffness:double;
 }
 
 
@@ -211,7 +211,7 @@ table KUKAiiwaArmConfiguration {
   //TODO: add support
   setCartImpedance:CartesianImpedenceControlMode;
 
-  
+
   /// motion command mode: cartesian, wrench, torque commands
   clientCommandMode:EClientCommandMode;
   /// The type of commands FRI will use: cartesian, joint

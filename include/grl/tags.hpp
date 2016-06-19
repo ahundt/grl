@@ -39,6 +39,11 @@ namespace grl {
   struct cart_stiffness_values{};
   struct cart_damping_values{};
 
+  struct max_path_deviation{};
+  struct max_cart_vel{};
+  struct max_ctrl_force{};
+  struct null_space_params{};
+
   struct wrench_tag{}; // https://en.wikipedia.org/wiki/Screw_theory#Wrench
 
   /// @todo how close is this to a 1d linestring? Or maybe an nd linestring if you even represent dh params this way?

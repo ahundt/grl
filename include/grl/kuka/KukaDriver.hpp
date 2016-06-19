@@ -268,6 +268,44 @@ namespace grl { namespace robot { namespace arm {
         }
    }
 
+   /***
+   * \brief Set the maximum cartesian path deviation when in Cartesian Impedance
+   */
+
+   void set(grl::flatbuffer::EulerPose cart_max_path_deviation,max_path_deviation)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(cart_max_path_deviation,max_path_deviation());
+        }
+   }
+
+   /***
+   * \brief Set the maximum cartesian velocity when in Cartesian Impedance
+   */
+
+   void set(grl::flatbuffer::EulerPose cart_max_ctrl_vel,max_cart_vel)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(cart_max_ctrl_vel,max_cart_vel());
+        }
+   }
+
+   /***
+   * \brief Set the maximum cartesian control force when in Cartesian Impedance
+   */
+
+   void set(grl::flatbuffer::EulerPose cart_max_ctrl_force,max_ctrl_force)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(cart_max_ctrl_force,max_ctrl_force());
+        }
+   }
+
+
+
      /**
       * \brief Set the joint positions for the current interpolation step.
       *

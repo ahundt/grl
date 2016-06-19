@@ -336,7 +336,7 @@ namespace grl { namespace robot { namespace arm {
           // test->add_rotation(&parms);
           auto stiffnessPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_stifness_trans_,&cart_stifness_rot_);
           auto dampingPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_damping_trans_,&cart_damping_rot_);
-          auto cartImpedance = flatbuffer::CreateCartesianImpedenceControlMode(*fbbP,cartImpValuesChanged,stiffnessPose,dampingPose);
+          auto cartImpedance = flatbuffer::CreateCartesianImpedenceControlMode(*fbbP,cartImpValuesChanged,stiffnessPose,dampingPose,&cart_max_path_deviation_,&cart_max_ctrl_vel_,&cart_max_ctrl_force_);
 
           auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,dummy,name,commandInterface_,monitorInterface_,cartImpedance);
 
@@ -452,6 +452,30 @@ namespace grl { namespace robot { namespace arm {
       cart_damping_rot_   =  cart_damping_rot;
 
       cartImpValuesChanged = true;
+    }
+
+    // Set the max cartesian path deviation in the java driver
+    void set(grl::flatbuffer::EulerPose cart_max_path_deviation,max_path_deviation)
+    {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       cart_max_path_deviation_ =  cart_max_path_deviation;
+       cartImpValuesChanged = true;
+    }
+
+    // Set the max cartesian Velocity in the java driver
+    void set(grl::flatbuffer::EulerPose cart_max_ctrl_vel,max_cart_vel)
+    {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       cart_max_ctrl_vel_ =  cart_max_ctrl_vel;
+       cartImpValuesChanged = true;
+    }
+
+    // Set the max cartesian control force in the java driver
+    void set(grl::flatbuffer::EulerPose cart_max_ctrl_force,max_ctrl_force)
+    {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       cart_max_ctrl_force_ =  cart_max_ctrl_force;
+       cartImpValuesChanged = true;
     }
 
 
@@ -592,6 +616,9 @@ namespace grl { namespace robot { namespace arm {
 
        grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0.3,0.3,0.3);
        grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder_xyz);
+       grl::flatbuffer::EulerPose cart_max_path_deviation_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1,1,1), grl::flatbuffer::EulerRotation(5.,5.,5.,grl::flatbuffer::EulerOrder_xyz));
+       grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1,1,1), grl::flatbuffer::EulerRotation(6.3,6.3,6.3,grl::flatbuffer::EulerOrder_xyz));
+       grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(200,200,200), grl::flatbuffer::EulerRotation(200.,200.,200.,grl::flatbuffer::EulerOrder_xyz));
 
 
 
