@@ -63,7 +63,8 @@ enum EControlMode : byte {
   POSITION_CONTROL_MODE=0,
   CART_IMP_CONTROL_MODE=1,
   JOINT_IMP_CONTROL_MODE=2,
-  NO_CONTROL=3
+  CART_FORCE_CONTROL_MODE=3,
+  NO_CONTROL=4
 }
 
 
@@ -83,14 +84,12 @@ enum EOverlayType : byte {
 
 
 table CartesianImpedenceControlMode {
-  /// did we changed cartesian impedance values?
-  isCartImpedanceSet:bool = false;
-  /// actual stiffness to set rot:[nm/rad]
-  stiffness:EulerPoseParams;
-
-  damping:EulerPoseParams;
-  //
-  // /// maximum deviation from set goal in mm and radians
+    /// did we changed cartesian impedance values?
+    isCartImpedanceSet:bool = false;
+    /// actual stiffness to set rot:[nm/rad]
+    stiffness:EulerPoseParams;
+    damping:EulerPoseParams;
+    // /// maximum deviation from set goal in mm and radians
     maxPathDeviation:EulerPose;
   // /// sets the maximum joint speed
   // maxJointSpeed:[double];
@@ -100,10 +99,19 @@ table CartesianImpedenceControlMode {
    maxControlForce:EulerPose;
   // /// stop if max control force is exceeded
   // maxControlForceExceededStop:bool = 0;
-  // /// must be between 0.3-1.0 suggested is 0.7
-   nullspaceDamping:double;
   // /// [Nm/rad] must be => 0.0
    nullspaceStiffness:double;
+  // /// must be between 0.3-1.0 suggested is 0.7
+   nullspaceDamping:double;
+
+}
+
+table ConstantForceControlMode{
+  isConstFTSet:bool = false;
+  CartDof:string;
+  force:double;
+  stiffness:double;
+
 }
 
 
@@ -210,7 +218,8 @@ table KUKAiiwaArmConfiguration {
 
   //TODO: add support
   setCartImpedance:CartesianImpedenceControlMode;
-
+  //set Cartesian Motion with Constant force at the end-effector
+  setConstCartForce:ConstantForceControlMode;
 
   /// motion command mode: cartesian, wrench, torque commands
   clientCommandMode:EClientCommandMode;

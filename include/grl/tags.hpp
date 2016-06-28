@@ -43,6 +43,7 @@ namespace grl {
   struct max_cart_vel{};
   struct max_ctrl_force{};
   struct null_space_params{};
+  struct set_const_ctrl_force{};
 
   struct wrench_tag{}; // https://en.wikipedia.org/wiki/Screw_theory#Wrench
 

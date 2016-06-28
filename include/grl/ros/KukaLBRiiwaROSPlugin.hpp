@@ -18,11 +18,15 @@
 #include <std_msgs/String.h>
 
 #include <cartesian_impedance_msgs/SetCartesianImpedance.h>
+#include <cartesian_impedance_msgs/SetCartesianForceCtrl.h>
 
 #include "grl/kuka/KukaDriver.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
+
+//this is for conversion fom meters to mm
+#define meters_to_mm 1000
 
 
 /// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
@@ -183,6 +187,8 @@ namespace grl {
 
           dummy_sub_ = nh.subscribe<std_msgs::String>("dummy_topic", 1000, &KukaLBRiiwaROSPlugin::dummy_callback, this);
           cart_imp_sub_ = nh.subscribe<cartesian_impedance_msgs::SetCartesianImpedance>("set_cartesian_impedance_params", 1000, &KukaLBRiiwaROSPlugin::set_cartesian_impedance_callback, this);
+          cart_ft_sub_ = nh.subscribe<cartesian_impedance_msgs::SetCartesianForceCtrl>("set_cartesian_ft_params", 1000, &KukaLBRiiwaROSPlugin::set_force_control_callback, this);
+
           ROS_INFO("done creating subscribers");
           //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
 
@@ -253,6 +259,10 @@ namespace grl {
       /// ROS callback to set current interaction mode; determines whether commands will be send in SERVO, TEACH, etc
       void mode_callback(const std_msgs::StringConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
+        simJointPosition.clear();
+        boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+        if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+
         // simJointPosition.clear();
         // //simJointVelocity
         // simJointVelocity.clear();
@@ -292,7 +302,7 @@ namespace grl {
       void set_cartesian_impedance_callback(const cartesian_impedance_msgs::SetCartesianImpedanceConstPtr &cartImpedance)
       {
             boost::lock_guard<boost::mutex> lock(jt_mutex);
-            ROS_INFO("stiffness Tx: %f, Ty:%f; Damping: Dx:%f, Dy:%f",cartImpedance->stiffness.translational.x,cartImpedance->stiffness.translational.y,cartImpedance->damping.translational.x,cartImpedance->damping.translational.y);
+            ROS_INFO("Changing Cartesian Impedance Parameters");
 
             //Cartesian stiffness msg values to the flatbuffers
             grl::flatbuffer::Vector3d cart_stifness_trans(cartImpedance->stiffness.translational.x,cartImpedance->stiffness.translational.y,cartImpedance->stiffness.translational.z);
@@ -309,15 +319,18 @@ namespace grl {
 
             //Max Cartesian Path deviation when in cartesian impedance
             //Cartesian max Cartesian velocities [m] for translation and [rad] for rotation
-            grl::flatbuffer::Vector3d cart_max_path_dev_trans(cartImpedance->max_path_deviation.translation.x,cartImpedance->max_path_deviation.translation.y,cartImpedance->max_path_deviation.translation.z);
+            //iiwa expects the values to be in mm/s for *cart_max_path_deviation*
+            grl::flatbuffer::Vector3d cart_max_path_dev_trans(cartImpedance->max_path_deviation.translation.x*meters_to_mm,cartImpedance->max_path_deviation.translation.y*meters_to_mm,cartImpedance->max_path_deviation.translation.z*meters_to_mm);
             grl::flatbuffer::EulerRotation cart_max_path_dev_vel_rot(cartImpedance->max_path_deviation.rotation.x,cartImpedance->max_path_deviation.rotation.y,cartImpedance->max_path_deviation.rotation.z,grl::flatbuffer::EulerOrder_xyz);
+
 
             grl::flatbuffer::EulerPose cart_max_path_deviation(cart_max_path_dev_trans,cart_max_path_dev_vel_rot);
             KukaDriverP_->set(cart_max_path_deviation,max_path_deviation());
 
 
             //Max Cartesian velocities [m/s] for translation and [rad/s] for rotation
-            grl::flatbuffer::Vector3d cart_max_ctrl_vel_trans(cartImpedance->max_cart_vel.set.linear.x,cartImpedance->max_cart_vel.set.linear.y,cartImpedance->max_cart_vel.set.linear.z);
+            // iiwa expect the values to be mm/s for the *cart_max_ctrl_vel_trans*
+            grl::flatbuffer::Vector3d cart_max_ctrl_vel_trans(cartImpedance->max_cart_vel.set.linear.x*meters_to_mm,cartImpedance->max_cart_vel.set.linear.y*meters_to_mm,cartImpedance->max_cart_vel.set.linear.z*meters_to_mm);
             grl::flatbuffer::EulerRotation cart_max_ctrl_vel_rot(cartImpedance->max_cart_vel.set.angular.x,cartImpedance->max_cart_vel.set.angular.y,cartImpedance->max_cart_vel.set.angular.z,grl::flatbuffer::EulerOrder_xyz);
 
             grl::flatbuffer::EulerPose cart_max_ctrl_vel(cart_max_ctrl_vel_trans,cart_max_ctrl_vel_rot);
@@ -330,8 +343,25 @@ namespace grl {
             grl::flatbuffer::EulerPose cart_max_ctrl_force(cart_max_ctrl_force_trans,cart_max_ctrl_force_rot);
             KukaDriverP_->set(cart_max_ctrl_force,max_ctrl_force());
 
+            double nullspaceStiffness;
+            double nullspaceDamping;
 
+            nullspaceDamping = cartImpedance->null_space_params.damping[0];
+            nullspaceStiffness = cartImpedance->null_space_params.stiffness[0];
 
+            KukaDriverP_->set(nullspaceStiffness,nullspaceDamping,null_space_params());
+
+      }
+      void set_force_control_callback(const cartesian_impedance_msgs::SetCartesianForceCtrlConstPtr &cartFTCtrl)
+      {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        std::string DOF;
+        double force;
+        double stiffness;
+
+        KukaDriverP_->set(cartFTCtrl->DOF.c_str(),cartFTCtrl->force,cartFTCtrl->stiffness,set_const_ctrl_force());
+
+        //ROS_INFO("Set Cartesian Constant Force/torqe Control; %s",cartFTCtrl->DOF.c_str());
       }
 
       /// ROS joint trajectory callback
@@ -471,6 +501,7 @@ namespace grl {
       ::ros::Subscriber mode_sub_; // subscribes to interaction mode messages (strings for now)
       ::ros::Subscriber dummy_sub_;
       ::ros::Subscriber cart_imp_sub_;
+      ::ros::Subscriber cart_ft_sub_;
 
       ::ros::Publisher js_pub_; // publish true joint states from the KUKA
 

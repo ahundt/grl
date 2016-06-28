@@ -336,9 +336,10 @@ namespace grl { namespace robot { namespace arm {
           // test->add_rotation(&parms);
           auto stiffnessPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_stifness_trans_,&cart_stifness_rot_);
           auto dampingPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_damping_trans_,&cart_damping_rot_);
-          auto cartImpedance = flatbuffer::CreateCartesianImpedenceControlMode(*fbbP,cartImpValuesChanged,stiffnessPose,dampingPose,&cart_max_path_deviation_,&cart_max_ctrl_vel_,&cart_max_ctrl_force_);
-
-          auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,dummy,name,commandInterface_,monitorInterface_,cartImpedance);
+          auto cartImpedance = flatbuffer::CreateCartesianImpedenceControlMode(*fbbP,cartImpValuesChanged,stiffnessPose,dampingPose,&cart_max_path_deviation_,&cart_max_ctrl_vel_,&cart_max_ctrl_force_,nullspaceStiffness_,nullspaceDamping_);
+          auto cartDOFBuff = fbbP->CreateString(ft_dof_);
+          auto cartFTCtrl = flatbuffer::CreateConstantForceControlMode(*fbbP, cartFTControl_,cartDOFBuff, ft_force_,ft_stiffness_);
+          auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,dummy,name,commandInterface_,monitorInterface_,cartImpedance,cartFTCtrl);
 
           auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,1,kukaiiwaArmConfiguration);
 
@@ -367,6 +368,7 @@ namespace grl { namespace robot { namespace arm {
 
           kukaJavaDriverP->async_send_flatbuffer(fbbP);
           cartImpValuesChanged = false;
+          cartFTControl_       = false;
         }
 
          return haveNewData;
@@ -477,7 +479,24 @@ namespace grl { namespace robot { namespace arm {
        cart_max_ctrl_force_ =  cart_max_ctrl_force;
        cartImpValuesChanged = true;
     }
+    // Set the max cartesian control force in the java driver
+    void set(double nullspaceStiffness,double nullspaceDamping, null_space_params)
+    {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       nullspaceStiffness_ = nullspaceStiffness;
+       nullspaceDamping_   = nullspaceDamping;
+       cartImpValuesChanged = true;
+    }
 
+    // Set the constant ft control
+    void set(std::string ft_dof,double ft_force, double ft_stiffness,set_const_ctrl_force)
+    {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       ft_dof_         = ft_dof;
+       ft_force_       = ft_force;
+       ft_stiffness_   = ft_stiffness;
+       cartFTControl_  = true;
+    }
 
     /**
      * @brief Set the time duration expected between new position commands
@@ -609,6 +628,7 @@ namespace grl { namespace robot { namespace arm {
 
       std::string dummy_message_;
       bool cartImpValuesChanged = false;
+      bool cartFTControl_ = false;
 
       //Cartesian Impedance Values
        grl::flatbuffer::Vector3d cart_stifness_trans_ = grl::flatbuffer::Vector3d(500,500,500);
@@ -616,9 +636,15 @@ namespace grl { namespace robot { namespace arm {
 
        grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0.3,0.3,0.3);
        grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder_xyz);
-       grl::flatbuffer::EulerPose cart_max_path_deviation_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1,1,1), grl::flatbuffer::EulerRotation(5.,5.,5.,grl::flatbuffer::EulerOrder_xyz));
-       grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1,1,1), grl::flatbuffer::EulerRotation(6.3,6.3,6.3,grl::flatbuffer::EulerOrder_xyz));
+       grl::flatbuffer::EulerPose cart_max_path_deviation_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,100), grl::flatbuffer::EulerRotation(5.,5.,5.,grl::flatbuffer::EulerOrder_xyz));
+       grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,1000), grl::flatbuffer::EulerRotation(6.3,6.3,6.3,grl::flatbuffer::EulerOrder_xyz));
        grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(200,200,200), grl::flatbuffer::EulerRotation(200.,200.,200.,grl::flatbuffer::EulerOrder_xyz));
+       double nullspaceStiffness_ = 2.;
+       double nullspaceDamping_ = 0.5;
+
+       std::string ft_dof_ = "X";
+       double ft_force_ =5.;
+       double ft_stiffness_ = 200;
 
 
 

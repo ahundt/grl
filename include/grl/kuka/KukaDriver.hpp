@@ -237,8 +237,9 @@ namespace grl { namespace robot { namespace arm {
    {
         if(JAVAdriverP_)
         {
-            armState_.clearCommands();
-            JAVAdriverP_->set(armState_.position,revolute_joint_angle_open_chain_command_tag());
+          armState_.clearCommands();
+          boost::unique_lock<boost::mutex> lock(jt_mutex);
+          JAVAdriverP_->set(armState_.position,revolute_joint_angle_open_chain_command_tag());
           //  JAVAdriverP_->set(armState_.torque,revolute_joint_angle_open_chain_command_tag());
             JAVAdriverP_->set(armControlMode);
         }
@@ -301,6 +302,30 @@ namespace grl { namespace robot { namespace arm {
         if(JAVAdriverP_)
         {
             JAVAdriverP_->set(cart_max_ctrl_force,max_ctrl_force());
+        }
+   }
+
+   /***
+   * \brief Set the stiffnesses and damping for the NullSpace reduntant joint. In iiwa case is the elbow
+   */
+
+   void set(double nullspaceStiffness,double nullspaceDamping,null_space_params)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(nullspaceStiffness,nullspaceDamping,null_space_params());
+        }
+   }
+
+   /***
+   * \brief Set the constant control force at the end effector
+   */
+
+   void set(std::string ft_dof,double ft_force, double ft_stiffness,set_const_ctrl_force)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->set(ft_dof,ft_force,ft_stiffness,set_const_ctrl_force());
         }
    }
 
