@@ -351,6 +351,10 @@ namespace grl {
 
             KukaDriverP_->set(nullspaceStiffness,nullspaceDamping,null_space_params());
 
+            simJointPosition.clear();
+            boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+            if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+
       }
       void set_force_control_callback(const cartesian_impedance_msgs::SetCartesianForceCtrlConstPtr &cartFTCtrl)
       {
@@ -360,6 +364,11 @@ namespace grl {
         double stiffness;
 
         KukaDriverP_->set(cartFTCtrl->DOF.c_str(),cartFTCtrl->force,cartFTCtrl->stiffness,set_const_ctrl_force());
+
+
+        simJointPosition.clear();
+        boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+        if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
 
         //ROS_INFO("Set Cartesian Constant Force/torqe Control; %s",cartFTCtrl->DOF.c_str());
       }
