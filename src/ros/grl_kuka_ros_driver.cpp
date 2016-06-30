@@ -5,8 +5,8 @@ using namespace grl::ros;
 
 int main(int argc, char **argv) {
 
-  ros::init(argc,argv,"kuka_lbr_ros_bridge");
-   
+  ros::init(argc,argv,"kuka_lbr_ros_bridge_Jerry");
+
   if(!ros::master::check())
   {
     std::cerr << "WARNING: roscore does not appear to be running\n";
@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     ::ros::spinOnce();
 
     plugin->run_one();
-    
+
     rate.sleep();
   }
 
