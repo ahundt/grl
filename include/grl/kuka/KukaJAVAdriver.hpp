@@ -19,6 +19,8 @@
 #include <boost/chrono/include.hpp>
 #include <boost/chrono/duration.hpp>
 
+#include <zmq.hpp>
+
 
 #ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #include <boost/thread.hpp>
@@ -31,6 +33,7 @@
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
+#include "grl/flatbuffer/Geometry_generated.h"
 
 
 /// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
@@ -41,7 +44,7 @@ inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)
   size_t last = v.size() - 1;
   for(size_t i = 0; i < v.size(); ++i) {
     out << v[i];
-    if (i != last) 
+    if (i != last)
       out << ", ";
   }
   out << "]";
@@ -57,7 +60,7 @@ inline std::ostream& operator<<(std::ostream& out,  boost::container::static_vec
   size_t last = v.size() - 1;
   for(size_t i = 0; i < v.size(); ++i) {
     out << v[i];
-    if (i != last) 
+    if (i != last)
       out << ", ";
   }
   out << "]";
@@ -66,14 +69,14 @@ inline std::ostream& operator<<(std::ostream& out,  boost::container::static_vec
 
 
 namespace grl { namespace robot { namespace arm {
-    
 
-    /** 
+
+    /**
      *
      * This class contains code to offer a simple communication layer between ROS and the KUKA LBR iiwa
      *
      * Initally:
-     * 
+     *
      *
      * @todo make sure mutex is locked when appropriate
      *
@@ -113,8 +116,8 @@ namespace grl { namespace robot { namespace arm {
             "Robotiiwa"               , // RobotName,
             "KUKA_LBR_IIWA_14_R820"      , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
             "tcp://0.0.0.0:30010"     , // LocalZMQAddress
-            "tcp://172.31.1.147:30010", // RemoteZMQAddress
-            "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
+            "tcp://172.31.2.147:30010", // RemoteZMQAddress
+            "192.170.10.101"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
             "30200"                   , // RemoteHostKukaKoniUDPPort
@@ -157,9 +160,16 @@ namespace grl { namespace robot { namespace arm {
           > State;
 
 
+
       KukaJAVAdriver(Params params = defaultParams())
-        : params_(params), armControlMode_(flatbuffer::ArmState::ArmState_NONE)
-      {}
+        : params_(params), armControlMode_(flatbuffer::ArmState::ArmState_NONE), _context(1), _socket_pub(_context, ZMQ_PUB), _socket_sub(_context, ZMQ_SUB), sndhwm(10), rcvhwm(10)
+      {
+        //  std::thread reciev_thread(&recieve_msgs,this);
+        //_socket_sub(_context, ZMQ_DEALER)
+      }
+
+    //
+    //
 
       void construct(){ construct(params_); sequenceNumber = 0;}
 
@@ -168,51 +178,87 @@ namespace grl { namespace robot { namespace arm {
       void construct(Params params) {
 
         params_ = params;
+        KukaJavaDriverExists = true;
         // keep driver threads from exiting immediately after creation, because they have work to do!
-        device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
+  //a      device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
 
-        try {
+  //a     boost::asio::signal_set signals(device_driver_io_service, SIGINT, SIGTERM);
+  //a      signals.async_wait( std::bind(&boost::asio::io_service::stop, &device_driver_io_service));
+
+       try {
           BOOST_LOG_TRIVIAL(trace) << "KukaLBRiiwaRosPlugin: Connecting ZeroMQ Socket from " <<
             std::get<LocalZMQAddress>             (params_) << " to " <<
             std::get<RemoteZMQAddress>            (params_);
-          boost::system::error_code ec;
-          azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
-          socket.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
-          socket.connect(std::get<RemoteZMQAddress>            (params_).c_str()   );
-          kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
+        //a  boost::system::error_code ec;
+
+    //       zmq::context_t _context (1);
+    //       zmq::socket_t _socket (_context, ZMQ_DEALER);
+           _socket_pub.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
+
+
+
+
+           _socket_pub.setsockopt (ZMQ_SNDHWM, &sndhwm, sizeof (sndhwm));
+
+           _socket_sub.bind(   "tcp://172.31.1.101:30011"  );
+
+           _socket_sub.setsockopt(ZMQ_RCVHWM, &rcvhwm, sizeof(rcvhwm));
+           _socket_sub.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+      //    _socket_pub.bind("tcp://172.31.1.101:30012");
+      //     _socket_sub.bind("tcp://172.31.1.101:30011");
+      //     _socket_sub.connect(std::get<LocalZMQAddress>             (params_).c_str());
+
+  //         _socket_sub.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+    //      _socket.connect( std::get<LocalZMQAddress>             (params_).c_str()   );
+    //      kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(_socket));
+
+    //a      azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
+    //a      socket.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
+    //      socket.connect(std::get<RemoteZMQAddress>            (params_).c_str()   );
+
+    //a      kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
+
 
         } catch( boost::exception &e) {
-          e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to ZeroMQ Socket from " + 
-                           std::get<LocalZMQAddress>             (params_) + " to " + 
-                           std::get<RemoteZMQAddress>            (params_));
-          throw;
+         e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to ZeroMQ Socket from " +
+                          std::get<LocalZMQAddress>             (params_) + " to " +
+                          std::get<RemoteZMQAddress>            (params_));
+         throw;
         }
+
+    //    std::thread t (&KukaJAVAdriver::receiveThread, this);
+    //   t.detach();
+
+
       }
-      
-      
+
+
 
 
       const Params & getParams(){
         return params_;
       }
-      
+
       /// shuts down the arm
       bool destruct(){
-        
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-          
+
+  //a        auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+
           boost::lock_guard<boost::mutex> lock(jt_mutex);
-          
+
           double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-          
+
+
+      //    t.join();
           /// @todo is this the best string to pass for the full arm's name?
-          auto basename = std::get<RobotName>(params_);
-          
-          auto bns = fbbP->CreateString(basename);
-          
-          
-          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_ShutdownArm,flatbuffer::CreateShutdownArm(*fbbP).Union());
-          
+  //a        auto basename = std::get<RobotName>(params_);
+
+  //a        auto bns = fbbP->CreateString(basename);
+
+
+    //a      auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_ShutdownArm,flatbuffer::CreateShutdownArm(*fbbP).Union());
+
 //          auto KUKAiiwa = CreateKUKAiiwaState(*fbbP,
 //   flatbuffers::Offset<flatbuffers::String> name = 0,
 //   flatbuffers::Offset<flatbuffers::String> destination = 0,
@@ -226,31 +272,36 @@ namespace grl { namespace robot { namespace arm {
 //   flatbuffers::Offset<KUKAiiwaMonitorState> monitorState = 0,
 //   uint8_t hasMonitorConfig = 0,
 //   flatbuffers::Offset<KUKAiiwaMonitorConfiguration> monitorConfig = 0)
-   
-          
-          auto KUKAiiwa = CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,0,0,0,0,0,0);
-   
-          auto iiwaStateVec = fbbP->CreateVector(&KUKAiiwa, 1);
-          
-          auto iiwaStates = flatbuffer::CreateKUKAiiwaStates(*fbbP,iiwaStateVec);
-          
-          
-          
-          grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, iiwaStates);
-          kukaJavaDriverP->async_send_flatbuffer(fbbP);
-          
+
+
+    //a      auto KUKAiiwa = CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,0,0,0,0,0,0);
+
+    //a      auto iiwaStateVec = fbbP->CreateVector(&KUKAiiwa, 1);
+
+    //a      auto iiwaStates = flatbuffer::CreateKUKAiiwaStates(*fbbP,iiwaStateVec);
+
+
+
+    //a      grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, iiwaStates);
+//a          kukaJavaDriverP->async_send_flatbuffer(fbbP);
+
           return true;
       }
 
       ~KukaJAVAdriver(){
-        device_driver_workP_.reset();
+  //a      device_driver_workP_.reset();
 
-        if(driver_threadP){
-          device_driver_io_service.stop();
-          driver_threadP->join();
-        }
+//        if(driver_threadP){
+    //a      device_driver_io_service.stop();
+  //a        driver_threadP->join();
+    //a    }
+    _socket_pub.close();
+    _socket_sub.close();
+  //  _context.term();
+    std::cout << "destoryed java deriver" <<  "\n";
+    KukaJavaDriverExists = false;
       }
-      
+
 
       /// @brief SEND COMMAND TO ARM. Call this often
       /// Performs the main update spin once.
@@ -259,41 +310,45 @@ namespace grl { namespace robot { namespace arm {
 
         // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
         //if(!m_haveReceivedRealDataCount) return;
-        
+      //  std::thread reciev_thread(&KukaJAVAdriver::recieve_msgs,this);
         bool haveNewData = false;
 
         /// @todo make this handled by template driver implementations/extensions
-          
 
-        if(kukaJavaDriverP)
-        {
-        
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-          
-            boost::lock_guard<boost::mutex> lock(jt_mutex);
-          
+
+    //a    if(kukaJavaDriverP)
+    //a
+
+
+
+    //a      auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+
+          std::shared_ptr<flatbuffers::FlatBufferBuilder> fbbP;
+          fbbP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+          boost::lock_guard<boost::mutex> lock(jt_mutex);
+
           double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-          
+
           /// @todo is this the best string to pass for the full arm's name?
           auto basename = std::get<RobotName>(params_);
-          
+
           auto bns = fbbP->CreateString(basename);
-          
+
           flatbuffers::Offset<flatbuffer::ArmControlState> controlState;
-        
-        
+
+
           switch (armControlMode_) {
-          
+
               case flatbuffer::ArmState::ArmState_StartArm: {
                  controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStartArm(*fbbP).Union());
                  break;
               }
               case flatbuffer::ArmState::ArmState_MoveArmJointServo: {
-                 
+
                 /// @todo when new
                 auto armPositionBuffer = fbbP->CreateVector(armState_.commandedPosition_goal.data(),armState_.commandedPosition_goal.size());
                 auto commandedTorque = fbbP->CreateVector(armState_.commandedTorque.data(),armState_.commandedTorque.size());
-                auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
+                auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0,0,commandedTorque);
                 auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
                 std::cout << "\nKukaJAVAdriver sending armposition command:" <<armState_.commandedPosition_goal<<"\n";
@@ -322,23 +377,23 @@ namespace grl { namespace robot { namespace arm {
               default:
                  std::cerr << "KukaJAVAdriver unsupported use case: " << armControlMode_ << "\n";
           }
-        
+
           auto name = fbbP->CreateString(std::get<RobotName>(params_));
 
           auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,name,commandInterface_,monitorInterface_);
-          
+
           auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,1,kukaiiwaArmConfiguration);
-          
+
           auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
-          
+
           auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
-          
+
           grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
-        
-          flatbuffers::Verifier verifier(fbbP->GetBufferPointer(),fbbP->GetSize());
-          BOOST_VERIFY(grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier));
-        
-        
+
+          flatbuffers::Verifier verifier1(fbbP->GetBufferPointer(),fbbP->GetSize());
+          BOOST_VERIFY(grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier1));
+
+
           if(armControlMode_ == flatbuffer::ArmState::ArmState_MoveArmJointServo)
           {
               auto states2 = flatbuffer::GetKUKAiiwaStates(fbbP->GetBufferPointer());
@@ -350,29 +405,182 @@ namespace grl { namespace robot { namespace arm {
               }
               std::cout << "\n";
           }
-        
-          kukaJavaDriverP->async_send_flatbuffer(fbbP);
-        }
-       
-         return haveNewData;
+
+       std::cout << "before message send \n ";
+        int buffersize = fbbP->GetSize();
+        zmq::message_t message(buffersize);
+        memcpy((void *)message.data(), fbbP->GetBufferPointer(), buffersize);
+        _socket_pub.send(message);
+
+        std::cout << "after message send \n ";
+
+
+        std::cout << "before message receive \n ";
+        zmq::message_t message_rcv;
+        int msg_received;
+        msg_received = _socket_sub.recv(&message_rcv, ZMQ_DONTWAIT);
+
+        std::cout << "after message receive \n ";
+
+
+
+      if (msg_received != -1)
+        {
+
+
+         if ( message_rcv.size() != 0 ){
+      //     std::string msg = std::string(static_cast<char*>(message_rcv.data()), message_rcv.size());
+      //      std::cout << "received message" << msg <<  "\n";
+                std::cout << "received message" << message_rcv.size() <<  "\n";
+
+                 auto rbPstart = static_cast<const uint8_t *>(message_rcv.data());
+      //           auto rbPstart = message_rcv.data();
+                 auto verifier = flatbuffers::Verifier(rbPstart,message_rcv.size());
+
+                 auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
+
+                if(bufOK){
+
+         //       auto bufff = static_cast<const void*>(rbPstart);
+                    std::cout << "Succeeded in verification.  " << "\n";
+                     auto fbKUKAiiwaStates = flatbuffer::GetKUKAiiwaStates(rbPstart);
+                //    auto fbKUKAiiwaStates = grl::flatbuffer::GetKUKAiiwaStates(bufff);
+                    auto force = fbKUKAiiwaStates->states()->Get(0)->monitorState()->CartesianWrench()->force();
+            //        auto fbstate = fbstates->
+           //         auto fbMonitorState = fbstates
+            //        auto wrench = fbMonitorState
+            //        auto force = wrench
+                    auto z = force.z();
+           //        auto force = fbKUKAiiwaStates->states()->Get(0)->monitorState()->CartesianWrench()->force();
+
+          //        auto z = force.z();
+           //  				const grl::flatbuffer::VrepControlPoint* VCPin = grl::flatbuffer::GetVrepControlPoint(rbPstart);
+                //  std::cout << "before force.  " << "\n";
+                   std::cout << "received force:" << z << "\n";
+                 } else {
+                   std::cout << "Failed verification. bufOk: " <<bufOK << "\n";
+                 }
+
+    //a      kukaJavaDriverP->async_send_flatbuffer(fbbP);
+    //a      kukaJavaDriverP->start_async_receive_buffers();
+////////////////////
+     }
+  }
+
+
+
+             return haveNewData;
       }
+
+//      void receiveThread(){
+
+
+    //        zmq::context_t ctx (1);
+    //        zmq::socket_t _socket_sub (ctx, ZMQ_SUB);
+      //      zmq::socket_t _socket_cleaner (ctx, ZMQ_DEALER);
+
+
+
+    //        _socket_sub.bind(   "tcp://172.31.1.101:30011"  );
+    //        int rcvhwm = 10;
+    //        _socket_sub.setsockopt(ZMQ_RCVHWM, &rcvhwm, sizeof(rcvhwm));
+    //        _socket_sub.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+      //    _socket_cleaner.connect(   std::get<LocalZMQAddress>             (params_).c_str()  );
+
+  //    while(KukaJavaDriverExists)
+//      {
+      //      zmq::message_t garbage;
+    //       _socket_cleaner.recv(&garbage, ZMQ_DONTWAIT);
+
+
+    //         std::cout << "before message receive \n ";
+    //         zmq::message_t message_rcv;
+    //         int msg_received;
+    //         msg_received = _socket_sub.recv(&message_rcv);
+
+  //           std::cout << "after message receive \n ";
+
+
+
+  //         if (msg_received != -1)
+  //           {
+
+
+  //            if ( message_rcv.size() != 0 ){
+  //              std::string msg = std::string(static_cast<char*>(message_rcv.data()), message_rcv.size());
+  //               std::cout << "received message" << msg <<  "\n";
+  //            }
+            //     std::cout << "received message" << message_rcv.size() <<  "\n";
+            //     message_rcv.close();
+
+           /*       auto rbPstart = (const unsigned char *)message_rcv.data();
+                   auto verifier = flatbuffers::Verifier(rbPstart,message_rcv.size());
+                   auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
+
+                   if(bufOK){
+
+                      auto fbKUKAiiwaStates = flatbuffer::GetKUKAiiwaStates(rbPstart);
+                      auto fbstates = fbKUKAiiwaStates->states();
+                      auto fbMonitorState = fbstates->Get(0)->monitorState();
+                      auto wrench = fbMonitorState->CartesianWrench();
+                      auto force = wrench->force();
+
+             //  				const grl::flatbuffer::VrepControlPoint* VCPin = grl::flatbuffer::GetVrepControlPoint(rbPstart);
+
+                     std::cout << "received: x:" << force.x() << "z:" << force.z() << "\n";
+                   } else {
+                     std::cout << "Failed verification. bufOk: " <<bufOK << "\n";
+                   } */
+
+
+              //    if (kukaJavaDriverP->receive_buffers_empty()){
+            //        std::cout << "apparently buffers are empty " << "\n";
+            //      }
+
+                    //receiving Stuff
+          //a        while (!kukaJavaDriverP->receive_buffers_empty()) {
+          //a          std::cout << "received!!" << "\n";
+
+
+            //a        }
+
+            //a        device_driver_io_service.run();
+
+
+            //a
+
+
+
+  //         }
+  //        }
+
+  //        if (!KukaJavaDriverExists)
+  //        {
+//             _socket_sub.close();
+          //  _socket_cleaner.close();
+      //       ctx.term();
+  //           std::cout << "sockets closed" <<  "\n";
+  //        }
+
+//      }
 
       volatile std::size_t m_haveReceivedRealDataCount = 0;
       volatile std::size_t m_attemptedCommunicationCount = 0;
       volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
       volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
 
-      boost::asio::io_service device_driver_io_service;
-      std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
-      std::unique_ptr<std::thread> driver_threadP;
-      std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
- 
- 
- 
+  //a    boost::asio::io_service device_driver_io_service;
+  //a    std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
+//      std::unique_ptr<std::thread> driver_threadP;
+  //a    std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
+
+
+
      /**
       * \brief Set the joint positions for the current interpolation step.
       *
-      * This method is only effective when the robot is in a commanding state 
+      * This method is only effective when the robot is in a commanding state
       * and the set time point for reaching the destination is in the future.
       * This function sets the goal time point for a motion to the epoch, aka "time 0" (which is in the past) for safety.
       *
@@ -395,7 +603,7 @@ namespace grl { namespace robot { namespace arm {
        boost::copy(range, std::back_inserter(armState_.commandedPosition));
        boost::copy(range, std::back_inserter(armState_.commandedPosition_goal));
     }
-    
+
     /**
      *  @brief set the interface over which commands are sent (FRI interface, alternately SmartServo/DirectServo == JAVA interface, )
      */
@@ -403,7 +611,7 @@ namespace grl { namespace robot { namespace arm {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
        commandInterface_ = cif;
     }
-    
+
     /**
      *  @brief set the interface over which state is monitored (FRI interface, alternately SmartServo/DirectServo == JAVA interface, )
      */
@@ -411,7 +619,7 @@ namespace grl { namespace robot { namespace arm {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
        commandInterface_ = mif;
     }
-    
+
     /**
      * @brief Set the time duration expected between new position commands
      *
@@ -431,9 +639,9 @@ namespace grl { namespace robot { namespace arm {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
        armState_.goal_position_command_time_duration = duration_to_goal_command;
     }
-    
-    
-    
+
+
+
     /**
      * @brief Get the timestamp of the most recent armState
      *
@@ -446,16 +654,16 @@ namespace grl { namespace robot { namespace arm {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
        return armState_.timestamp;
     }
-    
-    
-  
+
+
+
      /**
       * \brief Set the applied joint torques for the current interpolation step.
-      * 
+      *
       * This method is only effective when the client is in a commanding state.
       * The ControlMode of the robot has to be joint impedance control mode. The
       * Client Command Mode has to be torque.
-      * 
+      *
       * @param state Object which stores the current state of the robot, including the command to send next
       * @param torques Array with the applied torque values (in Nm)
       * @param tag identifier object indicating that the torqe value command should be modified
@@ -466,23 +674,23 @@ namespace grl { namespace robot { namespace arm {
        armState_.clearCommands();
       boost::copy(range, armState_.commandedTorque);
     }
- 
-   
+
+
      /**
       * \brief Set the applied wrench vector of the current interpolation step.
-      * 
+      *
       * The wrench vector consists of:
       * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
-      * 
-      * F ... forces (in N) applied along the Cartesian axes of the 
+      *
+      * F ... forces (in N) applied along the Cartesian axes of the
       * currently used motion center.
-      * tau ... torques (in Nm) applied along the orientation angles 
+      * tau ... torques (in Nm) applied along the orientation angles
       * (Euler angles A, B, C) of the currently used motion center.
-      *  
+      *
       * This method is only effective when the client is in a commanding state.
       * The ControlMode of the robot has to be Cartesian impedance control mode. The
       * Client Command Mode has to be wrench.
-      * 
+      *
       * @param state object storing the command data that will be sent to the physical device
       * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
       * @param tag identifier object indicating that the wrench value command should be modified
@@ -495,14 +703,14 @@ namespace grl { namespace robot { namespace arm {
        armState_.clearCommands();
       std::copy(range,armState_.commandedCartesianWrenchFeedForward);
     }
-    
+
    /// @todo should this exist? is it written correctly?
    void get(KukaState & state)
    {
      boost::lock_guard<boost::mutex> lock(jt_mutex);
      state = armState_;
    }
-   
+
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
    /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
    void set(const flatbuffer::ArmState& armControlMode)
@@ -511,7 +719,21 @@ namespace grl { namespace robot { namespace arm {
    }
 
     private:
-    
+
+  //    zmq::context_t _context (1);
+  //    zmq::socket_t _socket (_context, ZMQ_DEALER);
+
+  //    zmq::context_t context (1);
+  //    zmq::socket_t socket (context, ZMQ_REQ);
+
+      zmq::context_t _context;
+      zmq::socket_t _socket_pub;
+      zmq::socket_t _socket_sub;
+
+      int sndhwm;
+      int rcvhwm;
+
+      bool KukaJavaDriverExists;
 
       Params params_;
       KukaState armState_;
@@ -530,21 +752,22 @@ namespace grl { namespace robot { namespace arm {
       flatbuffer::KUKAiiwaInterface commandInterface_ = flatbuffer::KUKAiiwaInterface_SmartServo;// KUKAiiwaInterface_SmartServo;
        flatbuffer::KUKAiiwaInterface monitorInterface_ = flatbuffer::KUKAiiwaInterface_FRI;
 //      flatbuffers::FlatBufferBuilder       builder_;
-//      
+//
 //      flatbuffer::JointStateBuilder        jointStateServoBuilder_;
 //      flatbuffer::MoveArmJointServoBuilder moveArmJointServoBuilder_;
 //      flatbuffer::TeachArmBuilder          teachArmBuilder_;
 //      flatbuffer::ArmControlStateBuilder   armControlStateBuilder_;
 //      flatbuffer::KUKAiiwaStateBuilder     iiwaStateBuilder_;
 //      flatbuffer::KUKAiiwaStatesBuilder    iiwaStatesBuilder_;
-//      
+//
 //      flatbuffers::Offset<flatbuffer::KUKAiiwaState> iiwaState;
 
       boost::mutex jt_mutex;
-      
+
       int64_t sequenceNumber;
 
-    };    
+
+    };
 
 }}}// namespace grl::robot::arm
 
