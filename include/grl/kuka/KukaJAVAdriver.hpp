@@ -33,6 +33,8 @@
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 
 
+
+
 /// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
 template<typename T>
 inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)

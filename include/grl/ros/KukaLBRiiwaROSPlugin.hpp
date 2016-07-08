@@ -304,6 +304,10 @@ namespace grl {
             boost::lock_guard<boost::mutex> lock(jt_mutex);
             ROS_INFO("Changing Cartesian Impedance Parameters");
 
+            simJointPosition.clear();
+            boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+            if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+
             //Cartesian stiffness msg values to the flatbuffers
             grl::flatbuffer::Vector3d cart_stifness_trans(cartImpedance->stiffness.translational.x,cartImpedance->stiffness.translational.y,cartImpedance->stiffness.translational.z);
             grl::flatbuffer::EulerRotation cart_stifness_rot(cartImpedance->stiffness.rotational.x,cartImpedance->stiffness.rotational.y,cartImpedance->stiffness.rotational.z,grl::flatbuffer::EulerOrder_xyz);
@@ -341,6 +345,12 @@ namespace grl {
             grl::flatbuffer::EulerRotation cart_max_ctrl_force_rot(cartImpedance->max_ctrl_force.set.torque.x,cartImpedance->max_ctrl_force.set.torque.y,cartImpedance->max_ctrl_force.set.torque.z,grl::flatbuffer::EulerOrder_xyz);
 
             grl::flatbuffer::EulerPose cart_max_ctrl_force(cart_max_ctrl_force_trans,cart_max_ctrl_force_rot);
+
+            // //send position after state change
+            // simJointPosition.clear();
+            // boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+            // if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+
             KukaDriverP_->set(cart_max_ctrl_force,max_ctrl_force());
 
             double nullspaceStiffness;
@@ -349,11 +359,17 @@ namespace grl {
             nullspaceDamping = cartImpedance->null_space_params.damping[0];
             nullspaceStiffness = cartImpedance->null_space_params.stiffness[0];
 
+            simJointPosition.clear();
+            boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+            if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+
             KukaDriverP_->set(nullspaceStiffness,nullspaceDamping,null_space_params());
 
             simJointPosition.clear();
             boost::copy(current_js_.position,std::back_inserter(simJointPosition));
             if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+
+
 
       }
       void set_force_control_callback(const cartesian_impedance_msgs::SetCartesianForceCtrlConstPtr &cartFTCtrl)
@@ -362,6 +378,10 @@ namespace grl {
         std::string DOF;
         double force;
         double stiffness;
+
+        simJointPosition.clear();
+        boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+        if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
 
         KukaDriverP_->set(cartFTCtrl->DOF.c_str(),cartFTCtrl->force,cartFTCtrl->stiffness,set_const_ctrl_force());
 
