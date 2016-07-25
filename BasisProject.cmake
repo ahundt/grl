@@ -1,5 +1,5 @@
 # ===============================================================================
-# Copyright (c) 2015 <provider-name>
+# Copyright (c) 2015-2016 Andrew Hundt
 # All rights reserved.
 #
 # See COPYING file for license information.
