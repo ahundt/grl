@@ -12,7 +12,7 @@
 #
 
 
-SET(AVAILABLE_ROS_VERSIONS "jade;indigo;hydro;groovy")
+SET(AVAILABLE_ROS_VERSIONS "jade;indigo;hydro;groovy;kinetic")
 
 IF(ROSDEPS)
 ELSE(ROSDEPS)
