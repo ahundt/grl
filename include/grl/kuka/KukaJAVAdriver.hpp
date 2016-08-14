@@ -257,10 +257,14 @@ namespace grl { namespace robot { namespace arm {
       /// @brief SEND COMMAND TO ARM. Call this often
       /// Performs the main update spin once.
       /// @todo ADD SUPPORT FOR READING ARM STATE OVER JAVA INTERFACE
+      /// RK: this is wrong approach since the last commanded position is send continiously to the Robot. This only makes sense if we use FRI but not SmartServo
+      /// major refactoring necessary
       bool run_one(){
 
         // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
         //if(!m_haveReceivedRealDataCount) return;
+
+      //  std::cout << "\nRK: Sending data!!!\n";
 
         bool haveNewData = false;
 
@@ -298,7 +302,7 @@ namespace grl { namespace robot { namespace arm {
                 auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
                 auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
-                std::cout << "\nKukaJAVAdriver sending armposition command:" <<armState_.commandedPosition_goal<<"\n";
+          //      std::cout << "\nKukaJAVAdriver sending armposition command:" <<armState_.commandedPosition_goal<<"\n";
                  break;
               }
               case flatbuffer::ArmState::ArmState_TeachArm: {

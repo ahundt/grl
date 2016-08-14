@@ -255,13 +255,12 @@ namespace grl {
 
       }
 
-
       /// ROS callback to set current interaction mode; determines whether commands will be send in SERVO, TEACH, etc
       void mode_callback(const std_msgs::StringConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
         simJointPosition.clear();
-        boost::copy(current_js_.position,std::back_inserter(simJointPosition));
-        if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+        // boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+        // if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
 
         // simJointPosition.clear();
         // //simJointVelocity
@@ -304,9 +303,9 @@ namespace grl {
             boost::lock_guard<boost::mutex> lock(jt_mutex);
             ROS_INFO("Changing Cartesian Impedance Parameters");
 
-            simJointPosition.clear();
-            boost::copy(current_js_.position,std::back_inserter(simJointPosition));
-            if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+            // simJointPosition.clear();
+            // boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+            // if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
 
             //Cartesian stiffness msg values to the flatbuffers
             grl::flatbuffer::Vector3d cart_stifness_trans(cartImpedance->stiffness.translational.x,cartImpedance->stiffness.translational.y,cartImpedance->stiffness.translational.z);
@@ -359,15 +358,15 @@ namespace grl {
             nullspaceDamping = cartImpedance->null_space_params.damping[0];
             nullspaceStiffness = cartImpedance->null_space_params.stiffness[0];
 
-            simJointPosition.clear();
-            boost::copy(current_js_.position,std::back_inserter(simJointPosition));
-            if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+            // simJointPosition.clear();
+            // boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+            // if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
 
             KukaDriverP_->set(nullspaceStiffness,nullspaceDamping,null_space_params());
 
-            simJointPosition.clear();
-            boost::copy(current_js_.position,std::back_inserter(simJointPosition));
-            if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+            // simJointPosition.clear();
+            // boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+            // if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
 
 
 
@@ -379,16 +378,16 @@ namespace grl {
         double force;
         double stiffness;
 
-        simJointPosition.clear();
-        boost::copy(current_js_.position,std::back_inserter(simJointPosition));
-        if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+        // simJointPosition.clear();
+        // boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+        // if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
 
         KukaDriverP_->set(cartFTCtrl->DOF.c_str(),cartFTCtrl->force,cartFTCtrl->stiffness,set_const_ctrl_force());
 
 
-        simJointPosition.clear();
-        boost::copy(current_js_.position,std::back_inserter(simJointPosition));
-        if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
+        // simJointPosition.clear();
+        // boost::copy(current_js_.position,std::back_inserter(simJointPosition));
+        // if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
 
         //ROS_INFO("Set Cartesian Constant Force/torqe Control; %s",cartFTCtrl->DOF.c_str());
       }
@@ -413,6 +412,8 @@ namespace grl {
           //simJointForce
           simJointForce.clear();
           boost::copy(msg->effort,std::back_inserter(simJointForce));
+
+          ROS_INFO("Im in Joint trajectory msgs!!");
 
           ///@todo: execute the rest of the trajectory
       }
