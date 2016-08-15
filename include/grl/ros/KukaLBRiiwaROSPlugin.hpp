@@ -302,7 +302,7 @@ namespace grl {
       {
             boost::lock_guard<boost::mutex> lock(jt_mutex);
             ROS_INFO("Changing Cartesian Impedance Parameters");
-
+            //
             // simJointPosition.clear();
             // boost::copy(current_js_.position,std::back_inserter(simJointPosition));
             // if(simJointPosition.size()) KukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
