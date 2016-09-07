@@ -35,7 +35,7 @@
 #include "grl/tags.hpp"
 #include "grl/exception.hpp"
 #include "grl/kuka/Kuka.hpp"
-#include "grl/AzmqFlatbuffer.hpp"
+// #include "grl/AzmqFlatbuffer.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
@@ -176,18 +176,13 @@ namespace grl { namespace robot { namespace arm {
       void construct(Params params) {
 
         params_ = params;
-        // keep driver threads from exiting immediately after creation, because they have work to do!
-        device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
+
 
         try {
           BOOST_LOG_TRIVIAL(trace) << "KukaLBRiiwaRosPlugin: Connecting ZeroMQ Socket from " <<
             std::get<LocalZMQAddress>             (params_) << " to " <<
             std::get<RemoteZMQAddress>            (params_);
-          boost::system::error_code ec;
-          azmq::socket socket(device_driver_io_service, ZMQ_DEALER);
-          socket.bind(   std::get<LocalZMQAddress>             (params_).c_str()   );
-          socket.connect(std::get<RemoteZMQAddress>            (params_).c_str()   );
-          kukaJavaDriverP = std::make_shared<AzmqFlatbuffer>(std::move(socket));
+
 
         } catch( boost::exception &e) {
           e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to ZeroMQ Socket from " +
@@ -206,57 +201,11 @@ namespace grl { namespace robot { namespace arm {
 
       /// shuts down the arm
       bool destruct(){
-
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
-
-          boost::lock_guard<boost::mutex> lock(jt_mutex);
-
-          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-
-          /// @todo is this the best string to pass for the full arm's name?
-          auto basename = std::get<RobotName>(params_);
-
-          auto bns = fbbP->CreateString(basename);
-
-
-          auto controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,flatbuffer::ArmState::ArmState_ShutdownArm,flatbuffer::CreateShutdownArm(*fbbP).Union());
-
-//          auto KUKAiiwa = CreateKUKAiiwaState(*fbbP,
-//   flatbuffers::Offset<flatbuffers::String> name = 0,
-//   flatbuffers::Offset<flatbuffers::String> destination = 0,
-//   flatbuffers::Offset<flatbuffers::String> source = 0,
-//   double timestamp = 0,
-//   uint8_t setArmControlState = 0,
-//   flatbuffers::Offset<grl::flatbuffer::ArmControlState> armControlState = 0,
-//   uint8_t setArmConfiguration = 0,
-//   flatbuffers::Offset<KUKAiiwaArmConfiguration> armConfiguration = 0,
-//   uint8_t hasMonitorState = 0,
-//   flatbuffers::Offset<KUKAiiwaMonitorState> monitorState = 0,
-//   uint8_t hasMonitorConfig = 0,
-//   flatbuffers::Offset<KUKAiiwaMonitorConfiguration> monitorConfig = 0)
-
-
-          auto KUKAiiwa = CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,0,0,0,0,0,0);
-
-          auto iiwaStateVec = fbbP->CreateVector(&KUKAiiwa, 1);
-
-          auto iiwaStates = flatbuffer::CreateKUKAiiwaStates(*fbbP,iiwaStateVec);
-
-
-
-          grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, iiwaStates);
-          kukaJavaDriverP->async_send_flatbuffer(fbbP);
-
           return true;
       }
 
       ~KukaJAVAdriver(){
-        device_driver_workP_.reset();
 
-        if(driver_threadP){
-          device_driver_io_service.stop();
-          driver_threadP->join();
-        }
       }
 
 
@@ -518,7 +467,7 @@ namespace grl { namespace robot { namespace arm {
            state.wrenchJava = armState_.wrenchJava;
        }
    }
-   
+
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
    /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
    void set(const flatbuffer::ArmState& armControlMode)
