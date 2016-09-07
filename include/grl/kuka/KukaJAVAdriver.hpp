@@ -370,6 +370,26 @@ namespace grl { namespace robot { namespace arm {
                                    auto verifier = flatbuffers::Verifier(rbPstart, ret);
                                    auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
 
+                                   if (bufOK) {
+
+                                       auto bufff = static_cast<const void *>(rbPstart);
+                                       std::cout << "Succeeded in verification.  " << "\n";
+
+                                       auto fbKUKAiiwaStates = grl::flatbuffer::GetKUKAiiwaStates(bufff);
+                                       auto wrench = fbKUKAiiwaStates->states()->Get(0)->monitorState()->CartesianWrench();
+
+                                       armState_.wrenchJava.clear();
+                                       armState_.wrenchJava.push_back(wrench->force().x());
+                                       armState_.wrenchJava.push_back(wrench->force().y());
+                                       armState_.wrenchJava.push_back(wrench->force().z());
+                                       armState_.wrenchJava.push_back(wrench->torque().x());
+                                       armState_.wrenchJava.push_back(wrench->torque().y());
+                                       armState_.wrenchJava.push_back(wrench->torque().z());
+
+
+                                   } else {
+                                       std::cout << "Failed verification. bufOk: " << bufOK << "\n";
+                                   }
 
 
                                    }
