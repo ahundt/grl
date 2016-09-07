@@ -243,10 +243,11 @@ namespace grl { namespace robot { namespace arm {
         /// @todo make this handled by template driver implementations/extensions
 
 
-        if(kukaJavaDriverP)
-        {
 
-          auto fbbP = kukaJavaDriverP->GetUnusedBufferBuilder();
+
+
+           std::shared_ptr<flatbuffers::FlatBufferBuilder> fbbP;
+           fbbP = std::make_shared<flatbuffers::FlatBufferBuilder>();
 
             boost::lock_guard<boost::mutex> lock(jt_mutex);
 
@@ -329,8 +330,11 @@ namespace grl { namespace robot { namespace arm {
               std::cout << "\n";
           }
 
-          kukaJavaDriverP->async_send_flatbuffer(fbbP);
-        }
+          int ret;
+          ret = sendto(socket_local, fbbP->GetBufferPointer(), fbbP->GetSize(), 0, (struct sockaddr *)&dst_sockaddr, sizeof(dst_sockaddr));
+          if (ret != fbbP->GetSize())
+              printf("Send Error in masterJoint: ret = %d, len = %u\n", ret, fbbP->GetSize());
+
 
          return haveNewData;
       }
