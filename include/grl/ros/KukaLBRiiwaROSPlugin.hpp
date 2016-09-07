@@ -278,7 +278,6 @@ namespace grl {
       void jt_pt_callback(const trajectory_msgs::JointTrajectoryPointConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
 
-
           // positions velocities ac
           if (msg->positions.size() != KUKA::LBRState::NUM_DOF) {
             BOOST_THROW_EXCEPTION(std::runtime_error("Malformed joint trajectory request! Wrong number of joints."));
@@ -365,10 +364,25 @@ namespace grl {
 
            //current_js_.velocity.clear();
            //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
-
            current_js_.header.stamp = ::ros::Time::now();
            current_js_.header.seq += 1;
            js_pub_.publish(current_js_);
+         }
+
+         if(haveNewData)
+         {
+             std::vector<double> wrench_vector;
+             KukaDriverP_->getWrench(std::back_inserter(wrench_vector));
+             if (!wrench_vector.empty())
+             {
+                 current_wrench.force.x = wrench_vector[0];
+                 current_wrench.force.y = wrench_vector[1];
+                 current_wrench.force.z = wrench_vector[2];
+                 current_wrench.torque.x = wrench_vector[3];
+                 current_wrench.torque.y = wrench_vector[4];
+                 current_wrench.torque.z = wrench_vector[5];
+             }
+              wrench_pub_.publish(current_wrench);
          }
 
        }
@@ -406,9 +420,10 @@ namespace grl {
       ::ros::Subscriber mode_sub_; // subscribes to interaction mode messages (strings for now)
 
       ::ros::Publisher js_pub_; // publish true joint states from the KUKA
-
+      ::ros::Publisher wrench_pub_;
 
       sensor_msgs::JointState current_js_;
+      geometry_msgs::Wrench current_wrench;
 
       ::ros::NodeHandle nh_;
 
