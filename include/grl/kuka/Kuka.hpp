@@ -47,6 +47,7 @@ struct KukaState {
   cartesian_state externalForce;
   joint_state commandedPosition;
   cartesian_state commandedCartesianWrenchFeedForward;
+  cartesian_state wrenchJava;
   joint_state commandedTorque;
 
   joint_state ipoJointPosition;
@@ -92,7 +93,6 @@ struct KukaState {
   /// velocity limits the arm stops immediately with an error.
   joint_state velocity_limits;
 
-    
   void clear() {
     position.clear();
     torque.clear();
