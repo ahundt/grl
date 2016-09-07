@@ -201,11 +201,12 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		getLogger().info("GRL_Driver from github.com/ahundt/grl starting...\nZMQ Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
 
-		// connect to the controlling application via ZeroMQ
-		ZMQManager zmq = new ZMQManager(_processDataManager.get_ZMQ_MASTER_URI(),getLogger());
+		UDPManager udpMan = new UDPManager(_processDataManager.get_controllingLaptopIPAddress(), _processDataManager.get_controllingLaptopJAVAPort() ,getLogger());
 
 		// if stop is ever set to true the program stops running and exits
-		boolean stop = zmq.connect();
+		boolean stop;
+		stop = udpMan.connect();
+
 		IMotionContainer currentMotion = null;
 
 		boolean newConfig = false;
@@ -218,8 +219,8 @@ public class GRL_Driver extends RoboticsAPIApplication
 		// TODO: add a message that we send to the driver with data log strings
 		while (!stop && !_startStopUI.is_stopped()) {
 			message_counter+=1;
-			_currentKUKAiiwaState = zmq.waitForNextMessage();
-			_previousKUKAiiwaState = zmq.getPrevMessage();
+			_currentKUKAiiwaState = udpMan.waitForNextMessage();
+			_previousKUKAiiwaState = udpMan.getPrevMessage();
 
 
 			//////////////////////////////////////////
@@ -291,7 +292,8 @@ public class GRL_Driver extends RoboticsAPIApplication
 //					if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightRed(false);
 					// trying to use kuka's provided handguidingmotion but it isn't working now.
 					// using an if statement to default to old behavior.
-					boolean useHandGuidingMotion = true;
+					// TODO: Ashkan: why is this hardcoded?!?
+					boolean useHandGuidingMotion = false;
 
 					if(useHandGuidingMotion)
 					{
@@ -508,13 +510,58 @@ public class GRL_Driver extends RoboticsAPIApplication
 				stop = true;
 			}
 
+
+			/// Reading sensor values from Java Interface and sending them thrugh ZMQ
+			if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmJointServo){
+
+
+			Vector force = _lbr.getExternalForceTorque(_lbr.getFlange()).getForce();
+
+			double force_x = force.getX();
+			double force_y = force.getY();
+			double force_z = force.getZ();
+			double torque_x = 0;
+			double torque_y = 0;
+			double torque_z = 0;
+
+			FlatBufferBuilder builder = new FlatBufferBuilder(0);
+
+			int fb_wrench = Wrench.createWrench(builder, force_x, force_y, force_z, torque_x, torque_y, torque_z, 0, 0, 0);
+
+			KUKAiiwaMonitorState.startKUKAiiwaMonitorState(builder);
+		    KUKAiiwaMonitorState.addCartesianWrench(builder, fb_wrench);
+			int monitorStateOffset = KUKAiiwaMonitorState.endKUKAiiwaMonitorState(builder);
+
+			KUKAiiwaState.startKUKAiiwaState(builder);
+			KUKAiiwaState.addMonitorState(builder, monitorStateOffset);
+			int[] statesOffset = new int[1];
+			statesOffset[0] = KUKAiiwaState.endKUKAiiwaState(builder);
+
+			int statesVector = KUKAiiwaStates.createStatesVector(builder, statesOffset);
+
+			KUKAiiwaStates.startKUKAiiwaStates(builder);
+			KUKAiiwaStates.addStates(builder, statesVector);
+			int KUKAiiwaStatesOffset = KUKAiiwaStates.endKUKAiiwaStates(builder);
+
+
+			builder.finish(KUKAiiwaStatesOffset);
+			byte[] msg = builder.sizedByteArray();
+
+			try {
+				udpMan.sendMessage(msg, msg.length);
+			} catch (IOException e) {
+				// failed to send message in GRL_Driver.java
+			}
+
+			}
+
             /// TODO: add sending commands back to the C++ interface here, add appropriate call to zmq object, pay close attention to _monitorInterface variable
 
 		} // end primary while loop
 
 
 		// done
-		zmq.stop();
+		udpMan.stop();
 		_teachModeRunnable.stop();
 		if (_updateConfiguration!=null && _updateConfiguration.get_FRISession() != null) {
 			_updateConfiguration.get_FRISession().close();
