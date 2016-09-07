@@ -349,10 +349,50 @@ namespace grl { namespace robot { namespace arm {
 
                     if (num > 0)
                     {
-
                               if (FD_ISSET(socket_local, &temp_mask))
                               {
 
+                                   unsigned char recbuf[1024];
+                                   struct sockaddr_in  from;
+                                   socklen_t           from_len = sizeof(from);
+
+                                   ret = recvfrom(socket_local, recbuf, sizeof(recbuf), 0, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
+                                   if (ret <= 0)
+                                   printf("Receive Error: ret = %d\n", ret);
+
+
+                                   if (ret > 0){
+
+                                   std::cout << "received message size: " << ret << "\n";
+
+
+                                   auto rbPstart = static_cast<const uint8_t *>(recbuf);
+
+                                   auto verifier = flatbuffers::Verifier(rbPstart, ret);
+                                   auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
+
+                                   if (bufOK) {
+
+                                       auto bufff = static_cast<const void *>(rbPstart);
+                                       std::cout << "Succeeded in verification.  " << "\n";
+
+                                       auto fbKUKAiiwaStates = grl::flatbuffer::GetKUKAiiwaStates(bufff);
+                                       auto wrench = fbKUKAiiwaStates->states()->Get(0)->monitorState()->CartesianWrench();
+
+                                       armState_.wrenchJava.clear();
+                                       armState_.wrenchJava.push_back(wrench->force().x());
+                                       armState_.wrenchJava.push_back(wrench->force().y());
+                                       armState_.wrenchJava.push_back(wrench->force().z());
+                                       armState_.wrenchJava.push_back(wrench->torque().x());
+                                       armState_.wrenchJava.push_back(wrench->torque().y());
+                                       armState_.wrenchJava.push_back(wrench->torque().z());
+
+
+                                   } else {
+                                       std::cout << "Failed verification. bufOk: " << bufOK << "\n";
+                                   }
+
+                                   }
 
                               }
                     }
