@@ -41,9 +41,9 @@ static const int default_circular_buffer_size = 10;
 typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_buffer_type;
 
   /// Initialize AzmqFlatbuffer with a socket.
-  /// The socket should be fully configured 
+  /// The socket should be fully configured
   /// and ready to use when it is passed to this object.
-  /// We also recommend the user utilizes AzmqFlatbuffer(std::move(socket)) 
+  /// We also recommend the user utilizes AzmqFlatbuffer(std::move(socket))
   /// when calling this constructor.
   /// @see AzmqFlatbufferTest for an example of usage.
   ///
@@ -71,7 +71,7 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
   void async_send_flatbuffer(std::shared_ptr<flatbuffers::FlatBufferBuilder> fbbP)
   {
     auto self(shared_from_this());
-	
+
 #if 0
 	 socket_.async_send(boost::asio::buffer(fbbP->GetBufferPointer(), fbbP->GetSize()), [this,self,fbbP] (boost::system::error_code const& ec, size_t bytes_transferred) {
 			if(ec) std::cout << "SendFlatBuffer error! todo: figure out how to handle this\n";
@@ -98,17 +98,17 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
             fbbP->Clear();
             this->unusedFlatBufferBuilders_.push_back(fbbP);
         });*/
-		
+
   }
-  
+
   void shutdown(azmq::socket::shutdown_type sd,boost::system::error_code& ec){
     socket_.shutdown(sd,ec);
   }
-  
+
   void cancel(){
     socket_.cancel();
   }
-  
+
   /// destructor
   /// @todo maybe do something useful with the error code from shutting down the socket?
   ~AzmqFlatbuffer(){
@@ -117,11 +117,12 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
     socket_.shutdown(azmq::socket::shutdown_type::send,ec);
     socket_.shutdown(azmq::socket::shutdown_type::receive,ec);
     socket_.cancel();
-    
+
   }
 
   /// get a google FlatBufferBuilder object from the pool of unused objects
-	std::shared_ptr<flatbuffers::FlatBufferBuilder> GetUnusedBufferBuilder(){
+	std::shared_ptr<flatbuffers::FlatBufferBuilder> GetUnusedBufferBuilder()
+  {
 			std::lock_guard<std::mutex> lock(this->unusedFlatBufferBuildersLock_);
 			std::shared_ptr<flatbuffers::FlatBufferBuilder> back;
 			if (!unusedFlatBufferBuilders_.empty()) {
@@ -131,11 +132,11 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
 			/// @todo eliminate the need for this extra allocation, though this may be premature optimization
 				back = std::make_shared<flatbuffers::FlatBufferBuilder>();
 			}
-		
+
 			return back;
 	}
-	
-	/// Initializes the process of receiving 
+
+	/// Initializes the process of receiving
 	/// buffers from the source specified
 	/// by the azmq::socket taht was provided.
 	/// This initializes a loop that will continuously
@@ -149,7 +150,7 @@ typedef std::shared_ptr<boost::container::static_vector<uint8_t,256>> receive_bu
 			next_async_receive_buffers();
 		}
 	}
-	
+
 private:
 	/// read the next set of data from the zeromq interface in a loop.
 	/// This relies on the io_service for the loop, so that the stack
@@ -167,44 +168,44 @@ private:
 			/// @todo eliminate the need for this extra allocation
 				rbP = std::make_shared<receive_buffer_type::element_type>();
 			}
-			
+
 		}
 		// use the full capacity of the buffer
 		rbP->resize(rbP->capacity());
-		
+
 		auto self(shared_from_this());
-		
+
 		socket_.async_receive(boost::asio::buffer(&(rbP->begin()[0]),rbP->size()), [this,self,rbP](boost::system::error_code const ec, size_t bytes_transferred) {
 			if(ec) std::cout << "start_async_receive_buffers error! todo: figure out how to handle this\n";
 			// make rbp the size of the actual amount of data read
 			rbP->resize(std::min(bytes_transferred,rbP->capacity()));
 			std::lock_guard<std::mutex> lock(receiveBuffersLock_);
 			self->receiveBuffersWithData_.push_back(rbP);
-			
+
 			// run this function again *after* it returns
 			if(!doneReceiving_) socket_.get_io_service().post(std::bind(&AzmqFlatbuffer::next_async_receive_buffers,this));
 		});
 	}
 public:
-	
+
 	/// Stop receiving buffers
 	void stop_async_receive_buffers(){
 		doneReceiving_ = true;
 	}
-	
-	
+
+
 	/// @return true if there are no buffers that have been received via the socket, false otherwise
 	bool receive_buffers_empty(){
 		std::lock_guard<std::mutex> lock(receiveBuffersLock_);
 		return receiveBuffersWithData_.empty();
 	}
-	
+
 	/// @return The number of incoming buffers stored
 	std::size_t receive_buffers_size(){
 		std::lock_guard<std::mutex> lock(receiveBuffersLock_);
 		return receiveBuffersWithData_.size();
 	}
-	
+
 	/// @return The number of possible incoming buffers that can be stored
 	std::size_t receive_buffers_capacity(){
 		std::lock_guard<std::mutex> lock(receiveBuffersLock_);
@@ -221,13 +222,13 @@ public:
 		std::lock_guard<std::mutex> lock(receiveBuffersLock_);
 		unusedReceiveBuffers_.insert(unusedFlatBufferBuilders_.end(), range.begin(), range.end());
 	}
-	
+
 	/// Put an unused buffer, or one that is no longer needed, back into the pool
 	void push_back_unused_receive_buffer(receive_buffer_type rb){
 		std::lock_guard<std::mutex> lock(receiveBuffersLock_);
 		unusedReceiveBuffers_.push_back(rb);
 	}
-	
+
 	/// get the last, aka most chronologically recent, incoming buffer from the pool
 	receive_buffer_type get_back_receive_buffer_with_data(){
 	    receive_buffer_type rbP;
@@ -238,8 +239,8 @@ public:
 			}
 		return rbP;
 	}
-	
-	
+
+
 	/// get the first, aka the chronologically oldest, incoming buffer from the pool
 	receive_buffer_type get_front_receive_buffer_with_data(){
 	    receive_buffer_type rbP;
@@ -250,8 +251,8 @@ public:
 			}
 		return rbP;
 	}
-	
-	
+
+
 	/// @brief Get all buffers from the pool at once and put them in an OutputIterator. This reduces locking/unlocking substantially.
 	template<typename OutputIterator>
 	void get_all_receive_buffers_with_data(OutputIterator it){
