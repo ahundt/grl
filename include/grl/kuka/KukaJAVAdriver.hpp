@@ -406,12 +406,6 @@ namespace grl { namespace robot { namespace arm {
       volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
       volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
 
-      boost::asio::io_service device_driver_io_service;
-      std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
-      std::unique_ptr<std::thread> driver_threadP;
-      std::shared_ptr<AzmqFlatbuffer> kukaJavaDriverP;
-
-
 
      /**
       * \brief Set the joint positions for the current interpolation step.
