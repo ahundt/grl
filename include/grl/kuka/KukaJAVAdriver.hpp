@@ -511,6 +511,14 @@ namespace grl { namespace robot { namespace arm {
      state = armState_;
    }
 
+   void getWrench(KukaState & state)
+   { boost::lock_guard<boost::mutex> lock(jt_mutex);
+
+       if (!armState_.wrenchJava.empty()) {
+           state.wrenchJava = armState_.wrenchJava;
+       }
+   }
+   
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
    /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
    void set(const flatbuffer::ArmState& armControlMode)
