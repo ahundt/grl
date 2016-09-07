@@ -336,6 +336,28 @@ namespace grl { namespace robot { namespace arm {
               printf("Send Error in masterJoint: ret = %d, len = %u\n", ret, fbbP->GetSize());
 
 
+              // Receiving data from Sunrise
+
+              int num;
+              temp_mask = mask;
+
+              struct timeval tv;
+              tv.tv_sec = 0;
+              tv.tv_usec = 0;
+
+              num = select(FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, &tv);
+
+                    if (num > 0)
+                    {
+
+                              if (FD_ISSET(socket_local, &temp_mask))
+                              {
+
+
+                              }
+                    }
+
+
          return haveNewData;
       }
 
