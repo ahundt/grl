@@ -183,6 +183,27 @@ namespace grl { namespace robot { namespace arm {
             std::get<LocalZMQAddress>             (params_) << " to " <<
             std::get<RemoteZMQAddress>            (params_);
 
+            socket_local = socket(AF_INET, SOCK_DGRAM, 0);
+            if (socket_local < 0) {
+                printf("Error opening socket!\n");
+                exit(1);
+            }
+
+            port = 30010;
+            inet_pton(AF_INET, std::get<LocalZMQAddress>(params_).c_str(), &(local_sockaddr.sin_addr));
+            local_sockaddr.sin_family = AF_INET;
+            local_sockaddr.sin_port = htons(port);
+        //    local_sockaddr.sin_addr.s_addr = INADDR_ANY;
+
+            if (bind(socket_local, (struct sockaddr *)&local_sockaddr, sizeof(local_sockaddr)) < 0) {
+                printf("Error binding sr_joint!\n");
+                exit(1);
+            }
+
+            FD_ZERO(&mask);
+            FD_ZERO(&dummy_mask);
+            FD_SET(socket_local, &mask);
+
 
         } catch( boost::exception &e) {
           e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to ZeroMQ Socket from " +
