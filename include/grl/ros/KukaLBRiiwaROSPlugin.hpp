@@ -16,10 +16,12 @@
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/String.h>
+#include <geometry_msgs/Wrench.h>
 
 #include "grl/kuka/KukaDriver.hpp"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
+#include "grl/flatbuffer/KUKAiiwa_generated.h"
 
 
 /// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
@@ -30,7 +32,7 @@ inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream
   size_t last = v.size() - 1;
   for(size_t i = 0; i < v.size(); ++i) {
     out << v[i];
-    if (i != last) 
+    if (i != last)
       out << ", ";
   }
   out << "]";
@@ -41,13 +43,13 @@ namespace grl {
 
   namespace ros {
 
-    /** 
+    /**
      *
      * This class contains code to offer a simple communication layer between ROS and the KUKA LBR iiwa
      *
      * @todo Main Loop Update Rate must be supplied to underlying Driver for FRI mode. see KukaLBRiiwaVrepPlugin for reference, particularly kukaDriverP_->set(simulationTimeStep_,time_duration_command_tag());
      */
-    class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin> 
+    class KukaLBRiiwaROSPlugin : public std::enable_shared_from_this<KukaLBRiiwaROSPlugin>
     {
     public:
 
@@ -82,7 +84,7 @@ namespace grl {
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
             "KUKA_LBR_IIWA_14_R820"      , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
-            "tcp://0.0.0.0:30010"     , // LocalZMQAddress
+            "172.31.1.101"     , // LocalZMQAddress     // only insert ip, not the port
             "tcp://172.31.1.147:30010", // RemoteZMQAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
@@ -95,7 +97,7 @@ namespace grl {
 
       Params& loadRosParams(Params& params) {
             ::ros::NodeHandle nh_tilde("~");
-            
+
             nh_tilde.getParam("RobotName",std::get<RobotName>(params));
             nh_tilde.getParam("RobotModel",std::get<RobotModel>(params));
             nh_tilde.getParam("LocalZMQAddress",std::get<LocalZMQAddress>(params));
@@ -106,7 +108,7 @@ namespace grl {
             nh_tilde.getParam("RemoteHostKukaKoniUDPPort",std::get<RemoteHostKukaKoniUDPPort>(params));
             nh_tilde.getParam("KukaCommandMode",std::get<KukaCommandMode>(params));
             nh_tilde.getParam("KukaMonitorMode",std::get<KukaMonitorMode>(params));
-            
+
           return params;
       }
 
@@ -176,6 +178,7 @@ namespace grl {
           js_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states",100);
           jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_callback, this);
           jt_pt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectoryPoint>("joint_traj_pt_cmd", 1000, &KukaLBRiiwaROSPlugin::jt_pt_callback, this);
+          wrench_pub_ = nh.advertise<geometry_msgs::Wrench>("slave/wrench_r",100);
           mode_sub_ = nh.subscribe<std_msgs::String>("interaction_mode", 1000, &KukaLBRiiwaROSPlugin::mode_callback, this);
           ROS_INFO("done creating subscribers");
           //jt_sub_ = nh.subscribe<trajectory_msgs::JointTrajectory>("joint_traj_cmd",1000,boost::bind(&KukaLBRiiwaROSPlugin::jt_callback, this, _1));
@@ -183,7 +186,7 @@ namespace grl {
         params_ = params;
         // keep driver threads from exiting immediately after creation, because they have work to do!
         device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
-        
+
         /// @todo properly support passing of io_service
         KukaDriverP_.reset(
             new grl::robot::arm::KukaDriver(
@@ -275,7 +278,6 @@ namespace grl {
       void jt_pt_callback(const trajectory_msgs::JointTrajectoryPointConstPtr &msg) {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
 
-
           // positions velocities ac
           if (msg->positions.size() != KUKA::LBRState::NUM_DOF) {
             BOOST_THROW_EXCEPTION(std::runtime_error("Malformed joint trajectory request! Wrong number of joints."));
@@ -305,10 +307,10 @@ namespace grl {
         }
       }
 
-     /// 
+     ///
      /// @brief spin once, call this repeatedly to run the driver
-     /// 
-     /// 
+     ///
+     ///
      bool run_one()
      {
 
@@ -362,10 +364,25 @@ namespace grl {
 
            //current_js_.velocity.clear();
            //grl::robot::arm::copy(friData_->monitoringMsg, std::back_inserter(current_js_.velocity), grl::revolute_joint_angle_open_chain_state_tag());
-
            current_js_.header.stamp = ::ros::Time::now();
            current_js_.header.seq += 1;
            js_pub_.publish(current_js_);
+         }
+
+         if(haveNewData)
+         {
+             std::vector<double> wrench_vector;
+             KukaDriverP_->getWrench(std::back_inserter(wrench_vector));
+             if (!wrench_vector.empty())
+             {
+                 current_wrench.force.x = wrench_vector[0];
+                 current_wrench.force.y = wrench_vector[1];
+                 current_wrench.force.z = wrench_vector[2];
+                 current_wrench.torque.x = wrench_vector[3];
+                 current_wrench.torque.y = wrench_vector[4];
+                 current_wrench.torque.z = wrench_vector[5];
+             }
+              wrench_pub_.publish(current_wrench);
          }
 
        }
@@ -397,15 +414,16 @@ namespace grl {
       boost::mutex jt_mutex;
       boost::shared_ptr<robot::arm::KukaDriver> KukaDriverP_;
       Params params_;
-      
-      ::ros::Subscriber jt_sub_; // subscribes to joint state trajectories and executes them 
-      ::ros::Subscriber jt_pt_sub_; // subscribes to joint state trajectories and executes them 
+
+      ::ros::Subscriber jt_sub_; // subscribes to joint state trajectories and executes them
+      ::ros::Subscriber jt_pt_sub_; // subscribes to joint state trajectories and executes them
       ::ros::Subscriber mode_sub_; // subscribes to interaction mode messages (strings for now)
 
       ::ros::Publisher js_pub_; // publish true joint states from the KUKA
-
+      ::ros::Publisher wrench_pub_;
 
       sensor_msgs::JointState current_js_;
+      geometry_msgs::Wrench current_wrench;
 
       ::ros::NodeHandle nh_;
 
