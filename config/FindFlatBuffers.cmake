@@ -20,9 +20,26 @@
 # * FLATBUFFERS_FOUND
 #
 # Provides:
-# * FLATBUFFERS_GENERATE_C_HEADERS(Name <files>) creates the C++ headers
+# * FLATBUFFERS_GENERATE_C_HEADERS(Name FLATBUFFERS_DIR OUTPUT_DIR <files>) creates the C++ headers
 #   for the given flatbuffer schema files.
 #   Returns the header files in ${Name}_OUTPUTS
+#   Name is the CMake variable name prefix that will be used.
+#        for example MY_FLATBUFFERS will set the variable 
+#        MY_FLATBUFFERS_OUTPUTS with the 
+#   FLATBUFFERS_DIR is the directory where the flatbuffers are stored.
+#   OUTPUT_DIR is where the output generated flatbuffer files are stored.
+#
+#
+# Usage Example:
+#
+# # list flatbuffer headers
+# set(RFB ArmControlState.fbs Geometry.fbs JointState.fbs KUKAiiwa.fbs LinkObject.fbs Euler.fbs Time.fbs VrepControlPoint.fbs VrepPath.fbs)
+# # directory to include flatbuffers
+# set(GRL_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include)
+# # Generate flatbuffer message C++ headers
+# flatbuffers_generate_c_headers(GRL_FLATBUFFERS include/grl/flatbuffer/  ${GRL_FLATBUFFERS_INCLUDE_DIR}/grl/flatbuffer ${RFB})
+# add_custom_target(grlflatbuffers DEPENDS ${GRL_FLATBUFFERS_OUTPUTS})
+# include_directories(${GRL_FLATBUFFERS_INCLUDE_DIR} )
 
 find_program(FLATBUFFERS_FLATC_EXECUTABLE NAMES flatc)
 find_path(FLATBUFFERS_INCLUDE_DIR NAMES flatbuffers/flatbuffers.h)
@@ -31,7 +48,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(flatbuffers
   DEFAULT_MSG FLATBUFFERS_FLATC_EXECUTABLE FLATBUFFERS_INCLUDE_DIR)
 
-if(FLATBUFFERS_FOUND)
+if(FLATBUFFERS_FOUND) 
   function(FLATBUFFERS_GENERATE_C_HEADERS Name FLATBUFFERS_DIR OUTPUT_DIR)
     set(FLATC_OUTPUTS)
     foreach(FILE ${ARGN})
