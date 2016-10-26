@@ -33,7 +33,7 @@ basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 
 # kuka iiwa FRI-Client-SDK_Cpp robotic arm C++ interface
 # needed by ROS and VREP kuka iiwa APIS
-include(FRI-Client-SDK_Cpp)
+include(FRI_Client_SDK_Cpp)
 
 add_subdirectory(ros)
 add_subdirectory(v_rep)

@@ -103,11 +103,10 @@ basis_project (
   # --------------------------------------------------------------------------
   # dependencies
   DEPENDS
-  # libsodium https://github.com/jedisct1/libsodium # todo: test this dependency
+    # libsodium https://github.com/jedisct1/libsodium # todo: test this dependency
     ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq 
-	AZMQ        # https://github.com/zeromq/azmq
-	FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
-	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log,chrono}
+	  FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
+	  Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log,chrono}
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
@@ -123,8 +122,13 @@ basis_project (
     CAMODOCAL          # used for hand eye calibration plugin https://github.com/hengli/camodocal
     PCL                # point cloud library, for vision components >=1.7 recommended https://github.com/PointCloudLibrary/pcl
     freenect2          # kinect v2 drivers, for vision components https://github.com/OpenKinect/libfreenect2
-    ROS
+    ROS                # Robot Operating System http://ROS.org
     TRTK               # Transform Registration Toolkit, for pivot calibration https://github.com/RWTHmediTEC/TRTK
+    SpaceVecAlg        # Implementation of Roy Featherstone's Spatial Vector Algebra https://github.com/jrl-umi3218/SpaceVecAlg
+    sch-core           # Algorithms for convex hulls https://github.com/jrl-umi3218/sch-core used for inverse kinematics
+    RBDyn              # Models the dynamics of rigid body system https://github.com/jrl-umi3218/RBDyn used for inverse kinematics
+    Tasks              # Real time control of Kinematic Trees https://github.com/jrl-umi3218/Tasks used for inverse kinematics
+	  AZMQ               # (Deprecated) Boost Asio implementation of ZeroMQ https://github.com/zeromq/azmq
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
