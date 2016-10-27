@@ -30,24 +30,32 @@
 #       BASIS will automatically add a library build target for these modules.
 
 find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log chrono)
-if(TARGET KukaFRIClient AND AZMQ_FOUND  AND Boost_FOUND AND Boost_LOG_FOUND AND Boost_CHRONO_FOUND)
+if(TARGET KukaFRIClient  AND Boost_FOUND AND Boost_CHRONO_FOUND)
     basis_include_directories(
         ${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS}
         ${FRI-Client-SDK_Cpp_INCLUDE_DIRS}
         ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include
     )
-    basis_add_library(v_repExtKukaLBRiiwa SHARED v_repExtKukaLBRiiwa.cpp )
+    basis_add_library(v_repExtKukaLBRiiwa SHARED 
+                        v_repExtKukaLBRiiwa.cpp     
+                        ../../include/grl/kuka/KukaDriver.hpp
+                        ../../include/grl/kuka/KukaFRIalgorithm.hpp
+                        ../../include/grl/kuka/KukaFRIdriver.hpp
+                        ../../include/grl/kuka/KukaFRI.hpp
+                        ../../include/grl/kuka/Kuka.hpp
+                        ../../include/grl/kuka/KukaJAVAdriver.hpp
+                        ../../include/grl/kuka/KukaNanopb.hpp
+    )
     basis_target_link_libraries(v_repExtKukaLBRiiwa 
-        ${Boost_LIBRARIES}  
-        ${Boost_LIBRARIES}  
-        ${Boost_LOG_LIBRARY} 
-        ${Boost_REGEX_LIBRARY} 
-        ${Boost_CHRONO_LIBRARY} 
-        ${ZeroMQ_LIBRARIES} 
-        ${CMAKE_THREAD_LIBS_INIT} 
-        ${Nanopb_LIBRARIES}
-        v_repLib
-        KukaFRIClient
+        PUBLIC
+            ${Boost_LIBRARIES}  
+            ${Boost_LIBRARIES}  
+            ${Boost_REGEX_LIBRARY} 
+            ${Boost_CHRONO_LIBRARY} 
+            ${CMAKE_THREAD_LIBS_INIT} 
+            ${Nanopb_LIBRARIES}
+            v_repLib
+            KukaFRIClient
     )
     basis_add_dependencies(v_repExtKukaLBRiiwa grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
     target_compile_definitions(v_repExtKukaLBRiiwa PUBLIC $<TARGET_PROPERTY:KukaFRIClient,INTERFACE_COMPILE_DEFINITIONS>)
@@ -64,5 +72,3 @@ endif()
 # This command can not only be used to build executables from C/C++, but also
 # source code written in other programming languages such as Java, Python, Perl,
 # MATLAB, and Bash.
-
-

@@ -14,16 +14,16 @@
 //
 // This file was automatically created for V-REP release V3.3.2 on August 29th 2016
 
-#include "luaFunctionDataItem.h"
+#include "scriptFunctionDataItem.h"
 
-CLuaFunctionDataItem::CLuaFunctionDataItem()
+CScriptFunctionDataItem::CScriptFunctionDataItem()
 {
     _nilTableSize=0;
     _isTable=false;
     _type=-1; // nil
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(bool v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(bool v)
 {
     _nilTableSize=0;
     _isTable=false;
@@ -31,15 +31,15 @@ CLuaFunctionDataItem::CLuaFunctionDataItem(bool v)
     boolData.push_back(v);
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(int v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(int v)
 {
     _nilTableSize=0;
     _isTable=false;
     _type=1;
-    intData.push_back(v);
+    int32Data.push_back(v);
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(float v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(float v)
 {
     _nilTableSize=0;
     _isTable=false;
@@ -47,7 +47,7 @@ CLuaFunctionDataItem::CLuaFunctionDataItem(float v)
     floatData.push_back(v);
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(double v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(double v)
 {
     _nilTableSize=0;
     _isTable=false;
@@ -55,15 +55,23 @@ CLuaFunctionDataItem::CLuaFunctionDataItem(double v)
     doubleData.push_back(v);
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(const std::string& v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(const std::string& str)
 {
     _nilTableSize=0;
     _isTable=false;
     _type=3;
-    stringData.push_back(v);
+    stringData.push_back(str);
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(const char* bufferPtr,unsigned int bufferLength)
+CScriptFunctionDataItem::CScriptFunctionDataItem(const char* str)
+{
+    _nilTableSize=0;
+    _isTable=false;
+    _type=3;
+    stringData.push_back(str);
+}
+
+CScriptFunctionDataItem::CScriptFunctionDataItem(const char* bufferPtr,unsigned int bufferLength)
 {
     _nilTableSize=0;
     _isTable=false;
@@ -72,7 +80,7 @@ CLuaFunctionDataItem::CLuaFunctionDataItem(const char* bufferPtr,unsigned int bu
     stringData.push_back(v);
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<bool>& v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(const std::vector<bool>& v)
 {
     _nilTableSize=0;
     _isTable=true;
@@ -80,15 +88,15 @@ CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<bool>& v)
     boolData.assign(v.begin(),v.end());
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<int>& v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(const std::vector<int>& v)
 {
     _nilTableSize=0;
     _isTable=true;
     _type=1;
-    intData.assign(v.begin(),v.end());
+    int32Data.assign(v.begin(),v.end());
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<float>& v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(const std::vector<float>& v)
 {
     _nilTableSize=0;
     _isTable=true;
@@ -96,7 +104,7 @@ CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<float>& v)
     floatData.assign(v.begin(),v.end());
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<double>& v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(const std::vector<double>& v)
 {
     _nilTableSize=0;
     _isTable=true;
@@ -104,7 +112,7 @@ CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<double>& v)
     doubleData.assign(v.begin(),v.end());
 }
 
-CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<std::string>& v)
+CScriptFunctionDataItem::CScriptFunctionDataItem(const std::vector<std::string>& v)
 {
     _nilTableSize=0;
     _isTable=true;
@@ -112,21 +120,21 @@ CLuaFunctionDataItem::CLuaFunctionDataItem(const std::vector<std::string>& v)
     stringData.assign(v.begin(),v.end());
 }
 
-CLuaFunctionDataItem::~CLuaFunctionDataItem()
+CScriptFunctionDataItem::~CScriptFunctionDataItem()
 {
 }
 
-bool CLuaFunctionDataItem::isTable()
+bool CScriptFunctionDataItem::isTable()
 {
     return(_isTable);
 }
 
-int CLuaFunctionDataItem::getType()
+int CScriptFunctionDataItem::getType()
 {
     return(_type);
 }
 
-void CLuaFunctionDataItem::setNilTable(int size)
+void CScriptFunctionDataItem::setNilTable(int size)
 {
     if (_type==-1)
     {
@@ -135,7 +143,7 @@ void CLuaFunctionDataItem::setNilTable(int size)
     }
 }
 
-int CLuaFunctionDataItem::getNilTableSize()
+int CScriptFunctionDataItem::getNilTableSize()
 {
     return(_nilTableSize);
 }

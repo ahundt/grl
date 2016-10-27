@@ -19,24 +19,25 @@
 #include <vector>
 #include <string>
 
-class CLuaFunctionDataItem
+class CScriptFunctionDataItem
 {
 public:
-    CLuaFunctionDataItem();
-    CLuaFunctionDataItem(bool v);
-    CLuaFunctionDataItem(int v);
-    CLuaFunctionDataItem(float v);
-    CLuaFunctionDataItem(double v);
-    CLuaFunctionDataItem(const std::string& v);
-    CLuaFunctionDataItem(const char* bufferPtr,unsigned int bufferLength);
+    CScriptFunctionDataItem();
+    CScriptFunctionDataItem(bool v);
+    CScriptFunctionDataItem(int v);
+    CScriptFunctionDataItem(float v);
+    CScriptFunctionDataItem(double v);
+    CScriptFunctionDataItem(const std::string& str);
+    CScriptFunctionDataItem(const char* str);
+    CScriptFunctionDataItem(const char* bufferPtr,unsigned int bufferLength);
 
-    CLuaFunctionDataItem(const std::vector<bool>& v);
-    CLuaFunctionDataItem(const std::vector<int>& v);
-    CLuaFunctionDataItem(const std::vector<float>& v);
-    CLuaFunctionDataItem(const std::vector<double>& v);
-    CLuaFunctionDataItem(const std::vector<std::string>& v);
+    CScriptFunctionDataItem(const std::vector<bool>& v);
+    CScriptFunctionDataItem(const std::vector<int>& v);
+    CScriptFunctionDataItem(const std::vector<float>& v);
+    CScriptFunctionDataItem(const std::vector<double>& v);
+    CScriptFunctionDataItem(const std::vector<std::string>& v);
 
-    virtual ~CLuaFunctionDataItem();
+    virtual ~CScriptFunctionDataItem();
 
     bool isTable();
     int getType();
@@ -44,7 +45,7 @@ public:
     int getNilTableSize();
 
     std::vector<bool> boolData;
-    std::vector<int> intData;
+    std::vector<int> int32Data;
     std::vector<float> floatData;
     std::vector<double> doubleData;
     std::vector<std::string> stringData;
@@ -52,5 +53,5 @@ public:
 protected:
     int _nilTableSize;
     bool _isTable;
-    int _type; // -1=nil,0=bool,1=int,2=float,3=string,4=buffer,5=double
+    int _type; // -1=nil,0=bool,1=int32,2=float,3=string,4=buffer,5=double
 };
