@@ -111,7 +111,7 @@ basis_project (
   OPTIONAL_DEPENDS
     #<optional-dependency>
     Threads            # pthreads, see CMake documentation
-	Eigen3             # Linear Algebra eigen.tuxfamily.com
+	  Eigen3             # Linear Algebra eigen.tuxfamily.com
     Nanopb             # Used in Kuka Fast Robot Interface
     FRI_Client_SDK_Cpp # Kuka Fast Robot Interface (FRI) Client SDK
     ur_modern_driver   # Universal Robots Arm Device Driver https://github.com/ThomasTimm/ur_modern_driver/
