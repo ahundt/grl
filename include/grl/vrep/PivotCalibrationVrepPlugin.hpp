@@ -97,10 +97,10 @@ void construct(){
 ///        COMBINATORICAL_APPROACH     //!< Setup n equations that yield the pivot point from a single measurement using the sought (but unknown) translation. Eliminate the pivot point in the system of equations and finally solve for the sought translation. \n This algorithm is advantageous in the case of non-zero-mean noise (e.g. a systematic error).
 ///
 /// If the algorithm string doesn't match an existing algorithm, this API will assume TWO_STEP_PROCEDURE.
-void setAlgorithm(std::string algorithm){
-
-  if (boost::iequals(algorithm, std::string("COMBINATORICAL_APPROACH"))) algorithm = TRTK::PivotCalibration<double>::Algorithm::COMBINATORICAL_APPROACH;
-  else algorithm = TRTK::PivotCalibration<double>::Algorithm::TWO_STEP_PROCEDURE;
+void setAlgorithm(std::string algorithm_){
+  algorithm = algorithm_;
+  // if (boost::iequals(algorithm, std::string("COMBINATORICAL_APPROACH"))) algorithm = TRTK::PivotCalibration<double>::Algorithm::COMBINATORICAL_APPROACH;
+  // else algorithm = TRTK::PivotCalibration<double>::Algorithm::TWO_STEP_PROCEDURE;
 }
 
 void addFrame() {
@@ -143,13 +143,17 @@ void estimatePivotOffset(){
 
    BOOST_VERIFY(allHandlesSet);
   
-   TRTK::PivotCalibration<double> pivotCalib(rvecsArm,tvecsArm);
+   /// TODO(ahundt) use Ransac pivot calibration wrapper because there will likely be noise
+   TRTK::PivotCalibrationTwoStep<double> pivotCalib;
+   pivotCalib.setLocations(TRTK::make_range(tvecsArm));
+   pivotCalib.setRotations(TRTK::make_range(rvecsArm));
    
-   pivotCalib.setAlgorithm(algorithm);
+   /// TODO(ahundt) Allow selection of "TWO_STEP_PROECDURE" and "COMBINATORIAL_APPROACH" from V-REP LUA API
+   //pivotCalib.setAlgorithm("TWO_STEP_PROCEDURE");
    
    pivotCalib.compute();
    
-   transformEstimate.translation() = pivotCalib.getTranslation();
+   transformEstimate.translation() = pivotCalib.getPivotPoint();
     
     
     // get fiducial in optical tracker base frame
@@ -217,10 +221,11 @@ void initHandles() {
 	allHandlesSet  = true;
 }
 
-TRTK::PivotCalibration<double>::Algorithm algorithm = TRTK::PivotCalibration<double>::Algorithm::TWO_STEP_PROCEDURE;
+// TRTK::PivotCalibration<double>::Algorithm algorithm = TRTK::PivotCalibration<double>::Algorithm::TWO_STEP_PROCEDURE;
+std::string algorithm = "TWO_STEP_PROCEDURE";
 
-std::vector<typename TRTK::PivotCalibration<double>::Matrix3T > rvecsArm;
-std::vector<typename TRTK::PivotCalibration<double>::Vector3T > tvecsArm;
+std::vector<typename TRTK::PivotCalibrationTwoStep<double>::Matrix3T > rvecsArm;
+std::vector<typename TRTK::PivotCalibrationTwoStep<double>::Vector3T > tvecsArm;
 
 bool isFirstFrame;
 std::size_t frameCount;
