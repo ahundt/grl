@@ -29,6 +29,8 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
+
+# these files are from the vrep progamming/common/ folder
 basis_add_library(v_repLib v_repLib.cpp luaFunctionDataItem.cpp socketOutConnection.cpp luaFunctionData.cpp     socketInConnection.cpp  v_repLib.cpp
 )
 
