@@ -29,20 +29,41 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
 
-# kuka iiwa FRI-Client-SDK_Cpp robotic arm C++ interface
-# needed by ROS and VREP kuka iiwa APIS
-include(FRI_Client_SDK_Cpp)
+#TODO: HACK: find_backage(Boost) shouldn't be necessary, boost.log isn't found properly... remove when possible
+find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log chrono)
+#TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
+if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_FOUND AND Boost_FOUND AND Boost_LOG_FOUND)
+    #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
+    #@see https://github.com/schuhschuh/cmake-basis/issues/442
+    basis_include_directories(
+      ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include 
+      ${CISSTNETLIB_INCLUDE_DIRS} 
+      ${CISST_INCLUDE_DIR}  
+      ${EIGEN3_INCLUDE_DIR}
+      ${sawConstraintController_INCLUDE_DIR}
+    )
+    # ${CISST_SAW_INCLUDE_DIRS}
+    basis_add_library(v_repExtGrlCisstInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
+    basis_target_link_libraries(v_repExtGrlCisstInverseKinematics 
+                    ${Boost_LIBRARIES}  
+                    ${Boost_LOG_LIBRARY}
+                    ${CMAKE_THREAD_LIBS_INIT}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib_gcc}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib_blas}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib_lapack}
+                    # ${cisstNetlib_LIBRARY_cisstNetlib_gfortran}
+                    ${CISSTNETLIB_LIBRARIES}
+                    ${CISST_LIBRARIES}
+                    ##${CISST_SAW_LIBRARIES}
+                    #${CISSTNETLIB_LIBRARIES}
+                    ${sawConstraintController_LIBRARIES}
+                    sawConstraintController
+                    v_repLib
+                )
+endif()
 
-add_subdirectory(ros)
-add_subdirectory(v_rep)
-add_subdirectory(v_repExtUniversalRobotsPlugin)
-add_subdirectory(v_repExtKukaLBRiiwaPlugin)
-add_subdirectory(v_repExtHandEyeCalibration)
-add_subdirectory(v_repExtPivotCalibration)
-add_subdirectory(v_repExtGrlInverseKinematics)
-add_subdirectory(v_repExtGrlCisstInverseKinematics)
 
 # ============================================================================
 # executable target(s)

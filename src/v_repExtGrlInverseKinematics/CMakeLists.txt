@@ -32,16 +32,22 @@
 
 #TODO: HACK: find_backage(Boost) shouldn't be necessary, boost.log isn't found properly... remove when possible
 find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log chrono)
-#TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
-if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_FOUND AND Boost_FOUND AND Boost_LOG_FOUND)
+message(STATUS <<<<<<<<<<<<<IK<<<<<<<<<<<<<<SpaceVecAlg_FOUND:${SpaceVecAlg_FOUND}<<<sch-core_FOUND:${sch-core_FOUND}<<<<RBDyn_FOUND:${RBDyn_FOUND}<<<<Tasks_FOUND:${Tasks_FOUND})
+    # SpaceVecAlg        # Implementation of Roy Featherstone's Spatial Vector Algebra https://github.com/jrl-umi3218/SpaceVecAlg
+    # sch-core           # Algorithms for convex hulls https://github.com/jrl-umi3218/sch-core used for inverse kinematics
+    # RBDyn              # Models the dynamics of rigid body system https://github.com/jrl-umi3218/RBDyn used for inverse kinematics
+    # Tasks              # Real time control of Kinematic Trees https://github.com/jrl-umi3218/Tasks used for inverse kinematics
+if( SpaceVecAlg_FOUND AND sch-core_FOUND AND RBDyn_FOUND AND Tasks_FOUND AND Boost_FOUND AND Boost_LOG_FOUND)
+
+message(STATUS <<<<<<<<<<<<<IK_BUILDING!!!)
     #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
     #@see https://github.com/schuhschuh/cmake-basis/issues/442
     basis_include_directories(
       ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include 
-      ${CISSTNETLIB_INCLUDE_DIRS} 
-      ${CISST_INCLUDE_DIR}  
       ${EIGEN3_INCLUDE_DIR}
-      ${sawConstraintController_INCLUDE_DIR}
+      # TODO(ahundt): include directories from Tasks & its deps
+      #$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/mylib>
+      #$<INSTALL_INTERFACE:include/mylib>  # <prefix>/include/mylib
     )
     # ${CISST_SAW_INCLUDE_DIRS}
     basis_add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
@@ -49,17 +55,10 @@ if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_
                     ${Boost_LIBRARIES}  
                     ${Boost_LOG_LIBRARY}
                     ${CMAKE_THREAD_LIBS_INIT}
-                    # ${cisstNetlib_LIBRARY_cisstNetlib}
-                    # ${cisstNetlib_LIBRARY_cisstNetlib_gcc}
-                    # ${cisstNetlib_LIBRARY_cisstNetlib_blas}
-                    # ${cisstNetlib_LIBRARY_cisstNetlib_lapack}
-                    # ${cisstNetlib_LIBRARY_cisstNetlib_gfortran}
-                    ${CISSTNETLIB_LIBRARIES}
-                    ${CISST_LIBRARIES}
-                    ##${CISST_SAW_LIBRARIES}
-                    #${CISSTNETLIB_LIBRARIES}
-                    ${sawConstraintController_LIBRARIES}
-                    sawConstraintController
+                    SpaceVecAlg
+                    sch-core
+                    RBDyn
+                    Tasks
                     v_repLib
                 )
 endif()
