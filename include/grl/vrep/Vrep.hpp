@@ -17,7 +17,7 @@ int getHandle(const std::string& param)
 }
 
 template<typename SinglePassRange, typename OutputIterator>
-OutputIterator getHandles(const SinglePassRange& inputRange, OutputIterator out)
+OutputIterator getHandles(const SinglePassRange inputRange, OutputIterator out)
 {
 return boost::range::transform(
                           inputRange,

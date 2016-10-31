@@ -5,6 +5,7 @@
 #include <memory>
 #include <array>
 
+#include <boost/range.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
@@ -17,11 +18,50 @@
 
 namespace grl { namespace vrep {
 
+
+    /// @todo TODO(ahundt)  joint to link and joint to respondable only works for v-rep provided scene heirarchy names, modify full class so these workarounds aren't needed
+    /// in other words this assumes everything is named like the following:
+    /// joint1:            LBR_iiwa_14_R820_joint1
+    /// link1:             LBR_iiwa_14_R820_link1
+    /// link1_respondable: LBR_iiwa_14_R820_link1_resp
+    ///
+    /// That assumption is definitely not true and names can be arbitrary so they must be provided
+    /// through the v-rep lua API.
+    std::vector<std::string> jointToLink(const std::vector<std::string>& jointNames)
+    {
+        std::vector<std::string> linkNames;
+        for(std::string jointName : jointNames)
+        {
+            boost::algorithm::replace_last(jointName,"joint","link");
+            linkNames.push_back(jointName);
+        }
+        return linkNames;
+    }
+    
+    /// @todo TODO(ahundt) HACK joint to link and joint to respondable only works for v-rep provided scene heirarchy names, modify full class so these workarounds aren't needed.
+    /// @see jointToLink
+    std::vector<std::string> jointToLinkRespondable(std::vector<std::string> jointNames)
+    {
+        auto linkNames = jointToLink(jointNames);
+    
+        std::vector<std::string> linkNames_resp;
+    
+        int i = 1;
+        for(std::string linkName : linkNames)
+        {
+            boost::algorithm::replace_last(linkName,"link" + boost::lexical_cast<std::string>(i),"link" + boost::lexical_cast<std::string>(i) + "_resp");
+            linkNames_resp.push_back(linkName);
+        }
+    
+        return linkNames_resp;
+    }
+
 /// @brief C++ interface for any open chain V-REP robot arm
 ///
 /// VrepRobotArmDriver makes it easy to specify and interact with the 
 /// joints in a V-REP defined robot arm in a consistent manner. 
 ///
+/// @todo add support for links, particularly the respondable aspects, see LBR_iiwa_14_R820_joint1_resp in RoboneSimulation.ttt
 /// @todo write generic getters and setters for this object like in KukaFRIalgorithm.hpp and the member functions of KukaFRIdriver, KukaJAVAdriver
 class VrepRobotArmDriver : public std::enable_shared_from_this<VrepRobotArmDriver> {
 public:
@@ -34,7 +74,6 @@ public:
         RobotIkGroup
     };
     
-    /// @todo allow default params
     typedef std::tuple<
         std::vector<std::string>,
         std::string,
@@ -69,6 +108,27 @@ public:
                     "RobotMillTipTarget"      , // RobotTargetName,
                     "Robotiiwa"               , // RobotTargetBaseName,
                     "IK_Group1_iiwa"            // RobotIkGroup
+                );
+    }
+    
+    static const Params measuredArmParams()
+    {
+        std::vector<std::string> jointNames{
+                    "LBR_iiwa_14_R820_joint1#0" , // Joint1Handle,
+                    "LBR_iiwa_14_R820_joint2#0" , // Joint2Handle,
+                    "LBR_iiwa_14_R820_joint3#0" , // Joint3Handle,
+                    "LBR_iiwa_14_R820_joint4#0" , // Joint4Handle,
+                    "LBR_iiwa_14_R820_joint5#0" , // Joint5Handle,
+                    "LBR_iiwa_14_R820_joint6#0" , // Joint6Handle,
+                    "LBR_iiwa_14_R820_joint7#0"   // Joint7Handle,
+                    };
+        
+        return std::make_tuple(
+                    jointNames                , // JointNames
+                    "RobotMillTip#0"            , // RobotTipName,
+                    "RobotMillTipTarget#0"      , // RobotTargetName,
+                    "Robotiiwa#0"               , // RobotTargetBaseName,
+                    "IK_Group1_iiwa#0"            // RobotIkGroup
                 );
     }
     
@@ -118,7 +178,7 @@ public:
 void construct() {
     std::vector<int> jointHandle;
     getHandleFromParam<JointNames>(params_,std::back_inserter(jointHandle));
-    handleParams_ =
+    handleParams_ = 
     std::make_tuple(
          std::move(jointHandle)                                 //Obtain Joint Handles
 	    ,getHandleFromParam<RobotTipName>           (params_)	//Obtain RobotTip handle
@@ -126,6 +186,14 @@ void construct() {
 	    ,getHandleFromParam<RobotTargetBaseName>    (params_)
         ,simGetIkGroupHandle(std::get<RobotIkGroup> (params_).c_str())
     );
+    
+    /// @todo TODO(ahundt) move these functions/member variables into params_ object, take as parameters from lua!
+    linkNames = jointToLink(std::get<JointNames>(params_));
+    getHandles(linkNames, std::back_inserter(linkHandles));
+    linkRespondableNames = jointToLinkRespondable(std::get<JointNames>(params_));
+    // First link is fixed to the ground so can't be respondable
+    linkHandles.push_back(-1);
+    getHandles(boost::make_iterator_range(linkRespondableNames.begin()+1,linkRespondableNames.end()), std::back_inserter(linkHandles));
 
 	allHandlesSet  = true;
 }
@@ -249,6 +317,37 @@ const std::vector<int>& getJointHandles()
   return std::get<JointNames>(handleParams_);
 }
 
+const std::vector<std::string>& getJointNames()
+{
+  return std::get<JointNames>(params_);
+}
+
+
+/// @todo deal with !allHandlesSet()
+const std::vector<int>& getLinkHandles()
+{
+  return linkHandles;
+}
+
+const std::vector<std::string>& getLinkNames()
+{
+  return linkNames;
+}
+
+
+/// @todo deal with !allHandlesSet()
+const std::vector<int>& getLinkRespondableHandles()
+{
+  return linkRespondableHandles;
+}
+
+const std::vector<std::string>& getLinkRespondableNames()
+{
+  return linkRespondableNames;
+}
+
+
+
 const Params & getParams(){
    return params_;
 }
@@ -261,6 +360,16 @@ private:
 
 Params params_;
 VrepHandleParams handleParams_;
+
+/// @todo TODO(ahundt) put these into params or handleparams as appropriate
+std::vector<std::string> linkNames;
+/// @todo TODO(ahundt) put these into params or handleparams as appropriate
+std::vector<std::string> linkRespondableNames;
+
+/// @todo TODO(ahundt) put these into params or handleparams as appropriate
+std::vector<int> linkHandles;
+/// @todo TODO(ahundt) put these into params or handleparams as appropriate
+std::vector<int> linkRespondableHandles;
 
 /// This is a unique identifying handle for external torque values
 /// since they are set as V-REP custom data.

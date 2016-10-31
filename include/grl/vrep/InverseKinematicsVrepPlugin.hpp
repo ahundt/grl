@@ -13,13 +13,19 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+// SpaceVecAlg
+// https://github.com/jrl-umi3218/SpaceVecAlg
+#include <SpaceVecAlg/SpaceVecAlg>
+
 // RBDyn
+// https://github.com/jrl-umi3218/RBDyn
 #include <RBDyn/Body.h>
 #include <RBDyn/Joint.h>
 #include <RBDyn/MultiBody.h>
 #include <RBDyn/MultiBodyConfig.h>
 #include <RBDyn/MultiBodyGraph.h>
 
+// Tasks
 // https://github.com/jrl-umi3218/Tasks
 #include <Tasks/Tasks.h>
 
@@ -28,11 +34,13 @@
 #include "grl/vrep/VrepRobotArmDriver.hpp"
 #include "grl/vrep/VrepRobotArmJacobian.hpp"
 #include "grl/vrep/Eigen.hpp"
+#include "grl/vrep/SpaceVecAlg.hpp"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/copy.hpp>
 
 namespace grl {
+namespace vrep {
 
 /// @todo verify Robotiiwa is the correct base, and RobotMillTipTarget is the right target, because if the transform doesn't match the one in the jacobian the algorithm will break
 //template<typename DesiredKinematics = DesiredKinematicsObject>
@@ -63,69 +71,113 @@ public:
     /// @todo need to call parent constructor:
         /*! Constructor
     */
-    InverseKinematicsVrepPlugin(size_t num_joints = 7)
+    InverseKinematicsVrepPlugin()
     {
     }
     
     void construct(Params params = defaultParams()){
         // get kinematics group name
         // get number of joints
-        VrepRobotArmDriverP_ = std::make_shared<vrep::VrepRobotArmDriver>();
-        VrepRobotArmDriverP_->construct();
+        
+        // Get the arm that will be used to generate simulated results to command robot
+        // the "base" of this ik is Robotiiwa
+        VrepRobotArmDriverSimulatedP_ = std::make_shared<vrep::VrepRobotArmDriver>();
+        VrepRobotArmDriverSimulatedP_->construct();
+        // Get the "Measured" arm that will be set based off of real arm sensor data, from sources like KukaVrepPlugin or ROS
+        // in example simulation this ends in #0
+        VrepRobotArmDriverMeasuredP_ = std::make_shared<vrep::VrepRobotArmDriver>(vrep::VrepRobotArmDriver::measuredArmParams());
+        VrepRobotArmDriverMeasuredP_->construct();
         
         ikGroupHandle_ = simGetIkGroupHandle(std::get<IKGroupName>(params).c_str());
         simSetExplicitHandling(ikGroupHandle_,1); // enable explicit handling for the ik
+        
+        /// @todo TODO(ahundt) does not generally get the transform to the base, hardcoded for the Kuka to "Robotiiwa".
+        std::string ikGroupBaseName("Robotiiwa");
+        int ikGroupBaseHandle = simGetObjectHandle(ikGroupBaseName.c_str());
+        /// for why this is named as it is see: https://github.com/jrl-umi3218/Tasks/blob/master/tests/arms.h#L34
+        sva::PTransform<double> X_base = getObjectPTransform(ikGroupBaseHandle);
+        // start by assuming the base is fixed
+        bool isFixed = true;
+        bool isForwardJoint = true;
+        
+        {
+        
+            auto jointHandles = VrepRobotArmDriverSimulatedP_->getJointHandles();
+            auto jointNames = VrepRobotArmDriverSimulatedP_->getJointNames();
+            
+            auto linkNames =VrepRobotArmDriverSimulatedP_->getLinkNames();
+            auto linkNameHandles =VrepRobotArmDriverSimulatedP_->getLinkHandles();
+            auto linkRespondableNames = VrepRobotArmDriverSimulatedP_->getLinkRespondableNames();
+            auto linkRespondableNameHandles =VrepRobotArmDriverSimulatedP_->getLinkRespondableHandles();
+            std::size_t numJoints = jointHandles.size();
+        
+            std::vector<std::string> bodyNames;
+            bodyNames.push_back(ikGroupBaseName);
+            // note: bodyNames are 1 longer than link names, and start with the base!
+            /// @todo TODO(ahundt) should 1st parameter be linkNames instead of linkRespondableNames?
+            boost::copy(linkRespondableNames, std::back_inserter(bodyNames));
+        
+                            
+            double mass = 1.;
+            Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+            Eigen::Vector3d h = Eigen::Vector3d::Zero();
 
-        //this->currentKinematicsStateP_->Name = std::get<IKGroupName>(params);
+            sva::RBInertiad rbi_base(mass, h, I);
+            rbd::Body baseBody(rbi_base,ikGroupBaseName.c_str());
+            rbd_mbg_.addBody(baseBody);
         
-        //this->desiredKinematicsStateP_->Name = std::get<DesiredKinematicsObjectName>(params);
         
-        /// @todo set desiredKinematicsStateP name, INITIALIZE ALL MEMBER OBJECTS, & SET NAMES
-        //
+            // based on: https://github.com/jrl-umi3218/Tasks/blob/master/tests/arms.h#L34
+            // and https://github.com/jrl-umi3218/RBDyn/issues/18#issuecomment-257214536
+            for(std::size_t i = 0; i < numJoints; i++)
+            {
+                /// @todo TODO(ahundt) extract real inertia and center of mass from V-REP with http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetShapeMassAndInertia.htm
+                
+                double mass = 1.;
+                Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+                Eigen::Vector3d h = Eigen::Vector3d::Zero();
+                /// @todo TODO(ahundt) consider the origin of the inertia! https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257198604
+                sva::RBInertiad rbi_i(mass, h, I);
+                /// @todo TODO(ahundt) add real support for links, particularly the respondable aspects, see LBR_iiwa_14_R820_joint1_resp in RoboneSimulation.ttt
+                //  @todo TODO(ahundt) REMEMBER: The first joint is NOT respondable!
+            
+                // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
+                // bodyNames[i], joint[i], bodyNames[i+1]
+                rbd::Body b_i(rbi_i,bodyNames[i+1].c_str());
+            
+                rbd_mbg_.addBody(b_i);
+            
+                // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
+                rbd::Joint j_i(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, jointNames[i].c_str());
+            
+                rbd_mbg_.addJoint(j_i);
+            
+                sva::PTransformd to(getJointPTransform(jointHandles[i]));
+                sva::PTransformd from(sva::PTransformd::Identity());
+            
+                // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
+                // bodyNames[i], joint[i], bodyNames[i+1]
+                rbd_mbg_.linkBodies(bodyNames[i], to, bodyNames[i+1], from, jointNames[i]);
+            
+            }
+        
+        
+            rbd_mb_ = rbd_mbg_.makeMultiBody(ikGroupBaseName,isFixed,X_base);
+            rbd_mbc_ = rbd::MultiBodyConfig(rbd_mb_);
+            rbd_mbc_.zero(rbd_mb_);
+        
+        }
+        
         positionLimitsName = std::get<IKGroupName>(params)+"_PositionLimits";
-        // this->jointPositionLimitsVFP_->Name = positionLimitsName;
         
         velocityLimitsName = std::get<IKGroupName>(params)+"_VelocityLimits";
-        // this->jointVelocityLimitsVFP_->Name = velocityLimitsName;
-        
-//            /// This will hold the Jacobian
-//    std::unique_ptr<prmKinematicsState> currentKinematicsStateP_;
-//    
-//    /// This will hold the xyz position and the rotation of where I want to go
-//    std::unique_ptr<prmKinematicsState> desiredKinematicsStateP_;
-//    
-//    // want to follow a goal position
-//    /// @todo will want to use an addVFFollow member function once it is added in
-//    std::unique_ptr<mtsVFDataBase> followVFP_;
-//    
-//    /// need velocity limits for the joints
-//    std::unique_ptr<mtsVFDataJointLimits> jointVelocityLimitsVFP_;
-//    /// joints cannot go to certain position
-//    std::unique_ptr<mtsVFDataJointLimits> jointPositionLimitsVFP_;
         
         /// @todo verify object lifetimes
-        //parent_type::parent_type::InitializeKinematicsState(this->currentKinematicsStateP_)
         
-            // for each virtual fixture need names and number of rows
+        // add virtual fixtures? need names and number of rows
         
         
         /// @todo read objective rows from vrep
-        
-        // Initialize Variables for update
-        //jointHandles_ = VrepRobotArmDriverP_->getJointHandles();
-        //int numJoints =jointHandles_.size();
-        
-// #ifndef IGNORE_ROTATION
-//         /// @todo objectiveRows seems to currently be a 3 vector, may eventually want a rotation and translation, perhaps with quaternion rotation
-//         followVFP_->ObjectiveRows = 6;
-// #else
-//         followVFP_->ObjectiveRows = 3;
-// #endif
-        // set the names once for each object, only once
-        // followVFP_->KinNames.push_back(currentKinematicsStateP_->Name);
-        // followVFP_->KinNames.push_back(desiredKinematicsStateP_->Name);
-        
-        // AddVFFollowPath(*followVFP_);
         
         /// @todo set vrep explicit handling of IK here, plus unset in destructor of this object
     }
@@ -147,8 +199,8 @@ public:
     /// check out sawConstraintController
     void updateKinematics(){
     
-        jointHandles_ = VrepRobotArmDriverP_->getJointHandles();
-        auto eigentestJacobian=::grl::vrep::getJacobian(*VrepRobotArmDriverP_);
+        jointHandles_ = VrepRobotArmDriverSimulatedP_->getJointHandles();
+        auto eigentestJacobian=::grl::vrep::getJacobian(*VrepRobotArmDriverSimulatedP_);
 
         /// The row/column major order is swapped between cisst and VREP!
         // this->currentKinematicsStateP_->Jacobian.SetSize(eigentestJacobian.cols(),eigentestJacobian.rows());
@@ -185,7 +237,7 @@ public:
         // UpdateJointPosLimitsVF(positionLimitsName,jointPositionLimitsVFP_->UpperLimits,jointPositionLimitsVFP_->LowerLimits,vctDoubleVecCurrentJoints);
         
         
-        const auto& handleParams = VrepRobotArmDriverP_->getVrepHandleParams();
+        const auto& handleParams = VrepRobotArmDriverSimulatedP_->getVrepHandleParams();
         Eigen::Affine3d currentEndEffectorPose =
         getObjectTransform(
                              std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams)
@@ -311,14 +363,24 @@ public:
         
     }
     
+    rbd::MultiBodyGraph          rbd_mbg_;
+    rbd::MultiBody               rbd_mb_;
+    rbd::MultiBodyConfig         rbd_mbc_;
+    std::vector<rbd::Body>       rbd_bodies_;
+    std::vector<sva::RBInertia<double>> rbd_inertias_;
+    std::vector<rbd::Joint>      rbd_joints_;
+    
+    
     std::vector<int> jointHandles_; ///< @todo move this item back into VrepRobotArmDriver
     int ikGroupHandle_;
-    std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverP_;
+    std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverSimulatedP_;
+    std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverMeasuredP_;
     vrep::VrepRobotArmDriver::State currentArmState_;
     std::string positionLimitsName;
     std::string velocityLimitsName;
 };
 
+} // namespace vrep
 } // namespace grl
 
 #endif

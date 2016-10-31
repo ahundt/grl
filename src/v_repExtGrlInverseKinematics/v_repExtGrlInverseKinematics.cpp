@@ -44,7 +44,7 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 
 
 
-std::shared_ptr<grl::InverseKinematicsVrepPlugin> InverseKinematicsControllerPG;
+std::shared_ptr<grl::vrep::InverseKinematicsVrepPlugin> InverseKinematicsControllerPG;
 
 /*int getPathPosVectorFromObjectPose(int objectHandle, float relativeDistance) //This might be helpful if we decide to implement all the code in the plugin (instead of the lua script
 {
@@ -63,7 +63,7 @@ void LUA_SIM_EXT_GRL_IK_START(SLuaCallBack* p)
   if (!InverseKinematicsControllerPG) {
   
     BOOST_LOG_TRIVIAL(info) << "v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin\n";
-    InverseKinematicsControllerPG=std::make_shared<grl::InverseKinematicsVrepPlugin>();
+    InverseKinematicsControllerPG=std::make_shared<grl::vrep::InverseKinematicsVrepPlugin>();
     InverseKinematicsControllerPG->construct();
   }
 }
@@ -71,7 +71,7 @@ void LUA_SIM_EXT_GRL_IK_START(SLuaCallBack* p)
 void LUA_SIM_EXT_GRL_IK_RESET(SLuaCallBack* p)
 {
     BOOST_LOG_TRIVIAL(info) << "v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin Data Collection\n";
-    InverseKinematicsControllerPG=std::make_shared<grl::InverseKinematicsVrepPlugin>();
+    InverseKinematicsControllerPG=std::make_shared<grl::vrep::InverseKinematicsVrepPlugin>();
     InverseKinematicsControllerPG->construct();
 }
 

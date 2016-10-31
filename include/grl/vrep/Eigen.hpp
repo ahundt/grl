@@ -73,6 +73,26 @@ Eigen::Vector3d vrepToEigenVector3d(InputIterator vrepVec){
     return vec;
 }
 
+/// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetJointMatrix.htm
+Eigen::Affine3d vrepToEigenTransform(const std::array<float,12>& vrepTransform)
+{
+
+  // based on comparing each of the following:
+  // http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetJointMatrix.htm
+  // https://en.wikipedia.org/wiki/Row-major_order
+  // https://eigen.tuxfamily.org/dox/group__TopicStorageOrders.html
+
+  // V-REP is by default Row-major order
+  // Eigen is by default Column Major order
+  Eigen::Map<const Eigen::Matrix<float,4,4,Eigen::RowMajor>> vmap(vrepTransform.cbegin());
+  Eigen::Affine3d eigenTransform;
+  eigenTransform.translation() = vmap.block<3,1>(0,3).cast<double>();
+  eigenTransform.matrix().block<3,3>(0,0) = vmap.block<3,3>(0,0).cast<double>();
+
+  return eigenTransform;
+}
+
+
 std::pair<Eigen::Vector3d,Eigen::Vector3d> getAxisAngleAndTranslation(int ObjectHandle, int BaseFrameObjectHandle){
 	
 	std::array<float,3> simTipPosition;
@@ -94,6 +114,7 @@ std::pair<Eigen::Vector3d,Eigen::Vector3d> getAxisAngleAndTranslation(int Object
     return std::make_pair(simTipAngleAxis,simTipVec);
 }
 
+
 template<typename T>
 void setObjectTransform(int objectHandle, int relativeToObjectHandle, T& transform){
 
@@ -107,6 +128,10 @@ void setObjectTransform(int objectHandle, int relativeToObjectHandle, T& transfo
    
 }
 
+/// @param objectHandle The V-Rep object handle for which the transform is needed
+/// @param relativeToObjectHandle The frame of reference in which to get the object handle, -1 (the default) gets the absolute position aka world frame
+/// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetObjectPosition.htm
+/// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetObjectQuaternion.htm
 Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle){
 
    std::array<float,4> vrepQuat;
@@ -123,6 +148,35 @@ Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle)
    transform.translation() = eigenPos;
    
    return transform;
+}
+
+/// @param objectHandle The V-Rep object handle for which the transform is needed
+/// @param relativeToObjectHandle The frame of reference in which to get the object handle, -1 (the default) gets the absolute position aka world frame
+/// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetObjectPosition.htm
+/// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetObjectQuaternion.htm
+std::pair<Eigen::Quaterniond,Eigen::Vector3d> getObjectTransformQuaternionTranslationPair(int objectHandle, int relativeToObjectHandle = -1){
+
+   std::array<float,4> vrepQuat;
+   simGetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
+   Eigen::Quaterniond eigenQuat(vrepToEigenQuaternion(vrepQuat));
+   
+   std::array<float,3> vrepPos;
+   simGetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   Eigen::Vector3d eigenPos(vrepToEigenVector3d(vrepPos));
+   
+   return std::make_pair(eigenQuat,eigenPos);
+}
+
+/// Eigen version of simGetJointMatrix
+Eigen::Affine3d getJointTransform(int objectHandle)
+{
+  // based on comparing each of the following:
+  // http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetJointMatrix.htm
+  // https://en.wikipedia.org/wiki/Row-major_order
+  // https://eigen.tuxfamily.org/dox/group__TopicStorageOrders.html
+  std::array<float,12> vrepTransform;
+  simGetJointMatrix(objectHandle,vrepTransform.begin());
+  return vrepToEigenTransform(vrepTransform);
 }
 
 template<typename T>
