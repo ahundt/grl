@@ -186,7 +186,8 @@ public:
             
                 rbd_mbg_.addJoint(j_i);
             
-                sva::PTransformd to(getJointPTransform(jointHandles_[i]));
+                // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
+                sva::PTransformd to(getJointPTransform(jointHandles_[i]).inv());
                 sva::PTransformd from(sva::PTransformd::Identity());
             
                 // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
@@ -196,7 +197,8 @@ public:
             }
         
             {
-                sva::PTransformd to(getObjectPTransform(jointHandles_[0],ikGroupBaseHandle_));
+                // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
+                sva::PTransformd to(getObjectPTransform(jointHandles_[0],ikGroupBaseHandle_).inv());
                 sva::PTransformd from(sva::PTransformd::Identity());
                 // conect the base to the first vrep "link"
                 rbd_mbg_.linkBodies(bodyNames_[0], to, bodyNames_[1], from, ikGroupBaseName_);
@@ -218,7 +220,8 @@ public:
         
             rbd_mbg_.addJoint(j_i);
         
-            sva::PTransformd to(getObjectPTransform(ikGroupTipHandle_,jointHandles_[numJoints-1]));
+            // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
+            sva::PTransformd to(getObjectPTransform(ikGroupTipHandle_,jointHandles_[numJoints-1]).inv());
             sva::PTransformd from(sva::PTransformd::Identity());
         
             // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
@@ -226,7 +229,8 @@ public:
             rbd_mbg_.linkBodies(bodyNames_[numJoints], to, bodyNames_[numJoints+1], from, ikGroupTipName_);
         
         
-            rbd_mbs_.push_back(rbd_mbg_.makeMultiBody(ikGroupBaseName_,isFixed,X_base));
+            // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
+            rbd_mbs_.push_back(rbd_mbg_.makeMultiBody(ikGroupBaseName_,isFixed,X_base.inv()));
             rbd_mbcs_.push_back(rbd::MultiBodyConfig(rbd_mbs_[0]));
             rbd_mbcs_[0].zero(rbd_mbs_[0]);
         
@@ -265,16 +269,6 @@ public:
     
         jointHandles_ = VrepRobotArmDriverSimulatedP_->getJointHandles();
         auto eigentestJacobian=::grl::vrep::getJacobian(*VrepRobotArmDriverSimulatedP_);
-
-        /// The row/column major order is swapped between cisst and VREP!
-        // this->currentKinematicsStateP_->Jacobian.SetSize(eigentestJacobian.cols(),eigentestJacobian.rows());
-        //Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > mckp2(this->currentKinematicsStateP_->Jacobian.Pointer(),this->currentKinematicsStateP_->Jacobian.cols(),this->currentKinematicsStateP_->Jacobian.rows());
-        //mckp2 = eigentestJacobian.cast<double>();
-        
-        
-        //Eigen::Map<Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > mf(eigentestJacobian,eigentestJacobian.cols(),eigentestJacobian.rows());
-        //Eigen::MatrixXf eigenJacobian = mf;
-        //Eigen::MatrixXf eigenJacobian = eigentestJacobian;
         
         
         ///////////////////////////////////////////////////////////
@@ -310,15 +304,6 @@ public:
                             ,std::get<vrep::VrepRobotArmDriver::RobotTargetBaseName>(handleParams)
                           );
         auto  currentEigenT = currentEndEffectorPose.translation();
-        // auto& currentCisstT = currentKinematicsStateP_->Frame.Translation();
-        // currentCisstT[0] = currentEigenT(0);
-        // currentCisstT[1] = currentEigenT(1);
-        // currentCisstT[2] = currentEigenT(2);
-#ifndef IGNORE_ROTATION
-        // Eigen::Map<Eigen::Matrix<double,3,3,Eigen::ColMajor>> ccr(currentKinematicsStateP_->Frame.Rotation().Pointer());
-        // ccr = currentEndEffectorPose.rotation();
-#endif // IGNORE_ROTATION
-        /// @todo set rotation component of current position
         
         
         Eigen::Affine3d desiredEndEffectorPose =
@@ -327,68 +312,17 @@ public:
                             ,std::get<vrep::VrepRobotArmDriver::RobotTargetBaseName>(handleParams)
                           );
         auto  desiredEigenT = desiredEndEffectorPose.translation();
-        // auto& desiredCisstT = desiredKinematicsStateP_->Frame.Translation();
-        // desiredCisstT[0] = desiredEigenT(0);
-        // desiredCisstT[1] = desiredEigenT(1);
-        // desiredCisstT[2] = desiredEigenT(2);
-#ifndef IGNORE_ROTATION
-        // Eigen::Map<Eigen::Matrix<double,3,3,Eigen::ColMajor>> dcr(desiredKinematicsStateP_->Frame.Rotation().Pointer());
-        // dcr = desiredEndEffectorPose.rotation();
-#endif // IGNORE_ROTATION
-        /// @todo set rotation component of desired position
-        
-        // for debugging, the translation between the current and desired position in cartesian coordinates
-        // auto inputDesired_dx = desiredCisstT - currentCisstT;
-        
-        // vct3 dx_translation, dx_rotation;
-        
-        // // Rotation part
-        // vctAxAnRot3 dxRot;
-        // vct3 dxRotVec;
-        // dxRot.FromNormalized((currentKinematicsStateP_->Frame.Inverse() * desiredKinematicsStateP_->Frame).Rotation());
-        // dxRotVec = dxRot.Axis() * dxRot.Angle();
-        // dx_rotation[0] = dxRotVec[0];
-        // dx_rotation[1] = dxRotVec[1];
-        // dx_rotation[2] = dxRotVec[2];
-        // //dx_rotation.SetAll(0.0);
-        // dx_rotation = currentKinematicsStateP_->Frame.Rotation() * dx_rotation;
-        
-        // Eigen::AngleAxis<float> tipToTarget_cisstToEigen;
-        
-        // Eigen::Matrix3f rotmat;
-        // double theta = std::sqrt(dx_rotation[0]*dx_rotation[0]+dx_rotation[1]*dx_rotation[1]+dx_rotation[2]*dx_rotation[2]);
-        // rotmat= Eigen::AngleAxisf(theta,Eigen::Vector3f(dx_rotation[0]/theta,dx_rotation[1]/theta,dx_rotation[2]/theta));
-        
-//        std::cout << "\ntiptotarget     \n" << tipToTarget.matrix() << "\n";
-//        std::cout << "\ntiptotargetcisst\n" << rotmat.matrix() << "\n";
-        
-        
-        //BOOST_LOG_TRIVIAL(trace) << "\n   test         desired dx: " << inputDesired_dx << " " << dx_rotation << "\noptimizer Calculated dx: " << optimizerCalculated_dx;
-        // SetKinematics(*currentKinematicsStateP_);  // replaced by name of object
-        // fill these out in the desiredKinematicsStateP_
-        //RotationType RotationMember; // vcRot3
-        //TranslationType TranslationMember; // vct3
-    
-        // SetKinematics(*desiredKinematicsStateP_); // replaced by name of object
-        // call setKinematics with the new kinematics
-        // sawconstraintcontroller has kinematicsState
-        // set the jacobian here
         
         //////////////////////
         /// @todo move code below here back under run_one updateKinematics() call
         
        /// @todo need to provide tick time in double seconds and get from vrep API call
        float simulationTimeStep = simGetSimulationTimeStep();
-    //    UpdateOptimizer(simulationTimeStep);
-       
-    //    vctDoubleVec jointAngles_dt;
-    //    auto returncode = Solve(jointAngles_dt);
        
        
-       /// @todo check the return code, if it doesn't have a result, use the VREP version as a fallback and report an error.
-       // if(returncode != nmrConstraintOptimizer::NMR_OK) BOOST_THROW_EXCEPTION(std::runtime_error("InverseKinematicsVrepPlugin: constrained optimization error, please investigate"));
-       
-       
+    
+        // we only have one robot so the index of it is 0
+        const std::size_t simulatedRobotIndex = 0;
        /// @todo: rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
        std::vector<std::vector<double>> q_forward_kinematics;
         std::string str;
@@ -396,8 +330,7 @@ public:
        for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
        {
           /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
-          rbd_mbcs_[0].q[i]={currentJointPosVec[i]};
-       
+          rbd_mbcs_[simulatedRobotIndex].q[rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointNames_[i])] = {currentJointPosVec[i]};
           /// @todo TODO(ahundt) add torque information
        
         //   float futureAngle = currentAngle + jointAngles_dt[i];
@@ -409,21 +342,20 @@ public:
         //         if (i<jointHandles_.size()-1)
         //             str+=", ";
        }
-    
-        // we only have one robot so the index of it is 0
-        const std::size_t simulatedRobotIndex = 0;
         
         rbd::forwardKinematics(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
         rbd::forwardVelocity(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
         
 
-        /// @todo TODO(ahundt) make solver object a member variable if possible
+        /// @todo TODO(ahundt) make solver object a member variable if possible, initialize in constructor
         tasks::qp::QPSolver solver;
 
         int bodyI = rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_);
         //tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,desiredEigenT);
-        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,getObjectTransform(ikGroupTipHandle_).translation());
+        // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
+        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,getObjectPTransform(ikGroupTargetHandle_).inv().translation());
         tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 10., 1.);
+        BOOST_LOG_TRIVIAL(trace) << "target translation (vrep format):\n"<< getObjectTransform(ikGroupTargetHandle_).translation();
 
         double inf = std::numeric_limits<double>::infinity();
         
@@ -438,6 +370,7 @@ public:
         // for all joints
         for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
         {
+            /// @todo TODO(ahundt) limits must be organized as described in https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257793242
             lBound.push_back({llimits[i]});
             uBound.push_back({ulimits[i]});
         }
@@ -464,11 +397,15 @@ public:
         // Test JointLimitsConstr
         /// @todo TODO(ahundt) was this commented correctly?
         //rbd_mbcs_[simulatedRobotIndex] = mbcInit;
-        for(int i = 0; i < 10; ++i)
+        
+        // This actually runs every time step, so only one iteration here, unless we want to subdivide
+        // a v-rep time step into smaller rbdyn time steps.
+        for(int i = 0; i < 1; ++i)
         {
             //BOOST_REQUIRE(solver.solve(rbd_mbs_, rbd_mbcs_));
             solver.solve(rbd_mbs_, rbd_mbcs_);
-            rbd::eulerIntegration(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex], 0.001);
+            // This should be handled by the simulator or physical robot, "forward simulation of dynamics"
+            //rbd::eulerIntegration(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex], simulationTimeStep);
 
             rbd::forwardKinematics(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
             rbd::forwardVelocity(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
@@ -485,8 +422,7 @@ public:
           //rbd_mbcs_[0].q[i]={currentAngle};
        
           /// @todo TODO(ahundt) add torque information
-       
-           float futureAngle = rbd_mbcs_[simulatedRobotIndex].q[0][i];
+          float futureAngle = rbd_mbcs_[simulatedRobotIndex].q[rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointNames_[i])][0];
           //simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
           //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
           //simSetJointTargetPosition(jointHandles_[i],futureAngle);
@@ -495,7 +431,7 @@ public:
                  if (i<jointHandles_.size()-1)
                      str+=", ";
        }
-        BOOST_LOG_TRIVIAL(trace) << "jointAngles_dt: "<< str;
+        BOOST_LOG_TRIVIAL(trace) << "jointAngles: "<< str;
         /// @todo TODO(ahundt) extract results
         
         //auto optimizerCalculated_dx = this->currentKinematicsStateP_->Jacobian * jointAngles_dt;
