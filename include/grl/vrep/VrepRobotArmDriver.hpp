@@ -49,8 +49,13 @@ namespace grl { namespace vrep {
         int i = 1;
         for(std::string linkName : linkNames)
         {
-            boost::algorithm::replace_last(linkName,"link" + boost::lexical_cast<std::string>(i),"link" + boost::lexical_cast<std::string>(i) + "_resp");
-            linkNames_resp.push_back(linkName);
+            /// @todo TODO(ahundt) link 1 isn't respondable because it is anchored to the ground, but should there be an empty string so the indexes are consistent or skip it entirely? (currently skipping) 
+            if(i!=1)
+            {
+                boost::algorithm::replace_last(linkName,"link" + boost::lexical_cast<std::string>(i),"link" + boost::lexical_cast<std::string>(i) + "_resp");
+                linkNames_resp.push_back(linkName);
+            }
+            ++i;
         }
     
         return linkNames_resp;
