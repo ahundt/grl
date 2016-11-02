@@ -142,7 +142,7 @@ public:
             bodyNames_.push_back(ikGroupBaseName_);
             // note: bodyNames are 1 longer than link names, and start with the base!
             /// @todo TODO(ahundt) should 1st parameter be linkNames instead of linkRespondableNames_?
-            boost::copy(linkRespondableNames_, std::back_inserter(bodyNames_));
+            boost::copy(linkNames_, std::back_inserter(bodyNames_));
         
             bodyNames_.push_back(ikGroupTipName_);
         
@@ -153,8 +153,13 @@ public:
 
             sva::RBInertiad rbi_base(mass, h, I);
             rbd::Body baseBody(rbi_base,ikGroupBaseName_);
-            rbd_mbg_.addBody(baseBody);
         
+            rbd_mbg_.addBody(baseBody);
+            
+            // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
+            rbd::Joint j_b_0(rbd::Joint::Fixed, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupBaseName_);
+        
+            rbd_mbg_.addJoint(j_b_0);
         
             // based on: https://github.com/jrl-umi3218/Tasks/blob/master/tests/arms.h#L34
             // and https://github.com/jrl-umi3218/RBDyn/issues/18#issuecomment-257214536
@@ -163,8 +168,8 @@ public:
                 /// @todo TODO(ahundt) extract real inertia and center of mass from V-REP with http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetShapeMassAndInertia.htm
                 
                 double mass = 1.;
-                Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
-                Eigen::Vector3d h = Eigen::Vector3d::Zero();
+                I = Eigen::Matrix3d::Identity();
+                h = Eigen::Vector3d::Zero();
                 /// @todo TODO(ahundt) consider the origin of the inertia! https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257198604
                 sva::RBInertiad rbi_i(mass, h, I);
                 /// @todo TODO(ahundt) add real support for links, particularly the respondable aspects, see LBR_iiwa_14_R820_joint1_resp in RoboneSimulation.ttt
@@ -190,6 +195,12 @@ public:
             
             }
         
+            {
+                sva::PTransformd to(getObjectPTransform(jointHandles_[0],ikGroupBaseHandle_));
+                sva::PTransformd from(sva::PTransformd::Identity());
+                // conect the base to the first vrep "link"
+                rbd_mbg_.linkBodies(bodyNames_[0], to, bodyNames_[1], from, ikGroupBaseName_);
+            }
             // add in the tip
             mass = 0;
             I = Eigen::Matrix3d::Identity();
@@ -410,7 +421,8 @@ public:
         tasks::qp::QPSolver solver;
 
         int bodyI = rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_);
-        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,desiredEigenT);
+        //tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,desiredEigenT);
+        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,getObjectTransform(ikGroupTipHandle_).translation());
         tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 10., 1.);
 
         double inf = std::numeric_limits<double>::infinity();
