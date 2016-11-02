@@ -132,7 +132,7 @@ void setObjectTransform(int objectHandle, int relativeToObjectHandle, T& transfo
 /// @param relativeToObjectHandle The frame of reference in which to get the object handle, -1 (the default) gets the absolute position aka world frame
 /// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetObjectPosition.htm
 /// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetObjectQuaternion.htm
-Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle){
+Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle = -1){
 
    std::array<float,4> vrepQuat;
    simGetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
@@ -154,6 +154,7 @@ Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle)
 /// @param relativeToObjectHandle The frame of reference in which to get the object handle, -1 (the default) gets the absolute position aka world frame
 /// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetObjectPosition.htm
 /// @see http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetObjectQuaternion.htm
+/// @todo TODO(ahundt) handle errors/return codes from simGetObjectPosition
 std::pair<Eigen::Quaterniond,Eigen::Vector3d> getObjectTransformQuaternionTranslationPair(int objectHandle, int relativeToObjectHandle = -1){
 
    std::array<float,4> vrepQuat;
