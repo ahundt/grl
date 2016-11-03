@@ -151,13 +151,17 @@ public:
                initialJointAngles.push_back(angle);
             }
         
-            bodyNames_.push_back(ikGroupBaseName_);
+            rbd_bodyNames_.push_back(ikGroupBaseName_);
+            rbd_jointNames_.push_back(ikGroupBaseName_);
             // note: bodyNames are 1 longer than link names, and start with the base!
             /// @todo TODO(ahundt) should 1st parameter be linkNames instead of linkRespondableNames_?
-            boost::copy(linkNames_, std::back_inserter(bodyNames_));
+            boost::copy(linkNames_, std::back_inserter(rbd_bodyNames_));
+            jointNames_.push_back(ikGroupTipName_);
+            boost::copy(jointNames_, std::back_inserter(rbd_jointNames_));
         
-            bodyNames_.push_back(ikGroupTipName_);
-            getHandles(bodyNames_,std::back_inserter(bodyHandles_));
+            rbd_bodyNames_.push_back(ikGroupTipName_);
+            getHandles(rbd_bodyNames_,std::back_inserter(bodyHandles_));
+            getHandles(rbd_jointNames_,std::back_inserter(rbd_jointHandles_));
         
             /// @todo TODO(ahundt) does any value for mass make sense? it is fixed to the ground
             double mass = 1.;
@@ -170,14 +174,27 @@ public:
             rbd_mbg_.addBody(baseBody);
             
             // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
-            rbd::Joint j_b_0(rbd::Joint::Fixed, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupBaseName_);
+            rbd::Joint j_b_0(rbd::Joint::Fixed, isForwardJoint, ikGroupBaseName_);
         
             rbd_mbg_.addJoint(j_b_0);
         
+            /// @todo TODO(ahundt) consider the origin of the inertia! https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257198604
+            sva::RBInertiad rbi_1(mass, h, I);
+            // add one extra body so the loop works out cleanly
+            std::string bodyName1(rbd_bodyNames_[1]);
+            rbd::Body b_1(rbi_1,bodyName1);
+            rbd_mbg_.addBody(b_1);
+        
             // based on: https://github.com/jrl-umi3218/Tasks/blob/master/tests/arms.h#L34
             // and https://github.com/jrl-umi3218/RBDyn/issues/18#issuecomment-257214536
-            for(std::size_t i = 0; i < numJoints; i++)
+            for(std::size_t i = 1; i <= numJoints; i++)
             {
+            
+                // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
+                rbd::Joint j_i(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, rbd_jointNames_[i]);
+                rbd_mbg_.addJoint(j_i);
+            
+            
                 /// @todo TODO(ahundt) extract real inertia and center of mass from V-REP with http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetShapeMassAndInertia.htm
                 
                 double mass = 1.;
@@ -190,35 +207,13 @@ public:
             
                 // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
                 // bodyNames[i], joint[i], bodyNames[i+1]
-                rbd::Body b_i(rbi_i,bodyNames_[i+1]);
+                std::string bodyName(rbd_bodyNames_[i+1]);
+                rbd::Body b_i(rbi_i,bodyName);
             
                 rbd_mbg_.addBody(b_i);
-            
-                // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
-                rbd::Joint j_i(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, jointNames_[i]);
-            
-                rbd_mbg_.addJoint(j_i);
-            
-            
-                // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
-                //       thus we are getting the current joint in the frame of the next joint
-                sva::PTransformd to(getObjectPTransform(bodyHandles_[i],bodyHandles_[i+1]));
-                // this should be the identity matrix because we set the joints to 0!
-                sva::PTransformd from(getJointPTransform(bodyHandles_[i]).inv());
-            
-                // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
-                // bodyNames[i], joint[i], bodyNames[i+1]
-                rbd_mbg_.linkBodies(bodyNames_[i], to, bodyNames_[i+1], from, jointNames_[i]);
-            
             }
+            
         
-            {
-                // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
-                sva::PTransformd to(getObjectPTransform(jointHandles_[0],ikGroupBaseHandle_).inv());
-                sva::PTransformd from(sva::PTransformd::Identity());
-                // conect the base to the first vrep "link"
-                rbd_mbg_.linkBodies(bodyNames_[0], to, bodyNames_[1], from, ikGroupBaseName_);
-            }
             // add in the tip
             mass = 0;
             I = Eigen::Matrix3d::Identity();
@@ -233,16 +228,25 @@ public:
             
             // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
             rbd::Joint j_i(rbd::Joint::Fixed, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupTipName_);
-        
             rbd_mbg_.addJoint(j_i);
         
-            // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
-            sva::PTransformd to(getObjectPTransform(ikGroupTipHandle_,jointHandles_[numJoints-1]).inv());
-            sva::PTransformd from(sva::PTransformd::Identity());
-        
-            // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
-            // bodyNames[i], joint[i], bodyNames[i+1]
-            rbd_mbg_.linkBodies(bodyNames_[numJoints], to, bodyNames_[numJoints+1], from, ikGroupTipName_);
+            for(std::size_t i = 1; i < rbd_bodyNames_.size(); i++)
+            {
+                // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
+                //       thus we are getting the current joint in the frame of the next joint
+                sva::PTransformd to(getObjectPTransform(rbd_jointHandles_[i-1],rbd_jointHandles_[i]));
+                // this should be the identity matrix because we set the joints to 0!
+                sva::PTransformd from(getJointPTransform(rbd_jointHandles_[i]).inv());
+            
+                // Link the PREVIOUSLY created body to the currently created body with the PREVIOUSLY created joint
+                // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
+                // bodyNames[i], joint[i], bodyNames[i+1]
+                std::string prevBody = rbd_bodyNames_[i-1];
+                std::string curBody =  rbd_bodyNames_[i];
+                std::string prevJoint = rbd_jointNames_[i-1];
+                rbd_mbg_.linkBodies(prevBody, to, curBody, from, prevJoint);
+            
+            }
         
         
             // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
@@ -535,8 +539,14 @@ public:
     std::vector<rbd::Body>              rbd_bodies_;
     std::vector<sva::RBInertia<double>> rbd_inertias_;
     std::vector<rbd::Joint>             rbd_joints_;
-    std::vector<std::string>            bodyNames_;
+    std::vector<std::string>            rbd_bodyNames_;
     std::vector<int>                    bodyHandles_;
+    /// rbd "joints" include fixed joints that bridge
+    /// various v-rep objects like the world origin and the ik group base.
+    std::vector<std::string>            rbd_jointNames_;
+    /// rbd "joints" include fixed joints that bridge
+    /// various v-rep objects like the world origin and the ik group base.
+    std::vector<int>                    rbd_jointHandles_;
     
     
     //tasks::qp::QPSolver qp_solver_;

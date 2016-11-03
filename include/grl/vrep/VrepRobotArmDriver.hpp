@@ -35,6 +35,8 @@ namespace grl { namespace vrep {
             boost::algorithm::replace_last(jointName,"joint","link");
             linkNames.push_back(jointName);
         }
+        /// @todo TODO(ahundt) FIX HACK! Manually adding last link
+        linkNames.push_back("LBR_iiwa_14_R820_link8");
         return linkNames;
     }
     
