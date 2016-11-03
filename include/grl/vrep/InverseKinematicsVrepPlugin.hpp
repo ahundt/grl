@@ -234,9 +234,9 @@ public:
             {
                 // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
                 //       thus we are getting the current joint in the frame of the next joint
-                sva::PTransformd to(getObjectPTransform(rbd_jointHandles_[i-1],rbd_jointHandles_[i]));
+                sva::PTransformd to(getObjectPTransform(rbd_jointHandles_[i],rbd_jointHandles_[i-1]));
                 // this should be the identity matrix because we set the joints to 0!
-                sva::PTransformd from(getJointPTransform(rbd_jointHandles_[i]).inv());
+                sva::PTransformd from(getJointPTransform(rbd_jointHandles_[i]));
             
                 // Link the PREVIOUSLY created body to the currently created body with the PREVIOUSLY created joint
                 // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
@@ -257,7 +257,7 @@ public:
         
         
             // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
-            rbd_mbs_.push_back(rbd_mbg_.makeMultiBody(ikGroupBaseName_,isFixed,X_base.inv()));
+            rbd_mbs_.push_back(rbd_mbg_.makeMultiBody(ikGroupBaseName_,isFixed,X_base));
             rbd_mbcs_.push_back(rbd::MultiBodyConfig(rbd_mbs_[0]));
             rbd_mbcs_[0].zero(rbd_mbs_[0]);
         
@@ -294,7 +294,7 @@ public:
           if( dummy_world_frame )
           {
               // visualize each joint position
-              sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])].inv();
+              sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy"+ boost::lexical_cast<std::string>(i)));
               int currentDummy = simGetObjectHandle(dummyName.c_str());
@@ -305,7 +305,7 @@ public:
           else
           {
               // visualize each joint position
-              sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].parentToSon[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])].inv();
+              sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].parentToSon[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy"+ boost::lexical_cast<std::string>(i)));
               int currentDummy = simGetObjectHandle(dummyName.c_str());
@@ -316,7 +316,7 @@ public:
           }
        }
        // may need to invert?
-       auto posArrayOfTasksTip = EigenToVrepPosition(rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_)].inv().translation());
+       auto posArrayOfTasksTip = EigenToVrepPosition(rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_)].translation());
        simSetObjectPosition(simGetObjectHandle("Dummy"),-1,posArrayOfTasksTip.begin());
         BOOST_LOG_TRIVIAL(trace) << "jointAngles: "<< str;
         
@@ -325,12 +325,14 @@ public:
         
         
         
-        
+            /// @todo TODO(ahundt) remove #if 0 after debugging is done
             // set the joints back where they were
+            #if 0
             for(std::size_t i = 0; i < jointHandles_.size(); ++i)
             {
                simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
             }
+            #endif
         }
         
         positionLimitsName = std::get<IKGroupName>(params)+"_PositionLimits";
@@ -451,7 +453,7 @@ public:
         int bodyI = rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_);
         //tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,desiredEigenT);
         // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
-        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,getObjectPTransform(ikGroupTargetHandle_).inv().translation());
+        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,getObjectPTransform(ikGroupTargetHandle_).translation());
         tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 10., 1.);
         BOOST_LOG_TRIVIAL(trace) << "target translation (vrep format):\n"<< getObjectTransform(ikGroupTargetHandle_).translation();
 
@@ -531,7 +533,7 @@ public:
 //                     str+=", ";
 //       
 //          // visualize each joint position
-//          sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])].inv();
+//          sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])];
 //          Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
 //          std::string dummyName(("Dummy"+ boost::lexical_cast<std::string>(i)));
 //          int currentDummy = simGetObjectHandle(dummyName.c_str());
@@ -540,7 +542,7 @@ public:
 //          prevDummy=currentDummy;
 //       }
 //       // may need to invert?
-//       auto posArrayOfTasksTip = EigenToVrepPosition(rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_)].inv().translation());
+//       auto posArrayOfTasksTip = EigenToVrepPosition(rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_)].translation());
 //       simSetObjectPosition(simGetObjectHandle("Dummy"),-1,posArrayOfTasksTip.begin());
 //        BOOST_LOG_TRIVIAL(trace) << "jointAngles: "<< str;
         /// @todo TODO(ahundt) extract results
