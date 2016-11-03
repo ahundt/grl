@@ -400,7 +400,7 @@ public:
         
         // This actually runs every time step, so only one iteration here, unless we want to subdivide
         // a v-rep time step into smaller rbdyn time steps.
-        for(int i = 0; i < 1; ++i)
+        for(int i = 0; i < 100; ++i)
         {
             //BOOST_REQUIRE(solver.solve(rbd_mbs_, rbd_mbcs_));
             solver.solve(rbd_mbs_, rbd_mbcs_);
@@ -431,6 +431,9 @@ public:
                  if (i<jointHandles_.size()-1)
                      str+=", ";
        }
+       // may need to invert?
+       auto posArrayOfTasksTip = EigenToVrepPosition(rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_)].inv().translation());
+       simSetObjectPosition(simGetObjectHandle("Dummy"),-1,posArrayOfTasksTip.begin());
         BOOST_LOG_TRIVIAL(trace) << "jointAngles: "<< str;
         /// @todo TODO(ahundt) extract results
         
