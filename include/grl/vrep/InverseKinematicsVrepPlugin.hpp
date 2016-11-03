@@ -244,6 +244,12 @@ public:
                 std::string prevBody = rbd_bodyNames_[i-1];
                 std::string curBody =  rbd_bodyNames_[i];
                 std::string prevJoint = rbd_jointNames_[i-1];
+                
+            
+            
+                Eigen::Affine3d eto (PTranformToEigenAffine(to));
+                std::string dummyName((prevBody + prevJoint + curBody + boost::lexical_cast<std::string>(i)));
+                BOOST_LOG_TRIVIAL(trace) << dummyName << " " << eto.matrix();
                 rbd_mbg_.linkBodies(prevBody, to, curBody, from, prevJoint);
             
             }
@@ -300,14 +306,30 @@ public:
                  if (i<jointHandles_.size()-1)
                      str+=", ";
        
-          // visualize each joint position
-          sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])].inv();
-          Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
-          std::string dummyName(("Dummy"+ boost::lexical_cast<std::string>(i)));
-          int currentDummy = simGetObjectHandle(dummyName.c_str());
-          BOOST_LOG_TRIVIAL(trace) << dummyName << " " << linkWorld.matrix();
-          setObjectTransform(currentDummy,-1,linkWorld);
-          prevDummy=currentDummy;
+           bool dummy_world_frame = true;
+          if( dummy_world_frame )
+          {
+              // visualize each joint position
+              sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])].inv();
+              Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
+              std::string dummyName(("Dummy"+ boost::lexical_cast<std::string>(i)));
+              int currentDummy = simGetObjectHandle(dummyName.c_str());
+              BOOST_LOG_TRIVIAL(trace) << dummyName << " " << linkWorld.matrix();
+              setObjectTransform(currentDummy,-1,linkWorld);
+              prevDummy=currentDummy;
+          }
+          else
+          {
+              // visualize each joint position
+              sva::PTransform<double>     plinkWorld = rbd_mbcs_[simulatedRobotIndex].parentToSon[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])].inv();
+              Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
+              std::string dummyName(("Dummy"+ boost::lexical_cast<std::string>(i)));
+              int currentDummy = simGetObjectHandle(dummyName.c_str());
+              BOOST_LOG_TRIVIAL(trace) << dummyName << " " << linkWorld.matrix();
+              setObjectTransform(currentDummy,prevDummy,linkWorld);
+              prevDummy=currentDummy;
+          
+          }
        }
        // may need to invert?
        auto posArrayOfTasksTip = EigenToVrepPosition(rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_)].inv().translation());
