@@ -84,7 +84,7 @@ Eigen::Affine3d vrepToEigenTransform(const std::array<float,12>& vrepTransform)
 
   // V-REP is by default Row-major order
   // Eigen is by default Column Major order
-  Eigen::Map<const Eigen::Matrix<float,4,4,Eigen::RowMajor>> vmap(vrepTransform.cbegin());
+  Eigen::Map<const Eigen::Matrix<float,3,4,Eigen::RowMajor>> vmap(vrepTransform.cbegin());
   Eigen::Affine3d eigenTransform;
   eigenTransform.translation() = vmap.block<3,1>(0,3).cast<double>();
   eigenTransform.matrix().block<3,3>(0,0) = vmap.block<3,3>(0,0).cast<double>();

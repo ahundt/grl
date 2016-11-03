@@ -24,6 +24,14 @@ sva::PTransform<double> eigenAffineToPtransform(const Eigen::Affine3d& eigenTran
     return sva::PTransform<double>(eigenTransform.rotation(),eigenTransform.translation());
 }
 
+Eigen::Affine3d PTranformToEigenAffine(sva::PTransform<double> & ptransform)
+{
+    Eigen::Affine3d eigenTransform;
+    eigenTransform.translation() = ptransform.translation();
+    eigenTransform.matrix().block<3,3>(0,0) = ptransform.rotation();
+    return eigenTransform;
+}
+
 sva::PTransform<double> getJointPTransform(int objectHandle)
 {
     return eigenAffineToPtransform(getJointTransform(objectHandle));
