@@ -263,7 +263,10 @@ public:
               std::string dummyName2(("Dummy"+ boost::lexical_cast<std::string>(i+10)));
               int currentDummy2 = simGetObjectHandle(dummyName2.c_str());
               eto = getObjectTransform(rbd_jointHandles_[i],-1);
-              BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP\n" << eto.matrix();
+              BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP World\n" << eto.matrix();
+              
+              Eigen::Affine3d NextJointinPrevFrame(getObjectTransform(rbd_jointHandles_[i],rbd_jointHandles_[i-1]));
+              BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
               setObjectTransform(currentDummy2,-1,eto);
             
             }
@@ -311,9 +314,12 @@ public:
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
               int currentDummy = simGetObjectHandle(dummyName.c_str());
-              BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn\n" << linkWorld.matrix();
+              BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn World\n" << linkWorld.matrix();
               setObjectTransform(currentDummy,-1,linkWorld);
               prevDummy=currentDummy;
+              sva::PTransform<double>     plinkToSon = rbd_mbcs_[simulatedRobotIndex].parentToSon[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])];
+              Eigen::Affine3d linkToSon = PTranformToEigenAffine(plinkToSon);
+              BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn ParentLinkToSon\n" << linkToSon.matrix();
           }
           else
           {
