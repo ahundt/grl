@@ -277,13 +277,18 @@ public:
             rbd_mbcs_.push_back(rbd::MultiBodyConfig(rbd_mbs_[0]));
             rbd_mbcs_[0].zero(rbd_mbs_[0]);
         
-        
-        
+        std::size_t simulatedRobotIndex = 0;
+#if 0
+        for (std::size_t i = 0; i < jointHandles_.size(); ++ i)
+        {
+            
+          rbd_mbcs_[simulatedRobotIndex].q[rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointNames_[i])][0] = initialJointAngles[i];
+        }
+#endif
         
         
         int prevDummy = -1;
         std::string str;
-        std::size_t simulatedRobotIndex = 0;
         
         rbd::forwardKinematics(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
         rbd::forwardVelocity(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
