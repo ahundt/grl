@@ -15,20 +15,20 @@
 sva::PTransform<double> getObjectPTransform(int objectHandle, int relativeToObjectHandle = -1)
 {
   std::pair<Eigen::Quaterniond,Eigen::Vector3d> baseQuatTransformPair = getObjectTransformQuaternionTranslationPair(objectHandle, relativeToObjectHandle);
-  sva::PTransform<double> ptransform(baseQuatTransformPair.first,baseQuatTransformPair.second);
+  sva::PTransform<double> ptransform(baseQuatTransformPair.first.inverse(),baseQuatTransformPair.second);
   return ptransform;
 }
 
 sva::PTransform<double> eigenAffineToPtransform(const Eigen::Affine3d& eigenTransform)
 {
-    return sva::PTransform<double>(eigenTransform.rotation(),eigenTransform.translation());
+    return sva::PTransform<double>(Eigen::Quaterniond(eigenTransform.rotation()).inverse(),eigenTransform.translation());
 }
 
 Eigen::Affine3d PTranformToEigenAffine(sva::PTransform<double> & ptransform)
 {
     Eigen::Affine3d eigenTransform;
+    eigenTransform = Eigen::Quaterniond(ptransform.rotation()).inverse();
     eigenTransform.translation() = ptransform.translation();
-    eigenTransform.matrix().block<3,3>(0,0) = ptransform.rotation();
     return eigenTransform;
 }
 
