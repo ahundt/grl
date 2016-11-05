@@ -148,7 +148,7 @@ public:
             for (int handle : jointHandles_) {
                float angle;
                simGetJointPosition(handle,&angle);
-               simSetJointPosition(handle,0);
+               //simSetJointPosition(handle,0);
                initialJointAngles.push_back(angle);
             }
         
@@ -192,7 +192,8 @@ public:
             {
             
                 // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
-                rbd::Joint j_i(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, rbd_jointNames_[i]);
+                std::string thisJointName = rbd_jointNames_[i];
+                rbd::Joint j_i(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, thisJointName);
                 rbd_mbg_.addJoint(j_i);
             
             
@@ -208,7 +209,8 @@ public:
             
                 // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
                 // bodyNames[i], joint[i], bodyNames[i+1]
-                std::string bodyName(rbd_bodyNames_[i+1]);
+                std::string thisBodyName = rbd_bodyNames_[i+1];
+                std::string bodyName(thisBodyName);
                 rbd::Body b_i(rbi_i,bodyName);
             
                 rbd_mbg_.addBody(b_i);
@@ -278,11 +280,13 @@ public:
             rbd_mbcs_[0].zero(rbd_mbs_[0]);
         
         std::size_t simulatedRobotIndex = 0;
-#if 0
+#if 1
         for (std::size_t i = 0; i < jointHandles_.size(); ++ i)
         {
-            
-          rbd_mbcs_[simulatedRobotIndex].q[rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointNames_[i])][0] = initialJointAngles[i];
+          /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, NOT SETTING FIRST JOINT
+          std::string jointName = jointNames_[i];
+          std::size_t jointIdx = rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointName);
+          rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = initialJointAngles[i+1];
         }
 #endif
         
