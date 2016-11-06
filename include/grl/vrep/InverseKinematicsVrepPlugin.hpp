@@ -246,17 +246,17 @@ public:
     #if 1
             for (std::size_t i = 0; i < jointHandles_.size(); ++ i)
             {
-              /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, NOT SETTING FIRST JOINT
-              std::string jointName = jointNames_[i];
-              std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-              rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = initialJointAngles[i+1];
-                  /// @todo TODO(ahundt) remove #if 0 after debugging is done
-                  // set the joints back where they were
-                  simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
+                /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, Manually SETTING FIRST JOINT
+                std::string jointName = jointNames_[i];
+                std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+                if(i<jointHandles_.size()-1) rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = initialJointAngles[i+1];
+                /// @todo TODO(ahundt) remove #if 0 after debugging is done
+                // set the joints back where they were
+                simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
             }
-              std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
-              std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-              rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = initialJointAngles[0];
+            std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
+            std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+            rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = initialJointAngles[0];
     #endif
             
         
@@ -287,8 +287,9 @@ public:
     
     
     
-    
-    void debugFrames()
+    /// Set dummy frames named Dummy0 to Dummy19 to the current state of the
+    /// RBDyn and V-REP representations of joints for debugging.
+    void debugFrames(bool print = false)
     {
         int prevDummy = -1;
         // we only have one robot for the moment so the index of it is 0
@@ -303,10 +304,10 @@ public:
           int currentDummy2 = simGetObjectHandle(dummyName2.c_str());
           eto = getObjectTransform(jointHandles_[i],-1);
           setObjectTransform(currentDummy2,-1,eto);
-          BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP World\n" << eto.matrix();
+          if(print) BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP World\n" << eto.matrix();
           
           Eigen::Affine3d NextJointinPrevFrame(getObjectTransform(jointHandles_[i],jointHandles_[i-1]));
-          BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
+          if(print) BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
        
           bool dummy_world_frame = true;
           if( dummy_world_frame )
@@ -316,12 +317,12 @@ public:
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
               int currentDummy = simGetObjectHandle(dummyName.c_str());
-              BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn World\n" << linkWorld.matrix();
+              if(print) BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn World\n" << linkWorld.matrix();
               setObjectTransform(currentDummy,-1,linkWorld);
               prevDummy=currentDummy;
               sva::PTransform<double>     plinkToSon = rbd_mbcs_[simulatedRobotIndex].parentToSon[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkToSon = PTranformToEigenAffine(plinkToSon);
-              BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn ParentLinkToSon\n" << linkToSon.matrix();
+              if(print) BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn ParentLinkToSon\n" << linkToSon.matrix();
           
           }
           else
@@ -331,7 +332,7 @@ public:
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
               int currentDummy = simGetObjectHandle(dummyName.c_str());
-              BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn\n" << linkWorld.matrix();
+              if(print) BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn\n" << linkWorld.matrix();
               setObjectTransform(currentDummy,prevDummy,linkWorld);
               prevDummy=currentDummy;
           
@@ -405,21 +406,31 @@ public:
        std::vector<std::vector<double>> q_forward_kinematics;
         std::string str;
        // str = "";
-       for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
        {
-          /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
-          rbd_mbcs_[simulatedRobotIndex].q[simArmMultiBody.jointIndexByName(jointNames_[i])] = {currentJointPosVec[i]};
-          /// @todo TODO(ahundt) add torque information
-       
-        //   float futureAngle = currentAngle + jointAngles_dt[i];
-          //simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
-          //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
-          //simSetJointTargetPosition(jointHandles_[i],futureAngle);
-        //   simSetJointPosition(jointHandles_[i],futureAngle);
-        //         str+=boost::lexical_cast<std::string>(jointAngles_dt[i]);
-        //         if (i<jointHandles_.size()-1)
-        //             str+=", ";
-       }
+            for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
+            {
+              /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
+
+              /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1
+              std::string jointName = jointNames_[i];
+              std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+              /// @todo TODO(ahundt) GOING ONE PAST THE END HERE?!?!
+              if(i<jointHandles_.size()-1) rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = currentJointPosVec[i+1];
+              /// @todo TODO(ahundt) add torque information
+
+            //   float futureAngle = currentAngle + jointAngles_dt[i];
+              //simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
+              //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
+              //simSetJointTargetPosition(jointHandles_[i],futureAngle);
+            //   simSetJointPosition(jointHandles_[i],futureAngle);
+            //         str+=boost::lexical_cast<std::string>(jointAngles_dt[i]);
+            //         if (i<jointHandles_.size()-1)
+            //             str+=", ";
+            }
+            std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
+            std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+            rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = currentJointPosVec[0];
+        }
         
         rbd::forwardKinematics(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex]);
         rbd::forwardVelocity(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex]);
@@ -431,9 +442,10 @@ public:
         int bodyI = simArmMultiBody.bodyIndexByName(ikGroupTipName_);
         //tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,desiredEigenT);
         // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
-        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,getObjectPTransform(ikGroupTargetHandle_).translation());
+        auto targetWorldTransform = getObjectTransform(ikGroupTargetHandle_);
+        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
         tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 10., 1.);
-        BOOST_LOG_TRIVIAL(trace) << "target translation (vrep format):\n"<< getObjectTransform(ikGroupTargetHandle_).translation();
+        BOOST_LOG_TRIVIAL(trace) << "target translation (vrep format):\n"<< targetWorldTransform.translation();
 
         double inf = std::numeric_limits<double>::infinity();
         
@@ -475,24 +487,50 @@ public:
         // Test JointLimitsConstr
         /// @todo TODO(ahundt) was this commented correctly?
         //rbd_mbcs_[simulatedRobotIndex] = mbcInit;
-        
+        int numSolverIterations = 100;
+        double timeStepDividedIntoIterations = simulationTimeStep/numSolverIterations;
         // This actually runs every time step, so only one iteration here, unless we want to subdivide
         // a v-rep time step into smaller rbdyn time steps.
-        for(int i = 0; i < 1000; ++i)
+        for(int i = 0; i < numSolverIterations; ++i)
         {
             //BOOST_REQUIRE(solver.solve(rbd_mbs_, rbd_mbcs_));
             solver.solve(rbd_mbs_, rbd_mbcs_);
             // This should be handled by the simulator or physical robot, "forward simulation of dynamics"
-            //rbd::eulerIntegration(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex], simulationTimeStep);
+            rbd::eulerIntegration(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex], timeStepDividedIntoIterations);
 
             rbd::forwardKinematics(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex]);
             rbd::forwardVelocity(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex]);
             //BOOST_REQUIRE_GT(rbd_mbcs_[simulatedRobotIndex].q[1][simulatedRobotIndex], -cst::pi<double>()/4. - 0.01);
         }
+#endif
+       
+#if 1
+        {
+            solver.solve(rbd_mbs_, rbd_mbcs_);
+            //rbd::eulerIntegration(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex], 0.0001);
+            rbd::forwardKinematics(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex]);
+            rbd::forwardVelocity(simArmMultiBody, rbd_mbcs_[simulatedRobotIndex]);
+            for (std::size_t i = 0; i < jointHandles_.size(); ++ i)
+            {
+                /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
+                /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, NOT SETTING FIRST JOINT
+                std::string jointName = jointNames_[i];
+                std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+                float futureAngle = rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0];
+                std::size_t setIndex = i+1;
+                if(setIndex<jointHandles_.size()) simSetJointPosition(jointHandles_[setIndex],futureAngle);
+            }
+            std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
+            std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+            float futureAngle = rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0];
+            simSetJointPosition(jointHandles_[0],futureAngle);
+        }
+#endif
+//        std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
+//        std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+//        rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = initialJointAngles[0];
         
-        
-        int prevDummy = -1;
-        
+        #if 0
        for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
        {
           float currentAngle;
@@ -512,9 +550,8 @@ public:
                      str+=", ";
        
        } // end jointHandles for loop
-       
+       #endif
        debugFrames();
-#endif
        // may need to invert?
         Eigen::Affine3d tipTf = PTranformToEigenAffine(rbd_mbcs_[simulatedRobotIndex].bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)]);
        setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
@@ -547,9 +584,15 @@ public:
     std::vector<int>                    bodyHandles_;
     /// rbd "joints" include fixed joints that bridge
     /// various v-rep objects like the world origin and the ik group base.
+    /// This is organized a bit differently from the v-rep joint names
+    /// because we need additional fixed "joints" so we have transforms
+    /// that match the V-REP scene
     std::vector<std::string>            rbd_jointNames_;
     /// rbd "joints" include fixed joints that bridge
     /// various v-rep objects like the world origin and the ik group base.
+    /// This is organized a bit differently from the v-rep joint names
+    /// because we need additional fixed "joints" so we have transforms
+    /// that match the V-REP scene
     std::vector<int>                    rbd_jointHandles_;
     
     
