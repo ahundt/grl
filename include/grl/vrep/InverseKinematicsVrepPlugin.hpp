@@ -386,6 +386,10 @@ public:
     
     /// Runs at every simulation time step
     void updateKinematics(){
+        
+        // Only update kinematics once for debugging purposes. Comment this next line when not debugging
+        if(ranOnce_) return;
+        ranOnce_ = true;
     
         jointHandles_ = VrepRobotArmDriverSimulatedP_->getJointHandles();
         auto eigentestJacobian=::grl::vrep::getJacobian(*VrepRobotArmDriverSimulatedP_);
@@ -636,6 +640,8 @@ public:
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverSimulatedP_;
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverMeasuredP_;
     vrep::VrepRobotArmDriver::State currentArmState_;
+    
+    bool ranOnce_ = false;
 };
 
 } // namespace vrep
