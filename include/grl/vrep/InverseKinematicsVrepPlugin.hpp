@@ -26,6 +26,7 @@
 #include <RBDyn/MultiBodyGraph.h>
 #include <RBDyn/EulerIntegration.h>
 #include <RBDyn/FK.h>
+#include <RBDyn/IK.h>
 #include <RBDyn/FV.h>
 #include <RBDyn/ID.h>
 
@@ -51,6 +52,55 @@
 
 namespace grl {
 namespace vrep {
+
+/// Sets the VREP simulation joint positions from the RBDyn configuration
+///
+/// @param vrepJointNames the name of each joint, order must match vrepJointHandles
+/// @param vrepJointHandles the V-REP simulation object handle for each joint
+/// @param rbdJointNames the names of all the simArmMultiBody joints, which typically has more joints than the VREP list.
+/// @param simArmMultiBody defines the structure of the robot arm for the RBDyn library, see RBDyn documentation
+/// @param simArmConfig defines the current position of the robot arm for the RBDyn library, see RBDyn documentation
+/// @param debug if empty string, no effect, if any other string a trace of the joint angles will be printed to std::cout
+void SetVRepArmFromRBDyn(
+    std::vector<std::string>& vrepJointNames,
+    std::vector<int>& vrepJointHandles,
+    std::vector<std::string>& rbdJointNames,
+    const rbd::MultiBody& simArmMultiBody,
+    const rbd::MultiBodyConfig& simArmConfig,
+    std::string debug = "")
+{
+    std::string str;
+    for (std::size_t i = 0; i < vrepJointHandles.size(); ++ i)
+    {
+        /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, NOT SETTING FIRST JOINT
+        // modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
+        std::string jointName = vrepJointNames[i];
+        std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+        float futureAngle = simArmConfig.q[jointIdx][0];
+        std::size_t setIndex = i+1;
+        if(setIndex<vrepJointHandles.size()) simSetJointPosition(vrepJointHandles[setIndex],futureAngle);
+        /// @todo TODO(ahundt) add torque information
+        // simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
+        // simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
+        // simSetJointTargetPosition(jointHandles_[i],futureAngle);
+    
+        if(!debug.empty())
+        {
+             str+=boost::lexical_cast<std::string>(futureAngle);
+             if (i<vrepJointHandles.size()-1) str+=", ";
+        }
+    }
+    std::string jointName = rbdJointNames[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
+    std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+    float futureAngle = simArmConfig.q[jointIdx][0];
+    simSetJointPosition(vrepJointHandles[0],futureAngle);
+
+    if(!debug.empty())
+    {
+        str+=boost::lexical_cast<std::string>(futureAngle);
+        BOOST_LOG_TRIVIAL(trace) << debug << " jointAngles: " << str;
+    }
+}
 
 /// This object handles taking data from a V-REP based arm simulation
 /// using it to configure an arm constrained optimization algorithm,
@@ -243,25 +293,10 @@ public:
             const std::size_t simulatedRobotIndex = 0;
             auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
             auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
-            
-    #if 1
-            for (std::size_t i = 0; i < jointHandles_.size(); ++ i)
-            {
-                /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, Manually SETTING FIRST JOINT
-                std::string jointName = jointNames_[i];
-                std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-                if(i<jointHandles_.size()-1) simArmConfig.q[jointIdx][0] = initialJointAngles[i+1];
-                /// @todo TODO(ahundt) remove #if 0 after debugging is done
-                // set the joints back where they were
-                simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
-            }
-            std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
-            std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-            simArmConfig.q[jointIdx][0] = initialJointAngles[0];
-    #endif
-            
         
-            std::string str;
+            
+            // update the simulated arm position
+            SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
             
             rbd::forwardKinematics(simArmMultiBody, simArmConfig);
             rbd::forwardVelocity(simArmMultiBody, simArmConfig);
@@ -271,7 +306,6 @@ public:
            // may need to invert?
             Eigen::Affine3d tipTf = PTranformToEigenAffine(simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)]);
            setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
-            BOOST_LOG_TRIVIAL(trace) << "jointAngles: "<< str;
         
         }
         
@@ -419,7 +453,6 @@ public:
               std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
               /// @todo TODO(ahundt) GOING ONE PAST THE END HERE?!?!
               if(i<jointHandles_.size()-1) simArmConfig.q[jointIdx][0] = currentJointPosVec[i+1];
-              /// @todo TODO(ahundt) add torque information
 
             //   float futureAngle = currentAngle + jointAngles_dt[i];
               //simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
@@ -526,50 +559,14 @@ public:
             rbd::eulerIntegration(simArmMultiBody, simArmConfig, 0.0001);
             rbd::forwardKinematics(simArmMultiBody, simArmConfig);
             rbd::forwardVelocity(simArmMultiBody, simArmConfig);
-            for (std::size_t i = 0; i < jointHandles_.size(); ++ i)
-            {
-                /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
-                /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, NOT SETTING FIRST JOINT
-                std::string jointName = jointNames_[i];
-                std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-                float futureAngle = simArmConfig.q[jointIdx][0];
-                std::size_t setIndex = i+1;
-                if(setIndex<jointHandles_.size()) simSetJointPosition(jointHandles_[setIndex],futureAngle);
-            }
-            std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
-            std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-            float futureAngle = simArmConfig.q[jointIdx][0];
-            simSetJointPosition(jointHandles_[0],futureAngle);
+            // update the simulated arm position
+            SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
         }
 #endif
-
-        std::string str;
-        #if 0
-       for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
-       {
-          float currentAngle;
-          auto ret = simGetJointPosition(jointHandles_[i],&currentAngle);
-          BOOST_VERIFY(ret!=-1);
-          /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
-          //rbd_mbcs_[0].q[i]={currentAngle};
-       
-          /// @todo TODO(ahundt) add torque information
-          float futureAngle = simArmConfig.q[simArmMultiBody.jointIndexByName(jointNames_[i])][0];
-          //simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
-          //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
-          //simSetJointTargetPosition(jointHandles_[i],futureAngle);
-           simSetJointPosition(jointHandles_[i],futureAngle);
-                 str+=boost::lexical_cast<std::string>(futureAngle);
-                 if (i<jointHandles_.size()-1)
-                     str+=", ";
-       
-       } // end jointHandles for loop
-       #endif
        debugFrames();
        // may need to invert?
         Eigen::Affine3d tipTf = PTranformToEigenAffine(simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)]);
        setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
-        BOOST_LOG_TRIVIAL(trace) << "jointAngles: "<< str;
     } // end updateKinematics()
     
     /// may not need this it is in the base class
