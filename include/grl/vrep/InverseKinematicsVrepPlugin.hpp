@@ -148,7 +148,7 @@ public:
             for (int handle : jointHandles_) {
                float angle;
                simGetJointPosition(handle,&angle);
-               //simSetJointPosition(handle,0);
+               simSetJointPosition(handle,0);
                initialJointAngles.push_back(angle);
             }
         
@@ -163,45 +163,38 @@ public:
             rbd_bodyNames_.push_back(ikGroupTipName_);
             getHandles(rbd_bodyNames_,std::back_inserter(bodyHandles_));
             getHandles(rbd_jointNames_,std::back_inserter(rbd_jointHandles_));
-        
-            /// @todo TODO(ahundt) does any value for mass make sense? it is fixed to the ground
-            double mass = 1.;
-            Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
-            Eigen::Vector3d h = Eigen::Vector3d::Zero();
-
-            sva::RBInertiad rbi_base(mass, h, I);
-            rbd::Body baseBody(rbi_base,ikGroupBaseName_);
-        
-            rbd_mbg_.addBody(baseBody);
             
             // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
-            rbd::Joint j_b_0(rbd::Joint::Fixed, isForwardJoint, ikGroupBaseName_);
-        
+            /// @todo TODO(ahundt) this is really fixed
+            rbd::Joint j_b_0(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupBaseName_);
+            //rbd::Joint j_b_0(rbd::Joint::Fixed, isForwardJoint, ikGroupBaseName_);
             rbd_mbg_.addJoint(j_b_0);
-        
-            /// @todo TODO(ahundt) consider the origin of the inertia! https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257198604
-            sva::RBInertiad rbi_1(mass, h, I);
-            // add one extra body so the loop works out cleanly
-            std::string bodyName1(rbd_bodyNames_[1]);
-            rbd::Body b_1(rbi_1,bodyName1);
-            rbd_mbg_.addBody(b_1);
         
             // based on: https://github.com/jrl-umi3218/Tasks/blob/master/tests/arms.h#L34
             // and https://github.com/jrl-umi3218/RBDyn/issues/18#issuecomment-257214536
-            for(std::size_t i = 1; i <= numJoints; i++)
+            for(std::size_t i = 1; i < rbd_jointNames_.size(); i++)
             {
             
                 // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
                 std::string thisJointName = rbd_jointNames_[i];
                 rbd::Joint j_i(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, thisJointName);
                 rbd_mbg_.addJoint(j_i);
+            }
+            
+            // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
+            /// @todo TODO(ahundt) last "joint" RobotMillTip is really fixed...
+            //rbd::Joint j_i(rbd::Joint::Fixed, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupTipName_);
+            //rbd::Joint j_i(rbd::Joint::Fixed, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupTipName_);
+            //rbd_mbg_.addJoint(j_i);
             
             
+            for(std::size_t i = 0; i < rbd_bodyNames_.size(); i++)
+            {
                 /// @todo TODO(ahundt) extract real inertia and center of mass from V-REP with http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetShapeMassAndInertia.htm
                 
                 double mass = 1.;
-                I = Eigen::Matrix3d::Identity();
-                h = Eigen::Vector3d::Zero();
+                auto I = Eigen::Matrix3d::Identity();
+                auto h = Eigen::Vector3d::Zero();
                 /// @todo TODO(ahundt) consider the origin of the inertia! https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257198604
                 sva::RBInertiad rbi_i(mass, h, I);
                 /// @todo TODO(ahundt) add real support for links, particularly the respondable aspects, see LBR_iiwa_14_R820_joint1_resp in RoboneSimulation.ttt
@@ -209,29 +202,11 @@ public:
             
                 // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
                 // bodyNames[i], joint[i], bodyNames[i+1]
-                std::string thisBodyName = rbd_bodyNames_[i+1];
-                std::string bodyName(thisBodyName);
+                std::string bodyName(rbd_bodyNames_[i]);
                 rbd::Body b_i(rbi_i,bodyName);
             
                 rbd_mbg_.addBody(b_i);
             }
-            
-        
-            // add in the tip
-            mass = 0;
-            I = Eigen::Matrix3d::Identity();
-            h = Eigen::Vector3d::Zero();
-            /// @todo TODO(ahundt) consider the origin of the inertia! https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257198604
-            sva::RBInertiad rbi_tip(mass, h, I);
-            // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
-            // bodyNames[i], joint[i], bodyNames[i+1]
-            rbd::Body b_tip(rbi_tip,ikGroupTipName_);
-        
-            rbd_mbg_.addBody(b_tip);
-            
-            // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
-            rbd::Joint j_i(rbd::Joint::Fixed, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupTipName_);
-            rbd_mbg_.addJoint(j_i);
             
               std::string dummyName0(("Dummy"+ boost::lexical_cast<std::string>(0+10)));
               int currentDummy0 = simGetObjectHandle(dummyName0.c_str());
@@ -239,37 +214,23 @@ public:
               BOOST_LOG_TRIVIAL(trace) << dummyName0 << " \n" << eto0.matrix();
               setObjectTransform(currentDummy0,-1,eto0);
         
-            for(std::size_t i = 1; i < rbd_bodyNames_.size(); i++)
+            for(std::size_t i = 0; i < rbd_bodyNames_.size()-1; i++)
             {
                 // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
                 //       thus we are getting the current joint in the frame of the next joint
-                sva::PTransformd to(getObjectPTransform(rbd_jointHandles_[i],rbd_jointHandles_[i-1]));
+                sva::PTransformd to(getObjectPTransform(rbd_jointHandles_[i+1],rbd_jointHandles_[i]));
                 // this should be the identity matrix because we set the joints to 0!
-                sva::PTransformd from(getJointPTransform(rbd_jointHandles_[i]));
+                //sva::PTransformd from(getJointPTransform(rbd_jointHandles_[i+1]));
+                sva::PTransformd from(sva::PTransformd::Identity());
             
                 // Link the PREVIOUSLY created body to the currently created body with the PREVIOUSLY created joint
                 // remember, bodyNames[0] is the ikGroupBaseName, so entity order is
                 // bodyNames[i], joint[i], bodyNames[i+1]
-                std::string prevBody = rbd_bodyNames_[i-1];
-                std::string curBody =  rbd_bodyNames_[i];
-                std::string prevJoint = rbd_jointNames_[i-1];
+                std::string prevBody = rbd_bodyNames_[i];
+                std::string curJoint = rbd_jointNames_[i];
+                std::string nextBody = rbd_bodyNames_[i+1];
                 
-                rbd_mbg_.linkBodies(prevBody, to, curBody, from, prevJoint);
-            
-            
-                Eigen::Affine3d eto (PTranformToEigenAffine(to));
-//                std::string dummyName((prevBody + prevJoint + curBody + boost::lexical_cast<std::string>(i)));
-//                BOOST_LOG_TRIVIAL(trace) << dummyName << " \n" << eto.matrix();
-//                BOOST_LOG_TRIVIAL(trace) << dummyName << " eigen only: \n" << getObjectTransform(rbd_jointHandles_[i-1],rbd_jointHandles_[i]).matrix();
-            
-              std::string dummyName2(("Dummy"+ boost::lexical_cast<std::string>(i+10)));
-              int currentDummy2 = simGetObjectHandle(dummyName2.c_str());
-              eto = getObjectTransform(rbd_jointHandles_[i],-1);
-              BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP World\n" << eto.matrix();
-              
-              Eigen::Affine3d NextJointinPrevFrame(getObjectTransform(rbd_jointHandles_[i],rbd_jointHandles_[i-1]));
-              BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
-              setObjectTransform(currentDummy2,-1,eto);
+                rbd_mbg_.linkBodies(prevBody, to, nextBody, from, curJoint);
             
             }
         
@@ -287,7 +248,13 @@ public:
           std::string jointName = jointNames_[i];
           std::size_t jointIdx = rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointName);
           rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = initialJointAngles[i+1];
+              /// @todo TODO(ahundt) remove #if 0 after debugging is done
+              // set the joints back where they were
+              simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
         }
+          std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
+          std::size_t jointIdx = rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointName);
+          rbd_mbcs_[simulatedRobotIndex].q[jointIdx][0] = initialJointAngles[0];
 #endif
         
         
@@ -297,23 +264,18 @@ public:
         rbd::forwardKinematics(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
         rbd::forwardVelocity(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
         
+        // Debug output
        for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
        {
-          float currentAngle;
-          auto ret = simGetJointPosition(jointHandles_[i],&currentAngle);
-          BOOST_VERIFY(ret!=-1);
-          /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
-          //rbd_mbcs_[0].q[i]={currentAngle};
-       
-          /// @todo TODO(ahundt) add torque information
-          float futureAngle = rbd_mbcs_[simulatedRobotIndex].q[rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointNames_[i])][0];
-          //simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
-          //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
-          //simSetJointTargetPosition(jointHandles_[i],futureAngle);
-           //simSetJointPosition(jointHandles_[i],futureAngle);
-                 str+=boost::lexical_cast<std::string>(futureAngle);
-                 if (i<jointHandles_.size()-1)
-                     str+=", ";
+          Eigen::Affine3d eto;
+          std::string dummyName2(("Dummy"+ boost::lexical_cast<std::string>(i+11)));
+          int currentDummy2 = simGetObjectHandle(dummyName2.c_str());
+          eto = getObjectTransform(jointHandles_[i],-1);
+          setObjectTransform(currentDummy2,-1,eto);
+          BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP World\n" << eto.matrix();
+          
+          Eigen::Affine3d NextJointinPrevFrame(getObjectTransform(jointHandles_[i],jointHandles_[i-1]));
+          BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
        
           bool dummy_world_frame = true;
           if( dummy_world_frame )
@@ -329,6 +291,7 @@ public:
               sva::PTransform<double>     plinkToSon = rbd_mbcs_[simulatedRobotIndex].parentToSon[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkToSon = PTranformToEigenAffine(plinkToSon);
               BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn ParentLinkToSon\n" << linkToSon.matrix();
+          
           }
           else
           {
@@ -344,55 +307,12 @@ public:
           }
        }
        
-       
-       
-       
-           /////////////////////////////////////////
-           // Put stuff back
-       #if 0
-           for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
-           {
-              float currentAngle;
-              auto ret = simGetJointPosition(jointHandles_[i],&currentAngle);
-              BOOST_VERIFY(ret!=-1);
-              /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
-              //rbd_mbcs_[0].q[i]={currentAngle};
-              rbd_mbcs_[simulatedRobotIndex].q[rbd_mbs_[simulatedRobotIndex].jointIndexByName(jointNames_[i])][0] = initialJointAngles[i];
-            
-              /// @todo TODO(ahundt) remove #if 0 after debugging is done
-              // set the joints back where they were
-              simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
-            }
-        #endif
-        rbd::forwardKinematics(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
-        rbd::forwardVelocity(rbd_mbs_[simulatedRobotIndex], rbd_mbcs_[simulatedRobotIndex]);
-
-       
-       
-       
        // may need to invert?
         Eigen::Affine3d tipTf = PTranformToEigenAffine(rbd_mbcs_[simulatedRobotIndex].bodyPosW[rbd_mbs_[simulatedRobotIndex].bodyIndexByName(ikGroupTipName_)]);
        setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
         BOOST_LOG_TRIVIAL(trace) << "jointAngles: "<< str;
         
-        
-        
-        
-        
-        
-            /// @todo TODO(ahundt) remove #if 0 after debugging is done
-            // set the joints back where they were
-            #if 0
-            for(std::size_t i = 0; i < jointHandles_.size(); ++i)
-            {
-               simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
-            }
-            #endif
         }
-        
-        positionLimitsName = std::get<IKGroupName>(params)+"_PositionLimits";
-        
-        velocityLimitsName = std::get<IKGroupName>(params)+"_VelocityLimits";
         
         /// @todo verify object lifetimes
         
@@ -435,21 +355,14 @@ public:
         // lower limits
         auto & llim = std::get<vrep::VrepRobotArmDriver::JointLowerPositionLimit>(currentArmState_);
         std::vector<double> llimits(llim.begin(),llim.end());
-        // jointPositionLimitsVFP_->LowerLimits = vctDoubleVec(llimits.size(),&llimits[0]);
         
         // upper limits
         auto & ulim = std::get<vrep::VrepRobotArmDriver::JointUpperPositionLimit>(currentArmState_);
         std::vector<double> ulimits(ulim.begin(),ulim.end());
-        // jointPositionLimitsVFP_->UpperLimits = vctDoubleVec(ulimits.size(),&ulimits[0]);
         
         // current position
         auto & currentJointPos = std::get<vrep::VrepRobotArmDriver::JointPosition>(currentArmState_);
         std::vector<double> currentJointPosVec(currentJointPos.begin(),currentJointPos.end());
-        // vctDoubleVec vctDoubleVecCurrentJoints(currentJointPosVec.size(),&currentJointPosVec[0]);
-        
-        // update limits
-        /// @todo does this leak memory when called every time around?
-        // UpdateJointPosLimitsVF(positionLimitsName,jointPositionLimitsVFP_->UpperLimits,jointPositionLimitsVFP_->LowerLimits,vctDoubleVecCurrentJoints);
         
         
         const auto& handleParams = VrepRobotArmDriverSimulatedP_->getVrepHandleParams();
@@ -673,8 +586,6 @@ public:
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverSimulatedP_;
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverMeasuredP_;
     vrep::VrepRobotArmDriver::State currentArmState_;
-    std::string positionLimitsName;
-    std::string velocityLimitsName;
 };
 
 } // namespace vrep
