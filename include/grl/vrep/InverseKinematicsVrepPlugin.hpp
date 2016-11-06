@@ -532,7 +532,15 @@ public:
 
         ////////////////////////////////////
         // Run constrained optimization
-#if 0
+#if 1
+        // use basic inverse kinematics to solve for the position
+        rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(ikGroupTipName_));
+        ik.inverseKinematics(simArmMultiBody,simArmConfig,getObjectPTransform(ikGroupTargetHandle_));
+        // update the simulated arm position
+        SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
+        
+        
+#elif 0
         // multiple iteration version of solving
         // Test JointLimitsConstr
         /// @todo TODO(ahundt) was this commented correctly?
