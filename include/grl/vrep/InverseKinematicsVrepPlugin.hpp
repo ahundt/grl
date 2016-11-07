@@ -527,31 +527,7 @@ public:
        
         ////////////////////////////////////////////////////
         // Set joints to current arm position in simulation
-        {
-            for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
-            {
-              /// @todo TODO(ahundt) modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
-
-              /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1
-              std::string jointName = jointNames_[i];
-              std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-              /// @todo TODO(ahundt) GOING ONE PAST THE END HERE?!?!
-              if(i<jointHandles_.size()-1) simArmConfig.q[jointIdx][0] = currentJointPosVec[i+1];
-
-            //   float futureAngle = currentAngle + jointAngles_dt[i];
-              //simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
-              //simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
-              //simSetJointTargetPosition(jointHandles_[i],futureAngle);
-            //   simSetJointPosition(jointHandles_[i],futureAngle);
-            //         str+=boost::lexical_cast<std::string>(jointAngles_dt[i]);
-            //         if (i<jointHandles_.size()-1)
-            //             str+=", ";
-            }
-            std::string jointName = rbd_jointNames_[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
-            std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-            simArmConfig.q[jointIdx][0] = currentJointPosVec[0];
-        }
-        
+        SetRBDynArmFromVrep(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
         rbd::forwardKinematics(simArmMultiBody, simArmConfig);
         rbd::forwardVelocity(simArmMultiBody, simArmConfig);
         
