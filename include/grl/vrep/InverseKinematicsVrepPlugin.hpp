@@ -74,7 +74,6 @@ void SetVRepArmFromRBDyn(
         // modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
         std::string jointName = vrepJointNames[i];
         std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-        jointIdx-=1; /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1
         float futureAngle = simArmConfig.q[jointIdx][0];
         simSetJointPosition(vrepJointHandles[i],futureAngle);
         /// @todo TODO(ahundt) add torque information
@@ -118,7 +117,6 @@ void SetRBDynArmFromVrep(
         // modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
         std::string jointName = vrepJointNames[i];
         std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-        jointIdx-=1; /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1
         simGetJointPosition(vrepJointHandles[i],&futureAngle);
         if(simArmConfig.q[jointIdx].size()>0) simArmConfig.q[jointIdx][0] = futureAngle;
         
@@ -242,14 +240,14 @@ public:
             }
         
             rbd_bodyNames_.push_back(ikGroupBaseName_);
-            rbd_jointNames_.push_back(ikGroupBaseName_);
             // note: bodyNames are 1 longer than link names, and start with the base!
-            /// @todo TODO(ahundt) should 1st parameter be linkNames instead of linkRespondableNames_?
             boost::copy(linkNames_, std::back_inserter(rbd_bodyNames_));
             boost::copy(jointNames_, std::back_inserter(rbd_jointNames_));
-            rbd_jointNames_.push_back(robotFlangeTipName_);
+            /// @todo TODO(ahundt) replace hardcoded joint strings with a vrep tree traversal object that generates an RBDyn MultiBodyGraph
+            jointNames_.push_back("LBR_iiwa_14_R820_link8");
             jointNames_.push_back("cutter_joint");
-            jointHandles_.push_back(simGetObjectHandle("cutter_joint"));
+            rbd_jointNames_.push_back("LBR_iiwa_14_R820_link8");
+            rbd_jointNames_.push_back(robotFlangeTipName_);
             rbd_jointNames_.push_back("cutter_joint");
             rbd_jointNames_.push_back(ikGroupTipName_);
         
@@ -259,14 +257,10 @@ public:
             getHandles(rbd_jointNames_,std::back_inserter(rbd_jointHandles_));
             
             // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
-            /// @todo TODO(ahundt) HACK really a fixed joint, but set to Rev for now for off by 1 indexing bug
-            rbd::Joint j_b_0(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupBaseName_);
-            //rbd::Joint j_b_0(rbd::Joint::Fixed, isForwardJoint, ikGroupBaseName_);
-            rbd_mbg_.addJoint(j_b_0);
         
             // based on: https://github.com/jrl-umi3218/Tasks/blob/master/tests/arms.h#L34
             // and https://github.com/jrl-umi3218/RBDyn/issues/18#issuecomment-257214536
-            for(std::size_t i = 1; i < rbd_jointNames_.size(); i++)
+            for(std::size_t i = 0; i < rbd_jointNames_.size(); i++)
             {
             
                 // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
@@ -308,18 +302,20 @@ public:
                 rbd_mbg_.addBody(b_i);
             }
             
-              std::string dummyName0(("Dummy"+ boost::lexical_cast<std::string>(0+10)));
-              int currentDummy0 = simGetObjectHandle(dummyName0.c_str());
-              Eigen::Affine3d eto0 = getObjectTransform(rbd_jointHandles_[0],-1);
-              BOOST_LOG_TRIVIAL(trace) << dummyName0 << " \n" << eto0.matrix();
-              setObjectTransform(currentDummy0,-1,eto0);
+            std::string dummyName0(("Dummy"+ boost::lexical_cast<std::string>(0+10)));
+            int currentDummy0 = simGetObjectHandle(dummyName0.c_str());
+            Eigen::Affine3d eto0 = getObjectTransform(rbd_jointHandles_[0],-1);
+            BOOST_LOG_TRIVIAL(trace) << dummyName0 << " \n" << eto0.matrix();
+            setObjectTransform(currentDummy0,-1,eto0);
         
-            /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1, the source of the problem is most likely in this code section + loop.
-            for(std::size_t i = 0; i < rbd_bodyNames_.size()-1; i++)
+            std::vector<int> frameHandles;
+            frameHandles.push_back(simGetObjectHandle(ikGroupBaseName_.c_str()));
+            boost::copy(rbd_jointHandles_,std::back_inserter(frameHandles));
+            for(std::size_t i = 0; i < rbd_jointHandles_.size()-1; i++)
             {
                 // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
                 //       thus we are getting the current joint in the frame of the next joint
-                sva::PTransformd to(getObjectPTransform(rbd_jointHandles_[i+1],rbd_jointHandles_[i]));
+                sva::PTransformd to(getObjectPTransform(frameHandles[i+1],frameHandles[i]));
                 // this should be the identity matrix because we set the joints to 0!
                 //sva::PTransformd from(getJointPTransform(rbd_jointHandles_[i+1]));
                 sva::PTransformd from(sva::PTransformd::Identity());
@@ -474,6 +470,10 @@ public:
     enum class GoalPosE { realGoalPosition, debugGoalPosition };
     /// Configures updateKinematics the algorithm the kinematics should use for solving
     enum class AlgToUseE { ik, multiIterQP, singleIterQP };
+    /// Configures if the target pose objective should stick to the constant initalized
+    /// version, or if it should update every iteration in tasks::qp::PostureTask
+    /// https://github.com/jrl-umi3218/Tasks/blob/15aff94e3e03f6a161a87799ca2cf262b756bd0c/src/QPTasks.h#L426
+    enum class PostureTaskStrategyE { constant, updateToCurrent };
     
     
     /// Runs inverse kinematics or constrained optimization at every simulation time step
@@ -481,7 +481,8 @@ public:
     void updateKinematics(
         const bool runOnce = false,
         const GoalPosE solveForPosition = GoalPosE::realGoalPosition,
-        const AlgToUseE alg = AlgToUseE::multiIterQP
+        const AlgToUseE alg = AlgToUseE::multiIterQP,
+        const PostureTaskStrategyE postureStrategy = PostureTaskStrategyE::constant
     ){
         if(runOnce && ranOnce_) return;
         ranOnce_ = true;
@@ -549,7 +550,7 @@ public:
         rbd_prev_mbcs_ = rbd_mbcs_;
         // set the preferred position to the current position
         // https://github.com/jrl-umi3218/Tasks/blob/15aff94e3e03f6a161a87799ca2cf262b756bd0c/src/QPTasks.h#L426
-        rbd_preferred_mbcs_ = rbd_mbcs_;
+        if(postureStrategy == PostureTaskStrategyE::updateToCurrent) rbd_preferred_mbcs_ = rbd_mbcs_;
 
         /// @todo TODO(ahundt) make solver object a member variable if possible, initialize in constructor
         tasks::qp::QPSolver solver;
@@ -572,9 +573,9 @@ public:
             BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform.translation();
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
-        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 10., 1.);
+        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 50., 1.);
         tasks::qp::OrientationTask oriTask(rbd_mbs_,simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.rotation());
-        tasks::qp::SetPointTask oriTaskSp(rbd_mbs_, simulatedRobotIndex, &oriTask, 10., 1.);
+        tasks::qp::SetPointTask oriTaskSp(rbd_mbs_, simulatedRobotIndex, &oriTask, 50., 1.);
         tasks::qp::PostureTask postureTask(rbd_mbs_,simulatedRobotIndex,rbd_preferred_mbcs_[simulatedRobotIndex].q,1,0.01);
         
         double inf = std::numeric_limits<double>::infinity();
@@ -592,14 +593,23 @@ public:
         
         
         // for all joints
-        for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
+        for (std::size_t i=0 ; i < rbd_jointHandles_.size()-1; i++)
         {
             /// limits must be organized as described in https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257793242
-            std::string jointName = jointNames_[i];
+            std::string jointName = rbd_jointNames_[i];
             std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-            jointIdx-=1; /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1
-            lBound[jointIdx][0] = llimits[i];
-            uBound[jointIdx][0] = ulimits[i];
+            /// @todo TODO(ahundt) ulimits aren't the same size as jointHandles_, need velocity limits too
+            if(boost::iequals(jointName,"cutter_joint"))
+            { /// @todo TODO(ahundt) hardcoded mill tip joint limits, remove these
+                lBound[jointIdx][0] = -inf;
+                uBound[jointIdx][0] = inf;
+            }
+            else if(i<llimits.size() && lBound[jointIdx].size()==1)
+            {
+                lBound[jointIdx][0] = llimits[i];
+                uBound[jointIdx][0] = ulimits[i];
+            }
+            
             lVelBound[jointIdx][0] = -inf; /// @todo TODO(ahundt) Hardcoded infinite Velocity limits, set to real values
             uVelBound[jointIdx][0] = inf;
         }
