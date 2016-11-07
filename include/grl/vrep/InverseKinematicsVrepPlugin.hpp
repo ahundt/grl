@@ -589,6 +589,7 @@ public:
             /// limits must be organized as described in https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257793242
             std::string jointName = jointNames_[i];
             std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+            jointIdx-=1; /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1
             lBound[jointIdx][0] = llimits[i];
             uBound[jointIdx][0] = ulimits[i];
         }
