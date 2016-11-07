@@ -561,7 +561,7 @@ public:
         {
             // go to a debugging target position
             targetWorldTransform = simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)];
-            //targetWorldTransform.z() += 0.0001;
+            targetWorldTransform.translation().z() += 0.0001;
             BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform.translation();
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
