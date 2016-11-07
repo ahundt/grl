@@ -62,9 +62,9 @@ namespace vrep {
 /// @param simArmConfig defines the current position of the robot arm for the RBDyn library, see RBDyn documentation
 /// @param debug if empty string, no effect, if any other string a trace of the joint angles will be printed to std::cout
 void SetVRepArmFromRBDyn(
-    std::vector<std::string>& vrepJointNames,
-    std::vector<int>& vrepJointHandles,
-    std::vector<std::string>& rbdJointNames,
+    const std::vector<std::string>& vrepJointNames,
+    const std::vector<int>& vrepJointHandles,
+    const std::vector<std::string>& rbdJointNames,
     const rbd::MultiBody& simArmMultiBody,
     const rbd::MultiBodyConfig& simArmConfig,
     std::string debug = "")
@@ -101,6 +101,59 @@ void SetVRepArmFromRBDyn(
         BOOST_LOG_TRIVIAL(trace) << debug << " jointAngles: " << str;
     }
 }
+
+
+/// Sets the VREP simulation joint positions from the RBDyn configuration
+///
+/// @param vrepJointNames the name of each joint, order must match vrepJointHandles
+/// @param vrepJointHandles the V-REP simulation object handle for each joint
+/// @param rbdJointNames the names of all the simArmMultiBody joints, which typically has more joints than the VREP list.
+/// @param simArmMultiBody defines the structure of the robot arm for the RBDyn library, see RBDyn documentation
+/// @param simArmConfig defines the current position of the robot arm for the RBDyn library, see RBDyn documentation
+/// @param debug if empty string, no effect, if any other string a trace of the joint angles will be printed to std::cout
+void SetRBDynArmFromVrep(
+    const std::vector<std::string>& vrepJointNames,
+    const std::vector<int>& vrepJointHandles,
+    const std::vector<std::string>& rbdJointNames,
+    const rbd::MultiBody& simArmMultiBody,
+    rbd::MultiBodyConfig& simArmConfig,
+    std::string debug = "")
+{
+    std::string str;
+    float futureAngle;
+    for (std::size_t i = 0; i < vrepJointHandles.size(); ++ i)
+    {
+        /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, NOT SETTING FIRST JOINT
+        // modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
+        std::string jointName = vrepJointNames[i];
+        std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+        std::size_t setIndex = i+1;
+        simGetJointPosition(vrepJointHandles[setIndex],&futureAngle);
+        if(setIndex<vrepJointHandles.size()) simArmConfig.q[jointIdx][0] = futureAngle;
+        
+        /// @todo TODO(ahundt) add torque information
+        // simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
+        // simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
+        // simSetJointTargetPosition(jointHandles_[i],futureAngle);
+    
+        if(!debug.empty())
+        {
+             str+=boost::lexical_cast<std::string>(futureAngle);
+             if (i<vrepJointHandles.size()-1) str+=", ";
+        }
+    }
+    std::string jointName = rbdJointNames[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
+    std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+    simGetJointPosition(vrepJointHandles[0],&futureAngle);
+    simArmConfig.q[jointIdx][0] = futureAngle;
+
+    if(!debug.empty())
+    {
+        str+=boost::lexical_cast<std::string>(futureAngle);
+        BOOST_LOG_TRIVIAL(trace) << debug << " jointAngles: " << str;
+    }
+}
+
 
 /// This object handles taking data from a V-REP based arm simulation
 /// using it to configure an arm constrained optimization algorithm,
