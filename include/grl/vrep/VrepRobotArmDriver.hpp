@@ -233,6 +233,7 @@ bool getState(State& state){
               
             simBool isCyclic;
             float jointAngleInterval[2]; // min,max
+            double inf = std::numeric_limits<double>::infinity();
 			
 			for (std::size_t i=0 ; i < jointHandle.size() ; i++)
 			{	
@@ -242,8 +243,18 @@ bool getState(State& state){
 				simGetJointTargetPosition(currentJointHandle,&std::get<JointTargetPosition>(state)[i]);  //retrieves the target position of a joint
 				simGetJointMatrix(currentJointHandle,&std::get<JointMatrix>(state)[i][0]);   //retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
                 simGetJointInterval(currentJointHandle,&isCyclic,jointAngleInterval);
-                std::get<JointLowerPositionLimit>(state)[i] = jointAngleInterval[lower];
-                std::get<JointUpperPositionLimit>(state)[i] = jointAngleInterval[upper];
+                
+                /// @todo TODO(ahundt) is always setting infinity if it is cyclic the right thing to do?
+                if(isCyclic)
+                {
+                    std::get<JointLowerPositionLimit>(state)[i] = -inf;
+                    std::get<JointUpperPositionLimit>(state)[i] = inf;
+                }
+                else
+                {
+                    std::get<JointLowerPositionLimit>(state)[i] = jointAngleInterval[lower];
+                    std::get<JointUpperPositionLimit>(state)[i] = jointAngleInterval[upper];
+                }
 
 			}
             
