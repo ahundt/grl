@@ -470,13 +470,20 @@ public:
     }
     
     
+    /// Configures updateKinematics with the goal the kinematics should aim for
+    enum class GoalPosE { realGoalPosition, debugGoalPosition };
+    /// Configures updateKinematics the algorithm the kinematics should use for solving
+    enum class AlgToUseE { ik, multiIterQP, singleIterQP };
     
     
-    
-    /// Runs at every simulation time step
-    void updateKinematics(){
-        /// @todo TODO(ahundt) Only update kinematics once for debugging purposes. Comment this next line when not debugging
-        if(ranOnce_) return;
+    /// Runs inverse kinematics or constrained optimization at every simulation time step
+    /// @param runOnce Set runOnce = true to only update kinematics once for debugging purposes. runOnce = false runs this function at every time step.
+    void updateKinematics(
+        const bool runOnce = false,
+        const GoalPosE solveForPosition = GoalPosE::debugGoalPosition,
+        const AlgToUseE alg = AlgToUseE::singleIterQP
+    ){
+        if(runOnce && ranOnce_) return;
         ranOnce_ = true;
     
         jointHandles_ = VrepRobotArmDriverSimulatedP_->getJointHandles();
@@ -548,10 +555,8 @@ public:
         ////////////////////////////////////////////////////
         // Set position goal of the arm
         sva::PTransformd targetWorldTransform;
-        enum GoalPosE { realGoalPosition, debugGoalPosition };
-        const GoalPosE solveForPosition = debugGoalPosition;
 
-        if( solveForPosition == realGoalPosition )
+        if( solveForPosition == GoalPosE::realGoalPosition )
         {
             // go to the real target position
             targetWorldTransform = getObjectPTransform(ikGroupTargetHandle_);
@@ -601,12 +606,10 @@ public:
 
         solver.addTask(&posTaskSp);
         BOOST_VERIFY(solver.nrTasks() == 1);
-        enum AlgToUseE { ik, multiIterQP, singleIterQP };
-        const AlgToUseE alg = ik;
 
         ////////////////////////////////////
         // Run constrained optimization
-        if(alg == ik)
+        if(alg == AlgToUseE::ik)
         {
             // use basic inverse kinematics to solve for the position
             //rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(jointNames_[6]));
@@ -615,7 +618,7 @@ public:
             // update the simulated arm position
             SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
         }
-        else if( alg == multiIterQP)
+        else if( alg == AlgToUseE::multiIterQP)
         {
             // multiple iteration version of solving
             // Test JointLimitsConstr
