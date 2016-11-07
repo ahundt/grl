@@ -546,7 +546,7 @@ public:
         // Set position goal of the arm
         sva::PTransformd targetWorldTransform;
         enum GoalPosE { realGoalPosition, debugGoalPosition };
-        GoalPosE solveForPosition = debugGoalPosition;
+        const GoalPosE solveForPosition = debugGoalPosition;
 
         if( solveForPosition == realGoalPosition )
         {
@@ -599,7 +599,7 @@ public:
         solver.addTask(&posTaskSp);
         BOOST_VERIFY(solver.nrTasks() == 1);
         enum AlgToUseE { ik, multiIterQP, singleIterQP };
-        AlgToUseE alg = ik;
+        const AlgToUseE alg = ik;
 
         ////////////////////////////////////
         // Run constrained optimization
@@ -654,7 +654,7 @@ public:
     /// may not need this it is in the base class
     /// blocking call, call in separate thread, just allocates memory
     void run_one(){
-       bool ik = true;
+       bool ik = false;
        if(ik) updateKinematics();
        else   testPose();
     }
