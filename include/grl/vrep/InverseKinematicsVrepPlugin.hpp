@@ -544,21 +544,25 @@ public:
         
         ////////////////////////////////////////////////////
         // Set position goal of the arm
-#if 0
-        // go to the real target position
-        auto targetWorldTransform = getObjectPTransform(ikGroupTargetHandle_);
-        BOOST_LOG_TRIVIAL(trace) << "target translation (vrep format):\n"<< targetWorldTransform.translation();
+        sva::PTransformd targetWorldTransform;
+        enum GoalPosE { realGoalPosition, debugGoalPosition };
+        GoalPosE solveForPosition = debugGoalPosition;
+
+        if( solveForPosition == realGoalPosition )
+        {
+            // go to the real target position
+            targetWorldTransform = getObjectPTransform(ikGroupTargetHandle_);
+            BOOST_LOG_TRIVIAL(trace) << "target translation (vrep format):\n"<< targetWorldTransform.translation();
+        }
+        else
+        {
+            // go to a debugging target position
+            targetWorldTransform = simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)];
+            //targetWorldTransform.z() += 0.0001;
+            BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform.translation();
+        }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
-#else
-        // go to a debugging target position
-        auto targetWorldTransform = simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)].translation();
-        //targetWorldTransform.z() += 0.0001;
-        BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform;
-        tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform);
-
-#endif
         tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 1., 0.1);
-
         double inf = std::numeric_limits<double>::infinity();
         
        
@@ -594,40 +598,45 @@ public:
 
         solver.addTask(&posTaskSp);
         BOOST_VERIFY(solver.nrTasks() == 1);
+        enum AlgToUseE { ik, multiIterQP, singleIterQP };
+        AlgToUseE alg = ik;
 
         ////////////////////////////////////
         // Run constrained optimization
-#if 1
-        // use basic inverse kinematics to solve for the position
-        rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(ikGroupTipName_));
-        ik.inverseKinematics(simArmMultiBody,simArmConfig,getObjectPTransform(ikGroupTargetHandle_));
-        // update the simulated arm position
-        SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
-        
-        
-#elif 0
-        // multiple iteration version of solving
-        // Test JointLimitsConstr
-        /// @todo TODO(ahundt) was this commented correctly?
-        //simArmConfig = mbcInit;
-        int numSolverIterations = 100;
-        double timeStepDividedIntoIterations = simulationTimeStep/numSolverIterations;
-        // This actually runs every time step, so only one iteration here, unless we want to subdivide
-        // a v-rep time step into smaller rbdyn time steps.
-        for(int i = 0; i < numSolverIterations; ++i)
+        if(alg == ik)
         {
-            //BOOST_REQUIRE(solver.solve(rbd_mbs_, rbd_mbcs_));
-            solver.solve(rbd_mbs_, rbd_mbcs_);
-            // This should be handled by the simulator or physical robot, "forward simulation of dynamics"
-            rbd::eulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
-
-            rbd::forwardKinematics(simArmMultiBody, simArmConfig);
-            rbd::forwardVelocity(simArmMultiBody, simArmConfig);
-            //BOOST_REQUIRE_GT(simArmConfig.q[1][simulatedRobotIndex], -cst::pi<double>()/4. - 0.01);
+            // use basic inverse kinematics to solve for the position
+            rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(jointNames_[6]));
+            //rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(ikGroupTipName_));
+            ik.inverseKinematics(simArmMultiBody,simArmConfig,targetWorldTransform);
+            // update the simulated arm position
+            SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
         }
-#else
-        // single iteration version of solving
+        else if( alg == multiIterQP)
         {
+            // multiple iteration version of solving
+            // Test JointLimitsConstr
+            /// @todo TODO(ahundt) was this commented correctly?
+            //simArmConfig = mbcInit;
+            int numSolverIterations = 100;
+            double timeStepDividedIntoIterations = simulationTimeStep/numSolverIterations;
+            // This actually runs every time step, so only one iteration here, unless we want to subdivide
+            // a v-rep time step into smaller rbdyn time steps.
+            for(int i = 0; i < numSolverIterations; ++i)
+            {
+                //BOOST_REQUIRE(solver.solve(rbd_mbs_, rbd_mbcs_));
+                solver.solve(rbd_mbs_, rbd_mbcs_);
+                // This should be handled by the simulator or physical robot, "forward simulation of dynamics"
+                rbd::eulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
+
+                rbd::forwardKinematics(simArmMultiBody, simArmConfig);
+                rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+                //BOOST_REQUIRE_GT(simArmConfig.q[1][simulatedRobotIndex], -cst::pi<double>()/4. - 0.01);
+            }
+        }
+        else
+        {
+            // single iteration version of solving
             solver.solve(rbd_mbs_, rbd_mbcs_);
             rbd::eulerIntegration(simArmMultiBody, simArmConfig, 0.0001);
             rbd::forwardKinematics(simArmMultiBody, simArmConfig);
@@ -635,7 +644,7 @@ public:
             // update the simulated arm position
             SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
         }
-#endif
+        
        debugFrames();
        // may need to invert?
         Eigen::Affine3d tipTf = PTranformToEigenAffine(simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)]);
