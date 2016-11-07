@@ -557,11 +557,11 @@ public:
         {
             // go to a debugging target position
             targetWorldTransform = simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)];
-            targetWorldTransform.translation().z() += 0.0001;
+            targetWorldTransform.translation().z() -= 0.0001;
             BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform.translation();
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
-        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 10., 1.);
+        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 1000., 1.);
         double inf = std::numeric_limits<double>::infinity();
         
        
@@ -605,10 +605,9 @@ public:
         {
             // use basic inverse kinematics to solve for the position
             //rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(jointNames_[6]));
-            rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(ikGroupTipName_));
+            rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.bodyIndexByName(ikGroupTipName_));
             ik.sInverseKinematics(simArmMultiBody,simArmConfig,targetWorldTransform);
             // update the simulated arm position
-            SetVRepArmFromRBDyn(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
         }
         else if( alg == AlgToUseE::multiIterQP)
         {
@@ -616,7 +615,7 @@ public:
             // Test JointLimitsConstr
             /// @todo TODO(ahundt) was this commented correctly?
             //simArmConfig = mbcInit;
-            int numSolverIterations = 100;
+            int numSolverIterations = 10;
             double timeStepDividedIntoIterations = simulationTimeStep/numSolverIterations;
             // This actually runs every time step, so only one iteration here, unless we want to subdivide
             // a v-rep time step into smaller rbdyn time steps.
@@ -625,7 +624,8 @@ public:
                 //BOOST_REQUIRE(solver.solve(rbd_mbs_, rbd_mbcs_));
                 BOOST_VERIFY(solver.solve(rbd_mbs_, rbd_mbcs_));
                 // This should be handled by the simulator or physical robot, "forward simulation of dynamics"
-                rbd::sEulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
+                //rbd::sEulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
+                rbd::sEulerIntegration(simArmMultiBody, simArmConfig, simulationTimeStep);
 
                 rbd::sForwardKinematics(simArmMultiBody, simArmConfig);
                 rbd::sForwardVelocity(simArmMultiBody, simArmConfig);
@@ -640,8 +640,9 @@ public:
             rbd::sForwardKinematics(simArmMultiBody, simArmConfig);
             rbd::sForwardVelocity(simArmMultiBody, simArmConfig);
             // update the simulated arm position
-            SetVRepArmFromRBDyn(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
         }
+        
+        SetVRepArmFromRBDyn(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
         
        debugFrames();
     } // end updateKinematics()
