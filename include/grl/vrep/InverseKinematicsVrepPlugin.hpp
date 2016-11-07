@@ -293,13 +293,12 @@ public:
             const std::size_t simulatedRobotIndex = 0;
             auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
             auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
-        
-            
-            // update the simulated arm position
-            SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
             
             rbd::forwardKinematics(simArmMultiBody, simArmConfig);
             rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+        
+            // update the simulated arm position
+            SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
         
             debugFrames();
        
