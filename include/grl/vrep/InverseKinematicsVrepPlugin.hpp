@@ -72,13 +72,12 @@ void SetVRepArmFromRBDyn(
     std::string str;
     for (std::size_t i = 0; i < vrepJointHandles.size(); ++ i)
     {
-        /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, NOT SETTING FIRST JOINT
         // modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
         std::string jointName = vrepJointNames[i];
         std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+        jointIdx-=1; /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1
         float futureAngle = simArmConfig.q[jointIdx][0];
-        std::size_t setIndex = i+1;
-        if(setIndex<vrepJointHandles.size()) simSetJointPosition(vrepJointHandles[setIndex],futureAngle);
+        simSetJointPosition(vrepJointHandles[i],futureAngle);
         /// @todo TODO(ahundt) add torque information
         // simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
         // simSetJointTargetPosition(jointHandles_[i],jointAngles_dt[i]);
@@ -90,14 +89,9 @@ void SetVRepArmFromRBDyn(
              if (i<vrepJointHandles.size()-1) str+=", ";
         }
     }
-    std::string jointName = rbdJointNames[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
-    std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-    float futureAngle = simArmConfig.q[jointIdx][0];
-    simSetJointPosition(vrepJointHandles[0],futureAngle);
 
     if(!debug.empty())
     {
-        str+=boost::lexical_cast<std::string>(futureAngle);
         BOOST_LOG_TRIVIAL(trace) << debug << " jointAngles: " << str;
     }
 }
@@ -123,13 +117,12 @@ void SetRBDynArmFromVrep(
     float futureAngle;
     for (std::size_t i = 0; i < vrepJointHandles.size(); ++ i)
     {
-        /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1, NOT SETTING FIRST JOINT
         // modify parameters as follows https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257466822
         std::string jointName = vrepJointNames[i];
         std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-        std::size_t setIndex = i+1;
-        simGetJointPosition(vrepJointHandles[setIndex],&futureAngle);
-        if(setIndex<vrepJointHandles.size()) simArmConfig.q[jointIdx][0] = futureAngle;
+        jointIdx-=1; /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1
+        simGetJointPosition(vrepJointHandles[i],&futureAngle);
+        simArmConfig.q[jointIdx][0] = futureAngle;
         
         /// @todo TODO(ahundt) add torque information
         // simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
@@ -142,14 +135,9 @@ void SetRBDynArmFromVrep(
              if (i<vrepJointHandles.size()-1) str+=", ";
         }
     }
-    std::string jointName = rbdJointNames[0]; /// @todo TODO(ahundt) HACK: This gets one joint after what's expected
-    std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-    simGetJointPosition(vrepJointHandles[0],&futureAngle);
-    simArmConfig.q[jointIdx][0] = futureAngle;
 
     if(!debug.empty())
     {
-        str+=boost::lexical_cast<std::string>(futureAngle);
         BOOST_LOG_TRIVIAL(trace) << debug << " jointAngles: " << str;
     }
 }
@@ -233,7 +221,7 @@ public:
         bool isFixed = true;
         bool isForwardJoint = true;
         
-        {
+        { // Initalize the RBDyn arm representation
         
             jointHandles_ = VrepRobotArmDriverSimulatedP_->getJointHandles();
             jointNames_ = VrepRobotArmDriverSimulatedP_->getJointNames();
@@ -322,6 +310,7 @@ public:
               BOOST_LOG_TRIVIAL(trace) << dummyName0 << " \n" << eto0.matrix();
               setObjectTransform(currentDummy0,-1,eto0);
         
+            /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1, the source of the problem is most likely in this code section + loop.
             for(std::size_t i = 0; i < rbd_bodyNames_.size()-1; i++)
             {
                 // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
@@ -589,7 +578,7 @@ public:
             /// limits must be organized as described in https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257793242
             std::string jointName = jointNames_[i];
             std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
-            jointIdx-=1; /// @todo TODO(ahundt) FIXME JOINT INDICES ARE OFF BY 1
+            jointIdx-=1; /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1
             lBound[jointIdx][0] = llimits[i];
             uBound[jointIdx][0] = ulimits[i];
         }
@@ -658,7 +647,7 @@ public:
     /// may not need this it is in the base class
     /// blocking call, call in separate thread, just allocates memory
     void run_one(){
-       bool ik = true;
+       const bool ik = true;
        if(ik) updateKinematics();
        else   testPose();
     }
