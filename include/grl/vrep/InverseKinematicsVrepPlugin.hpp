@@ -572,10 +572,10 @@ public:
             BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform.translation();
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
-        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 100., 1.);
+        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 10., 1.);
         tasks::qp::OrientationTask oriTask(rbd_mbs_,simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.rotation());
-        tasks::qp::SetPointTask oriTaskSp(rbd_mbs_, simulatedRobotIndex, &oriTask, 100., 1.);
-        tasks::qp::PostureTask postureTask(rbd_mbs_,simulatedRobotIndex,rbd_preferred_mbcs_[simulatedRobotIndex].q,10,0.01);
+        tasks::qp::SetPointTask oriTaskSp(rbd_mbs_, simulatedRobotIndex, &oriTask, 10., 1.);
+        tasks::qp::PostureTask postureTask(rbd_mbs_,simulatedRobotIndex,rbd_preferred_mbcs_[simulatedRobotIndex].q,1,0.01);
         
         double inf = std::numeric_limits<double>::infinity();
         
