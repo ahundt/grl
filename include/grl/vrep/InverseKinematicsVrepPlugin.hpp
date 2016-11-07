@@ -120,7 +120,7 @@ void SetRBDynArmFromVrep(
         std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
         jointIdx-=1; /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1
         simGetJointPosition(vrepJointHandles[i],&futureAngle);
-        simArmConfig.q[jointIdx][0] = futureAngle;
+        if(simArmConfig.q[jointIdx].size()>0) simArmConfig.q[jointIdx][0] = futureAngle;
         
         /// @todo TODO(ahundt) add torque information
         // simSetJointTargetVelocity(jointHandles_[i],jointAngles_dt[i]/simulationTimeStep);
@@ -248,8 +248,12 @@ public:
             boost::copy(linkNames_, std::back_inserter(rbd_bodyNames_));
             boost::copy(jointNames_, std::back_inserter(rbd_jointNames_));
             rbd_jointNames_.push_back(robotFlangeTipName_);
+            jointNames_.push_back("cutter_joint");
+            jointHandles_.push_back(simGetObjectHandle("cutter_joint"));
+            rbd_jointNames_.push_back("cutter_joint");
             rbd_jointNames_.push_back(ikGroupTipName_);
         
+            rbd_bodyNames_.push_back("cutter_joint");
             rbd_bodyNames_.push_back(ikGroupTipName_);
             getHandles(rbd_bodyNames_,std::back_inserter(bodyHandles_));
             getHandles(rbd_jointNames_,std::back_inserter(rbd_jointHandles_));
@@ -267,11 +271,11 @@ public:
             
                 // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
                 std::string thisJointName = rbd_jointNames_[i];
-                rbd::Joint::Type jointType = rbd::Joint::Rev;
-                /// @todo TODO(ahundt) fix hard coded Revolute vs fixed joint
-                if(i > 7)
+                rbd::Joint::Type jointType = rbd::Joint::Fixed;
+                /// @todo TODO(ahundt) fix hard coded Revolute vs fixed joint https://github.com/ahundt/grl/issues/114
+                if(simGetObjectType(rbd_jointHandles_[i])==sim_object_joint_type)
                 {
-                    jointType = rbd::Joint::Fixed;
+                    jointType = rbd::Joint::Rev;
                 }
                 rbd::Joint j_i(jointType, Eigen::Vector3d::UnitZ(), isForwardJoint, thisJointName);
                 rbd_mbg_.addJoint(j_i);
@@ -350,6 +354,10 @@ public:
             
             rbd::forwardKinematics(simArmMultiBody, simArmConfig);
             rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+            
+            // set the preferred position to the initial position
+            // https://github.com/jrl-umi3218/Tasks/blob/15aff94e3e03f6a161a87799ca2cf262b756bd0c/src/QPTasks.h#L426
+            rbd_preferred_mbcs_.push_back(simArmConfig);
         
             debugFrames();
         
@@ -393,7 +401,7 @@ public:
             Eigen::Affine3d NextJointinPrevFrame(getObjectTransform(jointHandles_[i],jointHandles_[i-1]));
             if(print) BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
           }
-          
+       
           bool dummy_world_frame = true;
           if( dummy_world_frame )
           {
@@ -472,8 +480,8 @@ public:
     /// @param runOnce Set runOnce = true to only update kinematics once for debugging purposes. runOnce = false runs this function at every time step.
     void updateKinematics(
         const bool runOnce = false,
-        const GoalPosE solveForPosition = GoalPosE::debugGoalPosition,
-        const AlgToUseE alg = AlgToUseE::singleIterQP
+        const GoalPosE solveForPosition = GoalPosE::realGoalPosition,
+        const AlgToUseE alg = AlgToUseE::multiIterQP
     ){
         if(runOnce && ranOnce_) return;
         ranOnce_ = true;
@@ -562,6 +570,10 @@ public:
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
         tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 1000., 1.);
+        tasks::qp::OrientationTask oriTask(rbd_mbs_,simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.rotation());
+        tasks::qp::SetPointTask oriTaskSp(rbd_mbs_, simulatedRobotIndex, &oriTask, 1000., 1.);
+        tasks::qp::PostureTask postureTask(rbd_mbs_,simulatedRobotIndex,rbd_preferred_mbcs_[simulatedRobotIndex].q,100,0.01);
+        
         double inf = std::numeric_limits<double>::infinity();
         
        
@@ -598,6 +610,8 @@ public:
 
         solver.addTask(&posTaskSp);
         BOOST_VERIFY(solver.nrTasks() == 1);
+        solver.addTask(&oriTaskSp);
+        solver.addTask(&postureTask);
 
         ////////////////////////////////////
         // Run constrained optimization
@@ -669,6 +683,8 @@ public:
     std::vector<rbd::MultiBodyConfig>   rbd_mbcs_;
     /// rbd_prev_mbcs_ is for debugging
     std::vector<rbd::MultiBodyConfig>   rbd_prev_mbcs_;
+    /// preferred posture to resolve ambiguities
+    std::vector<rbd::MultiBodyConfig>   rbd_preferred_mbcs_;
     std::vector<rbd::Body>              rbd_bodies_;
     std::vector<sva::RBInertia<double>> rbd_inertias_;
     std::vector<rbd::Joint>             rbd_joints_;
