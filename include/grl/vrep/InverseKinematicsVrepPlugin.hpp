@@ -615,9 +615,10 @@ public:
             // set joint velocity limits
             if(lVelBound[jointIdx].size()==1)
             {
-                /// @todo TODO(ahundt) replace hardcoded infinite velocity limits with real and useful values
-                lVelBound[jointIdx][0] = -inf;
-                uVelBound[jointIdx][0] = inf;
+                /// @todo TODO(ahundt) replace hardcoded velocity limits with real and useful limits specific to each joint loaded from V-REP or another file.
+                // 0.99 radians per second is the limit of the slowest joint (joint 1) on the KUKA iiwa R820
+                lVelBound[jointIdx][0] = -0.99;
+                uVelBound[jointIdx][0] = 0.99;
             }
         }
 
