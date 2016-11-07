@@ -547,6 +547,9 @@ public:
         
         // save the current MultiBodyConfig for comparison after running algorithms
         rbd_prev_mbcs_ = rbd_mbcs_;
+        // set the preferred position to the current position
+        // https://github.com/jrl-umi3218/Tasks/blob/15aff94e3e03f6a161a87799ca2cf262b756bd0c/src/QPTasks.h#L426
+        rbd_preferred_mbcs_ = rbd_mbcs_;
 
         /// @todo TODO(ahundt) make solver object a member variable if possible, initialize in constructor
         tasks::qp::QPSolver solver;
