@@ -64,7 +64,6 @@ namespace vrep {
 void SetVRepArmFromRBDyn(
     const std::vector<std::string>& vrepJointNames,
     const std::vector<int>& vrepJointHandles,
-    const std::vector<std::string>& rbdJointNames,
     const rbd::MultiBody& simArmMultiBody,
     const rbd::MultiBodyConfig& simArmConfig,
     std::string debug = "")
@@ -108,7 +107,6 @@ void SetVRepArmFromRBDyn(
 void SetRBDynArmFromVrep(
     const std::vector<std::string>& vrepJointNames,
     const std::vector<int>& vrepJointHandles,
-    const std::vector<std::string>& rbdJointNames,
     const rbd::MultiBody& simArmMultiBody,
     rbd::MultiBodyConfig& simArmConfig,
     std::string debug = "")
@@ -346,7 +344,7 @@ public:
             for (std::size_t i = 0; i < jointHandles_.size(); ++i) {
                simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
             }
-            SetRBDynArmFromVrep(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
+            SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
             
             rbd::forwardKinematics(simArmMultiBody, simArmConfig);
             rbd::forwardVelocity(simArmMultiBody, simArmConfig);
@@ -451,7 +449,7 @@ public:
        
         ////////////////////////////////////////////////////
         // Set joints to current arm position in simulation
-        SetRBDynArmFromVrep(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
+        SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
         rbd::forwardKinematics(simArmMultiBody, simArmConfig);
         rbd::forwardVelocity(simArmMultiBody, simArmConfig);
         
@@ -531,15 +529,13 @@ public:
        
         ////////////////////////////////////////////////////
         // Set joints to current arm position in simulation
-        SetRBDynArmFromVrep(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
+        SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
         rbd::forwardKinematics(simArmMultiBody, simArmConfig);
         rbd::forwardVelocity(simArmMultiBody, simArmConfig);
         
 
         /// @todo TODO(ahundt) make solver object a member variable if possible, initialize in constructor
         tasks::qp::QPSolver solver;
-
-        int bodyI = simArmMultiBody.bodyIndexByName(ikGroupTipName_);
         
         ////////////////////////////////////////////////////
         // Set position goal of the arm
@@ -606,7 +602,7 @@ public:
             rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(ikGroupTipName_));
             ik.sInverseKinematics(simArmMultiBody,simArmConfig,targetWorldTransform);
             // update the simulated arm position
-            SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
+            SetVRepArmFromRBDyn(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
         }
         else if( alg == AlgToUseE::multiIterQP)
         {
@@ -638,7 +634,7 @@ public:
             rbd::sForwardKinematics(simArmMultiBody, simArmConfig);
             rbd::sForwardVelocity(simArmMultiBody, simArmConfig);
             // update the simulated arm position
-            SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
+            SetVRepArmFromRBDyn(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
         }
         
        debugFrames();
