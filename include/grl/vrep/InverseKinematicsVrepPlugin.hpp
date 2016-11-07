@@ -598,7 +598,9 @@ public:
             /// limits must be organized as described in https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257793242
             std::string jointName = rbd_jointNames_[i];
             std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
+        
             /// @todo TODO(ahundt) ulimits aren't the same size as jointHandles_, need velocity limits too
+            // set joint position limits
             if(boost::iequals(jointName,"cutter_joint"))
             { /// @todo TODO(ahundt) hardcoded mill tip joint limits, remove these
                 lBound[jointIdx][0] = -inf;
@@ -609,9 +611,14 @@ public:
                 lBound[jointIdx][0] = llimits[i];
                 uBound[jointIdx][0] = ulimits[i];
             }
-            
-            lVelBound[jointIdx][0] = -inf; /// @todo TODO(ahundt) Hardcoded infinite Velocity limits, set to real values
-            uVelBound[jointIdx][0] = inf;
+        
+            // set joint velocity limits
+            if(lVelBound[jointIdx].size()==1)
+            {
+                /// @todo TODO(ahundt) replace hardcoded infinite velocity limits with real and useful values
+                lVelBound[jointIdx][0] = -inf;
+                uVelBound[jointIdx][0] = inf;
+            }
         }
 
         tasks::qp::DamperJointLimitsConstr dampJointConstr(rbd_mbs_, simulatedRobotIndex, {lBound, uBound},{lVelBound, uVelBound}, 0.125, 0.025, 1., simulationTimeStep);
