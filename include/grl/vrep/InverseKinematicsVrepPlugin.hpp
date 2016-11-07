@@ -279,6 +279,12 @@ public:
             
                 // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
                 std::string thisJointName = rbd_jointNames_[i];
+                rbd::Joint::Type jointType = rbd::Joint::Rev;
+                /// @todo TODO(ahundt) fix hard coded Revolute vs fixed joint
+                if(i > 6)
+                {
+                    jointType = rbd::Joint::Fixed;
+                }
                 rbd::Joint j_i(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, thisJointName);
                 rbd_mbg_.addJoint(j_i);
             }
@@ -466,8 +472,7 @@ public:
     
     /// Runs at every simulation time step
     void updateKinematics(){
-        
-        // Only update kinematics once for debugging purposes. Comment this next line when not debugging
+        /// @todo TODO(ahundt) Only update kinematics once for debugging purposes. Comment this next line when not debugging
         if(ranOnce_) return;
         ranOnce_ = true;
     
