@@ -572,10 +572,10 @@ public:
             BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform.translation();
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
-        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 1000., 1.);
+        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 100., 1.);
         tasks::qp::OrientationTask oriTask(rbd_mbs_,simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.rotation());
-        tasks::qp::SetPointTask oriTaskSp(rbd_mbs_, simulatedRobotIndex, &oriTask, 1000., 1.);
-        tasks::qp::PostureTask postureTask(rbd_mbs_,simulatedRobotIndex,rbd_preferred_mbcs_[simulatedRobotIndex].q,100,0.01);
+        tasks::qp::SetPointTask oriTaskSp(rbd_mbs_, simulatedRobotIndex, &oriTask, 100., 1.);
+        tasks::qp::PostureTask postureTask(rbd_mbs_,simulatedRobotIndex,rbd_preferred_mbcs_[simulatedRobotIndex].q,10,0.01);
         
         double inf = std::numeric_limits<double>::infinity();
         
@@ -587,6 +587,8 @@ public:
         // will be reasonable, such as empty entries for fixed joints
         std::vector<std::vector<double> > lBound = simArmConfig.q;
         std::vector<std::vector<double> > uBound = simArmConfig.q;
+        std::vector<std::vector<double> > lVelBound = simArmConfig.alpha;
+        std::vector<std::vector<double> > uVelBound = simArmConfig.alpha;
         
         
         // for all joints
@@ -598,14 +600,15 @@ public:
             jointIdx-=1; /// @todo TODO(ahundt) HACK FIXME JOINT INDICES ARE OFF BY 1
             lBound[jointIdx][0] = llimits[i];
             uBound[jointIdx][0] = ulimits[i];
+            lVelBound[jointIdx][0] = -inf; /// @todo TODO(ahundt) Hardcoded infinite Velocity limits, set to real values
+            uVelBound[jointIdx][0] = inf;
         }
-        
-        tasks::qp::JointLimitsConstr jointConstr(rbd_mbs_, simulatedRobotIndex, {lBound, uBound}, simulationTimeStep);
+
+        tasks::qp::DamperJointLimitsConstr dampJointConstr(rbd_mbs_, simulatedRobotIndex, {lBound, uBound},{lVelBound, uVelBound}, 0.125, 0.025, 1., simulationTimeStep);
 
         // Test add*Constraint
-        solver.addBoundConstraint(&jointConstr);
+        dampJointConstr.addToSolver(solver);
         BOOST_VERIFY(solver.nrBoundConstraints() == 1);
-        solver.addConstraint(&jointConstr);
         BOOST_VERIFY(solver.nrConstraints() == 1);
 
         solver.nrVars(rbd_mbs_, {}, {});
