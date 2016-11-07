@@ -101,8 +101,6 @@ std::pair<Eigen::Vector3d,Eigen::Vector3d> getAxisAngleAndTranslation(int Object
 
 	int ret = simGetObjectPosition(ObjectHandle, BaseFrameObjectHandle, simTipPosition.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get position"));
-	//ret = simGetObjectOrientation(ObjectHandle, BaseFrameObjectHandle, simTipOrientation.begin());
-    //if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get orientation"));
     ret = simGetObjectQuaternion(ObjectHandle, BaseFrameObjectHandle, simTipQuaternion.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get quaternion"));
 	
@@ -121,10 +119,12 @@ void setObjectTransform(int objectHandle, int relativeToObjectHandle, T& transfo
    // get quaternion between end effector and
    Eigen::Quaternion<typename T::Scalar> eigenQuat(transform.rotation());
    std::array<float,4> vrepQuat = EigenToVrepQuaternion(eigenQuat);
-   simSetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
+   int ret = simSetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
+   if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("setObjectTransform: Could not set Quaternion"));
    
    std::array<float,3> vrepPos = EigenToVrepPosition(transform.translation());
-   simSetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   ret = simSetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("setObjectTransform: Could not set Quaternion"));
    
 }
 
@@ -135,11 +135,13 @@ void setObjectTransform(int objectHandle, int relativeToObjectHandle, T& transfo
 Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle = -1){
 
    std::array<float,4> vrepQuat;
-   simGetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
+   int ret = simGetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
    Eigen::Quaterniond eigenQuat(vrepToEigenQuaternion(vrepQuat));
+   if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("getObjectTransform: Could not get Quaternion"));
    
    std::array<float,3> vrepPos;
-   simGetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   ret = simGetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("getObjectTransform: Could not get Position"));
    Eigen::Vector3d eigenPos(vrepToEigenVector3d(vrepPos));
    
    Eigen::Affine3d transform;
@@ -158,11 +160,13 @@ Eigen::Affine3d getObjectTransform(int objectHandle, int relativeToObjectHandle 
 std::pair<Eigen::Quaterniond,Eigen::Vector3d> getObjectTransformQuaternionTranslationPair(int objectHandle, int relativeToObjectHandle = -1){
 
    std::array<float,4> vrepQuat;
-   simGetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
+   int ret = simGetObjectQuaternion(objectHandle,relativeToObjectHandle,vrepQuat.begin());
+   if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("getObjectTransformQuaternionTranslationPair: Could not get Quaternion"));
    Eigen::Quaterniond eigenQuat(vrepToEigenQuaternion(vrepQuat));
    
    std::array<float,3> vrepPos;
-   simGetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   ret = simGetObjectPosition(objectHandle,relativeToObjectHandle,vrepPos.begin());
+   if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("getObjectTransformQuaternionTranslationPair: Could not get Position"));
    Eigen::Vector3d eigenPos(vrepToEigenVector3d(vrepPos));
    
    return std::make_pair(eigenQuat,eigenPos);
@@ -176,7 +180,8 @@ Eigen::Affine3d getJointTransform(int objectHandle)
   // https://en.wikipedia.org/wiki/Row-major_order
   // https://eigen.tuxfamily.org/dox/group__TopicStorageOrders.html
   std::array<float,12> vrepTransform;
-  simGetJointMatrix(objectHandle,vrepTransform.begin());
+  int ret = simGetJointMatrix(objectHandle,vrepTransform.begin());
+  if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("getJointTransform: Could not get Joint Matrix"));
   return vrepToEigenTransform(vrepTransform);
 }
 
