@@ -659,6 +659,7 @@ public:
             for(int i = 0; i < numSolverIterations; ++i)
             {
                 //BOOST_REQUIRE(solver.solve(rbd_mbs_, rbd_mbcs_));
+                /// @todo TODO(ahundt) remove BOOST_VERIFY(), try/catch solver failure, print an error, send a v-rep message, and shut down solver or enter a hand guiding mode
                 BOOST_VERIFY(solver.solve(rbd_mbs_, rbd_mbcs_));
                 // This should be handled by the simulator or physical robot, "forward simulation of dynamics"
                 //rbd::sEulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
