@@ -604,7 +604,7 @@ public:
             // use basic inverse kinematics to solve for the position
             //rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(jointNames_[6]));
             rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(ikGroupTipName_));
-            ik.inverseKinematics(simArmMultiBody,simArmConfig,targetWorldTransform);
+            ik.sInverseKinematics(simArmMultiBody,simArmConfig,targetWorldTransform);
             // update the simulated arm position
             SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
         }
@@ -621,22 +621,22 @@ public:
             for(int i = 0; i < numSolverIterations; ++i)
             {
                 //BOOST_REQUIRE(solver.solve(rbd_mbs_, rbd_mbcs_));
-                solver.solve(rbd_mbs_, rbd_mbcs_);
+                BOOST_VERIFY(solver.solve(rbd_mbs_, rbd_mbcs_));
                 // This should be handled by the simulator or physical robot, "forward simulation of dynamics"
-                rbd::eulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
+                rbd::sEulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
 
-                rbd::forwardKinematics(simArmMultiBody, simArmConfig);
-                rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+                rbd::sForwardKinematics(simArmMultiBody, simArmConfig);
+                rbd::sForwardVelocity(simArmMultiBody, simArmConfig);
                 //BOOST_REQUIRE_GT(simArmConfig.q[1][simulatedRobotIndex], -cst::pi<double>()/4. - 0.01);
             }
         }
         else
         {
             // single iteration version of solving
-            solver.solve(rbd_mbs_, rbd_mbcs_);
-            rbd::eulerIntegration(simArmMultiBody, simArmConfig, 0.0001);
-            rbd::forwardKinematics(simArmMultiBody, simArmConfig);
-            rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+            BOOST_VERIFY(solver.solve(rbd_mbs_, rbd_mbcs_));
+            rbd::sEulerIntegration(simArmMultiBody, simArmConfig, 0.0001);
+            rbd::sForwardKinematics(simArmMultiBody, simArmConfig);
+            rbd::sForwardVelocity(simArmMultiBody, simArmConfig);
             // update the simulated arm position
             SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
         }
