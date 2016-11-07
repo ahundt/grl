@@ -267,7 +267,7 @@ public:
             getHandles(rbd_jointNames_,std::back_inserter(rbd_jointHandles_));
             
             // Note that V-REP specifies full transforms to place objects that rotate joints around the Z axis
-            /// @todo TODO(ahundt) this is really fixed
+            /// @todo TODO(ahundt) HACK really a fixed joint, but set to Rev for now for off by 1 indexing bug
             rbd::Joint j_b_0(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, ikGroupBaseName_);
             //rbd::Joint j_b_0(rbd::Joint::Fixed, isForwardJoint, ikGroupBaseName_);
             rbd_mbg_.addJoint(j_b_0);
@@ -281,11 +281,11 @@ public:
                 std::string thisJointName = rbd_jointNames_[i];
                 rbd::Joint::Type jointType = rbd::Joint::Rev;
                 /// @todo TODO(ahundt) fix hard coded Revolute vs fixed joint
-                if(i > 6)
+                if(i > 7)
                 {
                     jointType = rbd::Joint::Fixed;
                 }
-                rbd::Joint j_i(rbd::Joint::Rev, Eigen::Vector3d::UnitZ(), isForwardJoint, thisJointName);
+                rbd::Joint j_i(jointType, Eigen::Vector3d::UnitZ(), isForwardJoint, thisJointName);
                 rbd_mbg_.addJoint(j_i);
             }
             
@@ -352,18 +352,17 @@ public:
             const std::size_t simulatedRobotIndex = 0;
             auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
             auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
+        
+            // update the simulated arm position
+            for (std::size_t i = 0; i < jointHandles_.size(); ++i) {
+               simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
+            }
+            SetRBDynArmFromVrep(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
             
             rbd::forwardKinematics(simArmMultiBody, simArmConfig);
             rbd::forwardVelocity(simArmMultiBody, simArmConfig);
         
-            // update the simulated arm position
-            SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
-        
             debugFrames();
-       
-           // may need to invert?
-            Eigen::Affine3d tipTf = PTranformToEigenAffine(simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)]);
-           setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
         
         }
         
@@ -432,6 +431,10 @@ public:
           
           }
        }
+    
+       // Frame "Dummy" with no numbers goes at the tip!
+       Eigen::Affine3d tipTf = PTranformToEigenAffine(simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)]);
+       setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
     }
     
     
@@ -606,8 +609,8 @@ public:
         if(alg == ik)
         {
             // use basic inverse kinematics to solve for the position
-            rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(jointNames_[6]));
-            //rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(ikGroupTipName_));
+            //rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(jointNames_[6]));
+            rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(ikGroupTipName_));
             ik.inverseKinematics(simArmMultiBody,simArmConfig,targetWorldTransform);
             // update the simulated arm position
             SetVRepArmFromRBDyn(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
@@ -646,15 +649,12 @@ public:
         }
         
        debugFrames();
-       // may need to invert?
-        Eigen::Affine3d tipTf = PTranformToEigenAffine(simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)]);
-       setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
     } // end updateKinematics()
     
     /// may not need this it is in the base class
     /// blocking call, call in separate thread, just allocates memory
     void run_one(){
-       bool ik = false;
+       bool ik = true;
        if(ik) updateKinematics();
        else   testPose();
     }
