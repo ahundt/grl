@@ -52,6 +52,7 @@ public:
 
     enum ParamIndex {
         JointNames,
+        RobotFlangeTipName,
         RobotTipName,
         RobotTargetName,
         RobotTargetBaseName,
@@ -81,6 +82,7 @@ public:
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
         > Params;
     
@@ -98,6 +100,7 @@ public:
         return std::make_tuple(
                     jointHandles              , // JointHandles,
                     "RobotMillTip"            , // RobotTipHandle,
+                    "RobotFlangeTip"          , // RobotTipHandle,
                     "RobotMillTipTarget"      , // RobotTargetHandle,
                     "Robotiiwa"               , // RobotTargetBaseHandle,
                     "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
@@ -127,9 +130,10 @@ public:
         jointHandles.push_back("LBR_iiwa_14_R820_joint7#0"); // Joint7Handle,
         return std::make_tuple(
                     jointHandles              , // JointHandles,
-                    "RobotMillTip#0"            , // RobotTipHandle,
-                    "RobotMillTipTarget#0"      , // RobotTargetHandle,
-                    "Robotiiwa#0"               , // RobotTargetBaseHandle,
+                    "RobotMillFlangeTip#0"    , // RobotFlangeTipHandle,
+                    "RobotMillTip#0"          , // RobotTipHandle,
+                    "RobotMillTipTarget#0"    , // RobotTargetHandle,
+                    "Robotiiwa#0"             , // RobotTargetBaseHandle,
                     "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
                     "tcp://0.0.0.0:30010"     , // LocalZMQAddress
                     "tcp://172.31.1.147:30010", // RemoteZMQAddress
@@ -225,6 +229,7 @@ void initHandles() {
     (
         std::make_tuple(
             std::get<JointNames>             (params_),
+            std::get<RobotFlangeTipName>     (params_),
             std::get<RobotTipName>           (params_),
             std::get<RobotTargetName>        (params_),
             std::get<RobotTargetBaseName>    (params_),
@@ -240,6 +245,7 @@ void initHandles() {
     (
         std::make_tuple(
             std::get<JointNames>             (measuredParams_),
+            std::get<RobotFlangeTipName>     (measuredParams_),
             std::get<RobotTipName>           (measuredParams_),
             std::get<RobotTargetName>        (measuredParams_),
             std::get<RobotTargetBaseName>    (measuredParams_),

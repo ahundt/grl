@@ -60,6 +60,7 @@ public:
         Joint5Name, 
         Joint6Name, 
         Joint7Name,
+        RobotFlangeTipName,
         RobotTipName,
         RobotTargetName,
         RobotTargetBaseName,
@@ -92,6 +93,7 @@ public:
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
         > Params;
     
@@ -105,6 +107,7 @@ public:
                     "LBR_iiwa_14_R820_joint5" , // Joint5Handle, 
                     "LBR_iiwa_14_R820_joint6" , // Joint6Handle, 
                     "LBR_iiwa_14_R820_joint7" , // Joint7Handle,
+                    "RobotFlangeTip"          , // RobotFlangeTipHandle,
                     "RobotMillTip"            , // RobotTipHandle,
                     "RobotMillTipTarget"      , // RobotTargetHandle,
                     "Robotiiwa"               , // RobotTargetBaseHandle,
@@ -194,6 +197,7 @@ void initHandles() {
                 std::get<Joint6Name>             (params_),
                 std::get<Joint7Name>             (params_)
             },
+            std::get<RobotFlangeTipName>     (params_),
             std::get<RobotTipName>           (params_),
             std::get<RobotTargetName>        (params_),
             std::get<RobotTargetBaseName>    (params_),

@@ -208,6 +208,7 @@ public:
         ikGroupTipName_ = (std::get<VrepRobotArmDriver::RobotTipName>(armDriverSimulatedParams));
         // the target, or where the tip of the arm should go
         ikGroupTargetName_ = (std::get<VrepRobotArmDriver::RobotTargetName>(armDriverSimulatedParams));
+        robotFlangeTipName_ = (std::get<VrepRobotArmDriver::RobotFlangeTipName>(armDriverSimulatedParams));
         
         ikGroupBaseHandle_ = grl::vrep::getHandle(ikGroupBaseName_);
         ikGroupTipHandle_ = grl::vrep::getHandle(ikGroupTipName_);
@@ -245,8 +246,9 @@ public:
             // note: bodyNames are 1 longer than link names, and start with the base!
             /// @todo TODO(ahundt) should 1st parameter be linkNames instead of linkRespondableNames_?
             boost::copy(linkNames_, std::back_inserter(rbd_bodyNames_));
-            jointNames_.push_back(ikGroupTipName_);
             boost::copy(jointNames_, std::back_inserter(rbd_jointNames_));
+            rbd_jointNames_.push_back(robotFlangeTipName_);
+            rbd_jointNames_.push_back(ikGroupTipName_);
         
             rbd_bodyNames_.push_back(ikGroupTipName_);
             getHandles(rbd_bodyNames_,std::back_inserter(bodyHandles_));
@@ -386,9 +388,12 @@ public:
           setObjectTransform(currentDummy2,-1,eto);
           if(print) BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP World\n" << eto.matrix();
           
-          Eigen::Affine3d NextJointinPrevFrame(getObjectTransform(jointHandles_[i],jointHandles_[i-1]));
-          if(print) BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
-       
+          if(i>0)
+          {
+            Eigen::Affine3d NextJointinPrevFrame(getObjectTransform(jointHandles_[i],jointHandles_[i-1]));
+            if(print) BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
+          }
+          
           bool dummy_world_frame = true;
           if( dummy_world_frame )
           {
@@ -474,7 +479,6 @@ public:
         ranOnce_ = true;
     
         jointHandles_ = VrepRobotArmDriverSimulatedP_->getJointHandles();
-        auto eigentestJacobian=::grl::vrep::getJacobian(*VrepRobotArmDriverSimulatedP_);
         
         
         ///////////////////////////////////////////////////////////
@@ -533,6 +537,8 @@ public:
         rbd::forwardKinematics(simArmMultiBody, simArmConfig);
         rbd::forwardVelocity(simArmMultiBody, simArmConfig);
         
+        // save the current MultiBodyConfig for comparison after running algorithms
+        rbd_prev_mbcs_ = rbd_mbcs_;
 
         /// @todo TODO(ahundt) make solver object a member variable if possible, initialize in constructor
         tasks::qp::QPSolver solver;
@@ -555,7 +561,7 @@ public:
             BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform.translation();
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
-        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 1., 0.1);
+        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 10., 1.);
         double inf = std::numeric_limits<double>::infinity();
         
        
@@ -630,7 +636,7 @@ public:
         {
             // single iteration version of solving
             BOOST_VERIFY(solver.solve(rbd_mbs_, rbd_mbcs_));
-            rbd::sEulerIntegration(simArmMultiBody, simArmConfig, 0.0001);
+            rbd::sEulerIntegration(simArmMultiBody, simArmConfig, simulationTimeStep);
             rbd::sForwardKinematics(simArmMultiBody, simArmConfig);
             rbd::sForwardVelocity(simArmMultiBody, simArmConfig);
             // update the simulated arm position
@@ -660,6 +666,8 @@ public:
     rbd::MultiBodyGraph                 rbd_mbg_;
     std::vector<rbd::MultiBody>         rbd_mbs_;
     std::vector<rbd::MultiBodyConfig>   rbd_mbcs_;
+    /// rbd_prev_mbcs_ is for debugging
+    std::vector<rbd::MultiBodyConfig>   rbd_prev_mbcs_;
     std::vector<rbd::Body>              rbd_bodies_;
     std::vector<sva::RBInertia<double>> rbd_inertias_;
     std::vector<rbd::Joint>             rbd_joints_;
@@ -696,6 +704,7 @@ public:
     std::string ikGroupBaseName_;
     std::string ikGroupTipName_;
     std::string ikGroupTargetName_;
+    std::string robotFlangeTipName_; // not part of the V-REP ik group
     
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverSimulatedP_;
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverMeasuredP_;

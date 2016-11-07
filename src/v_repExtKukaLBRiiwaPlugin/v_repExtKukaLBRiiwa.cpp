@@ -45,8 +45,9 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 std::shared_ptr<grl::vrep::KukaVrepPlugin> kukaPluginPG;
 
 const int inArgs_KUKA_LBR_IIWA_START[]={
- 14,                   //   Example Value              // Parameter name
+ 15,                   //   Example Value              // Parameter name
  sim_lua_arg_string|sim_lua_arg_table,0, // joint handle table with 0 or more strings
+ sim_lua_arg_string,0, //  "RobotFlangeTip"          , // RobotFlangeTipHandle,
  sim_lua_arg_string,0, //  "RobotMillTip"            , // RobotTipHandle,
  sim_lua_arg_string,0, //  "RobotMillTipTarget"      , // RobotTargetHandle,
  sim_lua_arg_string,0, //  "Robotiiwa"               , // RobotTargetBaseHandle, aka RobotName
@@ -62,7 +63,7 @@ const int inArgs_KUKA_LBR_IIWA_START[]={
  sim_lua_arg_string,0, //  "IK_Group1_iiwa"            // IKGroupName (VREP built in inverse kinematics group)
 };
 
-std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaStart(string_table JointHandles , string RobotTipHandle, string RobotTargetHandle, string RobotTargetBaseHandle, string RobotModel, string LocalZMQAddress, string RemoteZMQAddress, string LocalHostKukaKoniUDPAddress, string LocalHostKukaKoniUDPPort, string RemoteHostKukaKoniUDPAddress, string RemoteHostKukaKoniUDPPort, string KukaCommandMode, string KukaMonitorMode, string IKGroupName) -- KukaCommandMode options are JAVA and FRI");
+std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaStart(string_table JointHandles , string RobotTipHandle, string RobotFlangeTipHandle, string RobotTargetHandle, string RobotTargetBaseHandle, string RobotModel, string LocalZMQAddress, string RemoteZMQAddress, string LocalHostKukaKoniUDPAddress, string LocalHostKukaKoniUDPPort, string RemoteHostKukaKoniUDPAddress, string RemoteHostKukaKoniUDPPort, string KukaCommandMode, string KukaMonitorMode, string IKGroupName) -- KukaCommandMode options are JAVA and FRI");
 
 void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
@@ -83,24 +84,26 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
             {
               JointHandles.push_back(std::string(inData->at(0).stringData[i].c_str()));
             }
-            std::string RobotTipHandle                      (inData->at(1 ).stringData[0]);
-            std::string RobotTargetHandle                   (inData->at(2 ).stringData[0]);
-            std::string RobotTargetBaseHandle               (inData->at(3 ).stringData[0]);
-            std::string RobotModel                          (inData->at(4 ).stringData[0]);
-            std::string LocalZMQAddress                     (inData->at(5 ).stringData[0]);
-            std::string RemoteZMQAddress                    (inData->at(6 ).stringData[0]);
-            std::string LocalHostKukaKoniUDPAddress         (inData->at(7 ).stringData[0]);
-            std::string LocalHostKukaKoniUDPPort            (inData->at(8 ).stringData[0]);
-            std::string RemoteHostKukaKoniUDPAddress        (inData->at(9 ).stringData[0]);
-            std::string RemoteHostKukaKoniUDPPort           (inData->at(10).stringData[0]);
-            std::string KukaCommandMode                     (inData->at(11).stringData[0]);
-            std::string KukaMonitorMode                     (inData->at(12).stringData[0]);
-            std::string IKGroupName                         (inData->at(13).stringData[0]);
+            std::string RobotFlangeTipHandle                (inData->at(1 ).stringData[0]);
+            std::string RobotTipHandle                      (inData->at(2 ).stringData[0]);
+            std::string RobotTargetHandle                   (inData->at(3 ).stringData[0]);
+            std::string RobotTargetBaseHandle               (inData->at(4 ).stringData[0]);
+            std::string RobotModel                          (inData->at(5 ).stringData[0]);
+            std::string LocalZMQAddress                     (inData->at(6 ).stringData[0]);
+            std::string RemoteZMQAddress                    (inData->at(7 ).stringData[0]);
+            std::string LocalHostKukaKoniUDPAddress         (inData->at(8 ).stringData[0]);
+            std::string LocalHostKukaKoniUDPPort            (inData->at(9 ).stringData[0]);
+            std::string RemoteHostKukaKoniUDPAddress        (inData->at(10).stringData[0]);
+            std::string RemoteHostKukaKoniUDPPort           (inData->at(11).stringData[0]);
+            std::string KukaCommandMode                     (inData->at(12).stringData[0]);
+            std::string KukaMonitorMode                     (inData->at(13).stringData[0]);
+            std::string IKGroupName                         (inData->at(14).stringData[0]);
             
         
             kukaPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>(
                 std::make_tuple(
                     JointHandles                  ,
+                    RobotFlangeTipHandle          ,
                     RobotTipHandle                ,
                     RobotTargetHandle             ,
                     RobotTargetBaseHandle         ,

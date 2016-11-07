@@ -75,7 +75,8 @@ public:
 
     enum ParamIndex {
         JointNames,
-        RobotTipName,
+        RobotFlangeTipName, // the tip of the base robot model without tools, where tools get attached
+        RobotTipName,       // the tip of the robot tool or end effector, where stuff interacts
         RobotTargetName,
         RobotTargetBaseName,
         RobotIkGroup
@@ -86,11 +87,13 @@ public:
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
         > Params;
     
     typedef std::tuple<
         std::vector<int>,
+        int,
         int,
         int,
         int,
@@ -111,6 +114,7 @@ public:
         
         return std::make_tuple(
                     jointNames                , // JointNames
+                    "RobotFlangeTip"          , // RobotFlangeTipName,
                     "RobotMillTip"            , // RobotTipName,
                     "RobotMillTipTarget"      , // RobotTargetName,
                     "Robotiiwa"               , // RobotTargetBaseName,
@@ -132,6 +136,7 @@ public:
         
         return std::make_tuple(
                     jointNames                , // JointNames
+                    "RobotFlangeTip#0"          , // RobotFlangeTipName,
                     "RobotMillTip#0"            , // RobotTipName,
                     "RobotMillTipTarget#0"      , // RobotTargetName,
                     "Robotiiwa#0"               , // RobotTargetBaseName,
@@ -189,6 +194,7 @@ void construct() {
     std::make_tuple(
          std::move(jointHandle)                                 //Obtain Joint Handles
 	    ,getHandleFromParam<RobotTipName>           (params_)	//Obtain RobotTip handle
+	    ,getHandleFromParam<RobotFlangeTipName>     (params_)	//Obtain RobotTip handle
 	    ,getHandleFromParam<RobotTargetName>        (params_)
 	    ,getHandleFromParam<RobotTargetBaseName>    (params_)
         ,simGetIkGroupHandle(std::get<RobotIkGroup> (params_).c_str())
