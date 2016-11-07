@@ -430,7 +430,35 @@ public:
     
     
     
+    void testPose(){
+        
+       /// simulation tick time step in float seconds from vrep API call
+       float simulationTimeStep = simGetSimulationTimeStep();
+       
+        // we only have one robot for the moment so the index of it is 0
+        const std::size_t simulatedRobotIndex = 0;
+        auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
+        auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
+       
+        std::vector<float> vrepJointAngles;
+        double angle = 0.7;
+        for(auto i : jointHandles_)
+        {
+            angle *= -1;
+            simSetJointPosition(i,angle);
+            vrepJointAngles.push_back(angle);
+        }
     
+       /// @todo TODO(ahundt) rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
+       
+        ////////////////////////////////////////////////////
+        // Set joints to current arm position in simulation
+        SetRBDynArmFromVrep(jointNames_,jointHandles_,rbd_jointNames_,simArmMultiBody,simArmConfig);
+        rbd::forwardKinematics(simArmMultiBody, simArmConfig);
+        rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+        
+        debugFrames();
+    }
     
     
     
@@ -636,8 +664,9 @@ public:
     /// may not need this it is in the base class
     /// blocking call, call in separate thread, just allocates memory
     void run_one(){
-       updateKinematics();
-       
+       bool ik = true;
+       if(ik) updateKinematics();
+       else   testPose();
     }
     
     
