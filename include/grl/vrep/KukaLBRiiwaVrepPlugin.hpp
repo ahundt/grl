@@ -57,8 +57,9 @@ public:
         RobotTargetName,
         RobotTargetBaseName,
         RobotModel,
-        LocalZMQAddress,
-        RemoteZMQAddress,
+        LocalUDPAddress,
+        LocalUDPPort,
+        RemoteUDPAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -70,6 +71,7 @@ public:
     
     typedef std::tuple<
         std::vector<std::string>,
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -104,8 +106,9 @@ public:
                     "RobotMillTipTarget"      , // RobotTargetHandle,
                     "Robotiiwa"               , // RobotTargetBaseHandle,
                     "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
-                    "tcp://0.0.0.0:30010"     , // LocalZMQAddress
-                    "tcp://172.31.1.147:30010", // RemoteZMQAddress
+                    "tcp://0.0.0.0"           , // LocalUDPAddress
+                    "30010"                   , // LocalUDPPort
+                    "172.31.1.147"            , // RemoteUDPAddress
                     "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -135,8 +138,9 @@ public:
                     "RobotMillTipTarget#0"    , // RobotTargetHandle,
                     "Robotiiwa#0"             , // RobotTargetBaseHandle,
                     "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
-                    "tcp://0.0.0.0:30010"     , // LocalZMQAddress
-                    "tcp://172.31.1.147:30010", // RemoteZMQAddress
+                    "tcp://0.0.0.0"           , // LocalUDPAddress
+                    "30010"                   , // LocalUDPPort
+                    "172.31.1.147"            , // RemoteUDPAddress
                     "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
                     "30200"                   , // LocalHostKukaKoniUDPPort,
                     "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -181,8 +185,9 @@ void construct(Params params){
       
         std::get<RobotTargetBaseName>(params),
         std::get<RobotModel>(params),
-        std::get<LocalZMQAddress>(params),
-        std::get<RemoteZMQAddress>(params),
+        std::get<LocalUDPAddress>(params),
+        std::get<LocalUDPPort>(params),
+        std::get<RemoteUDPAddress>(params),
         std::get<LocalHostKukaKoniUDPAddress>(params),
         std::get<LocalHostKukaKoniUDPPort>(params),
         std::get<RemoteHostKukaKoniUDPAddress>(params),

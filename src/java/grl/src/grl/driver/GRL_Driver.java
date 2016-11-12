@@ -7,7 +7,6 @@ import grl.ProcessDataManager;
 import grl.StartStopSwitchUI;
 import grl.TeachMode;
 import grl.UpdateConfiguration;
-import grl.ZMQManager;
 import grl.UDPManager;
 import grl.flatbuffer.ArmState;
 import grl.flatbuffer.KUKAiiwaInterface;
@@ -27,10 +26,19 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Table;
+
+// 1. Compiler error here? COMMENT ALL FLEXFELLOW AND MEDIAFLANGEIOGROUP lines
+// 2. FlexFellow lines commented? DO NOT DELETE THEM, other people have different hardware!
+// 3. Have a FlexFellow? Uncomment all the FlexFellow lines and the lights will let you know
+//    what mode the arm is in!
+//
+//import com.kuka.generated.ioAccess.FlexFellowIOGroup;
+//import com.kuka.generated.ioAccess.MediaFlangeIOGroup;
 import com.kuka.common.ThreadUtil;
 import com.kuka.connectivity.fastRobotInterface.FRIConfiguration;
 import com.kuka.connectivity.fastRobotInterface.FRIJointOverlay;
 import com.kuka.connectivity.fastRobotInterface.FRISession;
+import com.kuka.connectivity.fastRobotInterface.FRIChannelInformation.FRISessionState;
 import com.kuka.connectivity.motionModel.smartServo.ISmartServoRuntime;
 import com.kuka.connectivity.motionModel.smartServo.ServoMotion;
 import com.kuka.connectivity.motionModel.smartServo.ServoMotionJP;
@@ -80,7 +88,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 	/// The interface on which monitor data is being sent to the Laptop (C++ program over network)
 	/// This can be FRI (udp packets over KONI port for monitoring state) (works by default)
-	/// or SmartServo/DirectServo (JAVA ZMQ interface will be used to send position/torques back (not yet implemented)
+	/// or SmartServo/DirectServo (JAVA UDP interface will be used to send position/torques back (not yet implemented)
 	private byte _monitorInterface = KUKAiiwaInterface.SmartServo;
 
 	private FRIConfiguration _friConfiguration = null;
@@ -199,7 +207,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 	public void run()
 	{
 
-		getLogger().info("GRL_Driver from github.com/ahundt/grl starting...\nZMQ Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
+		getLogger().info("GRL_Driver from github.com/ahundt/grl starting...\nUDP Connecting to: " + _processDataManager.get_ZMQ_MASTER_URI());
 
 		UDPManager udpMan = new UDPManager(_processDataManager.get_controllingLaptopIPAddress(), _processDataManager.get_controllingLaptopJAVAPort() ,getLogger());
 
@@ -287,12 +295,21 @@ public class GRL_Driver extends RoboticsAPIApplication
 					getLogger().warn("Enabling Teach Mode with gravity compensation. mode id code = " +
 							_currentKUKAiiwaState.armControlState().stateType());
 
-
+//                  // comment/uncomment depending on if you have a flexfellow with lights
 //					if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightYellow(true);
 //					if(_flexFellowPresent) _flexFellowIOGroup.setSignalLightRed(false);
-					// trying to use kuka's provided handguidingmotion but it isn't working now.
-					// using an if statement to default to old behavior.
-					// TODO: Ashkan: why is this hardcoded?!?
+
+                    // useHandGuidingMotion==true activates the KUKA supplied HandGuidingMotion 
+					// Please note that the KUKA supplied HandGuidingMotion requires configuration
+					// of a button that lets you exit HandGuidingMotion mode. Some KUKA machines
+					// come with the button on the end effector flange, but others require you to
+					// attach it to the controller box.
+					//
+					// useHandGuidingMotion==true activates a simple gravity copensation
+					// mode that lets you do something similar, 
+					// though it will halt when joint limtis are reached.
+					// 
+					// TODO: Move to an enum of possible handguidingmotion modes and make configurable from either the pendant or C++ interface
 					boolean useHandGuidingMotion = false;
 
 					if(useHandGuidingMotion)
@@ -376,7 +393,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			        destination = new JointPosition(_lbr.getCurrentJointPosition());
 			        _smartServoMotion = new SmartServo(destination);
 
-					// TODO: support more control modes & zmq interface
+					// TODO: support more control modes & UDP interface
 					_smartServoMotionControlMode = getMotionControlMode(grl.flatbuffer.EControlMode.CART_IMP_CONTROL_MODE);
 			        /*
 			         *
@@ -421,7 +438,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				if (_smartServoRuntime == null) {
 					getLogger().info("Setting up Smart Servo runtime");
 					try {
-						// TODO: make motion control mode configurable over zmq interface
+						// TODO: make motion control mode configurable over UDP interface
 						_smartServoRuntime = _smartServoMotion.getRuntime();
 						_smartServoRuntime.activateVelocityPlanning(true);
 				        // _smartServoRuntime.changeControlModeSettings(_smartServoMotionControlMode);
@@ -511,7 +528,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			}
 
 
-			/// Reading sensor values from Java Interface and sending them thrugh ZMQ
+			/// Reading sensor values from Java Interface and sending them thrugh UDP
 			if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.MoveArmJointServo){
 
 
@@ -555,7 +572,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 			}
 
-            /// TODO: add sending commands back to the C++ interface here, add appropriate call to zmq object, pay close attention to _monitorInterface variable
+            /// TODO: add sending commands back to the C++ interface here, add appropriate call to UDP object, pay close attention to _monitorInterface variable
 
 		} // end primary while loop
 
@@ -568,7 +585,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		}
 
 		getLogger()
-		.info("ZMQ connection closed.\nExiting...\nThanks for using the\nGRL_Driver from github.com/ahundt/grl\nGoodbye!");
+		.info("UDP connection closed.\nExiting...\nThanks for using the\nGRL_Driver from github.com/ahundt/grl\nGoodbye!");
 		//System.exit(1);
 	}
 
@@ -666,7 +683,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			mcm = new PositionControlMode();
 		} else if(controlMode==grl.flatbuffer.EControlMode.CART_IMP_CONTROL_MODE){
 
-			// TODO: make motion control mode configurable over zmq interface
+			// TODO: make motion control mode configurable over UDP interface
 			/// @note setMaxCartesianVelocity STOPS THE ROBOT ABOVE THAT VELOCITY RATHER THAN CAPPING THE VELOCITY
 	        CartesianImpedanceControlMode cicm = new CartesianImpedanceControlMode()
 										.setMaxCartesianVelocity(1000, 1000, 1000, 6.3, 6.3, 6.3)

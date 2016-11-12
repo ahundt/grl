@@ -41,8 +41,9 @@ namespace grl { namespace robot { namespace arm {
       enum ParamIndex {
         RobotName,
         RobotModel,
-        LocalZMQAddress,
-        RemoteZMQAddress,
+        LocalUDPAddress,
+        LocalUDPPort,
+        RemoteUDPAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -51,8 +52,8 @@ namespace grl { namespace robot { namespace arm {
         KukaMonitorMode
       };
 
-      /// @todo allow default params
       typedef std::tuple<
+        std::string,
         std::string,
         std::string,
         std::string,
@@ -70,8 +71,9 @@ namespace grl { namespace robot { namespace arm {
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
             "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
-            "tcp://0.0.0.0:30010"     , // LocalZMQAddress
-            "tcp://172.31.1.147:30010", // RemoteZMQAddress
+            "0.0.0.0"                 , // LocalUDPAddress
+            "30010"                   , // LocalUDPPort
+            "172.31.1.147"            , // RemoteUDPAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -133,8 +135,8 @@ namespace grl { namespace robot { namespace arm {
           //driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
         } catch( boost::exception &e) {
           e << errmsg_info("KukaDriver: Unable to connect to ZeroMQ Socket from " +
-                           std::get<LocalZMQAddress>             (params_) + " to " +
-                           std::get<RemoteZMQAddress>            (params_));
+                           std::get<LocalUDPAddress>             (params_) + " to " +
+                           std::get<RemoteUDPAddress>            (params_));
           throw;
         }
 

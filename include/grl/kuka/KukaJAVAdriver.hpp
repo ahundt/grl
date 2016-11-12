@@ -13,6 +13,7 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/config.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
@@ -92,8 +93,9 @@ namespace grl { namespace robot { namespace arm {
       enum ParamIndex {
         RobotName,
         RobotModel,
-        LocalZMQAddress,
-        RemoteZMQAddress,
+        LocalUDPAddress,
+        LocalUDPPort,
+        RemoteUDPAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -112,6 +114,7 @@ namespace grl { namespace robot { namespace arm {
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
           > Params;
 
@@ -119,9 +122,10 @@ namespace grl { namespace robot { namespace arm {
       static const Params defaultParams(){
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
-            "KUKA_LBR_IIWA_14_R820"      , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
-            "tcp://0.0.0.0:30010"     , // LocalZMQAddress
-            "tcp://172.31.1.147:30010", // RemoteZMQAddress
+            "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
+            "0.0.0.0"                 , // LocalUDPAddress
+            "30010"                   , // LocalUDPPort
+            "172.31.1.147"            , // RemoteUDPAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -179,9 +183,9 @@ namespace grl { namespace robot { namespace arm {
 
 
         try {
-          BOOST_LOG_TRIVIAL(trace) << "KukaLBRiiwaRosPlugin: Connecting ZeroMQ Socket from " <<
-            std::get<LocalZMQAddress>             (params_) << " to " <<
-            std::get<RemoteZMQAddress>            (params_);
+          BOOST_LOG_TRIVIAL(trace) << "KukaLBRiiwaRosPlugin: Connecting UDP Socket from " <<
+            std::get<LocalUDPAddress>             (params_) << ":" << std::get<LocalUDPPort>             (params_) << " to " <<
+            std::get<RemoteUDPAddress>            (params_);
 
             socket_local = socket(AF_INET, SOCK_DGRAM, 0);
             if (socket_local < 0) {
@@ -189,8 +193,9 @@ namespace grl { namespace robot { namespace arm {
                 exit(1);
             }
 
-            port = 30010;
-            inet_pton(AF_INET, std::get<LocalZMQAddress>(params_).c_str(), &(local_sockaddr.sin_addr));
+            port = boost::lexical_cast<int>( std::get<LocalUDPPort>             (params_));
+            // convert the string to network presentation value
+            inet_pton(AF_INET, std::get<LocalUDPAddress>(params_).c_str(), &(local_sockaddr.sin_addr));
             local_sockaddr.sin_family = AF_INET;
             local_sockaddr.sin_port = htons(port);
         //    local_sockaddr.sin_addr.s_addr = INADDR_ANY;
@@ -206,9 +211,9 @@ namespace grl { namespace robot { namespace arm {
 
 
         } catch( boost::exception &e) {
-          e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to ZeroMQ Socket from " +
-                           std::get<LocalZMQAddress>             (params_) + " to " +
-                           std::get<RemoteZMQAddress>            (params_));
+          e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from " +
+                           std::get<LocalUDPAddress>             (params_) + " to " +
+                           std::get<RemoteUDPAddress>            (params_));
           throw;
         }
       }
@@ -331,9 +336,10 @@ namespace grl { namespace robot { namespace arm {
           }
 
           int ret;
+          // Send UDP packet to Robot
           ret = sendto(socket_local, fbbP->GetBufferPointer(), fbbP->GetSize(), 0, (struct sockaddr *)&dst_sockaddr, sizeof(dst_sockaddr));
-          if (ret != fbbP->GetSize())
-              printf("Send Error in masterJoint: ret = %d, len = %u\n", ret, fbbP->GetSize());
+          
+          if (static_cast<long>(ret) != static_cast<long>(fbbP->GetSize())) printf("Error sending packet to KUKA iiwa: ret = %d, len = %u\n", ret, fbbP->GetSize());
 
 
               // Receiving data from Sunrise
@@ -341,37 +347,44 @@ namespace grl { namespace robot { namespace arm {
               int num;
               temp_mask = mask;
 
+              // tv is the time that you wait for a new message to arrive,
+              // since we don't wont to hinder the execution of each cycle, it is set to zero...
+              // (The FRI interface read rate is much higher than the data coming for the controller, so we don't wait for controller data)
               struct timeval tv;
               tv.tv_sec = 0;
               tv.tv_usec = 0;
 
+              // Check to see if any packets are available with waiting time of 0
+              // Please note that with this configuration some packets may be dropped.
+              /// @todo TODO(ahundt) eventually run this in a separate thread so we can receive packets asap and minimize dropping
               num = select(FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, &tv);
 
                     if (num > 0)
                     {
+                    // packets are available, process them
                               if (FD_ISSET(socket_local, &temp_mask))
                               {
-
-                                   unsigned char recbuf[1024];
-                                   struct sockaddr_in  from;
-                                   socklen_t           from_len = sizeof(from);
-
-                                   ret = recvfrom(socket_local, recbuf, sizeof(recbuf), 0, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
+                                   static const std::size_t udp_size = 1400;
+                                   unsigned char recbuf[udp_size];
+                                   static const int flags = 0;
+                              
+                                   ret = recvfrom(socket_local, recbuf, sizeof(recbuf), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
                                    if (ret <= 0)
                                    printf("Receive Error: ret = %d\n", ret);
 
                                    if (ret > 0){
 
-                                   std::cout << "received message size: " << ret << "\n";
+                                   if(debug_) std::cout << "received message size: " << ret << "\n";
 
 
                                    auto rbPstart = static_cast<const uint8_t *>(recbuf);
 
                                    auto verifier = flatbuffers::Verifier(rbPstart, ret);
                                    auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
-
+                                    
+                                   // Flatbuffer has been verified as valid
                                    if (bufOK) {
-
+                                       // only reading the wrench data currently
                                        auto bufff = static_cast<const void *>(rbPstart);
                                        std::cout << "Succeeded in verification.  " << "\n";
 
@@ -596,6 +609,8 @@ namespace grl { namespace robot { namespace arm {
       boost::mutex jt_mutex;
 
       int64_t sequenceNumber;
+      
+      bool debug_ = false;
 
     };
 
