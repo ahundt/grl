@@ -200,6 +200,8 @@ namespace grl { namespace robot { namespace arm {
             local_sockaddr.sin_port = htons(port);
         //    local_sockaddr.sin_addr.s_addr = INADDR_ANY;
 
+            /// @todo TODO(ahundt) Consider switching to boost::asio synchronous calls (async has high latency)!
+            /// @todo TODO(ahundt) Need to switch back to an appropriate exception rather than exiting so VREP isn't taken down.
             if (bind(socket_local, (struct sockaddr *)&local_sockaddr, sizeof(local_sockaddr)) < 0) {
                 printf("Error binding sr_joint!\n");
                 exit(1);
