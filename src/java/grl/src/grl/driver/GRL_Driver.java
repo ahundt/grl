@@ -3,6 +3,7 @@ package grl.driver;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
+import grl.FRIMode;
 import grl.ProcessDataManager;
 import grl.StartStopSwitchUI;
 import grl.TeachMode;

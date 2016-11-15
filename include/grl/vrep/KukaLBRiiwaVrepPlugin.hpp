@@ -101,8 +101,8 @@ public:
         jointHandles.push_back("LBR_iiwa_14_R820_joint7"); // Joint7Handle,
         return std::make_tuple(
                     jointHandles              , // JointHandles,
+                    "RobotFlangeTip"          , // RobotFlangeTipHandle,
                     "RobotMillTip"            , // RobotTipHandle,
-                    "RobotFlangeTip"          , // RobotTipHandle,
                     "RobotMillTipTarget"      , // RobotTargetHandle,
                     "Robotiiwa"               , // RobotTargetBaseHandle,
                     "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
@@ -133,7 +133,7 @@ public:
         jointHandles.push_back("LBR_iiwa_14_R820_joint7#0"); // Joint7Handle,
         return std::make_tuple(
                     jointHandles              , // JointHandles,
-                    "RobotMillFlangeTip#0"    , // RobotFlangeTipHandle,
+                    "RobotFlangeTip#0"    , // RobotFlangeTipHandle,
                     "RobotMillTip#0"          , // RobotTipHandle,
                     "RobotMillTipTarget#0"    , // RobotTargetHandle,
                     "Robotiiwa#0"             , // RobotTargetBaseHandle,
