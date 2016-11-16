@@ -1,8 +1,14 @@
 <map id="KukaFRIdriver.hpp" name="KukaFRIdriver.hpp">
-<area shape="rect" id="node14" href="$KukaFRIalgorithm_8hpp.html" title="grl/kuka/KukaFRIalgorithm.hpp" alt="" coords="1340,85,1544,111"/>
-<area shape="rect" id="node36" href="$Kuka_8hpp.html" title="grl/kuka/Kuka.hpp" alt="" coords="1821,172,1949,197"/>
-<area shape="rect" id="node38" href="$exception_8hpp.html" title="grl/exception.hpp" alt="" coords="2398,85,2521,111"/>
-<area shape="rect" id="node39" href="$KukaFRI_8hpp.html" title="KukaFRI.hpp" alt="" coords="2224,85,2324,111"/>
-<area shape="rect" id="node29" href="$tags_8hpp.html" title="grl/tags.hpp" alt="" coords="738,172,829,197"/>
-<area shape="rect" id="node32" href="$KukaNanopb_8hpp.html" title="grl/kuka/KukaNanopb.hpp" alt="" coords="539,172,713,197"/>
+<area shape="rect" id="node15" href="$exception_8hpp.html" title="grl/exception.hpp" alt="" coords="361,259,484,284"/>
+<area shape="rect" id="node16" href="$KukaFRIalgorithm_8hpp.html" title="grl/kuka/KukaFRIalgorithm.hpp" alt="" coords="1566,85,1770,111"/>
+<area shape="rect" id="node39" href="$Kuka_8hpp.html" title="grl/kuka/Kuka.hpp" alt="" coords="848,172,976,197"/>
+<area shape="rect" id="node48" href="$KukaFRI_8hpp.html" title="KukaFRI.hpp" alt="" coords="1795,85,1894,111"/>
+<area shape="rect" id="node30" href="$tags_8hpp.html" title="defines tag dispatching types used throughout grl " alt="" coords="1380,259,1471,284"/>
+<area shape="rect" id="node35" href="$KukaNanopb_8hpp.html" title="grl/kuka/KukaNanopb.hpp" alt="" coords="1731,172,1906,197"/>
+<area shape="rect" id="node41" href="$KUKAiiwa__generated_8h.html" title="grl/flatbuffer/KUKAiiwa\l_generated.h" alt="" coords="682,252,836,291"/>
+<area shape="rect" id="node43" href="$ArmControlState__generated_8h.html" title="ArmControlState_generated.h" alt="" coords="492,345,690,371"/>
+<area shape="rect" id="node44" href="$Geometry__generated_8h.html" title="Geometry_generated.h" alt="" coords="662,425,821,451"/>
+<area shape="rect" id="node45" href="$JointState__generated_8h.html" title="JointState_generated.h" alt="" coords="429,425,588,451"/>
+<area shape="rect" id="node46" href="$Euler__generated_8h.html" title="Euler_generated.h" alt="" coords="764,345,895,371"/>
+<area shape="rect" id="node47" href="$LinkObject__generated_8h.html" title="LinkObject_generated.h" alt="" coords="919,345,1082,371"/>
 </map>

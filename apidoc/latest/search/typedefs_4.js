@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['receive_5fbuffer_5ftype',['receive_buffer_type',['../classAzmqFlatbuffer.html#af513b01ad82377bb179f588741bb112b',1,'AzmqFlatbuffer']]]
+  ['graph_5ftype',['graph_type',['../namespaceplan.html#ac7219aba101718f8a70c799f9841b7d5',1,'plan']]]
 ];

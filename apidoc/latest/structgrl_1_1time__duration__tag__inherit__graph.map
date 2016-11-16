@@ -1,0 +1,4 @@
+<map id="grl::time_duration_tag" name="grl::time_duration_tag">
+<area shape="rect" id="node3" href="$structgrl_1_1time__duration__command__tag.html" title="the time duration over which a command should be completed " alt="" coords="5,261,130,348"/>
+<area shape="rect" id="node4" href="$structgrl_1_1time__step__tag.html" title="time step between measurements " alt="" coords="153,268,280,341"/>
+</map>

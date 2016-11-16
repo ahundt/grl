@@ -19,10 +19,15 @@ have the word "Connectivity" in it ask KUKA to send you the Sunrise Connectivity
 Connect the KUKA Controller
 ===========================
 
- - use two ethernet cables
+ - Use two ethernet cables (you will need two ethernet ports on your computer)
  - First cable connects to standard Java ethernet port
- - Second Cable to the KONI ethernet port
- 
+ - Second Cable to the KONI ethernet port (if you are using FRI)
+
+ .. image:: Ports_JAVA_FRI_KONI.jpg
+     :width: 1024px
+     :align: center
+     :height: 768px
+     :alt: Ports_JAVA_FRI_KONI
  
 Set IP Address
 ==============
@@ -186,7 +191,7 @@ Running and Stopping Applications
 .. todo:: @todo rename application PositionMoveTest to something more sensible.
 
 - Select the "Applications list"
-- Select your application such as "ZMQ_SmartServoCommand"
+- Select your application such as "GRL_Driver"
 - Press the "green play" button on the left side of the tablet that is pointing right.
 
 Your application should be running.

@@ -1,16 +1,16 @@
 <map id="KukaLBRiiwaVrepPlugin.hpp" name="KukaLBRiiwaVrepPlugin.hpp">
-<area shape="rect" id="node8" href="$KukaDriver_8hpp.html" title="grl/kuka/KukaDriver.hpp" alt="" coords="1305,79,1468,104"/>
-<area shape="rect" id="node45" href="$Vrep_8hpp.html" title="grl/vrep/Vrep.hpp" alt="" coords="3525,152,3648,177"/>
-<area shape="rect" id="node47" href="$v__repLib_8h.html" title="v_repLib.h" alt="" coords="3823,232,3907,257"/>
-<area shape="rect" id="node50" href="$VrepRobotArmDriver_8hpp.html" title="grl/vrep/VrepRobotArmDriver.hpp" alt="" coords="3719,79,3937,104"/>
-<area shape="rect" id="node17" href="$Kuka_8hpp.html" title="Kuka.hpp" alt="" coords="1466,319,1544,344"/>
-<area shape="rect" id="node20" href="$KukaJAVAdriver_8hpp.html" title="grl/kuka/KukaJAVAdriver.hpp" alt="" coords="1943,152,2135,177"/>
-<area shape="rect" id="node25" href="$tags_8hpp.html" title="grl/tags.hpp" alt="" coords="469,319,560,344"/>
-<area shape="rect" id="node39" href="$KukaFRIdriver_8hpp.html" title="grl/kuka/KukaFRIdriver.hpp" alt="" coords="946,152,1128,177"/>
-<area shape="rect" id="node30" href="$exception_8hpp.html" title="grl/exception.hpp" alt="" coords="1201,232,1324,257"/>
-<area shape="rect" id="node31" href="$AzmqFlatbuffer_8hpp.html" title="grl/AzmqFlatbuffer.hpp" alt="" coords="3136,232,3291,257"/>
-<area shape="rect" id="node43" href="$KukaFRIalgorithm_8hpp.html" title="grl/kuka/KukaFRIalgorithm.hpp" alt="" coords="484,232,689,257"/>
-<area shape="rect" id="node44" href="$KukaFRI_8hpp.html" title="KukaFRI.hpp" alt="" coords="57,232,156,257"/>
-<area shape="rect" id="node48" href="$v__repConst_8h.html" title="v_repConst.h" alt="" coords="3935,319,4036,344"/>
-<area shape="rect" id="node49" href="$v__repTypes_8h.html" title="v_repTypes.h" alt="" coords="3809,319,3911,344"/>
+<area shape="rect" id="node8" href="$KukaDriver_8hpp.html" title="grl/kuka/KukaDriver.hpp" alt="" coords="2199,79,2362,104"/>
+<area shape="rect" id="node43" href="$Vrep_8hpp.html" title="grl/vrep/Vrep.hpp" alt="" coords="4384,152,4507,177"/>
+<area shape="rect" id="node45" href="$v__repLib_8h.html" title="v_repLib.h" alt="" coords="4450,232,4534,257"/>
+<area shape="rect" id="node48" href="$VrepRobotArmDriver_8hpp.html" title="grl/vrep/VrepRobotArmDriver.hpp" alt="" coords="3795,79,4013,104"/>
+<area shape="rect" id="node17" href="$Kuka_8hpp.html" title="Kuka.hpp" alt="" coords="1403,232,1480,257"/>
+<area shape="rect" id="node24" href="$tags_8hpp.html" title="defines tag dispatching types used throughout grl " alt="" coords="5,319,96,344"/>
+<area shape="rect" id="node26" href="$KukaJAVAdriver_8hpp.html" title="grl/kuka/KukaJAVAdriver.hpp" alt="" coords="1476,152,1668,177"/>
+<area shape="rect" id="node39" href="$KukaFRIdriver_8hpp.html" title="grl/kuka/KukaFRIdriver.hpp" alt="" coords="2545,152,2727,177"/>
+<area shape="rect" id="node21" href="$KUKAiiwa__generated_8h.html" title="grl/flatbuffer/KUKAiiwa\l_generated.h" alt="" coords="710,312,864,351"/>
+<area shape="rect" id="node25" href="$exception_8hpp.html" title="grl/exception.hpp" alt="" coords="1232,319,1355,344"/>
+<area shape="rect" id="node22" href="$ArmControlState__generated_8h.html" title="ArmControlState_generated.h" alt="" coords="1244,399,1442,424"/>
+<area shape="rect" id="node23" href="$JointState__generated_8h.html" title="JointState_generated.h" alt="" coords="1263,472,1422,497"/>
+<area shape="rect" id="node46" href="$v__repConst_8h.html" title="v_repConst.h" alt="" coords="4379,319,4480,344"/>
+<area shape="rect" id="node47" href="$v__repTypes_8h.html" title="v_repTypes.h" alt="" coords="4504,319,4606,344"/>
 </map>

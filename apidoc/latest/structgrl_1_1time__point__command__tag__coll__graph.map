@@ -1,0 +1,4 @@
+<map id="grl::time_point_command_tag" name="grl::time_point_command_tag">
+<area shape="rect" id="node2" href="$structgrl_1_1time__point__tag.html" title="single point in time relative to some start point " alt="" coords="15,127,146,200"/>
+<area shape="rect" id="node4" href="$structgrl_1_1command__tag.html" title="data for changing a system&#39;s physical state, such as joint angles to be sent to a robot arm..." alt="" coords="170,127,298,200"/>
+</map>

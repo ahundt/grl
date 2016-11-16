@@ -1,5 +1,5 @@
 <map id="grl::device_command_tag" name="grl::device_command_tag">
-<area shape="rect" id="node2" href="$structgrl_1_1command__tag.html" title="{grl::command_tag\n||}" alt="" coords="5,5,133,79"/>
-<area shape="rect" id="node3" href="$structgrl_1_1state__tag.html" title="{grl::state_tag\n||}" alt="" coords="157,5,256,79"/>
-<area shape="rect" id="node4" href="$structgrl_1_1device__tag.html" title="{grl::device_tag\n||}" alt="" coords="279,5,387,79"/>
+<area shape="rect" id="node2" href="$structgrl_1_1command__tag.html" title="data for changing a system&#39;s physical state, such as joint angles to be sent to a robot arm..." alt="" coords="5,5,133,79"/>
+<area shape="rect" id="node3" href="$structgrl_1_1state__tag.html" title="identifies data representing the state of a sytem " alt="" coords="157,5,256,79"/>
+<area shape="rect" id="node4" href="$structgrl_1_1device__tag.html" title="identifies a type of device " alt="" coords="279,5,387,79"/>
 </map>

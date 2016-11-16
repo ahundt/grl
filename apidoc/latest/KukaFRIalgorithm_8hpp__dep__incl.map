@@ -1,8 +1,12 @@
 <map id="KukaFRIalgorithm.hpp" name="KukaFRIalgorithm.hpp">
-<area shape="rect" id="node2" href="$KukaFRIdriver_8hpp.html" title="KukaFRIdriver.hpp" alt="" coords="144,79,275,104"/>
-<area shape="rect" id="node3" href="$KukaDriver_8hpp.html" title="KukaDriver.hpp" alt="" coords="153,152,266,177"/>
-<area shape="rect" id="node4" href="$KukaLBRiiwaROSPlugin_8hpp.html" title="KukaLBRiiwaROSPlugin.hpp" alt="" coords="5,225,198,251"/>
-<area shape="rect" id="node6" href="$KukaLBRiiwaVrepPlugin_8hpp.html" title="KukaLBRiiwaVrepPlugin.hpp" alt="" coords="222,225,413,251"/>
-<area shape="rect" id="node5" href="$grl__kuka__ros__driver_8cpp.html" title="grl_kuka_ros_driver.cpp" alt="" coords="20,299,183,324"/>
-<area shape="rect" id="node7" href="$v__repExtKukaLBRiiwa_8cpp.html" title="v_repExtKukaLBRiiwa.cpp" alt="" coords="228,299,407,324"/>
+<area shape="rect" id="node2" href="$KukaFRIdriver_8hpp.html" title="KukaFRIdriver.hpp" alt="" coords="525,79,657,104"/>
+<area shape="rect" id="node3" href="$KukaDriver_8hpp.html" title="KukaDriver.hpp" alt="" coords="535,152,647,177"/>
+<area shape="rect" id="node4" href="$KukaLBRiiwaROSPlugin_8hpp.html" title="KukaLBRiiwaROSPlugin.hpp" alt="" coords="5,232,198,257"/>
+<area shape="rect" id="node6" href="$KukaLBRiiwaROSPlugin__BACKUP__26696_8hpp.html" title="KukaLBRiiwaROSPlugin\l_BACKUP_26696.hpp" alt="" coords="222,225,389,264"/>
+<area shape="rect" id="node7" href="$KukaLBRiiwaROSPlugin__BASE__26696_8hpp.html" title="KukaLBRiiwaROSPlugin\l_BASE_26696.hpp" alt="" coords="413,225,580,264"/>
+<area shape="rect" id="node8" href="$KukaLBRiiwaROSPlugin__LOCAL__26696_8hpp.html" title="KukaLBRiiwaROSPlugin\l_LOCAL_26696.hpp" alt="" coords="604,225,770,264"/>
+<area shape="rect" id="node9" href="$KukaLBRiiwaROSPlugin__REMOTE__26696_8hpp.html" title="KukaLBRiiwaROSPlugin\l_REMOTE_26696.hpp" alt="" coords="794,225,961,264"/>
+<area shape="rect" id="node10" href="$KukaLBRiiwaVrepPlugin_8hpp.html" title="KukaLBRiiwaVrepPlugin.hpp" alt="" coords="985,232,1176,257"/>
+<area shape="rect" id="node5" href="$grl__kuka__ros__driver_8cpp.html" title="grl_kuka_ros_driver.cpp" alt="" coords="20,312,183,337"/>
+<area shape="rect" id="node11" href="$v__repExtKukaLBRiiwa_8cpp.html" title="v_repExtKukaLBRiiwa.cpp" alt="" coords="991,312,1169,337"/>
 </map>

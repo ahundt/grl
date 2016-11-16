@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['desiredkinematicsname',['desiredKinematicsName',['../structgrl_1_1InverseKinematicsController.html#abaea776461e12d80b86a687a7a12f7a8aa3e921b69be5a90d9a3488bdc3c8d400',1,'grl::InverseKinematicsController']]],
-  ['desiredkinematicsobjectname',['DesiredKinematicsObjectName',['../classgrl_1_1VrepInverseKinematicsController.html#a5b7fba0f7e9bd462aab09090cff19ffba5181f0632f25da6d598944d596415108',1,'grl::VrepInverseKinematicsController']]]
+  ['constant',['constant',['../classgrl_1_1vrep_1_1InverseKinematicsVrepPlugin.html#a33edfd16360a60beebba823e89191dcda617ac08757d38a5a7ed91c224f0e90a0',1,'grl::vrep::InverseKinematicsVrepPlugin']]],
+  ['currentkinematicsname',['currentKinematicsName',['../structgrl_1_1InverseKinematicsController.html#abaea776461e12d80b86a687a7a12f7a8a5e85c106c24930aca8f80615e4f3da77',1,'grl::InverseKinematicsController']]]
 ];

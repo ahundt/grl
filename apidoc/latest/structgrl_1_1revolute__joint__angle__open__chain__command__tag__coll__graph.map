@@ -1,7 +1,7 @@
 <map id="grl::revolute_joint_angle_open_chain_command_tag" name="grl::revolute_joint_angle_open_chain_command_tag">
 <area shape="rect" id="node2" href="$structgrl_1_1revolute__joint__tag.html" title="{grl::revolute_joint_tag\n||}" alt="" coords="5,127,154,200"/>
 <area shape="rect" id="node3" href="$structgrl_1_1joint__tag.html" title="{grl::joint_tag\n||}" alt="" coords="33,5,127,79"/>
-<area shape="rect" id="node4" href="$structgrl_1_1command__tag.html" title="{grl::command_tag\n||}" alt="" coords="178,127,306,200"/>
+<area shape="rect" id="node4" href="$structgrl_1_1command__tag.html" title="data for changing a system&#39;s physical state, such as joint angles to be sent to a robot arm..." alt="" coords="178,127,306,200"/>
 <area shape="rect" id="node6" href="$structgrl_1_1open__chain__tag.html" title="{grl::open_chain_tag\n||}" alt="" coords="552,127,690,200"/>
-<area shape="rect" id="node8" href="$structgrl_1_1state__tag.html" title="{grl::state_tag\n||}" alt="" coords="655,5,753,79"/>
+<area shape="rect" id="node8" href="$structgrl_1_1state__tag.html" title="identifies data representing the state of a sytem " alt="" coords="655,5,753,79"/>
 </map>

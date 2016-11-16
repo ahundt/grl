@@ -1,7 +1,7 @@
 <map id="grl::robot::arm::KukaState" name="grl::robot::arm::KukaState">
-<area shape="rect" id="node2" href="$classgrl_1_1flatbuffer_1_1EDriveState.html" title="{grl.flatbuffer.EDriveState\n|+ ACTIVE\l+ OFF\l+ TRANSITIONING\l|+ name()\l}" alt="" coords="5,19,171,119"/>
-<area shape="rect" id="node3" href="$classgrl_1_1flatbuffer_1_1EOperationMode.html" title="{grl.flatbuffer.EOperationMode\n|+ AUTOMATIC_MODE\l+ TEST_MODE_1\l+ TEST_MODE_2\l|+ name()\l}" alt="" coords="195,19,390,119"/>
-<area shape="rect" id="node4" href="$classgrl_1_1flatbuffer_1_1ESessionState.html" title="{grl.flatbuffer.ESessionState\n|+ COMMANDING_ACTIVE\l+ COMMANDING_WAIT\l+ IDLE\l+ MONITORING_READY\l+ MONITORING_WAIT\l|+ name()\l}" alt="" coords="414,5,597,132"/>
-<area shape="rect" id="node5" href="$classgrl_1_1flatbuffer_1_1ESafetyState.html" title="{grl.flatbuffer.ESafetyState\n|+ NORMAL_OPERATION\l+ SAFETY_STOP_LEVEL_0\l+ SAFETY_STOP_LEVEL_1\l+ SAFETY_STOP_LEVEL_2\l|+ name()\l}" alt="" coords="620,12,812,125"/>
-<area shape="rect" id="node6" href="$classgrl_1_1flatbuffer_1_1EConnectionQuality.html" title="{grl.flatbuffer.EConnection\lQuality\n|+ EXCELLENT\l+ FAIR\l+ GOOD\l+ POOR\l|+ name()\l}" alt="" coords="836,5,1007,132"/>
+<area shape="rect" id="node2" href="$classgrl_1_1flatbuffer_1_1EDriveState.html" title="{grl.flatbuffer.EDriveState\n|+ ACTIVE\l+ OFF\l+ TRANSITIONING\l|+ name()\l+ name()\l}" alt="" coords="5,19,171,132"/>
+<area shape="rect" id="node3" href="$classgrl_1_1flatbuffer_1_1EOperationMode.html" title="{grl.flatbuffer.EOperationMode\n|+ AUTOMATIC_MODE\l+ TEST_MODE_1\l+ TEST_MODE_2\l|+ name()\l+ name()\l}" alt="" coords="195,19,390,132"/>
+<area shape="rect" id="node4" href="$classgrl_1_1flatbuffer_1_1ESessionState.html" title="{grl.flatbuffer.ESessionState\n|+ COMMANDING_ACTIVE\l+ COMMANDING_WAIT\l+ IDLE\l+ MONITORING_READY\l+ MONITORING_WAIT\l|+ name()\l+ name()\l}" alt="" coords="414,5,597,145"/>
+<area shape="rect" id="node5" href="$classgrl_1_1flatbuffer_1_1ESafetyState.html" title="{grl.flatbuffer.ESafetyState\n|+ NORMAL_OPERATION\l+ SAFETY_STOP_LEVEL_0\l+ SAFETY_STOP_LEVEL_1\l+ SAFETY_STOP_LEVEL_2\l|+ name()\l+ name()\l}" alt="" coords="620,12,812,139"/>
+<area shape="rect" id="node6" href="$classgrl_1_1flatbuffer_1_1EConnectionQuality.html" title="{grl.flatbuffer.EConnection\lQuality\n|+ EXCELLENT\l+ FAIR\l+ GOOD\l+ POOR\l|+ name()\l+ name()\l}" alt="" coords="836,5,1007,145"/>
 </map>

@@ -1,10 +1,15 @@
 <map id="KukaDriver.hpp" name="KukaDriver.hpp">
-<area shape="rect" id="node12" href="$Kuka_8hpp.html" title="Kuka.hpp" alt="" coords="1792,245,1870,271"/>
-<area shape="rect" id="node15" href="$KukaJAVAdriver_8hpp.html" title="grl/kuka/KukaJAVAdriver.hpp" alt="" coords="2300,79,2493,104"/>
-<area shape="rect" id="node21" href="$tags_8hpp.html" title="grl/tags.hpp" alt="" coords="312,245,403,271"/>
-<area shape="rect" id="node39" href="$KukaFRIdriver_8hpp.html" title="grl/kuka/KukaFRIdriver.hpp" alt="" coords="1155,79,1337,104"/>
-<area shape="rect" id="node26" href="$exception_8hpp.html" title="grl/exception.hpp" alt="" coords="1459,159,1582,184"/>
-<area shape="rect" id="node27" href="$AzmqFlatbuffer_8hpp.html" title="grl/AzmqFlatbuffer.hpp" alt="" coords="2611,159,2766,184"/>
-<area shape="rect" id="node43" href="$KukaFRIalgorithm_8hpp.html" title="grl/kuka/KukaFRIalgorithm.hpp" alt="" coords="540,159,744,184"/>
-<area shape="rect" id="node50" href="$KukaFRI_8hpp.html" title="KukaFRI.hpp" alt="" coords="135,159,234,184"/>
+<area shape="rect" id="node12" href="$Kuka_8hpp.html" title="Kuka.hpp" alt="" coords="2655,239,2732,264"/>
+<area shape="rect" id="node23" href="$tags_8hpp.html" title="defines tag dispatching types used throughout grl " alt="" coords="2345,319,2436,344"/>
+<area shape="rect" id="node31" href="$KukaJAVAdriver_8hpp.html" title="grl/kuka/KukaJAVAdriver.hpp" alt="" coords="1346,159,1538,184"/>
+<area shape="rect" id="node45" href="$KukaFRIdriver_8hpp.html" title="grl/kuka/KukaFRIdriver.hpp" alt="" coords="2625,79,2807,104"/>
+<area shape="rect" id="node16" href="$KUKAiiwa__generated_8h.html" title="grl/flatbuffer/KUKAiiwa\l_generated.h" alt="" coords="946,312,1100,351"/>
+<area shape="rect" id="node30" href="$exception_8hpp.html" title="grl/exception.hpp" alt="" coords="2980,319,3103,344"/>
+<area shape="rect" id="node18" href="$ArmControlState__generated_8h.html" title="ArmControlState_generated.h" alt="" coords="573,405,771,431"/>
+<area shape="rect" id="node19" href="$Geometry__generated_8h.html" title="Geometry_generated.h" alt="" coords="885,485,1043,511"/>
+<area shape="rect" id="node20" href="$JointState__generated_8h.html" title="JointState_generated.h" alt="" coords="525,485,684,511"/>
+<area shape="rect" id="node21" href="$Euler__generated_8h.html" title="Euler_generated.h" alt="" coords="796,405,927,431"/>
+<area shape="rect" id="node22" href="$LinkObject__generated_8h.html" title="LinkObject_generated.h" alt="" coords="1001,405,1164,431"/>
+<area shape="rect" id="node49" href="$KukaFRIalgorithm_8hpp.html" title="grl/kuka/KukaFRIalgorithm.hpp" alt="" coords="3118,159,3322,184"/>
+<area shape="rect" id="node50" href="$KukaFRI_8hpp.html" title="KukaFRI.hpp" alt="" coords="2944,159,3043,184"/>
 </map>

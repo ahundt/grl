@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>VREP Setup &mdash; grl</title>
+    
+    <link rel="stylesheet" href="../_static/cmake-basis.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     'v4.0 (2031c8f)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="grl" href="../index.html" />
+    <link rel="up" title="How-to Guides" href="../howto.html" />
+    <link rel="next" title="Setup with Docker" href="RunInDocker.html" />
+    <link rel="prev" title="Kuka LBR iiwa Java Setup" href="iiwaKukaRobotSetup.html" />
+   
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+  
+  
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="RunInDocker.html" title="Setup with Docker"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="iiwaKukaRobotSetup.html" title="Kuka LBR iiwa Java Setup"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../sidebar.html">grl</a> &raquo;</li>
+          <li><a href="../howto.html" accesskey="U">How-to Guides</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="vrep-setup">
+<h1>VREP Setup<a class="headerlink" href="#vrep-setup" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You will need to understand V-REP and grl thoroughly if you plan to modify this substantially. Work is also needed to generalize it to any robot and create more examples. If interested create a github issue to discuss, pull requests will be appreciated!</p>
+</div>
+<p>First install <a class="reference external" href="http://coppeliarobotics.com/">VREP</a> and grl.</p>
+<p>Find the location of the actual vrep executable, for which there are example paths below</p>
+<p>Create symlinks to the grl libraries that V-REP should load.</p>
+<p>There is a <a class="reference external" href="https://github.com/ahundt/robone/blob/master/data/SymbolicLinksRoboneSimulation.sh">SymbolicLinksRoboneSimulation.sh</a> script to assist with this, which you can open and edit for your particular system.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nv">GDIR</span><span class="o">=</span><span class="s2">&quot;/path/to/grl/&quot;</span>
+<span class="c1"># Mac example directory:   VDIR=&quot;/Applications/V-REP_PRO_EDU_V3_3_2_Mac/vrep.app/Contents/MacOS/&quot;</span>
+<span class="c1"># Linux example directory: VDIR=&quot;~/V-REP_PRO_EDU_V3_3_2_Linux/&quot;</span>
+<span class="c1">#</span>
+<span class="c1"># cd into the appropriate directory, then create the following symlinks</span>
+ln -s src/lua/grl.lua <span class="si">${</span><span class="nv">VDIR</span><span class="si">}</span>/
+ln -s build/libv_repExtKukaLBRiiwa <span class="si">${</span><span class="nv">VDIR</span><span class="si">}</span>/
+<span class="c1"># ... continue for all libraries created for grl</span>
+</pre></div>
+</div>
+<p>An example simulation can be found in the <a class="reference external" href="https://github.com/ahundt/robone/tree/master/data">Robone/data</a> project folder.</p>
+<p>Then simply open the project with V-REP and you can be on your way!</p>
+<p>Please note that this project is currently set up in a fairly specific way,
+so you will most</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <p class="logo"><a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+  </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../contents.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../howto.html">How-to Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="IPAddresses.html">Kuka IP Addresses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iiwaKukaRobotSetup.html">Kuka LBR iiwa Java Setup</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">VREP Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunInDocker.html">Setup with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MillingSimulationOfBoneShapedObject.html">Milling simulation of bone shaped object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MillingSimulationOfSimpleObject_IntegrateSimulations.html">Milling Simulation of simple object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunInDocker.html">Setup with Docker</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apidoc.html">API</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../download.html">Download</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../help.html">Getting Help</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="footer">
+    &copy; Copyright 2015-2016 Andrew Hundt et al.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.
+  </div>
+  
+  </body>
+</html>

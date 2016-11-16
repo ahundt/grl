@@ -1,4 +1,6 @@
 <map id="VrepRobotArmJacobian.hpp" name="VrepRobotArmJacobian.hpp">
-<area shape="rect" id="node2" href="$VrepVFController_8hpp.html" title="VrepVFController.hpp" alt="" coords="44,79,193,104"/>
-<area shape="rect" id="node3" href="$v__repExtGrlInverseKinematics_8cpp.html" title="v_repExtGrlInverseKinematics.cpp" alt="" coords="5,152,231,177"/>
+<area shape="rect" id="node2" href="$VrepVFController_8hpp.html" title="VrepVFController.hpp" alt="" coords="53,79,202,104"/>
+<area shape="rect" id="node4" href="$InverseKinematicsVrepPlugin_8hpp.html" title="InverseKinematicsVrepPlugin.hpp" alt="" coords="246,79,467,104"/>
+<area shape="rect" id="node3" href="$v__repExtGrlCisstInverseKinematics_2v__repExtGrlInverseKinematics_8cpp.html" title="v_repExtGrlInverseKinematics.cpp" alt="" coords="5,152,231,177"/>
+<area shape="rect" id="node5" href="$v__repExtGrlInverseKinematics_2v__repExtGrlInverseKinematics_8cpp.html" title="v_repExtGrlInverseKinematics.cpp" alt="" coords="255,152,481,177"/>
 </map>

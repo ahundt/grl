@@ -5,6 +5,5 @@ var searchData=
   ['qla',['QLA',['../namespaceaverage.html#a38b46976dc7b1a1ddc9bef8237f25cf3',1,'average']]],
   ['qlb',['QLB',['../namespaceaverage.html#a37fc496b395ee0a79a779572185fee08',1,'average']]],
   ['quat',['quat',['../structquat.html',1,'quat&lt; value_t &gt;'],['../structquat.html#a99337c3329eb378ba956ebe7203e8db9',1,'quat::quat(bool e=1)'],['../structquat.html#a3729dd34868e749905518f683af02853',1,'quat::quat(value_t w_, value_t x_, value_t y_, value_t z_)']]],
-  ['quaternion',['Quaternion',['../classgrl_1_1flatbuffer_1_1Quaternion.html',1,'grl::flatbuffer']]],
-  ['quaternion_2ejava',['Quaternion.java',['../Quaternion_8java.html',1,'']]]
+  ['quaternion',['Quaternion',['../classgrl_1_1flatbuffer_1_1Quaternion.html',1,'grl::flatbuffer']]]
 ];

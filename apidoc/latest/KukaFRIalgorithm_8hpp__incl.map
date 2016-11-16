@@ -1,5 +1,12 @@
 <map id="KukaFRIalgorithm.hpp" name="KukaFRIalgorithm.hpp">
-<area shape="rect" id="node19" href="$tags_8hpp.html" title="grl/tags.hpp" alt="" coords="1347,85,1438,111"/>
-<area shape="rect" id="node22" href="$KukaNanopb_8hpp.html" title="grl/kuka/KukaNanopb.hpp" alt="" coords="880,85,1054,111"/>
-<area shape="rect" id="node26" href="$Kuka_8hpp.html" title="grl/kuka/Kuka.hpp" alt="" coords="1822,85,1950,111"/>
+<area shape="rect" id="node19" href="$tags_8hpp.html" title="defines tag dispatching types used throughout grl " alt="" coords="1082,172,1173,197"/>
+<area shape="rect" id="node24" href="$KukaNanopb_8hpp.html" title="grl/kuka/KukaNanopb.hpp" alt="" coords="1466,85,1641,111"/>
+<area shape="rect" id="node28" href="$Kuka_8hpp.html" title="grl/kuka/Kuka.hpp" alt="" coords="1068,85,1196,111"/>
+<area shape="rect" id="node32" href="$KUKAiiwa__generated_8h.html" title="grl/flatbuffer/KUKAiiwa\l_generated.h" alt="" coords="1726,165,1880,204"/>
+<area shape="rect" id="node39" href="$exception_8hpp.html" title="grl/exception.hpp" alt="" coords="1904,172,2027,197"/>
+<area shape="rect" id="node34" href="$ArmControlState__generated_8h.html" title="ArmControlState_generated.h" alt="" coords="1689,259,1888,284"/>
+<area shape="rect" id="node35" href="$Geometry__generated_8h.html" title="Geometry_generated.h" alt="" coords="1858,339,2017,364"/>
+<area shape="rect" id="node36" href="$JointState__generated_8h.html" title="JointState_generated.h" alt="" coords="1625,339,1784,364"/>
+<area shape="rect" id="node37" href="$Euler__generated_8h.html" title="Euler_generated.h" alt="" coords="1962,259,2093,284"/>
+<area shape="rect" id="node38" href="$LinkObject__generated_8h.html" title="LinkObject_generated.h" alt="" coords="2116,259,2279,284"/>
 </map>

@@ -1,3 +1,16 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classgrl_1_1flatbuffer_1_1EClientCommandMode.html" title="grl.flatbuffer.EClientCommandMode" alt="" coords="5,5,238,31"/>
+<area shape="rect" id="node2" href="$classgrl_1_1flatbuffer_1_1ArmControlSeries.html" title="grl.flatbuffer.ArmControl\lSeries" alt="" coords="120,5,282,44"/>
+<area shape="rect" id="node3" href="$classgrl_1_1flatbuffer_1_1ArmControlState.html" title="grl.flatbuffer.ArmControl\lState" alt="" coords="120,68,282,107"/>
+<area shape="rect" id="node4" href="$classgrl_1_1flatbuffer_1_1JointImpedenceControlMode.html" title="grl.flatbuffer.JointImpedence\lControlMode" alt="" coords="107,131,295,169"/>
+<area shape="rect" id="node5" href="$classgrl_1_1flatbuffer_1_1JointState.html" title="grl.flatbuffer.JointState" alt="" coords="124,193,278,219"/>
+<area shape="rect" id="node6" href="$classgrl_1_1flatbuffer_1_1KUKAiiwaArmConfiguration.html" title="grl.flatbuffer.KUKAiiwaArm\lConfiguration" alt="" coords="112,243,290,281"/>
+<area shape="rect" id="node7" href="$classgrl_1_1flatbuffer_1_1KUKAiiwaState.html" title="grl.flatbuffer.KUKAiiwaState" alt="" coords="108,305,293,331"/>
+<area shape="rect" id="node8" href="$classgrl_1_1flatbuffer_1_1MoveArmJointServo.html" title="grl.flatbuffer.MoveArmJoint\lServo" alt="" coords="111,355,291,393"/>
+<area shape="rect" id="node9" href="$classgrl_1_1flatbuffer_1_1ProcessData.html" title="grl.flatbuffer.ProcessData" alt="" coords="115,417,286,443"/>
+<area shape="rect" id="node10" href="$classgrl_1_1flatbuffer_1_1SmartServo.html" title="grl.flatbuffer.SmartServo" alt="" coords="118,467,283,492"/>
+<area shape="rect" id="node11" href="$classgrl_1_1flatbuffer_1_1StartArm.html" title="grl.flatbuffer.StartArm" alt="" coords="127,516,274,541"/>
+<area shape="rect" id="node12" href="$classgrl_1_1flatbuffer_1_1StopArm.html" title="grl.flatbuffer.StopArm" alt="" coords="128,565,274,591"/>
+<area shape="rect" id="node13" href="$classgrl_1_1flatbuffer_1_1TeachArm.html" title="grl.flatbuffer.TeachArm" alt="" coords="124,615,278,640"/>
+<area shape="rect" id="node14" href="$classgrl_1_1flatbuffer_1_1VrepControlPoint.html" title="grl.flatbuffer.VrepControl\lPoint" alt="" coords="118,664,283,703"/>
+<area shape="rect" id="node15" href="$classgrl_1_1flatbuffer_1_1VrepPath.html" title="grl.flatbuffer.VrepPath" alt="" coords="126,727,276,752"/>
 </map>

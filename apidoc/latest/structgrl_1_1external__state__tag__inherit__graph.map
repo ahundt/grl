@@ -1,4 +1,4 @@
 <map id="grl::external_state_tag" name="grl::external_state_tag">
-<area shape="rect" id="node2" href="$structgrl_1_1cartesian__external__force__tag.html" title="external forces " alt="" coords="5,133,158,220"/>
-<area shape="rect" id="node3" href="$structgrl_1_1revolute__joint__torque__external__open__chain__state__tag.html" title="{grl::revolute_joint\l_torque_external_open\l_chain_state_tag\n||}" alt="" coords="182,127,341,227"/>
+<area shape="rect" id="node2" href="$structgrl_1_1cartesian__external__force__tag.html" title="external forces, i.e. forces applied to an arm excluding those caused by the mass of the arm itself a..." alt="" coords="5,133,158,220"/>
+<area shape="rect" id="node3" href="$structgrl_1_1revolute__joint__torque__external__open__chain__state__tag.html" title="external joint torque, i.e. torques applied to an arm excluding those caused by the mass of the arm i..." alt="" coords="182,127,341,227"/>
 </map>

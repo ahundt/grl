@@ -1,3 +1,17 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classgrl_1_1flatbuffer_1_1EControlMode.html" title="grl.flatbuffer.EControlMode" alt="" coords="5,5,185,31"/>
+<area shape="rect" id="node2" href="$classgrl_1_1flatbuffer_1_1CartesianImpedenceControlMode.html" title="grl.flatbuffer.Cartesian\lImpedenceControlMode" alt="" coords="130,5,294,44"/>
+<area shape="rect" id="node3" href="$classgrl_1_1flatbuffer_1_1Disabled.html" title="grl.flatbuffer.Disabled" alt="" coords="139,68,285,93"/>
+<area shape="rect" id="node4" href="$classgrl_1_1flatbuffer_1_1EulerPoseParams.html" title="grl.flatbuffer.EulerPose\lParams" alt="" coords="134,117,290,156"/>
+<area shape="rect" id="node5" href="$classgrl_1_1flatbuffer_1_1EulerRotationParams.html" title="grl.flatbuffer.EulerRotation\lParams" alt="" coords="124,180,299,219"/>
+<area shape="rect" id="node6" href="$classgrl_1_1flatbuffer_1_1EulerTranslationParams.html" title="grl.flatbuffer.EulerTranslation\lParams" alt="" coords="116,243,307,281"/>
+<area shape="rect" id="node7" href="$structgrl_1_1flatbuffer_1_1FLATBUFFERS__FINAL__CLASS.html" title="grl::flatbuffer::FLATBUFFERS\l_FINAL_CLASS" alt="" coords="113,305,310,344"/>
+<area shape="rect" id="node8" href="$classgrl_1_1flatbuffer_1_1FRI.html" title="grl.flatbuffer.FRI" alt="" coords="154,368,270,393"/>
+<area shape="rect" id="node9" href="$classgrl_1_1flatbuffer_1_1KUKAiiwaMonitorConfiguration.html" title="grl.flatbuffer.KUKAiiwaMonitor\lConfiguration" alt="" coords="113,417,311,456"/>
+<area shape="rect" id="node10" href="$classgrl_1_1flatbuffer_1_1KUKAiiwaMonitorState.html" title="grl.flatbuffer.KUKAiiwaMonitor\lState" alt="" coords="113,480,311,519"/>
+<area shape="rect" id="node11" href="$classgrl_1_1flatbuffer_1_1KUKAiiwaStates.html" title="grl.flatbuffer.KUKAiiwaStates" alt="" coords="116,543,307,568"/>
+<area shape="rect" id="node12" href="$classgrl_1_1flatbuffer_1_1LinkObject.html" title="grl.flatbuffer.LinkObject" alt="" coords="133,592,290,617"/>
+<area shape="rect" id="node13" href="$classgrl_1_1flatbuffer_1_1MoveArmCartesianServo.html" title="grl.flatbuffer.MoveArmCartesian\lServo" alt="" coords="107,641,316,680"/>
+<area shape="rect" id="node14" href="$classgrl_1_1flatbuffer_1_1MoveArmTrajectory.html" title="grl.flatbuffer.MoveArmTrajectory" alt="" coords="107,704,317,729"/>
+<area shape="rect" id="node15" href="$classgrl_1_1flatbuffer_1_1PauseArm.html" title="grl.flatbuffer.PauseArm" alt="" coords="133,753,290,779"/>
+<area shape="rect" id="node16" href="$classgrl_1_1flatbuffer_1_1ShutdownArm.html" title="grl.flatbuffer.ShutdownArm" alt="" coords="123,803,301,828"/>
 </map>

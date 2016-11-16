@@ -1,0 +1,4 @@
+<map id="grl::time_duration_command_tag" name="grl::time_duration_command_tag">
+<area shape="rect" id="node2" href="$structgrl_1_1time__duration__tag.html" title="used for periodic events " alt="" coords="5,140,156,213"/>
+<area shape="rect" id="node4" href="$structgrl_1_1command__tag.html" title="data for changing a system&#39;s physical state, such as joint angles to be sent to a robot arm..." alt="" coords="179,140,307,213"/>
+</map>

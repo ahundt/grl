@@ -2,5 +2,5 @@
 <area shape="rect" id="node2" href="$structgrl_1_1revolute__joint__tag.html" title="{grl::revolute_joint_tag\n||}" alt="" coords="5,133,154,207"/>
 <area shape="rect" id="node3" href="$structgrl_1_1joint__tag.html" title="{grl::joint_tag\n||}" alt="" coords="33,5,127,79"/>
 <area shape="rect" id="node5" href="$structgrl_1_1open__chain__tag.html" title="{grl::open_chain_tag\n||}" alt="" coords="368,133,506,207"/>
-<area shape="rect" id="node7" href="$structgrl_1_1state__tag.html" title="{grl::state_tag\n||}" alt="" coords="471,5,569,79"/>
+<area shape="rect" id="node7" href="$structgrl_1_1state__tag.html" title="identifies data representing the state of a sytem " alt="" coords="471,5,569,79"/>
 </map>

@@ -1,6 +1,6 @@
 <map id="grl::revolute_joint_torque_open_chain_state_tag" name="grl::revolute_joint_torque_open_chain_state_tag">
 <area shape="rect" id="node2" href="$structgrl_1_1revolute__joint__tag.html" title="{grl::revolute_joint_tag\n||}" alt="" coords="5,127,154,200"/>
-<area shape="rect" id="node3" href="$structgrl_1_1joint__tag.html" title="{grl::joint_tag\n||}" alt="" coords="31,5,125,79"/>
-<area shape="rect" id="node4" href="$structgrl_1_1state__tag.html" title="{grl::state_tag\n||}" alt="" coords="149,5,248,79"/>
-<area shape="rect" id="node6" href="$structgrl_1_1open__chain__tag.html" title="{grl::open_chain_tag\n||}" alt="" coords="233,127,372,200"/>
+<area shape="rect" id="node3" href="$structgrl_1_1joint__tag.html" title="{grl::joint_tag\n||}" alt="" coords="33,5,127,79"/>
+<area shape="rect" id="node5" href="$structgrl_1_1open__chain__tag.html" title="{grl::open_chain_tag\n||}" alt="" coords="331,127,469,200"/>
+<area shape="rect" id="node7" href="$structgrl_1_1state__tag.html" title="identifies data representing the state of a sytem " alt="" coords="437,5,536,79"/>
 </map>

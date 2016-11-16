@@ -1,9 +1,12 @@
 <map id="Eigen.hpp" name="Eigen.hpp">
 <area shape="rect" id="node2" href="$VrepVFController_8hpp.html" title="VrepVFController.hpp" alt="" coords="44,152,193,177"/>
-<area shape="rect" id="node4" href="$HandEyeCalibrationVrepPlugin_8hpp.html" title="HandEyeCalibrationVrepPlugin.hpp" alt="" coords="303,79,534,104"/>
-<area shape="rect" id="node6" href="$PivotCalibrationVrepPlugin_8hpp.html" title="PivotCalibrationVrepPlugin.hpp" alt="" coords="558,79,764,104"/>
-<area shape="rect" id="node8" href="$VrepRobotArmJacobian_8hpp.html" title="VrepRobotArmJacobian.hpp" alt="" coords="91,79,279,104"/>
-<area shape="rect" id="node3" href="$v__repExtGrlInverseKinematics_8cpp.html" title="v_repExtGrlInverseKinematics.cpp" alt="" coords="5,225,231,251"/>
-<area shape="rect" id="node5" href="$v__repExtHandEyeCalibration_8cpp.html" title="v_repExtHandEyeCalibration.cpp" alt="" coords="309,152,527,177"/>
-<area shape="rect" id="node7" href="$v__repExtPivotCalibration_8cpp.html" title="v_repExtPivotCalibration.cpp" alt="" coords="565,152,757,177"/>
+<area shape="rect" id="node4" href="$HandEyeCalibrationVrepPlugin_8hpp.html" title="HandEyeCalibrationVrepPlugin.hpp" alt="" coords="562,79,792,104"/>
+<area shape="rect" id="node6" href="$InverseKinematicsVrepPlugin_8hpp.html" title="InverseKinematicsVrepPlugin.hpp" alt="" coords="264,152,485,177"/>
+<area shape="rect" id="node8" href="$PivotCalibrationVrepPlugin_8hpp.html" title="PivotCalibrationVrepPlugin.hpp" alt="" coords="817,79,1022,104"/>
+<area shape="rect" id="node10" href="$SpaceVecAlg_8hpp.html" title="SpaceVecAlg.hpp" alt="" coords="411,79,538,104"/>
+<area shape="rect" id="node11" href="$VrepRobotArmJacobian_8hpp.html" title="VrepRobotArmJacobian.hpp" alt="" coords="148,79,336,104"/>
+<area shape="rect" id="node3" href="$v__repExtGrlCisstInverseKinematics_2v__repExtGrlInverseKinematics_8cpp.html" title="v_repExtGrlInverseKinematics.cpp" alt="" coords="5,225,231,251"/>
+<area shape="rect" id="node5" href="$v__repExtHandEyeCalibration_8cpp.html" title="v_repExtHandEyeCalibration.cpp" alt="" coords="568,152,786,177"/>
+<area shape="rect" id="node7" href="$v__repExtGrlInverseKinematics_2v__repExtGrlInverseKinematics_8cpp.html" title="v_repExtGrlInverseKinematics.cpp" alt="" coords="261,225,487,251"/>
+<area shape="rect" id="node9" href="$v__repExtPivotCalibration_8cpp.html" title="v_repExtPivotCalibration.cpp" alt="" coords="823,152,1016,177"/>
 </map>

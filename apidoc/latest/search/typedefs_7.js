@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['vrephandleparams',['VrepHandleParams',['../classgrl_1_1vrep_1_1VrepRobotArmDriver.html#a0b9484f5774d549f029cfde970d6e1f4',1,'grl::vrep::VrepRobotArmDriver']]]
+  ['knn_5frtree_5ftype',['knn_rtree_type',['../namespaceplan.html#a0eb4a4509a8183857abf2fb6c87c53d3',1,'plan']]]
 ];

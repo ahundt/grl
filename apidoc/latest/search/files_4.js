@@ -1,21 +1,6 @@
 var searchData=
 [
-  ['eclientcommandmode_2ejava',['EClientCommandMode.java',['../EClientCommandMode_8java.html',1,'']]],
-  ['econnectionquality_2ejava',['EConnectionQuality.java',['../EConnectionQuality_8java.html',1,'']]],
-  ['econtrolmode_2ejava',['EControlMode.java',['../EControlMode_8java.html',1,'']]],
-  ['edrivestate_2ejava',['EDriveState.java',['../EDriveState_8java.html',1,'']]],
   ['eigen_2ehpp',['Eigen.hpp',['../Eigen_8hpp.html',1,'']]],
-  ['eoperationmode_2ejava',['EOperationMode.java',['../EOperationMode_8java.html',1,'']]],
-  ['eoverlaytype_2ejava',['EOverlayType.java',['../EOverlayType_8java.html',1,'']]],
-  ['esafetystate_2ejava',['ESafetyState.java',['../ESafetyState_8java.html',1,'']]],
-  ['esessionstate_2ejava',['ESessionState.java',['../ESessionState_8java.html',1,'']]],
-  ['eulerorder_2ejava',['EulerOrder.java',['../EulerOrder_8java.html',1,'']]],
-  ['eulerpose_2ejava',['EulerPose.java',['../EulerPose_8java.html',1,'']]],
-  ['eulerposeparams_2ejava',['EulerPoseParams.java',['../EulerPoseParams_8java.html',1,'']]],
-  ['eulerrotation_2ejava',['EulerRotation.java',['../EulerRotation_8java.html',1,'']]],
-  ['eulerrotationparams_2ejava',['EulerRotationParams.java',['../EulerRotationParams_8java.html',1,'']]],
-  ['eulertranslationparams_2ejava',['EulerTranslationParams.java',['../EulerTranslationParams_8java.html',1,'']]],
-  ['eulerxyzd_2ejava',['EulerXYZd.java',['../EulerXYZd_8java.html',1,'']]],
-  ['exception_2ehpp',['exception.hpp',['../exception_8hpp.html',1,'']]],
-  ['extapicustomconst_2eh',['extApiCustomConst.h',['../extApiCustomConst_8h.html',1,'']]]
+  ['euler_5fgenerated_2eh',['Euler_generated.h',['../Euler__generated_8h.html',1,'']]],
+  ['exception_2ehpp',['exception.hpp',['../exception_8hpp.html',1,'']]]
 ];
