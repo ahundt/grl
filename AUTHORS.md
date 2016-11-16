@@ -22,3 +22,6 @@ Contributors
 ============
 
 Listed below are the names of the ones who contributed notably to this software.
+
+- Chris Paxton
+- Ashkhan Kazar
