@@ -32,7 +32,7 @@
 
 #TODO: HACK: find_backage(Boost) shouldn't be necessary, boost.log isn't found properly... remove when possible
 find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log chrono)
-message(STATUS <<<<<<<<<<<<<IK<<<<<<<<<<<<<<SpaceVecAlg_FOUND:${SpaceVecAlg_FOUND}<<<sch-core_FOUND:${sch-core_FOUND}<<<<RBDyn_FOUND:${RBDyn_FOUND}<<<<Tasks_FOUND:${Tasks_FOUND})
+
     # SpaceVecAlg        # Implementation of Roy Featherstone's Spatial Vector Algebra https://github.com/jrl-umi3218/SpaceVecAlg
     # sch-core           # Algorithms for convex hulls https://github.com/jrl-umi3218/sch-core used for inverse kinematics
     # RBDyn              # Models the dynamics of rigid body system https://github.com/jrl-umi3218/RBDyn used for inverse kinematics
