@@ -16,7 +16,7 @@ set(FRI_Client_SDK_Cpp_zip_PATH "${CMAKE_SOURCE_DIR}/data/" CACHE FILEPATH "File
 
 find_path(FRI_Client_SDK_Cpp_zip_FILEPATH FRI-Client-SDK_Cpp.zip HINTS ${FRI_Client_SDK_Cpp_zip_PATH} ${CMAKE_PROJECT_DIR}/data/ ${CMAKE_CURRENT_PROJECT_DIR}/data/ )
 
-if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}")
+if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip")
     message(STATUS "Found FRI-Client-SDK_Cpp.zip in ${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip")
     # directory where fri code will be extracted
     set(FRI_DIR ${CMAKE_BINARY_DIR}/FRI_Client_SDK_Cpp)
