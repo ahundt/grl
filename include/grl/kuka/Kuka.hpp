@@ -1,14 +1,17 @@
 #ifndef GRL_KUKA_HPP
 #define GRL_KUKA_HPP
 
+#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/container/static_vector.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
+#include <boost/exception/all.hpp>
 
 
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 #include "grl/tags.hpp"
+#include "grl/exception.hpp"
 
 namespace KUKA {
 namespace LBRState {
@@ -177,6 +180,78 @@ copy(std::string model, OutputIterator it,
   else
     return it;
 }
+
+
+/// @brief Internal class, defines some default status variables
+///
+/// This class defines some connection functions and parameter definitions
+/// that are shared amongst many of the KUKA API components
+class KukaUDP {
+
+public:
+  enum ParamIndex {
+    RobotModel,              // RobotModel (options are KUKA_LBR_IIWA_14_R820,
+                             // KUKA_LBR_IIWA_7_R800)
+    localhost,               // 192.170.10.100
+    localport,               // 30200
+    remotehost,              // 192.170.10.2
+    remoteport,              // 30200
+    is_running_automatically // true by default, this means that an internal
+                             // thread will be created to run the driver.
+  };
+
+  enum ThreadingRunMode { run_manually = 0, run_automatically = 1 };
+
+  typedef std::tuple<std::string, std::string, std::string, std::string,
+                     std::string, ThreadingRunMode>
+      Params;
+
+  static const Params defaultParams() {
+    return std::make_tuple(KUKA_LBR_IIWA_14_R820, std::string("192.170.10.100"),
+                           std::string("30200"), std::string("192.170.10.2"),
+                           std::string("30200"), run_automatically);
+  }
+
+  /// Advanced functionality, do not use without a great reason
+  template <typename T>
+  static boost::asio::ip::udp::socket
+  connect(T &params, boost::asio::io_service &io_service_,
+          boost::asio::ip::udp::endpoint &sender_endpoint) {
+    std::string localhost(std::get<localhost>(params));
+    std::string lp(std::get<localport>(params));
+    short localport = boost::lexical_cast<short>(lp);
+    std::string remotehost(std::get<remotehost>(params));
+    std::string rp(std::get<remoteport>(params));
+    short remoteport = boost::lexical_cast<short>(rp);
+    std::cout << "using: "
+              << " " << localhost << " " << localport << " " << remotehost
+              << " " << remoteport << "\n";
+
+    boost::asio::ip::udp::socket s(
+        io_service_,
+        boost::asio::ip::udp::endpoint(
+            boost::asio::ip::address::from_string(localhost), localport));
+
+    boost::asio::ip::udp::resolver resolver(io_service_);
+    sender_endpoint =
+        *resolver.resolve({boost::asio::ip::udp::v4(), remotehost, rp});
+    s.connect(sender_endpoint);
+
+    return std::move(s);
+  }
+
+  static void add_details_to_connection_error(boost::exception &e,
+                                              Params &params) {
+    e << errmsg_info(
+        "KukaUDP: Unable to connect to Kuka FRI Koni UDP device "
+        "using boost::asio::udp::socket configured with localhost:localport "
+        "@ " +
+        std::get<localhost>(params) + ":" + std::get<localport>(params) +
+        " and remotehost:remoteport @ " + std::get<remotehost>(params) + ":" +
+        std::get<remoteport>(params) + "\n");
+  }
+};
+
 }
 }
 } // namespace grl::robot::arm

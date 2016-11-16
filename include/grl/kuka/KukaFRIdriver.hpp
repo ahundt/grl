@@ -367,75 +367,6 @@ void update_state(boost::asio::ip::udp::socket &socket,
   }
 }
 
-/// @brief Internal class, defines some default status variables
-///
-/// This class defines some connection functions and parameter definitions
-/// that are shared amongst many of the KUKA API components
-class KukaFRI {
-
-public:
-  enum ParamIndex {
-    RobotModel,              // RobotModel (options are KUKA_LBR_IIWA_14_R820,
-                             // KUKA_LBR_IIWA_7_R800)
-    localhost,               // 192.170.10.100
-    localport,               // 30200
-    remotehost,              // 192.170.10.2
-    remoteport,              // 30200
-    is_running_automatically // true by default, this means that an internal
-                             // thread will be created to run the driver.
-  };
-
-  enum ThreadingRunMode { run_manually = 0, run_automatically = 1 };
-
-  typedef std::tuple<std::string, std::string, std::string, std::string,
-                     std::string, ThreadingRunMode>
-      Params;
-
-  static const Params defaultParams() {
-    return std::make_tuple(KUKA_LBR_IIWA_14_R820, std::string("192.170.10.100"),
-                           std::string("30200"), std::string("192.170.10.2"),
-                           std::string("30200"), run_automatically);
-  }
-
-  /// Advanced functionality, do not use without a great reason
-  template <typename T>
-  static boost::asio::ip::udp::socket
-  connect(T &params, boost::asio::io_service &io_service_,
-          boost::asio::ip::udp::endpoint &sender_endpoint) {
-    std::string localhost(std::get<localhost>(params));
-    std::string lp(std::get<localport>(params));
-    short localport = boost::lexical_cast<short>(lp);
-    std::string remotehost(std::get<remotehost>(params));
-    std::string rp(std::get<remoteport>(params));
-    short remoteport = boost::lexical_cast<short>(rp);
-    std::cout << "using: "
-              << " " << localhost << " " << localport << " " << remotehost
-              << " " << remoteport << "\n";
-
-    boost::asio::ip::udp::socket s(
-        io_service_,
-        boost::asio::ip::udp::endpoint(
-            boost::asio::ip::address::from_string(localhost), localport));
-
-    boost::asio::ip::udp::resolver resolver(io_service_);
-    sender_endpoint =
-        *resolver.resolve({boost::asio::ip::udp::v4(), remotehost, rp});
-    s.connect(sender_endpoint);
-
-    return std::move(s);
-  }
-
-  static void add_details_to_connection_error(boost::exception &e,
-                                              Params &params) {
-    e << errmsg_info(
-        "KukaFRIThreadSeparator: Unable to connect to Kuka FRI Koni UDP device "
-        "using boost::asio::udp::socket configured with localhost:localport "
-        "@ " +
-        std::get<localhost>(params) + ":" + std::get<localport>(params) +
-        " and remotehost:remoteport @ " + std::get<remotehost>(params) + ":" +
-        std::get<remoteport>(params) + "\n");
-  }
-};
 
 /// @brief don't use this
 /// @deprecated this is an old implemenation that will be removed in the future
@@ -490,13 +421,13 @@ template <typename LowLevelStepAlgorithmType = LinearInterpolation>
 class KukaFRIClientDataDriver
     : public std::enable_shared_from_this<
           KukaFRIClientDataDriver<LowLevelStepAlgorithmType>>,
-      public KukaFRI {
+      public KukaUDP {
 
 public:
-  using KukaFRI::ParamIndex;
-  using KukaFRI::ThreadingRunMode;
-  using KukaFRI::Params;
-  using KukaFRI::defaultParams;
+  using KukaUDP::ParamIndex;
+  using KukaUDP::ThreadingRunMode;
+  using KukaUDP::Params;
+  using KukaUDP::defaultParams;
 
   KukaFRIClientDataDriver(boost::asio::io_service &ios,
                           Params params = defaultParams())
@@ -938,13 +869,13 @@ private:
 template <typename LowLevelStepAlgorithmType = LinearInterpolation>
 class KukaFRIdriver : public std::enable_shared_from_this<
                           KukaFRIdriver<LowLevelStepAlgorithmType>>,
-                      public KukaFRI {
+                      public KukaUDP {
 
 public:
-  using KukaFRI::ParamIndex;
-  using KukaFRI::ThreadingRunMode;
-  using KukaFRI::Params;
-  using KukaFRI::defaultParams;
+  using KukaUDP::ParamIndex;
+  using KukaUDP::ThreadingRunMode;
+  using KukaUDP::Params;
+  using KukaUDP::defaultParams;
 
   KukaFRIdriver(Params params = defaultParams()) : params_(params) {}
 

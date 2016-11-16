@@ -187,10 +187,10 @@ namespace grl { namespace robot { namespace arm {
             std::get<LocalUDPAddress>             (params_) << ":" << std::get<LocalUDPPort>             (params_) << " to " <<
             std::get<RemoteUDPAddress>            (params_);
 
+            /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
             socket_local = socket(AF_INET, SOCK_DGRAM, 0);
             if (socket_local < 0) {
-                printf("Error opening socket!\n");
-                exit(1);
+                 BOOST_THROW_EXCEPTION(std::runtime_error("KukaJAVAdriver Error opening socket. Check that the port is available, and that all the cables are connected tightly. If you have no other options try restarting your computer."));
             }
 
             port = boost::lexical_cast<int>( std::get<LocalUDPPort>             (params_));
@@ -202,9 +202,10 @@ namespace grl { namespace robot { namespace arm {
 
             /// @todo TODO(ahundt) Consider switching to boost::asio synchronous calls (async has high latency)!
             /// @todo TODO(ahundt) Need to switch back to an appropriate exception rather than exiting so VREP isn't taken down.
+            /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
             if (bind(socket_local, (struct sockaddr *)&local_sockaddr, sizeof(local_sockaddr)) < 0) {
                 printf("Error binding sr_joint!\n");
-                exit(1);
+                BOOST_THROW_EXCEPTION(std::runtime_error("KukaJAVAdriver Error opening socket. Check that the port is available, and that all the cables are connected tightly. If you have no other options try restarting your computer."));
             }
 
             FD_ZERO(&mask);
@@ -229,11 +230,13 @@ namespace grl { namespace robot { namespace arm {
 
       /// shuts down the arm
       bool destruct(){
+          close(socket_local);
           return true;
       }
 
       ~KukaJAVAdriver(){
-
+         /// @todo TODO(ahundt) switch to asio, remove destruct call from destructor
+         destruct();
       }
 
 
@@ -361,56 +364,55 @@ namespace grl { namespace robot { namespace arm {
               /// @todo TODO(ahundt) eventually run this in a separate thread so we can receive packets asap and minimize dropping
               num = select(FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, &tv);
 
-                    if (num > 0)
-                    {
-                    // packets are available, process them
-                              if (FD_ISSET(socket_local, &temp_mask))
-                              {
-                                   static const std::size_t udp_size = 1400;
-                                   unsigned char recbuf[udp_size];
-                                   static const int flags = 0;
-                              
-                                   ret = recvfrom(socket_local, recbuf, sizeof(recbuf), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
-                                   if (ret <= 0)
-                                   printf("Receive Error: ret = %d\n", ret);
+                if (num > 0)
+                {
+                      // packets are available, process them
+                      if (FD_ISSET(socket_local, &temp_mask))
+                      {
+                           static const std::size_t udp_size = 1400;
+                           unsigned char recbuf[udp_size];
+                           static const int flags = 0;
+                      
+                           ret = recvfrom(socket_local, recbuf, sizeof(recbuf), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
+                           if (ret <= 0) printf("Receive Error: ret = %d\n", ret);
 
-                                   if (ret > 0){
+                           if (ret > 0){
 
-                                   if(debug_) std::cout << "received message size: " << ret << "\n";
-
-
-                                   auto rbPstart = static_cast<const uint8_t *>(recbuf);
-
-                                   auto verifier = flatbuffers::Verifier(rbPstart, ret);
-                                   auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
-                                    
-                                   // Flatbuffer has been verified as valid
-                                   if (bufOK) {
-                                       // only reading the wrench data currently
-                                       auto bufff = static_cast<const void *>(rbPstart);
-                                       std::cout << "Succeeded in verification.  " << "\n";
-
-                                       auto fbKUKAiiwaStates = grl::flatbuffer::GetKUKAiiwaStates(bufff);
-                                       auto wrench = fbKUKAiiwaStates->states()->Get(0)->monitorState()->CartesianWrench();
-
-                                       armState_.wrenchJava.clear();
-                                       armState_.wrenchJava.push_back(wrench->force().x());
-                                       armState_.wrenchJava.push_back(wrench->force().y());
-                                       armState_.wrenchJava.push_back(wrench->force().z());
-                                       armState_.wrenchJava.push_back(wrench->torque().x());
-                                       armState_.wrenchJava.push_back(wrench->torque().y());
-                                       armState_.wrenchJava.push_back(wrench->torque().z());
+                               if(debug_) std::cout << "received message size: " << ret << "\n";
 
 
-                                   } else {
-                                       std::cout << "Failed verification. bufOk: " << bufOK << "\n";
-                                   }
+                               auto rbPstart = static_cast<const uint8_t *>(recbuf);
+
+                               auto verifier = flatbuffers::Verifier(rbPstart, ret);
+                               auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
+                                
+                               // Flatbuffer has been verified as valid
+                               if (bufOK) {
+                                   // only reading the wrench data currently
+                                   auto bufff = static_cast<const void *>(rbPstart);
+                                   if(debug_) std::cout << "Succeeded in verification.  " << "\n";
+
+                                   auto fbKUKAiiwaStates = grl::flatbuffer::GetKUKAiiwaStates(bufff);
+                                   auto wrench = fbKUKAiiwaStates->states()->Get(0)->monitorState()->CartesianWrench();
+
+                                   armState_.wrenchJava.clear();
+                                   armState_.wrenchJava.push_back(wrench->force().x());
+                                   armState_.wrenchJava.push_back(wrench->force().y());
+                                   armState_.wrenchJava.push_back(wrench->force().z());
+                                   armState_.wrenchJava.push_back(wrench->torque().x());
+                                   armState_.wrenchJava.push_back(wrench->torque().y());
+                                   armState_.wrenchJava.push_back(wrench->torque().z());
 
 
-                                   }
+                               } else {
+                                   std::cout << "Failed verification. bufOk: " << bufOK << "\n";
+                               }
 
-                              }
-                    }
+
+                           }
+
+                      }
+                }
 
 
          return haveNewData;

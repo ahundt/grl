@@ -33,6 +33,9 @@ namespace grl { namespace robot { namespace arm {
     ///
     /// @brief Kuka LBR iiwa Primary Multi Mode Driver, supports communication over FRI and JAVA interfaces
     ///
+    /// The most effective configuration of this driver is to command the KUKA in JAVA mode
+    /// and receive robot status updates via FRI mode.
+    ///
     /// @todo enable commanding and monitoring to be independently configured for both FRI and JAVA interface.
     ///
     class KukaDriver : public std::enable_shared_from_this<KukaDriver> {
