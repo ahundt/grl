@@ -83,7 +83,7 @@ basis_project (
   # --------------------------------------------------------------------------
   # meta-data
   NAME             "grl"
-  VERSION          "3.0.0"
+  VERSION          "4.0.0"
   AUTHORS          "Andrew Hundt"
                    #<author>
   DESCRIPTION      "Generic Robotics Library - Robotics software and drivers aiming to be implemented using generic programming"
@@ -105,13 +105,13 @@ basis_project (
   DEPENDS
     # libsodium https://github.com/jedisct1/libsodium # todo: test this dependency
     ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq 
-	  FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
-	  Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log,chrono}
+    FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
+    Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log,chrono}
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
     Threads            # pthreads, see CMake documentation
-	  Eigen3             # Linear Algebra eigen.tuxfamily.com
+    Eigen3             # Linear Algebra eigen.tuxfamily.com
     Nanopb             # Used in Kuka Fast Robot Interface
     FRI_Client_SDK_Cpp # Kuka Fast Robot Interface (FRI) Client SDK
     ur_modern_driver   # Universal Robots Arm Device Driver https://github.com/ThomasTimm/ur_modern_driver/
@@ -128,7 +128,7 @@ basis_project (
     sch-core           # Algorithms for convex hulls https://github.com/jrl-umi3218/sch-core used for inverse kinematics
     RBDyn              # Models the dynamics of rigid body system https://github.com/jrl-umi3218/RBDyn used for inverse kinematics
     Tasks              # Real time control of Kinematic Trees https://github.com/jrl-umi3218/Tasks used for inverse kinematics
-	  AZMQ               # (Deprecated) Boost Asio implementation of ZeroMQ https://github.com/zeromq/azmq
+    AZMQ               # (Deprecated) Boost Asio implementation of ZeroMQ https://github.com/zeromq/azmq
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
