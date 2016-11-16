@@ -22,3 +22,5 @@ Features
 - Hardware integration with `V-REP <http://http://www.coppeliarobotics.com/index.html>`_ robotics simulation software.
 
 
+.. image:: https://zenodo.org/badge/33050653.svg
+   :target: https://zenodo.org/badge/latestdoi/33050653

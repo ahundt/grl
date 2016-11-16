@@ -3,15 +3,18 @@ Introduction
 
 The Generic Robotics Library (GRL) has a long term goal of implementing robotics algorithms using generic programming in C++11.
 
-Currently GRL implements C++11 drivers for the new Kuka LBR iiwa arm and hardware integration with the [V-REP](http://http://www.coppeliarobotics.com/index.html) robotics simulation software.
+Currently GRL implements C++11 drivers for the new Kuka LBR iiwa arm and hardware integration with [ROS](ros.org) and the [V-REP](http://http://www.coppeliarobotics.com/index.html) robotics simulation software.
 
+
+If you use GRL in research please consider providing a citation:
+[![DOI](https://zenodo.org/badge/33050653.svg)](https://zenodo.org/badge/latestdoi/33050653)
 
 
 
 License
 =======
 
-Copyright (c) 2015 Andrew Hundt
+Copyright (c) 2015-2016 Andrew Hundt
 
 See COPYING file for license information.
 
