@@ -23,7 +23,8 @@ public class UDPManager {
 	private grl.flatbuffer.KUKAiiwaStates _currentKUKAiiwaStates = null;
 	private grl.flatbuffer.KUKAiiwaState _currentKUKAiiwaState = null;
 	private grl.flatbuffer.KUKAiiwaState _previousKUKAiiwaState = null;
-	
+
+	byte[] recBuf = new byte[1400];
 	ByteBuffer bb = null;
 	boolean stop;
 
@@ -66,16 +67,12 @@ public class UDPManager {
 			logger.info("failed to create socket.");
 		}
 		
-		// Dummy message to send to Remote pc (server), in order for the server to know the address of the client (this machine)
-		String dummyMessage = "Hi";
-		
-		DatagramPacket packetSend= new DatagramPacket(dummyMessage.getBytes(), dummyMessage.getBytes().length, _address_send, _Remote_Port);
 
 		    
 		try {
 			socket.setSoTimeout(100);
 		} catch (SocketException e1) {
-			logger.error("failed to set socket timeout");
+			logger.error("UDPManager failed to set socket timeout");
 		}
 		
 		startTime = System.currentTimeMillis();
@@ -83,27 +80,18 @@ public class UDPManager {
 		grl.flatbuffer.KUKAiiwaStates newKUKAiiwaStates = null;
 		int newStatesLength = 0; 
 		
-		boolean continueSending = true;
+		boolean connectionEstablished = false;
 		
 		while(newStatesLength<1 && newKUKAiiwaStates == null){
 			
-			byte[] recBuf = new byte[1024];
 			DatagramPacket packet = new DatagramPacket(recBuf, recBuf.length);
 			
-			// continues sending dummy messages untill the server receives the address of this machine and sends a message back
-			while (continueSending){
-				try {
-					socket.send(packetSend);
-				} catch (IOException e1) {
-					// Could not send
-				}
-				try {
-					socket.receive(packet);
-					continueSending = false;
-				} catch (SocketTimeoutException e) {
-					// TimeOut reached, continue sending until we receive something	
-				} catch (IOException e) {
-					// Could not receive packet
+			// continues sending dummy messages until the server receives the address of this machine and sends a message back
+			while (!connectionEstablished){
+				connectionEstablished = preConnect();
+				if (stop) {
+					logger.info("Stopping program.");
+					return true; // asked to exit
 				}
 			}
 			
@@ -134,6 +122,33 @@ public class UDPManager {
 
 		return false; // no error
 	}
+	
+	/// @return true successfully sent and received a message, false otherwise
+    private boolean preConnect()
+    {
+		// Dummy message to send to Remote pc (server), in order for the server to know the address of the client (this machine)
+    	/// @todo Should probably just make this a real flatbuffers init message too
+		String dummyMessage = "Hi";
+		
+		DatagramPacket packetSend= new DatagramPacket(dummyMessage.getBytes(), dummyMessage.getBytes().length, _address_send, _Remote_Port);
+
+		try {
+			socket.send(packetSend);
+		} catch (IOException e1) {
+			// Could not send
+		}
+		try {
+			DatagramPacket packet = new DatagramPacket(recBuf, recBuf.length);
+			socket.receive(packet);
+			return true;
+		} catch (SocketTimeoutException e) {
+			// TimeOut reached, continue sending until we receive something	
+			return false;
+		} catch (IOException e) {
+			// Could not receive packet
+			return false;
+		}
+    }
 
 	/**
 	 * Blocks until a connection is re-established or stop() is called.
@@ -155,49 +170,53 @@ public class UDPManager {
 		boolean haveNextMessage = false;
 		while(!stop && !haveNextMessage) {
 			
-			byte[] recBuf = new byte[1024];
 			DatagramPacket packet = new DatagramPacket(recBuf, recBuf.length);
 			try {
 				socket.receive(packet);
+
+				if(packet.getLength() > 0){
+
+					message_counter+=1;
+					bb = ByteBuffer.wrap(recBuf);
+		
+					_currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, _currentKUKAiiwaStates);
+		
+					if(_currentKUKAiiwaStates.statesLength()>0) {
+						// initialize the fist state
+						grl.flatbuffer.KUKAiiwaState tmp = _currentKUKAiiwaStates.states(0);
+						if (tmp == null || tmp.armControlState() == null) {
+							noMessageCounter +=1;
+							if (message_counter % 100 == 0) {
+								logger.warn("NULL ArmControlState message, main UDP FlatBuffer message is arriving but doesn't contain any data/commands!");
+							}
+							continue;
+						} else {
+							_previousKUKAiiwaState = _currentKUKAiiwaState;
+							_currentKUKAiiwaState = tmp;
+						}
+							
+						if (_currentKUKAiiwaState == null) {
+							noMessageCounter+=1;
+							logger.error("Missing current state message!");
+							continue;
+						}
+						
+						haveNextMessage=true;
+						noMessageCounter = 0;
+						lastMessageStartTime = System.currentTimeMillis();
+					} else {
+						logger.error("got a UDP packet but it isn't a valid FlatBuffer message, this is an unexpected state that shouldn't occur. please debug me.");
+					}
+			//	}
+				}
 			} catch (IOException e) {
-				logger.info("Failed to receive packet");
+				noMessageCounter +=1;
+				if (message_counter % 100 == 0) {
+					logger.warn("Failed to receive UDP packet from control computer... Trying to re-establish connection");
+					preConnect();
+				}
 			}
 			
-			if(packet.getLength() > 0){
-
-				message_counter+=1;
-				bb = ByteBuffer.wrap(recBuf);
-	
-				_currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, _currentKUKAiiwaStates);
-	
-				if(_currentKUKAiiwaStates.statesLength()>0) {
-					// initialize the fist state
-					grl.flatbuffer.KUKAiiwaState tmp = _currentKUKAiiwaStates.states(0);
-					if (tmp == null || tmp.armControlState() == null) {
-						noMessageCounter +=1;
-						if (message_counter % 100 == 0) {
-							logger.warn("NULL ArmControlState message, main ZMQ message is arriving but doesn't contain any data/commands!");
-						}
-						continue;
-					} else {
-						_previousKUKAiiwaState = _currentKUKAiiwaState;
-						_currentKUKAiiwaState = tmp;
-					}
-						
-					if (_currentKUKAiiwaState == null) {
-						noMessageCounter+=1;
-						logger.error("Missing current state message!");
-						continue;
-					}
-					
-					haveNextMessage=true;
-					noMessageCounter = 0;
-					lastMessageStartTime = System.currentTimeMillis();
-				} else {
-					logger.error("got a ZMQ message but it isn't a valid message, this is an unexpected state that shouldn't occur. please debug me.");
-				}
-		//	}
-			}
 		}
 		
 		return _currentKUKAiiwaState;			
