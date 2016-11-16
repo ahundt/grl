@@ -11,6 +11,7 @@ The how to guides below introduce various tasks you may want to do with the libr
 
     howto/IPAddresses
     howto/iiwaKukaRobotSetup
+	howto/vrep
     howto/RunInDocker
     howto/MillingSimulationOfBoneShapedObject
     howto/MillingSimulationOfSimpleObject_IntegrateSimulations
