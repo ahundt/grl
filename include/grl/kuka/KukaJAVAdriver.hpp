@@ -13,6 +13,7 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/config.hpp>
+#include <boost/config/stdlib/libcpp.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <boost/range/algorithm/copy.hpp>
@@ -29,9 +30,10 @@
 #include <netdb.h>
 #include <errno.h>
 
-#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+//#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #include <boost/thread.hpp>
-#endif
+#include <boost/thread/mutex.hpp>
+//#endif
 
 #include "grl/tags.hpp"
 #include "grl/exception.hpp"

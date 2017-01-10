@@ -5,10 +5,7 @@
     </world>
     <objectTemplates>
         <toolTemplate class="" name="FlangeAttachment">
-            <loadData cogA="0.0" cogB="0.0" cogC="0.0" cogX="4.127863104112745" cogY="-9.993113705576018" cogZ="94.61357480681313" inertiaX="0.0" inertiaY="0.0" inertiaZ="0.0" mass="2.5518968014359267"/>
-        </toolTemplate>
-        <toolTemplate class="" name="AdaptiveGripper">
-            <loadData cogA="0.0" cogB="0.0" cogC="0.0" cogX="0.0" cogY="0.0" cogZ="0.0" inertiaX="0.0" inertiaY="0.0" inertiaZ="0.0" mass="3.0"/>
+            <loadData cogA="0.0" cogB="0.0" cogC="0.0" cogX="0.0" cogY="0.0" cogZ="0.0" inertiaX="0.0" inertiaY="0.0" inertiaZ="0.0" mass="0.0"/>
         </toolTemplate>
     </objectTemplates>
     <processDataContainer>

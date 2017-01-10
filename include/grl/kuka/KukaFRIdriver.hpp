@@ -1049,11 +1049,13 @@ public:
           friData_->monitoringMsg, std::back_inserter(armState.externalTorque),
           grl::revolute_joint_torque_external_open_chain_state_tag());
 
+// only supported for kuka sunrise OS 1.9
+#ifdef KUKA_SUNRISE_1_9
       armState.externalForce.clear();
       grl::robot::arm::copy(friData_->monitoringMsg,
                             std::back_inserter(armState.externalForce),
                             grl::cartesian_external_force_tag());
-
+#endif // KUKA_SUNRISE_1_9
       armState.ipoJointPosition.clear();
       grl::robot::arm::copy(
           friData_->monitoringMsg,

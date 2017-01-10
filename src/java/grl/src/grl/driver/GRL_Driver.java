@@ -71,7 +71,9 @@ import com.kuka.roboticsAPI.motionModel.controlModeModel.CartesianSineImpedanceC
 import com.kuka.roboticsAPI.motionModel.controlModeModel.HandGuidingControlMode;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.JointImpedanceControlMode;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.PositionControlMode;
-import static com.kuka.roboticsAPI.motionModel.MMCMotions.*;
+
+// uncomment for sunrise OS 1.9 and below
+// import static com.kuka.roboticsAPI.motionModel.MMCMotions.*;
 
 /**
  * Creates a FRI Session.

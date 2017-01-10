@@ -1,7 +1,10 @@
 package grl;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
-import static com.kuka.roboticsAPI.motionModel.MMCMotions.handGuiding;
+
+//uncomment for sunrise OS 1.9 and below
+//import static com.kuka.roboticsAPI.motionModel.MMCMotions.handGuiding;
+import static com.kuka.roboticsAPI.motionModel.HRCMotions.handGuiding;
 
 import java.util.concurrent.TimeUnit;
 

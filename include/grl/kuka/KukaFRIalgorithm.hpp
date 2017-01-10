@@ -105,7 +105,9 @@ namespace grl { namespace robot {
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_external_open_chain_state_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.externalTorque.value.arg,it, monitoringMsg.monitorData.has_externalTorque);
 	}
-        
+
+// only supported for kuka sunrise OS 1.9
+#ifdef KUKA_SUNRISE_1_9
     /// copy measured external force to output iterator
     /// note that this has a strange layout and actually contains
     /// an array of values for cartesian space.
@@ -120,7 +122,7 @@ namespace grl { namespace robot {
     void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, cartesian_external_force_tag){
             kuka::detail::copyCartesianState(monitoringMsg.monitorData.externalForce,it, monitoringMsg.monitorData.has_externalForce);
         }
-
+#endif // KUKA_SUNRISE_1_9
 	
 	/// copy commanded  joint torque to output iterator
 	template<typename OutputIterator>

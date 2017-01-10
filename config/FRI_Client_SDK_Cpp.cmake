@@ -72,7 +72,7 @@ if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip")
                     ${FRI_SRC_DIR}/client_lbr/friLBRState.cpp
                     ${FRI_SRC_DIR}/base/friClientApplication.cpp
                     ${FRI_SRC_DIR}/client_trafo/friTransformationClient.cpp
-                    ${FRI_SRC_DIR}/client_trafo/friTransformationContainer.cpp
+                    #${FRI_SRC_DIR}/client_trafo/friTransformationContainer.cpp # uncomment for sunrise connectivity 1.9
                 )
 
         target_compile_definitions(KukaFRIClient PUBLIC ${FRI_Client_SDK_Cpp_COMPILE_DEFINITIONS})

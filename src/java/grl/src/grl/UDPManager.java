@@ -208,6 +208,12 @@ public class UDPManager {
 						logger.error("got a UDP packet but it isn't a valid FlatBuffer message, this is an unexpected state that shouldn't occur. please debug me.");
 					}
 			//	}
+				} else {
+					noMessageCounter +=1;
+					if (message_counter % 100 == 0) {
+						logger.warn("Failed to receive UDP packet from control computer... Trying to re-establish connection");
+						preConnect();
+					}
 				}
 			} catch (IOException e) {
 				noMessageCounter +=1;
