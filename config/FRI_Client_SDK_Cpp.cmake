@@ -12,7 +12,7 @@
 
 # Sets up KUKA Sunrise FRI Cpp SDK with KUKA connectivity suite
 message(STATUS "Looking for File Path to FRI-Client-SDK_Cpp.zip KUKA FRI C++ API zip file from sunrise connectivity suite v1.9")
-set(FRI_Client_SDK_Cpp_zip_PATH "${CMAKE_SOURCE_DIR}/data/" CACHE FILEPATH "File Path to FRI-Client-SDK_Cpp.zip KUKA FRI C++ API zip file from sunrise connectivity suite v1.9")
+set(FRI_Client_SDK_Cpp_zip_PATH "${CMAKE_SOURCE_DIR}/data/" CACHE FILEPATH "File Path to FRI-Client-SDK_Cpp.zip KUKA FRI C++ API zip file from sunrise connectivity suite v1.11")
 
 find_path(FRI_Client_SDK_Cpp_zip_FILEPATH FRI-Client-SDK_Cpp.zip HINTS ${FRI_Client_SDK_Cpp_zip_PATH} ${CMAKE_PROJECT_DIR}/data/ ${CMAKE_CURRENT_PROJECT_DIR}/data/ )
 
@@ -22,15 +22,16 @@ if(EXISTS "${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip")
     set(FRI_DIR ${CMAKE_BINARY_DIR}/FRI_Client_SDK_Cpp)
     set(FRI_SRC_DIR ${FRI_DIR}/src)
     
-    file(MAKE_DIRECTORY ${FRI_DIR})
     message(STATUS "extracting FRI C++ SDK... ${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip to ${CMAKE_CURRENT_BINARY_DIR}")
+    file(REMOVE_RECURSE "${FRI_DIR}")
+    file(MAKE_DIRECTORY ${FRI_DIR})
     execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip
       WORKING_DIRECTORY ${FRI_DIR}
       RESULT_VARIABLE rv)
 
     if(NOT rv EQUAL 0)
       message(STATUS "extracting... FRI-Client-SDK_Cpp [error clean up]")
-      file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/FRI_Client_SDK_Cpp")
+      file(REMOVE_RECURSE "${FRI_DIR}")
       message(FATAL_ERROR "error: extract of '${FRI_Client_SDK_Cpp_zip_FILEPATH}/FRI-Client-SDK_Cpp.zip' failed")
     else()
         
