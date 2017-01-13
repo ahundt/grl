@@ -44,6 +44,7 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 
 
 std::shared_ptr<grl::PivotCalibrationVrepPlugin> pivotCalibrationPG;
+std::shared_ptr<spdlog::logger>                  loggerPG;
 
 
 const int inArgs_PIVOT_CALIB_START[]={
@@ -61,7 +62,7 @@ void LUA_SIM_EXT_PIVOT_CALIB_START(SLuaCallBack* p)
 {
   if (!pivotCalibrationPG) {
   
-    BOOST_LOG_TRIVIAL(info) << "v_repExtPivotCalibration Starting Pivot Calibration Plugin Data Collection\n";
+    loggerPG->info( "v_repExtPivotCalibration Starting Pivot Calibration Plugin Data Collection\n");
     
     	CLuaFunctionData data;
 
@@ -99,7 +100,7 @@ void LUA_SIM_EXT_PIVOT_CALIB_ALGORITHM(SLuaCallBack* p)
 {
   if (!pivotCalibrationPG) {
   
-    BOOST_LOG_TRIVIAL(info) << "v_repExtPivotCalibration Setting Algorithm\n";
+    loggerPG->info( "v_repExtPivotCalibration Setting Algorithm\n");
     
     	CLuaFunctionData data;
 
@@ -118,7 +119,7 @@ void LUA_SIM_EXT_PIVOT_CALIB_ALGORITHM(SLuaCallBack* p)
 
 void LUA_SIM_EXT_PIVOT_CALIB_RESET(SLuaCallBack* p)
 {
-    BOOST_LOG_TRIVIAL(info) << "v_repExtPivotCalibration Starting Pivot Calibration Plugin Data Collection\n";
+    loggerPG->info( "v_repExtPivotCalibration Starting Pivot Calibration Plugin Data Collection\n");
     pivotCalibrationPG=std::make_shared<grl::PivotCalibrationVrepPlugin>();
     pivotCalibrationPG->construct();
 }
@@ -126,7 +127,7 @@ void LUA_SIM_EXT_PIVOT_CALIB_RESET(SLuaCallBack* p)
 void LUA_SIM_EXT_PIVOT_CALIB_STOP(SLuaCallBack* p)
 {
     
-    BOOST_LOG_TRIVIAL(info) << "Ending v_repExtPivotCalibration plugin\n";
+    loggerPG->info( "Ending v_repExtPivotCalibration plugin\n");
 	pivotCalibrationPG.reset();
 }
 
@@ -173,6 +174,7 @@ void LUA_SIM_EXT_PIVOT_CALIB_GET_TRANSFORM(SLuaCallBack* p)
 // This is the plugin start routine (called just once, just after the plugin was loaded):
 VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 {
+    loggerPG = spdlog::stdout_logger_mt("console");
 	// Dynamically load and bind V-REP functions:
 	// ******************************************
 	// 1. Figure out this plugin's directory:
@@ -197,12 +199,12 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	vrepLib=loadVrepLibrary(temp.c_str());
 	if (vrepLib==NULL)
 	{
-		BOOST_LOG_TRIVIAL(error) << "Error, could not find or correctly load the V-REP library. Cannot start 'PluginSkeleton' plugin.\n";
+		loggerPG->error("Error, could not find or correctly load the V-REP library. Cannot start 'PluginSkeleton' plugin.\n");
 		return(0); // Means error, V-REP will unload this plugin
 	}
 	if (getVrepProcAddresses(vrepLib)==0)
 	{
-		BOOST_LOG_TRIVIAL(error) << "Error, could not find all required functions in the V-REP library. Cannot start 'PluginSkeleton' plugin.\n";
+		loggerPG->error("Error, could not find all required functions in the V-REP library. Cannot start 'PluginSkeleton' plugin.\n");
 		unloadVrepLibrary(vrepLib);
 		return(0); // Means error, V-REP will unload this plugin
 	}
@@ -214,7 +216,7 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simGetIntegerParameter(sim_intparam_program_version,&vrepVer);
 	if (vrepVer<20604) // if V-REP version is smaller than 2.06.04
 	{
-		BOOST_LOG_TRIVIAL(error) << "Sorry, your V-REP copy is somewhat old. Cannot start 'PluginSkeleton' plugin.\n";
+		loggerPG->error("Sorry, your V-REP copy is somewhat old. Cannot start 'PluginSkeleton' plugin.\n");
 		unloadVrepLibrary(vrepLib);
 		return(0); // Means error, V-REP will unload this plugin
 	}
@@ -234,7 +236,7 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
     
 	// ******************************************
 
-    BOOST_LOG_TRIVIAL(info) << "Pivot Calibration plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
+    loggerPG->info( "Pivot Calibration plugin initialized. Build date/time: ", __DATE__, " ", __TIME__);
 
 	return(PLUGIN_VERSION); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
 }
@@ -304,7 +306,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		/////////////
 		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
 		{	
-			//if(pivotCalibrationPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
+			//if(pivotCalibrationPG) loggerPG->info( "current simulation time:" << simGetSimulationTime() << std::endl);					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
 		
@@ -347,7 +349,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
             // log the error and print it to the screen, don't release the exception
             std::string initerr("v_repExtPivotCalibration plugin initialization error:\n" + boost::diagnostic_information(e));
             simAddStatusbarMessage( initerr.c_str());
-            BOOST_LOG_TRIVIAL(error) <<  initerr;
+            loggerPG->error( initerr);
         }
 	}
 

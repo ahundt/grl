@@ -40,19 +40,15 @@
 # MATLAB, and Bash.
 
 
-find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log chrono)
-if(ROS_FOUND AND TARGET KukaFRIClient AND AZMQ_FOUND  AND Boost_FOUND AND Boost_LOG_FOUND AND Boost_CHRONO_FOUND)
+if(ROS_FOUND AND TARGET KukaFRIClient AND Boost_FOUND AND Boost_CHRONO_FOUND)
     
   basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${ROS_INCLUDE_DIR})
   basis_add_executable(grl_kuka_ros_driver grl_kuka_ros_driver.cpp)
   basis_add_dependencies(grl_kuka_ros_driver grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
   basis_target_link_libraries(grl_kuka_ros_driver
     ${Boost_LIBRARIES}
-    ${Boost_LIBRARIES}
-    ${Boost_LOG_LIBRARY}
     ${Boost_CHRONO_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${ZeroMQ_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${Nanopb_LIBRARIES}
     ${ROS_LIBRARIES}

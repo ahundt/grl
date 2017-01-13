@@ -5,7 +5,6 @@
 #include <memory>
 #include <array>
 
-#include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -14,21 +13,6 @@
 #include "grl/vrep/VrepRobotArmDriver.hpp"
 #include <iterator>
 #include "v_repLib.h"
-
-/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
-template<typename T>
-inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
-{
-    out << "[";
-    size_t last = v.size() - 1;
-    for(size_t i = 0; i < v.size(); ++i) {
-        out << v[i];
-        if (i != last) 
-            out << ", ";
-    }
-    out << "]";
-    return out;
-}
 
 namespace grl { namespace vrep {
 
@@ -171,6 +155,7 @@ KukaVrepPlugin (Params params = defaultParams())
       :
       params_(params)
 {
+    logger_ = spdlog::get("console");
 }
 
 void construct(){construct(params_);}
@@ -455,6 +440,8 @@ Params params_;
 Params measuredParams_;
 /// for use in FRI clientdata mode
 std::shared_ptr<KUKA::FRI::ClientData> friData_;
+std::shared_ptr<spdlog::logger> logger_;
+
 };
   
 }} // grl::vrep

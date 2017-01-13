@@ -29,7 +29,6 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 
-find_package(Boost COMPONENTS program_options filesystem unit_test_framework system regex coroutine log chrono)
 if(TARGET KukaFRIClient  AND Boost_FOUND AND Boost_CHRONO_FOUND)
     basis_include_directories(
         ${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS}
@@ -48,7 +47,6 @@ if(TARGET KukaFRIClient  AND Boost_FOUND AND Boost_CHRONO_FOUND)
     )
     basis_target_link_libraries(v_repExtKukaLBRiiwa 
         PUBLIC
-            ${Boost_LIBRARIES}  
             ${Boost_LIBRARIES}  
             ${Boost_REGEX_LIBRARY} 
             ${Boost_CHRONO_LIBRARY} 

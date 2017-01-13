@@ -4,8 +4,8 @@
 #include <iostream>
 #include <memory>
 #include <array>
+#include <vector>
 
-#include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/mutex.hpp>
@@ -22,22 +22,8 @@
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
+#include "grl/vector_ostream.hpp"
 
-
-/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
-template<typename T>
-inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
-{
-  out << "[";
-  size_t last = v.size() - 1;
-  for(size_t i = 0; i < v.size(); ++i) {
-    out << v[i];
-    if (i != last)
-      out << ", ";
-  }
-  out << "]";
-  return out;
-}
 
 namespace grl {
 
@@ -56,8 +42,9 @@ namespace grl {
       enum ParamIndex {
         RobotName,
         RobotModel,
-        LocalZMQAddress,
-        RemoteZMQAddress,
+        LocalUDPAddress,
+        LocalUDPPort,
+        RemoteUDPAddress,
         LocalHostKukaKoniUDPAddress,
         LocalHostKukaKoniUDPPort,
         RemoteHostKukaKoniUDPAddress,
@@ -76,6 +63,7 @@ namespace grl {
         std::string,
         std::string,
         std::string,
+        std::string,
         std::string
           > Params;
 
@@ -83,9 +71,10 @@ namespace grl {
       static const Params defaultParams(){
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
-            "KUKA_LBR_IIWA_14_R820"      , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
-            "172.31.1.101"     , // LocalZMQAddress     // only insert ip, not the port
-            "tcp://172.31.1.147:30010", // RemoteZMQAddress
+            "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
+            "0.0.0.0"                 , // LocalUDPAddress
+            "30010"                   , // LocalUDPPort
+            "172.31.1.147"            , // RemoteUDPAddress
             "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
             "30200"                   , // LocalHostKukaKoniUDPPort,
             "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
@@ -100,8 +89,9 @@ namespace grl {
 
             nh_tilde.getParam("RobotName",std::get<RobotName>(params));
             nh_tilde.getParam("RobotModel",std::get<RobotModel>(params));
-            nh_tilde.getParam("LocalZMQAddress",std::get<LocalZMQAddress>(params));
-            nh_tilde.getParam("RemoteZMQAddress",std::get<RemoteZMQAddress>(params));
+            nh_tilde.getParam("LocalUDPAddress",std::get<LocalUDPAddress>(params));
+            nh_tilde.getParam("LocalUDPPort",std::get<LocalUDPAddress>(params));
+            nh_tilde.getParam("RemoteUDPAddress",std::get<RemoteUDPAddress>(params));
             nh_tilde.getParam("LocalHostKukaKoniUDPAddress",std::get<LocalHostKukaKoniUDPAddress>(params));
             nh_tilde.getParam("LocalHostKukaKoniUDPPort",std::get<LocalHostKukaKoniUDPPort>(params));
             nh_tilde.getParam("RemoteHostKukaKoniUDPAddress",std::get<RemoteHostKukaKoniUDPAddress>(params));

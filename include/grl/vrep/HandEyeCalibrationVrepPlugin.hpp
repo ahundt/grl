@@ -4,8 +4,8 @@
 #include <iostream>
 #include <memory>
 
-#include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
+#include <spdlog/spdlog.h>
 
 #include "grl/vrep/Eigen.hpp"
 #include "grl/vrep/Vrep.hpp"
@@ -14,20 +14,7 @@
 
 #include "v_repLib.h"
 
-/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
-template<typename T>
-inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
-{
-    out << "[";
-    size_t last = v.size() - 1;
-    for(size_t i = 0; i < v.size(); ++i) {
-        out << v[i];
-        if (i != last) 
-            out << ", ";
-    }
-    out << "]";
-    return out;
-}
+#include "grl/vector_ostream.hpp"
 
 namespace grl {
 
@@ -83,12 +70,12 @@ HandEyeCalibrationVrepPlugin (Params params = defaultParams())
 {
 /// @todo figure out how to re-enable when .so isn't loaded
  // initHandles();
-  
 }
 
 /// construct() function completes initialization of the plugin
 /// @todo move this into the actual constructor, but need to correctly handle or attach vrep shared libraries for unit tests.
 void construct(){
+  logger_ = spdlog::get("console");
   initHandles();
   
   // set the current transformEstimate to the initial estimate already in vrep
@@ -97,7 +84,7 @@ void construct(){
 
 
 void addFrame() {
-   BOOST_LOG_TRIVIAL(trace) << "Adding hand eye calibration frame #" << ++frameCount << std::endl;
+   logger_->info( "Adding hand eye calibration frame #", ++frameCount);
     
     auto robotTipInRobotBase    = getObjectTransform(robotTip,robotBase);
     auto fiducialInOpticalTrackerBase = getObjectTransform(opticalTrackerDetectedObjectName,opticalTrackerBase);
@@ -121,15 +108,15 @@ void addFrame() {
     
    if(debug){
    
-     std::cout << "\nrobotTipInRobotBase:\n" << poseString(robotTipInRobotBase) << "\n";
-     std::cout << "\nfiducialInOpticalTrackerBase:\n" << poseString(fiducialInOpticalTrackerBase) << "\n";
+     logger_->info( "\nrobotTipInRobotBase:\n", poseString(robotTipInRobotBase));
+     logger_->info( "\nfiducialInOpticalTrackerBase:\n", poseString(fiducialInOpticalTrackerBase));
      
-     std::cout << "\nrobotTipInFirstTipBase:\n" << poseString(robotTipInFirstTipBase) << "\n";
-     std::cout << "\nfiducialInFirstFiducialBase:\n" << poseString(fiducialInFirstFiducialBase) << "\n";
+     logger_->info( "\nrobotTipInFirstTipBase:\n", poseString(robotTipInFirstTipBase));
+     logger_->info( "\nfiducialInFirstFiducialBase:\n", poseString(fiducialInFirstFiducialBase));
    
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
-     BOOST_LOG_TRIVIAL(info) << "\n" << poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): ") << std::endl;
+     logger_->info( poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
      
      BOOST_VERIFY(robotTipInFirstTipBase.translation().norm() - fiducialInFirstFiducialBase.translation().norm() < 0.1);
    }
@@ -143,8 +130,8 @@ void addFrame() {
 /// @todo evaluate if applyEstimate should not be called by this
 void estimateHandEyeScrew(){
   
-   BOOST_LOG_TRIVIAL(trace) << "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial" << rvecsFiducial.size()
-   << " tvecsFiducial: " << tvecsFiducial.size() << " rvecsArm: " << rvecsArm.size() << " tvecsArm: " << tvecsArm.size() << std::endl;
+   logger_->info(  "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial",rvecsFiducial.size(),
+   " tvecsFiducial: ", tvecsFiducial.size(), " rvecsArm: ", rvecsArm.size(), " tvecsArm: ", tvecsArm.size());
 
    BOOST_VERIFY(allHandlesSet);
   
@@ -167,18 +154,18 @@ void estimateHandEyeScrew(){
    if(debug){
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
-     BOOST_LOG_TRIVIAL(info) << "\n" << poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): ") << std::endl;
+     logger_->info(  "\n", poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
    }
 
-   BOOST_LOG_TRIVIAL(info) << "\n" << poseString(transformEstimate,"estimated RobotTipToFiducial:") << std::endl;
+   logger_->info( "\n", poseString(transformEstimate,"estimated RobotTipToFiducial:"));
    
    applyEstimate();
    
    // print results
    Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
-   BOOST_LOG_TRIVIAL(info) << "Hand Eye Screw Estimate quat wxyz\n: " << eigenQuat.w() << " " << eigenQuat.x() << " " << eigenQuat.y() << " " << eigenQuat.z() << " " << " translation xyz: " << transformEstimate.translation().x() << " " << transformEstimate.translation().y() << " " << transformEstimate.translation().z() << " " << std::endl;
+   logger_->info( "Hand Eye Screw Estimate quat wxyz\n: ", eigenQuat.w(), " ", eigenQuat.x(), " ", eigenQuat.y(), " ", eigenQuat.z(), " ", " translation xyz: ", transformEstimate.translation().x(), " ", transformEstimate.translation().y(), " ", transformEstimate.translation().z(), " ");
     
-    BOOST_LOG_TRIVIAL(info) << "Optical Tracker Base Measured quat wxyz\n: " << detectedObjectQuaternion[0] << " " << detectedObjectQuaternion[1] << " " << detectedObjectQuaternion[2] << " " << detectedObjectQuaternion[3] << " " << " translation xyz: " << detectedObjectPosition[0] << " " << detectedObjectPosition[1] << " " << detectedObjectPosition[2] << " " << std::endl;
+    logger_->info( "Optical Tracker Base Measured quat wxyz\n: ", detectedObjectQuaternion[0], " ", detectedObjectQuaternion[1], " ", detectedObjectQuaternion[2], " ", detectedObjectQuaternion[3], " ", " translation xyz: ", detectedObjectPosition[0], " ", detectedObjectPosition[1], " ", detectedObjectPosition[2], " ");
   
 }
 
@@ -256,6 +243,7 @@ bool allHandlesSet = false;
 
 private:
 Params params_;
+std::shared_ptr<spdlog::logger> logger_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

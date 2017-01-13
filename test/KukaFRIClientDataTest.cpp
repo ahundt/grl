@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "grl/kuka/KukaFRIdriver.hpp"
-#include <boost/log/trivial.hpp>
+#include <spdlog/spdlog.h>
 
 
 #include <cstdlib>

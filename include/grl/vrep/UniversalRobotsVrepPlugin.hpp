@@ -7,30 +7,18 @@
 
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/asio.hpp>
-#include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+#include <spdlog/spdlog.h>
+
 #include <ur_modern_driver/ur_hardware_interface_standalone.h>
 
 #include "grl/vrep/Vrep.hpp"
 #include "grl/vrep/VrepRobotArmDriver.hpp"
+#include "grl/vector_ostream.hpp"
 
 #include "v_repLib.h"
 
-/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
-template<typename T>
-inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
-{
-    out << "[";
-    size_t last = v.size() - 1;
-    for(size_t i = 0; i < v.size(); ++i) {
-        out << v[i];
-        if (i != last) 
-            out << ", ";
-    }
-    out << "]";
-    return out;
-}
 
 namespace grl { namespace vrep {
 

@@ -29,9 +29,11 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 if(TRTK_FOUND)
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${TRTK_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-basis_add_library(v_repExtPivotCalibration SHARED v_repExtPivotCalibration.cpp )
-basis_target_link_libraries(v_repExtPivotCalibration ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${Boost_LOG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}  v_repLib TRTK)
+    # TODO(ahundt) link_directories is a hack, remove me!
+    link_directories(/usr/local/lib)
+    basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${TRTK_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+    basis_add_library(v_repExtPivotCalibration SHARED v_repExtPivotCalibration.cpp )
+    basis_target_link_libraries(v_repExtPivotCalibration ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${Boost_LOG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}  v_repLib TRTK)
 endif()
 
 

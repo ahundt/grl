@@ -4,30 +4,18 @@
 #include <iostream>
 #include <memory>
 
-#include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+#include <TRTK/PivotCalibration.hpp>
+
+#include <spdlog/spdlog.h>
 
 #include "grl/vrep/Eigen.hpp"
 #include "grl/vrep/Vrep.hpp"
-#include "TRTK/PivotCalibration.hpp"
 
 #include "v_repLib.h"
 
-/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
-template<typename T>
-inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
-{
-    out << "[";
-    size_t last = v.size() - 1;
-    for(size_t i = 0; i < v.size(); ++i) {
-        out << v[i];
-        if (i != last) 
-            out << ", ";
-    }
-    out << "]";
-    return out;
-}
+#include "grl/vector_ostream.hpp"
 
 namespace grl {
 
@@ -86,6 +74,7 @@ PivotCalibrationVrepPlugin (Params params = defaultParams())
 /// construct() function completes initialization of the plugin
 /// @todo move this into the actual constructor, but need to correctly handle or attach vrep shared libraries for unit tests.
 void construct(){
+  logger_ = spdlog::get("console");
   initHandles();
   
   // set the current transformEstimate to the initial estimate already in vrep
@@ -104,7 +93,7 @@ void setAlgorithm(std::string algorithm_){
 }
 
 void addFrame() {
-   BOOST_LOG_TRIVIAL(trace) << "Adding pivot calibration frame #" << ++frameCount << std::endl;
+   logger_->info("Adding pivot calibration frame #", ++frameCount );
     
     auto toolTipInToolBase    = getObjectTransform(toolTip,toolBase);
     
@@ -122,13 +111,13 @@ void addFrame() {
     
    if(debug){
    
-     std::cout << "\ntoolTipInToolBase:\n" << poseString(toolTipInToolBase) << "\n";
+     logger_->info("\ntoolTipInToolBase:\n", poseString(toolTipInToolBase));
      
-     std::cout << "\ntoolTipInFirstTipBase:\n" << poseString(toolTipInFirstTipBase) << "\n";
+     logger_->info("\ntoolTipInFirstTipBase:\n", poseString(toolTipInFirstTipBase));
    
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d ToolTipToFiducial = getObjectTransform(toolTip,toolBase);
-     BOOST_LOG_TRIVIAL(info) << "\n" << poseString(ToolTipToFiducial,"expected ToolBaseToToolTip (simulation only): ") << std::endl;
+     logger_->info( "\n", poseString(ToolTipToFiducial,"expected ToolBaseToToolTip (simulation only): "));
    }
 }
 
@@ -139,7 +128,7 @@ void addFrame() {
 /// @todo evaluate if applyEstimate should not be called by this
 void estimatePivotOffset(){
   
-   BOOST_LOG_TRIVIAL(trace) << "Running Pivot Calibration Estimate with the following numbers of entries in each category:  rvecsFiducial" << " rvecsArm: " << rvecsArm.size() << " tvecsArm: " << tvecsArm.size() << std::endl;
+   logger_->info("Running Pivot Calibration Estimate with the following numbers of entries in each category:  rvecsFiducial", " rvecsArm: ", rvecsArm.size(), " tvecsArm: ", tvecsArm.size() );
 
    BOOST_VERIFY(allHandlesSet);
   
@@ -165,16 +154,16 @@ void estimatePivotOffset(){
    if(debug){
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d ToolTipToFiducial = getObjectTransform(toolTip,toolBase);
-     BOOST_LOG_TRIVIAL(info) << "\n" << poseString(ToolTipToFiducial,"expected ToolBaseToToolTip (simulation only): ") << std::endl;
+     logger_->info( "\n", poseString(ToolTipToFiducial,"expected ToolBaseToToolTip (simulation only): "));
    }
 
-   BOOST_LOG_TRIVIAL(info) << "\n" << poseString(transformEstimate,"estimated toolBaseMeasured to toolTipMeasured:") << std::endl;
+   logger_->info( "\n", poseString(transformEstimate,"estimated toolBaseMeasured to toolTipMeasured:"));
    
    // print results
    Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
-   BOOST_LOG_TRIVIAL(info) << "Pivot Calibration Estimate quat wxyz\n: " << eigenQuat.w() << " " << eigenQuat.x() << " " << eigenQuat.y() << " " << eigenQuat.z() << " " << " translation xyz: " << transformEstimate.translation().x() << " " << transformEstimate.translation().y() << " " << transformEstimate.translation().z() << " " << std::endl;
+   logger_->info( "Pivot Calibration Estimate quat wxyz\n: ", eigenQuat.w(), " ", eigenQuat.x(), " ", eigenQuat.y(), " ", eigenQuat.z(), " ", " translation xyz: ", transformEstimate.translation().x(), " ", transformEstimate.translation().y(), " ", transformEstimate.translation().z(), " ");
     
-    BOOST_LOG_TRIVIAL(info) << "Optical Tracker Base Measured quat wxyz\n: " << detectedObjectQuaternion[0] << " " << detectedObjectQuaternion[1] << " " << detectedObjectQuaternion[2] << " " << detectedObjectQuaternion[3] << " " << " translation xyz: " << detectedObjectPosition[0] << " " << detectedObjectPosition[1] << " " << detectedObjectPosition[2] << " " << std::endl;
+    logger_->info( "Optical Tracker Base Measured quat wxyz\n: ", detectedObjectQuaternion[0], " ", detectedObjectQuaternion[1], " ", detectedObjectQuaternion[2], " ", detectedObjectQuaternion[3], " ", " translation xyz: ", detectedObjectPosition[0], " ", detectedObjectPosition[1], " ", detectedObjectPosition[2], " ");
   
 }
 
@@ -221,6 +210,7 @@ void initHandles() {
 	allHandlesSet  = true;
 }
 
+std::shared_ptr<spdlog::logger> logger_;
 // TRTK::PivotCalibration<double>::Algorithm algorithm = TRTK::PivotCalibration<double>::Algorithm::TWO_STEP_PROCEDURE;
 std::string algorithm = "TWO_STEP_PROCEDURE";
 

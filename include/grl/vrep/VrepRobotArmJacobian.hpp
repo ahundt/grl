@@ -5,9 +5,11 @@
 #include <memory>
 #include <array>
 
-#include <boost/log/trivial.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+
+#include <spdlog/spdlog.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -53,7 +55,7 @@ Eigen::MatrixXf getJacobian(vrep::VrepRobotArmDriver& driver, bool jacobianOnly 
             
             if(jacobianResult == -1)
             {
-                BOOST_LOG_TRIVIAL(error) << "VrepInverseKinematicsController: couldn't compute Jacobian";
+                spdlog::get("console")->error("VrepInverseKinematicsController: couldn't compute Jacobian");
                 return Eigen::MatrixXf();
             }
             
@@ -86,7 +88,7 @@ Eigen::MatrixXf getJacobian(vrep::VrepRobotArmDriver& driver, bool jacobianOnly 
             /// @see http://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#ikCalculationResults
             if(ikcalcResult!=sim_ikresult_success && ikcalcResult != sim_ikresult_not_performed)
             {
-                BOOST_LOG_TRIVIAL(error) << "VrepInverseKinematicsController: didn't run inverse kinematics";
+                spdlog::get("console")->error("VrepInverseKinematicsController: didn't run inverse kinematics");
                 return Eigen::MatrixXf();
             }
         

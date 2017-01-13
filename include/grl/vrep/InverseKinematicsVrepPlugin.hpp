@@ -50,6 +50,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/copy.hpp>
 
+#include <spdlog/spdlog.h>
+
 namespace grl {
 namespace vrep {
 
@@ -90,7 +92,7 @@ void SetVRepArmFromRBDyn(
 
     if(!debug.empty())
     {
-        BOOST_LOG_TRIVIAL(trace) << debug << " jointAngles: " << str;
+        spdlog::get("console")->info(debug + " jointAngles: " + str);
     }
 }
 
@@ -134,7 +136,7 @@ void SetRBDynArmFromVrep(
 
     if(!debug.empty())
     {
-        BOOST_LOG_TRIVIAL(trace) << debug << " jointAngles: " << str;
+        spdlog::get("console")->info(debug + " jointAngles: " + str);
     }
 }
 
@@ -186,6 +188,7 @@ public:
     void construct(Params params = defaultParams()){
         // get kinematics group name
         // get number of joints
+        logger_ = spdlog::get("console");
         
         // Get the arm that will be used to generate simulated results to command robot
         // the "base" of this ik is Robotiiwa
@@ -305,7 +308,7 @@ public:
             std::string dummyName0(("Dummy"+ boost::lexical_cast<std::string>(0+10)));
             int currentDummy0 = simGetObjectHandle(dummyName0.c_str());
             Eigen::Affine3d eto0 = getObjectTransform(rbd_jointHandles_[0],-1);
-            BOOST_LOG_TRIVIAL(trace) << dummyName0 << " \n" << eto0.matrix();
+            logger_->info("{} \n{}", dummyName0 , eto0.matrix());
             setObjectTransform(currentDummy0,-1,eto0);
         
             std::vector<int> frameHandles;
@@ -390,12 +393,12 @@ public:
           int currentDummy2 = simGetObjectHandle(dummyName2.c_str());
           eto = getObjectTransform(jointHandles_[i],-1);
           setObjectTransform(currentDummy2,-1,eto);
-          if(print) BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP World\n" << eto.matrix();
+          if(print) logger_->info("{} V-REP World\n{}",dummyName2 , eto.matrix());
           
           if(i>0)
           {
             Eigen::Affine3d NextJointinPrevFrame(getObjectTransform(jointHandles_[i],jointHandles_[i-1]));
-            if(print) BOOST_LOG_TRIVIAL(trace) << dummyName2 << " V-REP JointInPrevFrame\n" << NextJointinPrevFrame.matrix();
+            if(print) logger_->info("{} V-REP JointInPrevFrame\n{}",dummyName2 , NextJointinPrevFrame.matrix());
           }
        
           bool dummy_world_frame = true;
@@ -406,12 +409,12 @@ public:
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
               int currentDummy = simGetObjectHandle(dummyName.c_str());
-              if(print) BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn World\n" << linkWorld.matrix();
+              if(print) logger_->info("{} RBDyn World\n{}",dummyName, linkWorld.matrix());
               setObjectTransform(currentDummy,-1,linkWorld);
               prevDummy=currentDummy;
               sva::PTransform<double>     plinkToSon = simArmConfig.parentToSon[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkToSon = PTranformToEigenAffine(plinkToSon);
-              if(print) BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn ParentLinkToSon\n" << linkToSon.matrix();
+              if(print) logger_->info("{} RBDyn ParentLinkToSon\n{}",dummyName, linkToSon.matrix());
           
           }
           else
@@ -421,7 +424,7 @@ public:
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
               int currentDummy = simGetObjectHandle(dummyName.c_str());
-              if(print) BOOST_LOG_TRIVIAL(trace) << dummyName << " RBDyn\n" << linkWorld.matrix();
+              if(print) logger_->info("{} RBDyn\n{}",dummyName , linkWorld.matrix());
               setObjectTransform(currentDummy,prevDummy,linkWorld);
               prevDummy=currentDummy;
           
@@ -563,14 +566,14 @@ public:
         {
             // go to the real target position
             targetWorldTransform = getObjectPTransform(ikGroupTargetHandle_);
-            BOOST_LOG_TRIVIAL(trace) << "target translation (vrep format):\n"<< targetWorldTransform.translation();
+            logger_->info("target translation (vrep format):\n{}", targetWorldTransform.translation());
         }
         else
         {
             // go to a debugging target position
             targetWorldTransform = simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(ikGroupTipName_)];
             targetWorldTransform.translation().z() -= 0.0001;
-            BOOST_LOG_TRIVIAL(trace) << "target translation (rbdyn format):\n"<< targetWorldTransform.translation();
+            logger_->info("target translation (rbdyn format):\n", targetWorldTransform.translation());
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
         tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 50., 1.);
@@ -703,6 +706,8 @@ public:
         
     }
     
+    std::shared_ptr<spdlog::logger> logger_;
+
     rbd::MultiBodyGraph                 rbd_mbg_;
     std::vector<rbd::MultiBody>         rbd_mbs_;
     std::vector<rbd::MultiBodyConfig>   rbd_mbcs_;

@@ -103,13 +103,12 @@ basis_project (
   # --------------------------------------------------------------------------
   # dependencies
   DEPENDS
-    # libsodium https://github.com/jedisct1/libsodium # todo: test this dependency
-    ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq 
     FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
-    Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log,chrono}
+    Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,chrono}
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
+    OpenCV             # Open Computer Vision Library github.com/opencv/opencv
     Threads            # pthreads, see CMake documentation
     Eigen3             # Linear Algebra eigen.tuxfamily.com
     Nanopb             # Used in Kuka Fast Robot Interface
@@ -128,7 +127,10 @@ basis_project (
     sch-core           # Algorithms for convex hulls https://github.com/jrl-umi3218/sch-core used for inverse kinematics
     RBDyn              # Models the dynamics of rigid body system https://github.com/jrl-umi3218/RBDyn used for inverse kinematics
     Tasks              # Real time control of Kinematic Trees https://github.com/jrl-umi3218/Tasks used for inverse kinematics
-    AZMQ               # (Deprecated) Boost Asio implementation of ZeroMQ https://github.com/zeromq/azmq
+    spdlog             # fast logging library https://github.com/gabime/spdlog
+    # ZeroMQ             # (Deprecated) zeromq.org https://github.com/zeromq/libzmq 
+    # libsodium          # (Deprecated) https://github.com/jedisct1/libsodium # todo: test this dependency
+    # AZMQ               # (Deprecated) Boost Asio implementation of ZeroMQ https://github.com/zeromq/azmq
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

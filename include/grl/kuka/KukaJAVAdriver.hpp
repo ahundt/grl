@@ -35,6 +35,8 @@
 #include <boost/thread/mutex.hpp>
 //#endif
 
+#include <spdlog/spdlog.h>
+
 #include "grl/tags.hpp"
 #include "grl/exception.hpp"
 #include "grl/kuka/Kuka.hpp"
@@ -42,38 +44,7 @@
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
-
-
-/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
-template<typename T>
-inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)
-{
-  out << "[";
-  size_t last = v.size() - 1;
-  for(size_t i = 0; i < v.size(); ++i) {
-    out << v[i];
-    if (i != last)
-      out << ", ";
-  }
-  out << "]";
-  return out;
-}
-
-
-/// @todo move elsewhere, because it will conflict with others' implementations of outputting vectors
-template<typename T, std::size_t U>
-inline std::ostream& operator<<(std::ostream& out,  boost::container::static_vector<T,U>& v)
-{
-  out << "[";
-  size_t last = v.size() - 1;
-  for(size_t i = 0; i < v.size(); ++i) {
-    out << v[i];
-    if (i != last)
-      out << ", ";
-  }
-  out << "]";
-  return out;
-}
+#include "grl/vector_ostream.hpp"
 
 
 namespace grl { namespace robot { namespace arm {
@@ -173,9 +144,9 @@ namespace grl { namespace robot { namespace arm {
 
       KukaJAVAdriver(Params params = defaultParams())
         : params_(params), armControlMode_(flatbuffer::ArmState::ArmState_NONE)
-      {}
+      {logger_ = spdlog::get("console");}
 
-      void construct(){ construct(params_); sequenceNumber = 0;}
+      void construct(){ construct(params_); sequenceNumber = 0; }
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
@@ -185,9 +156,9 @@ namespace grl { namespace robot { namespace arm {
 
 
         try {
-          BOOST_LOG_TRIVIAL(trace) << "KukaLBRiiwaRosPlugin: Connecting UDP Socket from " <<
-            std::get<LocalUDPAddress>             (params_) << ":" << std::get<LocalUDPPort>             (params_) << " to " <<
-            std::get<RemoteUDPAddress>            (params_);
+          logger_->info("KukaLBRiiwaRosPlugin: Connecting UDP Socket from ",
+            std::get<LocalUDPAddress>             (params_), ":", std::get<LocalUDPPort>             (params_), " to ",
+            std::get<RemoteUDPAddress>            (params_));
 
             /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
             socket_local = socket(AF_INET, SOCK_DGRAM, 0);
@@ -577,6 +548,7 @@ namespace grl { namespace robot { namespace arm {
 
     private:
 
+      std::shared_ptr<spdlog::logger> logger_;
       int socket_local;
       int port;
       struct sockaddr_in  dst_sockaddr;

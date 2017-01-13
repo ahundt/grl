@@ -9,7 +9,8 @@
 #include <vector>
 
 
-#include <boost/log/trivial.hpp>
+#include <spdlog/spdlog.h>
+
 #include <boost/asio.hpp>
 
 #include "grl/kuka/KukaFRIdriver.hpp"
