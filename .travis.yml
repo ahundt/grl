@@ -48,7 +48,7 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make -j install
+  - sudo make -j3 install
   - cd ../..
   - 
   - git clone https://github.com/schuhschuh/cmake-basis.git
