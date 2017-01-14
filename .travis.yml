@@ -18,6 +18,7 @@ matrix:
          - sourceline: 'ppa:bzindovic/suitesparse-bugfix-1319687'
          - sourceline: 'ppa:xqms/opencv-nonfree'
          - sourceline: 'ppa:ubuntu-toolchain-r/test'
+         - sourceline: 'ppa:george-edison55/cmake-3.x'
          packages:
          - libtool 
          - pkg-config 
@@ -47,7 +48,7 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make --jobs $NUM_THREADS install
+  - sudo make -j install
   - cd ../..
   - 
   - git clone https://github.com/schuhschuh/cmake-basis.git
@@ -55,7 +56,7 @@ before_install:
   - mkdir build
   - cd build
   - cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
-  - sudo make --jobs $NUM_THREADS install
+  - sudo make -j install
   - cd ../..
   - 
   - git clone https://github.com/google/flatbuffers.git
@@ -63,7 +64,7 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make --jobs $NUM_THREADS install
+  - sudo make -j install
   - cd ../..
   -
   - git clone https://github.com/hengli/camodocal.git
@@ -71,7 +72,7 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make --jobs $NUM_THREADS install
+  - sudo make -j install
   - cd ../..
   -
   - git clone https://github.com/gabime/spdlog.git
@@ -79,13 +80,14 @@ before_install:
   - mkdir build
   - cd build
   - cmake ..
-  - sudo make --jobs $NUM_THREADS install
+  - sudo make -j install
   - cd ../..
   -
   - mkdir -p ~/src
   - git clone https://github.com/ahundt/robotics_setup.git
   - cd robotics_setup
   - ./robotics_tasks.sh
+  - cd ..
 # Build steps
 script:
   - git clone https://github.com/ahundt/grl.git
