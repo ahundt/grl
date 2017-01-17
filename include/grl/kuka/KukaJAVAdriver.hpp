@@ -13,7 +13,6 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/config.hpp>
-#include <boost/config/stdlib/libcpp.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <boost/range/algorithm/copy.hpp>
