@@ -1,21 +1,21 @@
-// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
+// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved.
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
-// 
+//
 // -------------------------------------------------------------------
 // THIS FILE IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
 // WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
 // AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
 // DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
 // MISUSING THIS SOFTWARE.
-// 
+//
 // You are free to use/modify/distribute this file for whatever purpose!
 // -------------------------------------------------------------------
 //
 // This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
 
 #include <memory>
-#include <boost/exception/diagnostic_information.hpp> 
+#include <boost/exception/diagnostic_information.hpp>
 #include "v_repExtGrlInverseKinematics.h"
 #include "grl/vrep/InverseKinematicsVrepPlugin.hpp"
 
@@ -64,7 +64,7 @@ std::shared_ptr<spdlog::logger>                  loggerPG;
 void LUA_SIM_EXT_GRL_IK_START(SLuaCallBack* p)
 {
   if (!InverseKinematicsControllerPG) {
-  
+
     loggerPG->error("v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin\n");
     InverseKinematicsControllerPG=std::make_shared<grl::vrep::InverseKinematicsVrepPlugin>();
     InverseKinematicsControllerPG->construct();
@@ -80,7 +80,7 @@ void LUA_SIM_EXT_GRL_IK_RESET(SLuaCallBack* p)
 
 void LUA_SIM_EXT_GRL_IK_STOP(SLuaCallBack* p)
 {
-    
+
     loggerPG->error("Ending v_repExtInverseKinematicsController plugin\n");
 	InverseKinematicsControllerPG.reset();
 }
@@ -128,7 +128,10 @@ void LUA_SIM_EXT_GRL_IK_GET_TRANSFORM(SLuaCallBack* p)
 // This is the plugin start routine (called just once, just after the plugin was loaded):
 VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 {
-    loggerPG = spdlog::stdout_logger_mt("console");
+	 try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
+
+
+	if(!loggerPG)
 	// Dynamically load and bind V-REP functions:
 	// ******************************************
 	// 1. Figure out this plugin's directory:
@@ -175,8 +178,8 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 		return(0); // Means error, V-REP will unload this plugin
 	}
 	// ******************************************
-    
-    
+
+
 	int noArgs[]={0}; // no input arguments
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStart","number result=simExtGrlInverseKinematicsStart()",noArgs,LUA_SIM_EXT_GRL_IK_START);
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStop","number result=simExtGrlInverseKinematicsStop()",noArgs,LUA_SIM_EXT_GRL_IK_STOP);
@@ -185,8 +188,8 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsFindTransform","number result=simExtGrlInverseKinematicsFindTransform()",noArgs,LUA_SIM_EXT_GRL_IK_FIND_TRANSFORM);
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsApplyTransform","number result=simExtGrlInverseKinematicsApplyTransform()",noArgs,LUA_SIM_EXT_GRL_IK_APPLY_TRANSFORM);
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsRestoreSensorPosition","number result=simExtGrlInverseKinematicsRestoreSensorPosition()",noArgs,LUA_SIM_EXT_GRL_IK_RESTORE_SENSOR_POSITION);
-    
-    
+
+
 	// ******************************************
 
     loggerPG->info("Inverse Kinematics plugin initialized. Build date/time: {} {}", __DATE__, __TIME__);
@@ -203,7 +206,7 @@ VREP_DLLEXPORT void v_repEnd()
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
-    
+
     InverseKinematicsControllerPG.reset();
 
 	unloadVrepLibrary(vrepLib); // release the library
@@ -237,7 +240,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// It is important to always correctly react to events in V-REP. This message is the most convenient way to do so:
 
 		int flags=auxiliaryData[0];
-		bool sceneContentChanged=((flags&(1+2+4+8+16+32+64+256))!=0); // object erased, created, model or scene loaded, und/redo called, instance switched, or object scaled since last sim_message_eventcallback_instancepass message 
+		bool sceneContentChanged=((flags&(1+2+4+8+16+32+64+256))!=0); // object erased, created, model or scene loaded, und/redo called, instance switched, or object scaled since last sim_message_eventcallback_instancepass message
 		bool instanceSwitched=((flags&64)!=0);
 
 		if (instanceSwitched)
@@ -249,13 +252,13 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		{ // we actualize plugin objects for changes in the scene
 			refreshDlgFlag=true; // always a good idea to trigger a refresh of this plugin's dialog here
 		}
-        
+
 
 
 		//...
 		//////////////
 		// PUT MAIN CODE HERE
-		
+
 		/////////////
         auto simulationState = simGetSimulationState();
 		if (simulationState == sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
@@ -264,8 +267,8 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 			//if(InverseKinematicsControllerPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
-		
-			
+
+
 		// find the v-rep C functions to do the following:
 		////////////////////////////////////////////////////
 		// Use handles that were found at the "start" of this simulation running
@@ -273,16 +276,16 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// next few Lines get the joint angles, torque, etc from the simulation
 		if (InverseKinematicsControllerPG && simulationState == sim_simulation_advancing_running)// && InverseKinematicsControllerPG->allHandlesSet == true // allHandlesSet now handled internally
 		{
-		
+
           // run one loop synchronizing the arm and plugin
           InverseKinematicsControllerPG->run_one();
-		  
+
 		}
 	}
 
 	if (message==sim_message_eventcallback_mainscriptabouttobecalled)
 	{ // The main script is about to be run (only called while a simulation is running (and not paused!))
-		
+
 	}
 
 	if (message==sim_message_eventcallback_simulationabouttostart)
@@ -294,7 +297,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// get the handles to all the objects, joints, etc that we need
 		/////////////////////
 		// simGetObjectHandle
-        
+
         try {
             //InverseKinematicsControllerPG = std::make_shared<grl::InverseKinematicsVrepPlugin>();
             //InverseKinematicsControllerPG->construct();

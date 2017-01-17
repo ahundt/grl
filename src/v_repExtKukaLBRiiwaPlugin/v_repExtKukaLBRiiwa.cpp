@@ -1,14 +1,14 @@
-// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
+// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved.
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
-// 
+//
 // -------------------------------------------------------------------
 // THIS FILE IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
 // WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
 // AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
 // DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
 // MISUSING THIS SOFTWARE.
-// 
+//
 // You are free to use/modify/distribute this file for whatever purpose!
 // -------------------------------------------------------------------
 //
@@ -71,7 +71,7 @@ std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaSta
 void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
   // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
-  
+
   try {
       if (!kukaPluginPG) {
         loggerPG->error("Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
@@ -102,8 +102,8 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
             std::string KukaCommandMode                     (inData->at(13).stringData[0]);
             std::string KukaMonitorMode                     (inData->at(14).stringData[0]);
             std::string IKGroupName                         (inData->at(15).stringData[0]);
-            
-        
+
+
             kukaPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>(
                 std::make_tuple(
                     JointHandles                  ,
@@ -131,12 +131,12 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
             kukaPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>();
             kukaPluginPG->construct();
         }
-        
-        
-        
-        
+
+
+
+
       }
-  
+
   } catch (const boost::exception& e){
       // log the error and print it to the screen, don't release the exception
       std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
@@ -162,7 +162,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 // This is the plugin start routine (called just once, just after the plugin was loaded):
 VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 {
-    loggerPG = spdlog::stdout_logger_mt("console");
+    try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 	// Dynamically load and bind V-REP functions:
 	// ******************************************
 	// 1. Figure out this plugin's directory:
@@ -213,9 +213,9 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 
 	// Register the new Lua command "simExtSkeleton_getSensorData":
 	// ******************************************
-    
+
     std::vector<int> inArgs;
-    
+
     CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_KUKA_LBR_IIWA_START,inArgs);
 	simRegisterCustomLuaFunction
     (
@@ -224,9 +224,9 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
         &inArgs[0],
         LUA_SIM_EXT_KUKA_LBR_IIWA_START
     );
-    
-    
-    
+
+
+
 	// Expected input arguments are: int sensorIndex, float floatParameters[3], int intParameters[2]
 	//int inArgs_getSensorData[]={3,sim_lua_arg_int,sim_lua_arg_float|sim_lua_arg_table,sim_lua_arg_int|sim_lua_arg_table}; // this says we expect 3 arguments (1 integer, a table of floats, and a table of ints)
 	// Return value can change on the fly, so no need to specify them here, except for the calltip.
@@ -248,7 +248,7 @@ VREP_DLLEXPORT void v_repEnd()
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
-    
+
     kukaPluginPG.reset();
 
 	unloadVrepLibrary(vrepLib); // release the library
@@ -282,7 +282,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// It is important to always correctly react to events in V-REP. This message is the most convenient way to do so:
 
 		int flags=auxiliaryData[0];
-		bool sceneContentChanged=((flags&(1+2+4+8+16+32+64+256))!=0); // object erased, created, model or scene loaded, und/redo called, instance switched, or object scaled since last sim_message_eventcallback_instancepass message 
+		bool sceneContentChanged=((flags&(1+2+4+8+16+32+64+256))!=0); // object erased, created, model or scene loaded, und/redo called, instance switched, or object scaled since last sim_message_eventcallback_instancepass message
 		bool instanceSwitched=((flags&64)!=0);
 
 		if (instanceSwitched)
@@ -294,21 +294,21 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		{ // we actualize plugin objects for changes in the scene
 			refreshDlgFlag=true; // always a good idea to trigger a refresh of this plugin's dialog here
 		}
-        
+
 
 
 		//...
 		//////////////
 		// PUT MAIN CODE HERE
-		
+
 		/////////////
 		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
-		{	
+		{
 			//if(kukaPluginPG) loggerPG->error("current simulation time:" << simGetSimulationTime() << std::endl );					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
-		
-			
+
+
 		// find the v-rep C functions to do the following:
 		////////////////////////////////////////////////////
 		// Use handles that were found at the "start" of this simulation running
@@ -320,7 +320,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
               {
                   // run one loop synchronizing the arm and plugin
                   kukaPluginPG->run_one();
-          
+
               } catch (const boost::exception& e){
                   // log the error and print it to the screen, don't release the exception
                   std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
@@ -340,13 +340,13 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
                   loggerPG->error( initerr );
                   kukaPluginPG.reset();
               }
-                      
+
 		}
 	}
 
 	if (message==sim_message_eventcallback_mainscriptabouttobecalled)
 	{ // The main script is about to be run (only called while a simulation is running (and not paused!))
-		
+
 	}
 
 	if (message==sim_message_eventcallback_simulationabouttostart)
@@ -358,7 +358,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// get the handles to all the objects, joints, etc that we need
 		/////////////////////
 		// simGetObjectHandle
-        
+
 //        try {
 //            loggerPG->error("Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
 //            kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();

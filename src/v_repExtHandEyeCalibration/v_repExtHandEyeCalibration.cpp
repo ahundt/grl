@@ -1,14 +1,14 @@
-// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
+// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved.
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
-// 
+//
 // -------------------------------------------------------------------
 // THIS FILE IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
 // WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
 // AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
 // DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
 // MISUSING THIS SOFTWARE.
-// 
+//
 // You are free to use/modify/distribute this file for whatever purpose!
 // -------------------------------------------------------------------
 //
@@ -73,9 +73,9 @@ std::string LUA_SIM_EXT_HAND_EYE_CALIB_START_CALL_TIP("number result=simExtHandE
 void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
 {
   if (!handEyeCalibrationPG) {
-  
+
     loggerPG->info( "v_repExtHandEyeCalibration Starting Hand Eye Calibration Plugin Data Collection\n");
-    
+
     	CLuaFunctionData data;
 
     	if (data.readDataFromLua(p,inArgs_HAND_EYE_CALIB_START,inArgs_HAND_EYE_CALIB_START[0],"simExtHandEyeCalibStart"))
@@ -87,7 +87,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
             std::string OpticalTrackerDetectedObjectName(inData->at(3 ).stringData[0]);
             handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>(
                 std::make_tuple(RobotBaseName , RobotTipName, OpticalTrackerBaseName, OpticalTrackerDetectedObjectName)
-        
+
             );
             handEyeCalibrationPG->construct();
 
@@ -109,7 +109,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_RESET(SLuaCallBack* p)
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_STOP(SLuaCallBack* p)
 {
-    
+
     loggerPG->info("Ending v_repExtHandEyeCalibration plugin\n");
 	handEyeCalibrationPG.reset();
 }
@@ -157,7 +157,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_GET_TRANSFORM(SLuaCallBack* p)
 // This is the plugin start routine (called just once, just after the plugin was loaded):
 VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 {
-    loggerPG = spdlog::stdout_logger_mt("console");
+    try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 	// Dynamically load and bind V-REP functions:
 	// ******************************************
 	// 1. Figure out this plugin's directory:
@@ -204,8 +204,8 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 		return(0); // Means error, V-REP will unload this plugin
 	}
 	// ******************************************
-    
-    
+
+
 	int noArgs[]={0}; // no input arguments
 	simRegisterCustomLuaFunction("simExtHandEyeCalibStart","number result=simExtHandEyeCalibStart()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_START);
 	simRegisterCustomLuaFunction("simExtHandEyeCalibStop","number result=simExtHandEyeCalibStop()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_STOP);
@@ -214,8 +214,8 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simRegisterCustomLuaFunction("simExtHandEyeCalibFindTransform","number result=simExtHandEyeCalibFindTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_FIND_TRANSFORM);
 	simRegisterCustomLuaFunction("simExtHandEyeCalibApplyTransform","number result=simExtHandEyeCalibApplyTransform()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_APPLY_TRANSFORM);
 	simRegisterCustomLuaFunction("simExtHandEyeCalibRestoreSensorPosition","number result=simExtHandEyeCalibRestoreSensorPosition()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESTORE_SENSOR_POSITION);
-    
-    
+
+
 	// ******************************************
 
     loggerPG->info("Hand Eye Calibration plugin initialized. Build date/time: ", __DATE__, " ", __TIME__,"\n");
@@ -232,7 +232,7 @@ VREP_DLLEXPORT void v_repEnd()
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
-    
+
     handEyeCalibrationPG.reset();
 
 	unloadVrepLibrary(vrepLib); // release the library
@@ -266,7 +266,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// It is important to always correctly react to events in V-REP. This message is the most convenient way to do so:
 
 		int flags=auxiliaryData[0];
-		bool sceneContentChanged=((flags&(1+2+4+8+16+32+64+256))!=0); // object erased, created, model or scene loaded, und/redo called, instance switched, or object scaled since last sim_message_eventcallback_instancepass message 
+		bool sceneContentChanged=((flags&(1+2+4+8+16+32+64+256))!=0); // object erased, created, model or scene loaded, und/redo called, instance switched, or object scaled since last sim_message_eventcallback_instancepass message
 		bool instanceSwitched=((flags&64)!=0);
 
 		if (instanceSwitched)
@@ -278,21 +278,21 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		{ // we actualize plugin objects for changes in the scene
 			refreshDlgFlag=true; // always a good idea to trigger a refresh of this plugin's dialog here
 		}
-        
+
 
 
 		//...
 		//////////////
 		// PUT MAIN CODE HERE
-		
+
 		/////////////
 		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
-		{	
+		{
 			//if(handEyeCalibrationPG) BOOST_LOG_TRIVIAL(info) << "current simulation time:" << simGetSimulationTime() << std::endl;					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
-		
-			
+
+
 		// find the v-rep C functions to do the following:
 		////////////////////////////////////////////////////
 		// Use handles that were found at the "start" of this simulation running
@@ -300,16 +300,16 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// next few Lines get the joint angles, torque, etc from the simulation
 		if (handEyeCalibrationPG)// && HandEyeCalibrationPG->allHandlesSet == true // allHandlesSet now handled internally
 		{
-		
+
           // run one loop synchronizing the arm and plugin
           // handEyeCalibrationPG->run_one();
-		  
+
 		}
 	}
 
 	if (message==sim_message_eventcallback_mainscriptabouttobecalled)
 	{ // The main script is about to be run (only called while a simulation is running (and not paused!))
-		
+
 	}
 
 	if (message==sim_message_eventcallback_simulationabouttostart)
@@ -321,7 +321,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// get the handles to all the objects, joints, etc that we need
 		/////////////////////
 		// simGetObjectHandle
-        
+
         try {
             //handEyeCalibrationPG = std::make_shared<grl::HandEyeCalibrationVrepPlugin>();
             //handEyeCalibrationPG->construct();
