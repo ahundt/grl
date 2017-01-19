@@ -135,8 +135,7 @@ struct LinearInterpolation {
     int thisTimeStepMS(
         grl::robot::arm::get(friData.monitoringMsg, grl::time_step_tag()));
     double thisTimeStepS = (static_cast<double>(thisTimeStepMS) / 1000);
-    //                    double secondsPerTick =
-    //                    std::chrono::duration_cast<std::chrono::seconds>(thisTimeStep).count();
+    //double secondsPerTick = std::chrono::duration_cast<std::chrono::seconds>(thisTimeStep).count();
 
     // the fraction of the distance to the goal that should be traversed this
     // tick
@@ -172,13 +171,13 @@ struct LinearInterpolation {
     // A6 - 135 °/s == 2.356194490192 rad/s
     // A1 - 135 °/s == 2.356194490192 rad/s
     KukaState::joint_state velocity_limits;
-    velocity_limits.push_back(1.483529864195); // RK: removed secondsPerTick
-    velocity_limits.push_back(1.483529864195);
-    velocity_limits.push_back(1.745329251994);
-    velocity_limits.push_back(1.308996938996);
-    velocity_limits.push_back(2.268928027593);
-    velocity_limits.push_back(2.356194490192);
-    velocity_limits.push_back(2.356194490192);
+    velocity_limits.push_back(1.483529864195*thisTimeStepS);
+    velocity_limits.push_back(1.483529864195*thisTimeStepS);
+    velocity_limits.push_back(1.745329251994*thisTimeStepS);
+    velocity_limits.push_back(1.308996938996*thisTimeStepS);
+    velocity_limits.push_back(2.268928027593*thisTimeStepS);
+    velocity_limits.push_back(2.356194490192*thisTimeStepS);
+    velocity_limits.push_back(2.356194490192*thisTimeStepS);
 
     boost::copy(velocity_limits, &rvelocity_limits[0]);
     // use std::min to ensure commanded change in position remains under the
@@ -611,8 +610,8 @@ private:
       boost::asio::ip::udp::endpoint sender_endpoint;
       boost::asio::ip::udp::socket socket(
           connect(params_, io_service_, sender_endpoint));
-      KukaState kukastate; ///< @todo remove this line when new api works
-                           /// completely since old one is deprecated
+      KukaState kukastate; ///< @todo TODO(ahundt) remove this line when new
+                           /// api works completely since old one is deprecated
 
       /////////////
       // run the primary update loop in a separate thread
@@ -834,7 +833,9 @@ private:
 /// @note If you aren't sure, see KukaDriver in KukaDriver.hpp.
 ///
 /// @note If you want to change how the lowest level high rate updates are
-/// performed, make another version of this class. @see KukaFRIdriver
+/// performed, make another version of this class or update so
+/// LowLevelStepAlgorithmType, like LinearInterpolation,
+/// is configurable. @see KukaFRIdriver
 ///
 ///
 /// KukaFRIdriver is a low level driver at a slightly "higher level" than the
@@ -1096,8 +1097,9 @@ public:
                 << "\n Consecutive Successes: "
                 << m_attemptedCommunicationConsecutiveSuccessCount << "\n";
       m_attemptedCommunicationConsecutiveSuccessCount = 0;
-      /// @todo should the results of getlatest state even be possible to call
+      /// @todo TODO(ahundt) should the results of getlatest state even be possible to call
       /// without receiving real data? should the library change?
+      /// @todo TODO(ahundt) use spdlog library instead of cerr?
     }
 
     return haveNewData;
@@ -1228,7 +1230,7 @@ public:
     std::copy(range, armState.commandedCartesianWrenchFeedForward);
   }
 
-  /// @todo should this exist? is it written correctly?
+  /// @todo should this exist, is it a good design? is it written correctly?
   void get(KukaState &state) {
     boost::lock_guard<boost::mutex> lock(jt_mutex);
     state = armState;

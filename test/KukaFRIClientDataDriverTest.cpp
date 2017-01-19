@@ -10,6 +10,7 @@
 
 
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
 #include <boost/asio.hpp>
 
@@ -23,7 +24,7 @@
 //    size_t last = v.size() - 1;
 //    for(size_t i = 0; i < v.size(); ++i) {
 //        out << v[i];
-//        if (i != last) 
+//        if (i != last)
 //            out << ", ";
 //    }
 //    out << "]";
@@ -67,7 +68,7 @@ struct periodic
     template<typename F, typename ...Args>
     typename TimeT::rep execution(F func, Args&&... args)
     {
-        auto duration = std::chrono::duration_cast< TimeT> 
+        auto duration = std::chrono::duration_cast< TimeT>
                             (std::chrono::system_clock::now() - start);
         auto count = duration.count();
         if(count > previous_count + period_duration)
@@ -77,7 +78,7 @@ struct periodic
         }
         return count;
     }
-    
+
     std::chrono::time_point<std::chrono::system_clock> start;
     typename TimeT::rep period_duration;
     typename TimeT::rep previous_count;
@@ -88,6 +89,11 @@ enum { max_length = 1024 };
 
 int main(int argc, char* argv[])
 {
+  bool debug = false;
+  std::size_t q_size = 4096; //queue size must be power of 2
+  spdlog::set_async_mode(q_size);
+  std::shared_ptr<spdlog::logger>                  loggerPG;
+	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 
   periodic<> callIfMinPeriodPassed;
 
@@ -97,68 +103,74 @@ int main(int argc, char* argv[])
     std::string localport("30200");
     std::string remotehost("192.170.10.2");
     std::string remoteport("30200");
-  
+
     std::cout << "argc: " << argc << "\n";
 	  /// @todo add default localhost/localport
     if (argc !=5 && argc !=1)
     {
-      std::cerr << "Usage: " << argv[0] << " <localip> <localport> <remoteip> <remoteport>\n";
+      loggerPG->error("Usage: ", argv[0], " <localip> <localport> <remoteip> <remoteport>\n");
       return 1;
     }
-  
+
     if(argc ==5){
       localhost = std::string(argv[1]);
       localport = std::string(argv[2]);
       remotehost = std::string(argv[3]);
       remoteport = std::string(argv[4]);
     }
-    
+
       std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
 
     boost::asio::io_service io_service;
-    
+
 	std::shared_ptr<KUKA::FRI::ClientData> friData(std::make_shared<KUKA::FRI::ClientData>(7));
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
-  
+
     BOOST_VERIFY(friData);
-  
-    double delta = -0.0001;
+
+    double delta = -0.0005;
     /// consider moving joint angles based on time
     int joint_to_move = 6;
-    BOOST_LOG_TRIVIAL(warning) << "WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT "
-                               << "if joint angle delta variable is too large with respect to "
-                               << "the time it takes to go around the loop and change it. "
-                               << "Current delta (radians/update): " << delta << " Joint to move: " << joint_to_move << "\n";
-  
+    loggerPG->warn("WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT ",
+                      "if joint angle delta variable is too large with respect to ",
+                      "the time it takes to go around the loop and change it. ",
+                      "Current delta (radians/update): ", delta, " Joint to move: ", joint_to_move);
+
     std::vector<double> ipoJointPos(7,0);
     std::vector<double> offsetFromipoJointPos(7,0); // length 7, value 0
     std::vector<double> jointStateToCommand(7,0);
-  
-    grl::robot::arm::KukaFRIClientDataDriver driver(io_service,
-        std::make_tuple(localhost,localport,remotehost,remoteport,4/*ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver::run_automatically)
+
+    /// TODO(ahundt) remove deprecated arm state from here and implementation
+    grl::robot::arm::KukaState armState;
+    std::unique_ptr<grl::robot::arm::LinearInterpolation> lowLevelStepAlgorithmP;
+    lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation(armState));
+    // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800) see grl::robot::arm::KukaState::KUKA_LBR_IIWA_14_R820
+
+    grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation> driver(io_service,
+        std::make_tuple("KUKA_LBR_IIWA_14_R820",localhost,localport,remotehost,remoteport/*,4 ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically)
     );
 
   unsigned int num_missed = 0;
 
 	for (std::size_t i = 0;;++i) {
-    
+
         /// use the interpolated joint position from the previous update as the base
         /// @todo why is this?
         if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
-        
+
         /// perform the update step, receiving and sending data to/from the arm
         boost::system::error_code send_ec, recv_ec;
         std::size_t send_bytes_transferred = 0, recv_bytes_transferred = 0;
-        bool haveNewData = !driver.update_state(friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
-        
+        bool haveNewData = !driver.update_state(*lowLevelStepAlgorithmP, friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
+
         // if data didn't arrive correctly, skip and try again
         if(send_ec || recv_ec )
         {
-           std::cout  << "receive error: " << recv_ec << "receive bytes: " << recv_bytes_transferred << " send error: " << send_ec << " send bytes: " << send_bytes_transferred <<  " iteration: "<< i << "\n";
+           loggerPG->error("receive error: ", recv_ec, "receive bytes: ", recv_bytes_transferred, " send error: ", send_ec, " send bytes: ", send_bytes_transferred,  " iteration: ", i);
            std::this_thread::sleep_for(std::chrono::milliseconds(1));
            continue;
         }
-        
+
         // If we didn't receive anything new that is normal behavior,
         // but we can't process the new data so try updating again immediately.
         if(!haveNewData)
@@ -166,7 +178,7 @@ int main(int argc, char* argv[])
           std::this_thread::sleep_for(std::chrono::milliseconds(1));
           ++num_missed;
           if(num_missed>10000) {
-            std::cout << "No new data for " << num_missed << " milliseconds.\n";
+            loggerPG->warn("No new data for ", num_missed, " milliseconds.");
             break;
           } else {
             continue;
@@ -174,13 +186,13 @@ int main(int argc, char* argv[])
         } else {
           num_missed = 0;
         }
-        
+
         /// use the interpolated joint position from the previous update as the base
         /// @todo why is this?
         if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
-        
-        
-        
+
+
+
         if (grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
         {
 #if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
@@ -196,10 +208,10 @@ int main(int argc, char* argv[])
                        delta *=-1;
                     }
             });
-        
+
 #endif
         }
-        
+
             KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState());
         // copy current joint position to commanded position
         if (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE)
@@ -207,17 +219,25 @@ int main(int argc, char* argv[])
             boost::transform ( ipoJointPos, offsetFromipoJointPos, jointStateToCommand.begin(), std::plus<double>());
             grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
         }
-        
+
         // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
         /// @todo should we take the current joint state into consideration?
-        BOOST_LOG_TRIVIAL(trace) << /*"position: " << ipoJointPos <<*/ " sessionState: " << friData->lastState << "\n";
-		    //BOOST_LOG_TRIVIAL(trace) << "position: " << state.position << " us: " << std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count() << " connectionQuality: " << state.connectionQuality << " operationMode: " << state.operationMode << " sessionState: " << state.sessionState << " driveState: " << state.driveState << " ipoJointPosition: " << state.ipoJointPosition << " ipoJointPositionOffsets: " << state.ipoJointPositionOffsets << "\n";
+        //loggerPG->info(/*"position: " << ipoJointPos <<*/ " sessionState: {}", friData->lastState);
+		    //BOOST_LOG_TRIVIAL(trace), "position: ", state.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count(), " connectionQuality: ", state.connectionQuality, " operationMode: ", state.operationMode, " sessionState: ", state.sessionState, " driveState: ", state.driveState, " ipoJointPosition: ", state.ipoJointPosition, " ipoJointPositionOffsets: ", state.ipoJointPositionOffsets, "\n";
+
+        // copy the state data into a more accessible object
+        /// TODO(ahundt) switch from this copy to a non-deprecated call
+        grl::robot::arm::copy(friData->monitoringMsg,armState);
+        if(debug) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " ipoJointPositionOffsets: ", armState.ipoJointPositionOffsets);
+
 	}
   }
   catch (std::exception& e)
   {
-    std::cerr << "Exception: " << e.what() << "\n";
+    loggerPG->error("Exception: ", e.what());
   }
 
+  // Release and close all loggers
+  spdlog::drop_all();
   return 0;
 }

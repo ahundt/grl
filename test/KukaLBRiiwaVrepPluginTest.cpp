@@ -30,27 +30,33 @@ auto plugin = std::make_shared<grl::vrep::KukaVrepPlugin>();
 }
 
 BOOST_AUTO_TEST_CASE(connectToFake){
+        std::vector<std::string> jointHandles;
 
-    auto config = std::make_tuple(
-                    "LBR_iiwa_14_R820_joint1", // Joint1Handle, 
-                    "LBR_iiwa_14_R820_joint2", // Joint2Handle, 
-                    "LBR_iiwa_14_R820_joint3", // Joint3Handle, 
-                    "LBR_iiwa_14_R820_joint4", // Joint4Handle, 
-                    "LBR_iiwa_14_R820_joint5", // Joint5Handle, 
-                    "LBR_iiwa_14_R820_joint6", // Joint6Handle, 
-                    "LBR_iiwa_14_R820_joint7", // Joint7Handle,
-                    "RobotMillTip"           , // RobotTipHandle,
-                    "RobotMillTipTarget"     , // RobotTargetHandle,
-                    "Robotiiwa"              , // RobotTargetBaseHandle,
-                    "tcp://127.0.0.1:9998"   , // LocalZMQAddress
-                    "tcp://127.0.0.1:9998"   , // RemoteZMQAddress
-                    "127.0.0.1"              , // LocalHostKukaKoniUDPAddress,
-                    "30200"                  , // LocalHostKukaKoniUDPPort,
-                    "127.0.0.1"              , // RemoteHostKukaKoniUDPAddress,
-                    "30200"                  , // RemoteHostKukaKoniUDPPort
-                    "JAVA"                   , // KukaCommandMode ("JAVA" or "FRI")
-                    "FRI"                    , // KukaMonitorMode ("JAVA" or "FRI")
-                    ""                         // IKGroupName (empty because there isn't one right now)
+        jointHandles.push_back("LBR_iiwa_14_R820_joint1"); // Joint1Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint2"); // Joint2Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint3"); // Joint3Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint4"); // Joint4Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint5"); // Joint5Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint6"); // Joint6Handle,
+        jointHandles.push_back("LBR_iiwa_14_R820_joint7"); // Joint7Handle,
+
+        auto config = std::make_tuple(
+                    jointHandles              , // JointHandles,
+                    "RobotFlangeTip"          , // RobotFlangeTipHandle,
+                    "RobotMillTip"            , // RobotTipHandle,
+                    "RobotMillTipTarget"      , // RobotTargetHandle,
+                    "Robotiiwa"               , // RobotTargetBaseHandle,
+                    "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
+                    "tcp://0.0.0.0"           , // LocalUDPAddress
+                    "30010"                   , // LocalUDPPort
+                    "172.31.1.147"            , // RemoteUDPAddress
+                    "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
+                    "30200"                   , // LocalHostKukaKoniUDPPort,
+                    "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
+                    "30200"                   , // RemoteHostKukaKoniUDPPort
+                    "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+                    "FRI"                     , // KukaMonitorMode (options are FRI, JAVA)
+                    "IK_Group1_iiwa"            // IKGroupName
                 );
 auto plugin = std::make_shared<grl::vrep::KukaVrepPlugin>(config);
 }

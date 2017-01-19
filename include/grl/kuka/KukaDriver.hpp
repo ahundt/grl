@@ -390,6 +390,7 @@ namespace grl { namespace robot { namespace arm {
 
     }
 
+    /// @todo(ahundt) replace with standard get() call with tag dispatch like above
     template<typename OutputIterator>
     void getWrench(OutputIterator output)
     {

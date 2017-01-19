@@ -9,10 +9,10 @@
 # @file  BasisProject.cmake
 # @brief Sets basic information about a BASIS Project and calls basis_project().
 #
-# This file defines basic information about a project by calling 
-# the basis_project() function. This basic information, also known as metadata, 
-# is used by BASIS to setup the project. Moreover, if the project is a module 
-# of another BASIS project, the dependencies to other modules have to be specified 
+# This file defines basic information about a project by calling
+# the basis_project() function. This basic information, also known as metadata,
+# is used by BASIS to setup the project. Moreover, if the project is a module
+# of another BASIS project, the dependencies to other modules have to be specified
 # here such that the top-level project can analyze the inter-module dependencies.
 #
 # @sa http://opensource.andreasschuh.com/cmake-basis/standard/modules.html
@@ -50,10 +50,10 @@
 #   CONTACT           "Contact <info@greatproductcompany.com>"
 #   # ------------------------------------------------------------------------
 #   # dependencies
-#   DEPENDS          
-#      NiftiCLib 
+#   DEPENDS
+#      NiftiCLib
 #      PythonInterp
-#   OPTIONAL_DEPENDS 
+#   OPTIONAL_DEPENDS
 #     PythonInterp
 #     JythonInterp
 #     Perl
@@ -62,7 +62,7 @@
 #     Doxygen
 #     Sphinx{build}
 #     ITK # TODO required by basistest-driver, get rid of this dependency
-#   TEST_DEPENDS     
+#   TEST_DEPENDS
 #      Perl
 #   OPTIONAL_TEST_DEPENDS
 #     MATLAB{mex}
@@ -99,7 +99,7 @@ basis_project (
   LICENSE          "BSD license, See COPYING file for license information."
   CONTACT          "Andrew Hundt <ATHundt@gmail.com>"
   TEMPLATE         "basis/1.1"
-  
+
   # --------------------------------------------------------------------------
   # dependencies
   DEPENDS
@@ -115,7 +115,7 @@ basis_project (
     FRI_Client_SDK_Cpp # Kuka Fast Robot Interface (FRI) Client SDK
     ur_modern_driver   # Universal Robots Arm Device Driver https://github.com/ThomasTimm/ur_modern_driver/
     CisstNetlib        # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
-    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin 
+    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin
     sawConstraintController #  used for inverse kinematics plugin https://github.com/jhu-saw/sawConstraintController
     Ceres              # http://ceres-solver.org/ used in arm hand eye calibration
     CAMODOCAL          # used for hand eye calibration plugin https://github.com/hengli/camodocal
@@ -128,7 +128,8 @@ basis_project (
     RBDyn              # Models the dynamics of rigid body system https://github.com/jrl-umi3218/RBDyn used for inverse kinematics
     Tasks              # Real time control of Kinematic Trees https://github.com/jrl-umi3218/Tasks used for inverse kinematics
     spdlog             # fast logging library https://github.com/gabime/spdlog
-    # ZeroMQ             # (Deprecated) zeromq.org https://github.com/zeromq/libzmq 
+    LibDL              # Linux Dynamic Loader library, linux only https://refspecs.linuxfoundation.org/LSB_2.0.1/LSB-Core/LSB-Core/libdl.html
+    # ZeroMQ             # (Deprecated) zeromq.org https://github.com/zeromq/libzmq
     # libsodium          # (Deprecated) https://github.com/jedisct1/libsodium # todo: test this dependency
     # AZMQ               # (Deprecated) Boost Asio implementation of ZeroMQ https://github.com/zeromq/azmq
   TEST_DEPENDS
