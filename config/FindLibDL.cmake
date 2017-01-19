@@ -7,7 +7,6 @@
 #
 # source: https://github.com/Fadis/libdcompile/blob/master/CMakeFiles/modules/FindLibDL.cmake
 # License: BSD 2 clause
-message(STATUS FINDLIBDL<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<)
 IF (LIBDL_INCLUDE_DIR)
   # Already in cache, be silent
   SET(LIBDL_FIND_QUIETLY TRUE)
