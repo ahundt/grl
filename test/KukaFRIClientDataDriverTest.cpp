@@ -8,13 +8,14 @@
 #include <cstring>
 #include <vector>
 
+#include "grl/kuka/KukaFRIdriver.hpp"
+#include "grl/vector_ostream.hpp"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
 #include <boost/asio.hpp>
 
-#include "grl/kuka/KukaFRIdriver.hpp"
 
 
 //

@@ -34,6 +34,8 @@
 basis_add_library(v_repLib v_repLib.cpp luaFunctionDataItem.cpp socketOutConnection.cpp luaFunctionData.cpp     socketInConnection.cpp  v_repLib.cpp
 )
 
+basis_add_library(v_repRemoteApi remoteApi/extApi.cpp remoteApi/extApiPlatform.cpp)
+
 # ============================================================================
 # executable target(s)
 # ============================================================================

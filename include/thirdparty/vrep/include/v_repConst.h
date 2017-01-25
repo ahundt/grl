@@ -38,6 +38,8 @@
 #define VREP_PROGRAM_REVISION_NB 1
 #define VREP_PROGRAM_REVISION "(rev. 1)"
 
+
+
 /* Scene object types. Values are serialized */
 enum { 
         sim_object_shape_type=0,
