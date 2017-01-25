@@ -43,7 +43,7 @@ matrix:
 
 # dependency install steps
 before_install:   
-  - git clone https://ceres-solver.googlesource.com/ceres-solver
+  - git clone https://ceres-solver.googlesource.com/ceres-solver -b master v1.12.0
   - cd ceres-solver
   - mkdir build
   - cd build
@@ -59,7 +59,7 @@ before_install:
   - sudo make -j install
   - cd ../..
   - 
-  - git clone https://github.com/google/flatbuffers.git
+  - git clone https://github.com/google/flatbuffers.git -b master v1.5.0
   - cd flatbuffers
   - mkdir build
   - cd build
@@ -75,7 +75,7 @@ before_install:
   - sudo make -j install
   - cd ../..
   -
-  - git clone https://github.com/gabime/spdlog.git
+  - git clone https://github.com/gabime/spdlog.git -b master v0.11.0
   - cd spdlog
   - mkdir build
   - cd build
