@@ -14,9 +14,9 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
 
-#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
+//#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #include <boost/thread.hpp>
-#endif
+//#endif
 
 // friClientData is found in the kuka connectivity FRI cpp zip file
 #include "friClientData.h"
