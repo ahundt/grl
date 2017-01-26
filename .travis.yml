@@ -73,7 +73,7 @@ before_install:
   - sudo make -j install
   - cd ../..
   -
-  - git clone https://github.com/hengli/camodocal.git
+  - git clone https://github.com/hengli/camodocal.git -b v1.0.1
   - cd camodocal
   - mkdir build
   - cd build
@@ -93,6 +93,7 @@ before_install:
   - git clone https://github.com/ahundt/robotics_setup.git
   - cd robotics_setup
   - ./robotics_tasks.sh
+  - ./trtk.sh
   - cd ..
   -
   # ROS indigo setup
