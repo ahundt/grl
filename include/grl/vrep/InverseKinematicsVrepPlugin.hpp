@@ -120,6 +120,7 @@ void SetRBDynArmFromVrep(
         std::string jointName = vrepJointNames[i];
         std::size_t jointIdx = simArmMultiBody.jointIndexByName(jointName);
         simGetJointPosition(vrepJointHandles[i],&futureAngle);
+        /// @todo TODO(ahundt) warn/error when size!=0 or explicitly handle those cases
         if(simArmConfig.q[jointIdx].size()>0) simArmConfig.q[jointIdx][0] = futureAngle;
         
         /// @todo TODO(ahundt) add torque information
@@ -198,6 +199,8 @@ public:
         // in example simulation this ends in #0
         VrepRobotArmDriverMeasuredP_ = std::make_shared<vrep::VrepRobotArmDriver>(vrep::VrepRobotArmDriver::measuredArmParams());
         VrepRobotArmDriverMeasuredP_->construct();
+        measuredJointHandles_ = VrepRobotArmDriverMeasuredP_->getJointHandles();
+        measuredJointNames_ = VrepRobotArmDriverMeasuredP_->getJointNames();
         
         ikGroupHandle_ = simGetIkGroupHandle(std::get<IKGroupName>(params).c_str());
         simSetExplicitHandling(ikGroupHandle_,1); // enable explicit handling for the ik
@@ -477,15 +480,26 @@ public:
     /// version, or if it should update every iteration in tasks::qp::PostureTask
     /// https://github.com/jrl-umi3218/Tasks/blob/15aff94e3e03f6a161a87799ca2cf262b756bd0c/src/QPTasks.h#L426
     enum class PostureTaskStrategyE { constant, updateToCurrent };
+    /// Determines where the current arm state is copied from
+    /// simulatedArm is the current simulation, measuredArm
+    /// is based off of data measured from the real physical arm
+    enum class ArmStateSource { simulatedArm, measuredArm };
     
     
     /// Runs inverse kinematics or constrained optimization at every simulation time step
     /// @param runOnce Set runOnce = true to only update kinematics once for debugging purposes. runOnce = false runs this function at every time step.
+    /// @param solveForPosition defines where the arm is aiming for, the moving goal pose object or a stationary debug position to verify the algorithm
+    /// @param postureStrategy helps determine the position/orientation at which the elbow is held
+    /// @param syncSimulatedKinematicsState data used to set the simulated arm position at the START of the kinematics update
+    /// @param syncMeasuredKinematicsState set measured arm position at END of the kinematics update. Use simulatedArm when running simulation, measuredArm when running with a real physical arm from which you can get measurements.
     void updateKinematics(
         const bool runOnce = false,
         const GoalPosE solveForPosition = GoalPosE::realGoalPosition,
         const AlgToUseE alg = AlgToUseE::multiIterQP,
-        const PostureTaskStrategyE postureStrategy = PostureTaskStrategyE::constant
+        const PostureTaskStrategyE postureStrategy = PostureTaskStrategyE::constant,
+        const ArmStateSource syncSimulatedKinematicsState = ArmStateSource::measuredArm,
+        const ArmStateSource syncMeasuredKinematicsState = ArmStateSource::simulatedArm,
+        int numSolverIterations = 10
     ){
         if(runOnce && ranOnce_) return;
         ranOnce_ = true;
@@ -497,7 +511,15 @@ public:
         // Copy Joint Interval, the range of motion for each joint
         
         /// @todo TODO(ahundt) change source of current state based on if physical arm is running
-        VrepRobotArmDriverSimulatedP_->getState(currentArmState_);
+        if(syncSimulatedKinematicsState == ArmStateSource::simulatedArm)
+        {
+            VrepRobotArmDriverSimulatedP_->getState(currentArmState_);
+        }
+        else
+        {
+            VrepRobotArmDriverMeasuredP_->getState(currentArmState_);
+        }
+
         
         // lower limits
         auto & llim = std::get<vrep::VrepRobotArmDriver::JointLowerPositionLimit>(currentArmState_);
@@ -510,6 +532,8 @@ public:
         // current position
         auto & currentJointPos = std::get<vrep::VrepRobotArmDriver::JointPosition>(currentArmState_);
         std::vector<double> currentJointPosVec(currentJointPos.begin(),currentJointPos.end());
+        
+        /// @todo TODO(ahundt) also copy acceleration velocity, torque, etc
         
         
         const auto& handleParams = VrepRobotArmDriverSimulatedP_->getVrepHandleParams();
@@ -545,7 +569,19 @@ public:
        
         ////////////////////////////////////////////////////
         // Set joints to current arm position in simulation
-        SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
+        if(syncSimulatedKinematicsState == ArmStateSource::simulatedArm)
+        {
+            SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
+        }
+        else
+        {
+            // note that the regular joint names are used but the measured handles are used
+            // this means the names will match correctly for accessing the multibody, while
+            // measured angles are what will actually be transferred.
+            /// @todo TODO(ahundt) using it like this is a bit fragile, and a reasonable change to
+            ///                    SetRBDynArmFromVrep could cause breakage, so improve the API design.
+            SetRBDynArmFromVrep(jointNames_,measuredJointHandles_,simArmMultiBody,simArmConfig);
+        }
         rbd::forwardKinematics(simArmMultiBody, simArmConfig);
         rbd::forwardVelocity(simArmMultiBody, simArmConfig);
         
@@ -576,7 +612,7 @@ public:
             logger_->info("target translation (rbdyn format):\n", targetWorldTransform.translation());
         }
         tasks::qp::PositionTask posTask(rbd_mbs_, simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.translation());
-        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 50., 1.);
+        tasks::qp::SetPointTask posTaskSp(rbd_mbs_, simulatedRobotIndex, &posTask, 50., 10.);
         tasks::qp::OrientationTask oriTask(rbd_mbs_,simulatedRobotIndex, ikGroupTipName_,targetWorldTransform.rotation());
         tasks::qp::SetPointTask oriTaskSp(rbd_mbs_, simulatedRobotIndex, &oriTask, 50., 1.);
         tasks::qp::PostureTask postureTask(rbd_mbs_,simulatedRobotIndex,rbd_preferred_mbcs_[simulatedRobotIndex].q,1,0.01);
@@ -605,9 +641,11 @@ public:
             /// @todo TODO(ahundt) ulimits aren't the same size as jointHandles_, need velocity limits too
             // set joint position limits
             if(boost::iequals(jointName,"cutter_joint"))
-            { /// @todo TODO(ahundt) hardcoded mill tip joint limits, remove these
+            { /// @todo TODO(ahundt) hardcoded mill tip joint limits, remove these, load from simulation
                 lBound[jointIdx][0] = -inf;
                 uBound[jointIdx][0] = inf;
+                lVelBound[jointIdx][0] = -inf;
+                uVelBound[jointIdx][0] = inf;
             }
             else if(i<llimits.size() && lBound[jointIdx].size()==1)
             {
@@ -616,7 +654,7 @@ public:
             }
         
             // set joint velocity limits
-            if(lVelBound[jointIdx].size()==1)
+            if(i<llimits.size() && lVelBound[jointIdx].size()==1)
             {
                 /// @todo TODO(ahundt) replace hardcoded velocity limits with real and useful limits specific to each joint loaded from V-REP or another file.
                 // 0.99 radians per second is the limit of the slowest joint (joint 1) on the KUKA iiwa R820
@@ -656,7 +694,6 @@ public:
             // Test JointLimitsConstr
             /// @todo TODO(ahundt) was this commented correctly?
             //simArmConfig = mbcInit;
-            int numSolverIterations = 10;
             double timeStepDividedIntoIterations = simulationTimeStep/numSolverIterations;
             // This actually runs every time step, so only one iteration here, unless we want to subdivide
             // a v-rep time step into smaller rbdyn time steps.
@@ -666,8 +703,8 @@ public:
                 /// @todo TODO(ahundt) remove BOOST_VERIFY(), try/catch solver failure, print an error, send a v-rep message, and shut down solver or enter a hand guiding mode
                 BOOST_VERIFY(solver.solve(rbd_mbs_, rbd_mbcs_));
                 // This should be handled by the simulator or physical robot, "forward simulation of dynamics"
-                //rbd::sEulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
-                rbd::sEulerIntegration(simArmMultiBody, simArmConfig, simulationTimeStep);
+                rbd::sEulerIntegration(simArmMultiBody, simArmConfig, timeStepDividedIntoIterations);
+                //rbd::sEulerIntegration(simArmMultiBody, simArmConfig, simulationTimeStep);
 
                 rbd::sForwardKinematics(simArmMultiBody, simArmConfig);
                 rbd::sForwardVelocity(simArmMultiBody, simArmConfig);
@@ -685,6 +722,19 @@ public:
         }
         
         SetVRepArmFromRBDyn(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
+        
+        
+        if(syncMeasuredKinematicsState == ArmStateSource::simulatedArm)
+        {
+            // Running simulation only, so update the "measured" arm to match the simulated arm
+        
+            // note that the regular joint names are used but the measured handles are used
+            // this means the names will match correctly for accessing the multibody, while
+            // measured angles are what will actually be transferred.
+            /// @todo TODO(ahundt) using it like this is a bit fragile, and a reasonable change to
+            ///                    SetRBDynArmFromVrep could cause breakage, so improve the API design.
+            SetVRepArmFromRBDyn(jointNames_,measuredJointHandles_,simArmMultiBody,simArmConfig);
+        }
         
        debugFrames();
     } // end updateKinematics()
@@ -742,6 +792,10 @@ public:
     std::vector<std::string> jointNames_;
     std::vector<std::string> linkNames_;
     std::vector<std::string> linkRespondableNames_;
+    
+    
+    std::vector<int> measuredJointHandles_; ///< @todo move this item back into VrepRobotArmDriver
+    std::vector<std::string> measuredJointNames_;
     
     int ikGroupHandle_;
     int ikGroupBaseHandle_;
