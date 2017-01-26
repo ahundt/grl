@@ -51,7 +51,9 @@ before_install:
   - sudo make -j3 install
   - cd ../..
   - 
-  - git clone https://github.com/schuhschuh/cmake-basis.git
+  # TODO(ahundt) put back commented line below
+  #- git clone https://github.com/schuhschuh/cmake-basis.git
+  - git clone --depth=1 https://github.com/ahundt/BASIS.git cmake-basis --branch grl
   - cd cmake-basis
   - mkdir build
   - cd build
