@@ -18,43 +18,6 @@
 
 
 
-//
-//template<typename T,typename V>
-//inline T& printseq(T& out, V& v){
-//    out << "[";
-//    size_t last = v.size() - 1;
-//    for(size_t i = 0; i < v.size(); ++i) {
-//        out << v[i];
-//        if (i != last)
-//            out << ", ";
-//    }
-//    out << "]";
-//    return out;
-//}
-//
-//template<typename T,size_t N>
-//inline boost::log::formatting_ostream& operator<< (boost::log::formatting_ostream& out, const boost::container::static_vector<T,N>& v) {
-//  return printseq(out,v);
-//}
-//
-//
-//template<typename T,size_t N>
-//ostream& operator<< (ostream& out, const boost::container::static_vector<T,N>& v) {
-//  return printseq(out,v);
-//}
-//
-//
-//template<typename T>
-//inline boost::log::formatting_ostream& operator<<(boost::log::formatting_ostream& out,  std::vector<T>& v)
-//{
-//    return printseq(out, v);
-//}
-//template<typename T>
-//inline std::ostream& operator<<(std::ostream& out,  std::vector<T>& v)
-//{
-//    return printseq(out,v);
-//}
-
 using boost::asio::ip::udp;
 
 #include <chrono>
