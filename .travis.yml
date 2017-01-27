@@ -109,7 +109,7 @@ script:
   #- cd grl
   - mkdir build
   - cd build
-  - cmake .. -DBUILD_ALL_MODULES=ON -DBUILD_DOCUMENTATION=ON -DBUILD_EXAMPLE=ON -DMODULE_grl=ON -DMODULE_robone=ON -DMODULE_roboneprivate=ON  -DWITH_CAMODOCAL=ON  -DWITH_Ceres=ON  -DWITH_CisstNetlib=OFF   -DWITH_Eigen3=ON -DWITH_FRI_Client_SDK_Cpp=OFF  -DWITH_Nanopb=OFF  -DWITH_OpenCV=OFF  -DWITH_PCL=OFF -DWITH_RBDyn=ON  -DWITH_SpaceVecAlg=ON -DWITH_TRTK=ON -DWITH_Tasks=ON  -DWITH_Threads=ON  -DWITH_cisst=OFF -DWITH_freenect2=OFF -DWITH_sawConstraintController=OFF -DWITH_sch-core=ON  -DWITH_spdlog=ON  -DWITH_ur_modern_driver=OFF
+  - cmake .. -DBUILD_ALL_MODULES=ON -DBUILD_DOCUMENTATION=OFF -DBUILD_EXAMPLE=ON -DMODULE_grl=ON -DMODULE_robone=ON -DMODULE_roboneprivate=ON  -DWITH_CAMODOCAL=ON  -DWITH_Ceres=ON  -DWITH_CisstNetlib=OFF   -DWITH_Eigen3=ON -DWITH_FRI_Client_SDK_Cpp=OFF  -DWITH_Nanopb=OFF  -DWITH_OpenCV=OFF  -DWITH_PCL=OFF -DWITH_RBDyn=ON  -DWITH_SpaceVecAlg=ON -DWITH_TRTK=ON -DWITH_Tasks=ON  -DWITH_Threads=ON  -DWITH_cisst=OFF -DWITH_freenect2=OFF -DWITH_sawConstraintController=OFF -DWITH_sch-core=ON  -DWITH_spdlog=ON  -DWITH_ur_modern_driver=OFF
   - make
 #  - sudo make install
 #  - cd ../..
