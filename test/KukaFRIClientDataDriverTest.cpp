@@ -53,7 +53,8 @@ enum { max_length = 1024 };
 
 int main(int argc, char* argv[])
 {
-  bool debug = false;
+  bool debug = true;
+  int print_every_n = 100;
   std::size_t q_size = 4096; //queue size must be power of 2
   spdlog::set_async_mode(q_size);
   std::shared_ptr<spdlog::logger>                  loggerPG;
@@ -192,7 +193,7 @@ int main(int argc, char* argv[])
         // copy the state data into a more accessible object
         /// TODO(ahundt) switch from this copy to a non-deprecated call
         grl::robot::arm::copy(friData->monitoringMsg,armState);
-        if(debug) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " ipoJointPositionOffsets: ", armState.ipoJointPositionOffsets);
+        if(debug && (i % print_every_n) ==0 ) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " ipoJointPositionOffsets: ", armState.ipoJointPositionOffsets);
 
 	}
   }
