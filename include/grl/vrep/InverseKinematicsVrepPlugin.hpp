@@ -490,16 +490,18 @@ public:
     /// @param runOnce Set runOnce = true to only update kinematics once for debugging purposes. runOnce = false runs this function at every time step.
     /// @param solveForPosition defines where the arm is aiming for, the moving goal pose object or a stationary debug position to verify the algorithm
     /// @param postureStrategy helps determine the position/orientation at which the elbow is held
-    /// @param syncSimulatedKinematicsState data used to set the simulated arm position at the START of the kinematics update
+    /// @param syncSimulatedKinematicsState data used to set the simulated arm position at the START of the kinematics update, use measuredArm with the real arm, simulatedArm when running simulation only.
     /// @param syncMeasuredKinematicsState set measured arm position at END of the kinematics update. Use simulatedArm when running simulation, measuredArm when running with a real physical arm from which you can get measurements.
+    /// @param scaleSimulationTimeStep scale the amount of time the Tasks library thinks is passing. WARNING: DANGEROUS HACK, MAY WORKS AROUND SPEED LIMITS, MIGHT WANT TO LEAVE THIS AT 1.0
     void updateKinematics(
         const bool runOnce = false,
         const GoalPosE solveForPosition = GoalPosE::realGoalPosition,
         const AlgToUseE alg = AlgToUseE::multiIterQP,
         const PostureTaskStrategyE postureStrategy = PostureTaskStrategyE::constant,
         const ArmStateSource syncSimulatedKinematicsState = ArmStateSource::measuredArm,
-        const ArmStateSource syncMeasuredKinematicsState = ArmStateSource::simulatedArm,
-        int numSolverIterations = 10
+        const ArmStateSource syncMeasuredKinematicsState = ArmStateSource::measuredArm,
+        int numSolverIterations = 10,
+        double scaleSimulationTimeStep = 10
     ){
         if(runOnce && ranOnce_) return;
         ranOnce_ = true;
@@ -694,7 +696,7 @@ public:
             // Test JointLimitsConstr
             /// @todo TODO(ahundt) was this commented correctly?
             //simArmConfig = mbcInit;
-            double timeStepDividedIntoIterations = simulationTimeStep/numSolverIterations;
+            double timeStepDividedIntoIterations = scaleSimulationTimeStep*simulationTimeStep/numSolverIterations;
             // This actually runs every time step, so only one iteration here, unless we want to subdivide
             // a v-rep time step into smaller rbdyn time steps.
             for(int i = 0; i < numSolverIterations; ++i)
@@ -742,7 +744,7 @@ public:
     /// may not need this it is in the base class
     /// blocking call, call in separate thread, just allocates memory
     void run_one(){
-       const bool ik = true;
+       const bool ik = false;
        if(ik) updateKinematics();
        else   testPose();
     }
