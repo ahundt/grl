@@ -1,5 +1,7 @@
-Introduction
-============
+Generic Robotics Library
+=========================
+
+[![Build Status](https://travis-ci.org/ahundt/grl.svg?branch=master)](https://travis-ci.org/ahundt/grl)
 
 The Generic Robotics Library (GRL) has a long term goal of implementing robotics algorithms using generic programming in C++11.
 
