@@ -80,6 +80,7 @@ sudo apt-get install libsuitesparse-dev
 #   repository:
 sudo apt-get install libsuitesparse-dev
 ``
+
 clone, build and install ceres:
 
 ```
