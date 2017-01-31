@@ -1,4 +1,4 @@
-Introduction
+Installation
 ============
 
 This document contains the build and installation instructions for the Generic Robotics Library.
@@ -9,6 +9,12 @@ Automated setup scripts that put code in `~/src` can be found in the [robotics_s
 
 This software has an optional runtime dependency on [V-REP][10] and [ROS][22], independently or together.
 
+Ubuntu 14.04 and 16.04 Automated Installation
+---------------------------------------------
+
+This will do an automated build the minimal KUKA Driver code in the `~/src` folder.
+It supports use with [ROS](ros.org) indigo and kinetic, or direct use as a library.
+
 **ROS Users:** 
 
 We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack) 
@@ -18,11 +24,7 @@ Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack)
 which uses grl and provides full blown system integration tools
 for many typical robot arm tasks such as pick and place operations.
 
-Kuka Driver on Ubuntu Linux 14.04 and 16.04
--------------------------------------------
-
-This will do an automated build the minimal KUKA Driver code in the `~/src` folder.
-It supports use with [ROS](ros.org) indigo and kinetic, or direct use as a library.
+**Install Steps:**
 
 1. [Setup git as explained in these instructions](https://help.github.com/articles/set-up-git/#platform-linux)  
 2. [Enable connecting to github with ssh as explained in these instructions](https://help.github.com/articles/connecting-to-github-with-ssh/)
@@ -38,11 +40,14 @@ It supports use with [ROS](ros.org) indigo and kinetic, or direct use as a libra
     ./grl_kuka.sh
 ```
 4. Follow the [iiwaKukaRobotSetup Tutorial for grl](https://ahundt.github.io/grl/howto/iiwaKukaRobotSetup.html)
-5. Re-run `./grl_kuka.sh` once the KUKA FRI zip is in the `~/src/grl/data` folder
+5. You should now have the KUKA FRI zip in `~/src/grl/data/FRI-Client-SDK_Cpp.zip`.
+6. Re-run `./grl_kuka.sh` to build with FRI.
+
+**You're Done!**
 
 
-Installing on Ubuntu 14.04 Manually
-===================================
+Ubuntu 14.04 Manual Installation
+--------------------------------
 
 These instructions are for manually installing the ubuntu 14.04 package dependencies for grl.
 
@@ -144,7 +149,7 @@ cd ../..
 
 
 Homebrew Installation for OS X and Linux
-========================================
+----------------------------------------
 
 The easy installation instructions work on OS X via [homebrew](http://brew.sh) and Ubuntu 14.04 Linux via [Linuxbrew](http://linuxbrew.sh).
 
@@ -335,29 +340,6 @@ Not yet fully implemented/tested.
 
 Here are some extra notes if you're planning to install
 dependencies manually.
-
-
-
-libsodium (for zeromq)
-
-```
-git clone git@github.com:jedisct1/libsodium.git
-cd libsodium/
-sudo make install
-```
-  
-  zeromq >=4.0
-  
-  [azmq](https://github.com/zeromq/azmq)
-  
-```
-git clone git@github.com:zeromq/azmq.git
-cd azmq
-mkdir build
-cd build
-cmake ..
-sudo make -j8 install
-```
 
 Required dependencies
 
