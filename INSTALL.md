@@ -2,77 +2,32 @@ Introduction
 ============
 
 This document contains the build and installation instructions for the Generic Robotics Library.
+While there is a lot of functionality supported by grl, most dependencies are optional.
+A complete list of dependencies and their categories can be found in the [BasisProject.cmake](../BasisProject.cmake) file.
+
+Automated setup scripts that put code in `~/src` can be found in the [robotics_setup](https://github.com/ahundt/robotics_setup) repository.
 
 
-Easy Installation for OS X and Linux
-====================================
+Kuka Driver on Ubuntu Linux 14.04 and 16.04
+-------------------------------------------
 
-The easy installation instructions work on OS X via homebrew and Ubuntu 14.04 Linux via Linuxbrew.
+This will do an automated build the minimal KUKA Driver code in the `~/src` folder.
 
-**ROS users:** 
-
-Install ROS before following these instructions.
-
-**Linux users:**
-
-Please note that on Linux these instructions will build many dependencies from source
-and install them in `~/.linuxbrew`, so if you need to use specific versions that are 
-already installed these instructions may not work for you! ROS users, this may mean you!
-
-Also on linux you may want to use `brew install libname --env=inherit`
-so it uses your native environment variable configuration.
-
-**Setup Instructions:**
-
-1. Setup brew for OS X or Linux
-    - [Homebrew OS X setup instructions](http://brew.sh/) or paste `ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` into the terminal
-    - [Linuxbrew setup instructions](http://linuxbrew.sh/), or paste `ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/linuxbrew/go/install)"` into the terminal
-2. Linux only - add linuxbrew to your `~/.bashrc` or ~/.zshrc:
-    export PKG_CONFIG_PATH="/usr/bin/pkg-config:$HOME/.linuxbrew/bin/pkg-config"
-    export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$HOME/.linuxbrew/lib/pkgconfig"
-    export PATH="$HOME/.linuxbrew/bin:$PATH"                                    
-    export MANPATH="$HOME/.linuxbrew/share/man:$MANPATH"                        
-    export INFOPATH="$HOME/.linuxbrew/share/info:$INFOPATH"
-3. Check that it is setup correctly `brew help` should output the homebrew help.
-4. OS X only - install [Homebrew Cask](http://caskroom.io/) `brew install caskroom/cask/brew-cask`
-5. 
-
+1. [Setup git as explained in these instructions](https://help.github.com/articles/set-up-git/#platform-linux)  
+2. [Enable connecting to github with ssh as explained in these instructions](https://help.github.com/articles/connecting-to-github-with-ssh/)
+3. Run the following in terminal:
+```sh
+    # first prevent [python permission errors](http://stackoverflow.com/a/40767020/99379)
+    sudo chown -R $USER /usr/local/lib/python2.7
+    cd ~
+    mkdir src
+    cd src
+    git clone https://github.com/ahundt/robotics_setup.git
+    cd robotics_setup
+    ./grl_kuka.sh
 ```
-brew tap homebrew/science # [homebrew-science](http://brew.sh/homebrew-science/) contains many scientific libraries, such as OpenCV and pcl
-brew tap homebrew/robotics # [homebrew-robotics](https://github.com/ahundt/homebrew-robotics) contains software packages needed by grl.
-brew install grl
-```
-
-**Done!** (unless you need kuka drivers)
-
-
-#### Extra steps for KUKA iiwa drivers
-
-There are a few additional steps to get the KUKA iiwa drivers up and running. First run the following:
-
-```
-brew uninstall grl # we need to do some manual steps so remove the auto installed version (dependencies stay)
-mkdir -p ~/local/src
-cd ~/local/src
-git clone https://github.com/ahundt/grl.git
-cd grl
-```
-
-The grl code will now be in `~/local/src/grl`.
-
-Now follow the instructions in:
-
-[KUKA LBR iiwa Java Setup](https://ahundt.github.io/grl/howto/iiwaKukaRobotSetup.html)
-
-**ROS Users:** 
-
-We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack) 
-in addition to grl for full ROS integration.
-
-Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack) 
-which is integrated with grl and provides full blown system integration tools
-for many typical robot arm tasks such as pick and place operations.
-
+4. Follow the [iiwaKukaRobotSetup Tutorial for grl](https://ahundt.github.io/grl/howto/iiwaKukaRobotSetup.html)
+5. Re-run `./grl_kuka.sh` once the KUKA FRI zip is in the `~/src/grl/data` folder
 
 
 
@@ -204,12 +159,90 @@ sudo make install
 cd ../..
 ```
 
+
+Homebrew Installation for OS X and Linux
+========================================
+
+The easy installation instructions work on OS X via [homebrew](http://brew.sh) and Ubuntu 14.04 Linux via [Linuxbrew](http://linuxbrew.sh).
+
+**ROS users:** 
+
+Install ROS before following these instructions.
+
+**Linux users:**
+
+Please note that on Linux these instructions will build many dependencies from source
+and install them in `~/.linuxbrew`, so if you need to use specific versions that are 
+already installed these instructions may not work for you! ROS users, this may mean you!
+
+Also on linux you may want to use `brew install libname --env=inherit`
+so it uses your native environment variable configuration.
+
+**Setup Instructions:**
+
+1. Setup brew for OS X or Linux
+    - [Homebrew OS X setup instructions](http://brew.sh/) or paste `ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` into the terminal
+    - [Linuxbrew setup instructions](http://linuxbrew.sh/), or paste `ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/linuxbrew/go/install)"` into the terminal
+2. Linux only - add linuxbrew to your `~/.bashrc` or ~/.zshrc:
+    export PKG_CONFIG_PATH="/usr/bin/pkg-config:$HOME/.linuxbrew/bin/pkg-config"
+    export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$HOME/.linuxbrew/lib/pkgconfig"
+    export PATH="$HOME/.linuxbrew/bin:$PATH"                                    
+    export MANPATH="$HOME/.linuxbrew/share/man:$MANPATH"                        
+    export INFOPATH="$HOME/.linuxbrew/share/info:$INFOPATH"
+3. Check that it is setup correctly `brew help` should output the homebrew help.
+4. OS X only - install [Homebrew Cask](http://caskroom.io/) `brew install caskroom/cask/brew-cask`
+5. 
+
+```
+brew tap homebrew/science # [homebrew-science](http://brew.sh/homebrew-science/) contains many scientific libraries, such as OpenCV and pcl
+brew tap homebrew/robotics # [homebrew-robotics](https://github.com/ahundt/homebrew-robotics) contains software packages needed by grl.
+brew install grl
+```
+
+**Done!** (unless you need kuka drivers)
+
+
+#### Extra steps for KUKA iiwa drivers
+
+There are a few additional steps to get the KUKA iiwa drivers up and running. First run the following:
+
+```
+brew uninstall grl # we need to do some manual steps so remove the auto installed version (dependencies stay)
+mkdir -p ~/local/src
+cd ~/local/src
+git clone https://github.com/ahundt/grl.git
+cd grl
+```
+
+The grl code will now be in `~/local/src/grl`.
+
+Now follow the instructions in:
+
+[KUKA LBR iiwa Java Setup](https://ahundt.github.io/grl/howto/iiwaKukaRobotSetup.html)
+
+**ROS Users:** 
+
+We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack) 
+in addition to grl for full ROS integration.
+
+Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack) 
+which is integrated with grl and provides full blown system integration tools
+for many typical robot arm tasks such as pick and place operations.
+
+
+
+
 Build Dependencies
 ==================
 
 Many dependencies are optional based on the functionality you wish to use.
 Details about what dependencies are for what functionality are below this table.
 
+While there is a lot of functionality supported by grl, most dependencies are optional.
+A complete list of dependencies and their categories can be found in the [BasisProject.cmake](../BasisProject.cmake) file.
+
+Basic Build Dependencies
+---------------------------
 
 Package                       | Version    | Language |     Description
 ----------------------------- | ---------- | -------- | ----------------------------------------------
@@ -218,18 +251,36 @@ Fast Robot Interface SDK      | >= 3.0     | C++      | Provided by KUKA, driver
 [CMake BASIS][1]              | >= 3.2     | C++      | Meta-project which makes it easy to create sharable software and libraries that work together.
 [Boost][4]                    | >= 1.54.0  | C++      | Collection of general use C++ libraries.
 [Eigen][14]                   | >= 3.2     | C++      | C++ template library for linear algebra.
-[ZeroMQ][6]                   | >= 4.0     | C++      | High Performance Network Communication Library
-[libsodium][11]               | >= 1.0.4   | C++      | A modern and easy-to-use crypto library used by ZeroMQ.
-[AZMQ][7]                     | >= 1.0     | C++      | [Boost.asio][5] based official ZeroMQ C++ Networking Library Interface
-[JeroMQ][8]                   | >= 3.0     | Java     | Official Pure Java implementation of ZeroMQ
 [Google Flatbuffers][9]       | >= 1.0     | Java/C++ | High Performance Message Serialization Library
 [V-REP][10]                   | >= 3.2     | C++      | Recommended robot simulation library (Optional)
+
+
+Hand Eye Calibration Dependencies
+---------------------------------
+
+Optional unless you wish to perform Hand Eye Calibration.
+
+Package                       | Version    | Language |     Description
+----------------------------- | ---------- | -------- | ----------------------------------------------
 [CAMODOCAL][13]               | ?          | C++      | CamOdoCal: Automatic Intrinsic and Extrinsic Calibration
 [ceres-solver][12]            | >= 1.11    | C++      | Nonlinear Optimization library developed by google
 BLAS                          | ?          | ?        | Standard linear algebra APIs, see ceres-solver install instructions
 [CUDA][15]                    | >= 7.5     | C++      | NVIDIA GPU C/C++ Development Environment used by CAMODOCAL
 [gtest][16]                   | >= 1.7.0   | C++      | Google's C++ test framework used by ceres-solver
 [glog][17]                    | >= 0.3.4   | C++      | Google's C++ logging framework used by ceres-solver
+
+
+Deprecated Build Dependencies
+-----------------------------
+
+You almost certainly don't need these, but they are here for reference.
+
+Package                       | Version    | Language |     Description
+----------------------------- | ---------- | -------- | ----------------------------------------------
+[ZeroMQ][6]                   | >= 4.0     | C++      | High Performance Network Communication Library
+[libsodium][11]               | >= 1.0.4   | C++      | A modern and easy-to-use crypto library used by ZeroMQ.
+[AZMQ][7]                     | >= 1.0     | C++      | [Boost.asio][5] based official ZeroMQ C++ Networking Library Interface
+[JeroMQ][8]                   | >= 3.0     | Java     | Official Pure Java implementation of ZeroMQ
 [cisst-netlib][18]            | >= 0.3.4   | C++      | Binary distribution of [netlib][21] numerical routines
 [cisst][19]                   | >= 0.3.4   | C++      | Google's C++ logging framework used by ceres-solver
 [sawConstraintController][20] | >= 1.0.2   | C++      | cisst component for constrained optimization and arm path planning
