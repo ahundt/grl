@@ -3,15 +3,26 @@ Introduction
 
 This document contains the build and installation instructions for the Generic Robotics Library.
 While there is a lot of functionality supported by grl, most dependencies are optional.
-A complete list of dependencies and their categories can be found in the [BasisProject.cmake](../BasisProject.cmake) file.
+A complete list of dependencies and their categories can be found in the [BasisProject.cmake](BasisProject.cmake) file.
 
 Automated setup scripts that put code in `~/src` can be found in the [robotics_setup](https://github.com/ahundt/robotics_setup) repository.
 
+This software has an optional runtime dependency on [V-REP][10] and [ROS][22], independently or together.
+
+**ROS Users:** 
+
+We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack) 
+in addition to grl for full ROS integration.
+
+Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack) 
+which uses grl and provides full blown system integration tools
+for many typical robot arm tasks such as pick and place operations.
 
 Kuka Driver on Ubuntu Linux 14.04 and 16.04
 -------------------------------------------
 
 This will do an automated build the minimal KUKA Driver code in the `~/src` folder.
+It supports use with [ROS](ros.org) indigo and kinetic, or direct use as a library.
 
 1. [Setup git as explained in these instructions](https://help.github.com/articles/set-up-git/#platform-linux)  
 2. [Enable connecting to github with ssh as explained in these instructions](https://help.github.com/articles/connecting-to-github-with-ssh/)
@@ -28,14 +39,6 @@ This will do an automated build the minimal KUKA Driver code in the `~/src` fold
 ```
 4. Follow the [iiwaKukaRobotSetup Tutorial for grl](https://ahundt.github.io/grl/howto/iiwaKukaRobotSetup.html)
 5. Re-run `./grl_kuka.sh` once the KUKA FRI zip is in the `~/src/grl/data` folder
-
-
-
-Runtime Requirements
-====================
-
-This software has an optional runtime dependency on [V-REP][10] and [ROS][22], independently or together.
-
 
 
 Installing on Ubuntu 14.04 Manually
@@ -71,31 +74,12 @@ sudo apt-get install libsuitesparse-dev
 #   you can use the SuiteSparse package in the main Ubuntu package
 #   repository:
 sudo apt-get install libsuitesparse-dev
-```
+``
 clone, build and install ceres:
 
 ```
 git clone https://ceres-solver.googlesource.com/ceres-solver
 cd ceres-solver
-mkdir build
-cd build
-cmake ..
-sudo make install
-cd ../..
-```
-
-#### [ZeroMQ](http://ceres-solver.org/building.html#linux) setup
-
-
-```
-sudo apt-get install libzmq3-dev
-```
-
-for 14.04 don't use libzmq-dev, it is too out of date
-
-```
-git clone https://github.com/zeromq/azmq.git
-cd azmq
 mkdir build
 cd build
 cmake ..
@@ -131,7 +115,6 @@ sudo add-apt-repository --yes ppa:xqms/opencv-nonfree
 sudo apt-get update 
 sudo apt-get install libopencv-nonfree-dev
 ```
-
 
 #### [Camodocal](https://github.com/hengli/camodocal)
 
