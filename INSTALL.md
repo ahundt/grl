@@ -79,7 +79,7 @@ sudo apt-get install libsuitesparse-dev
 #   you can use the SuiteSparse package in the main Ubuntu package
 #   repository:
 sudo apt-get install libsuitesparse-dev
-``
+```
 
 clone, build and install ceres:
 
