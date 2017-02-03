@@ -5,7 +5,7 @@
 
 # Install docker with the line below
 
-curl -sSL https://get.docker.com/ubuntu/ | sudo sh
+curl -sSL https://get.docker.com/ | sudo sh
 
 
 # source: https://www.docker.com/

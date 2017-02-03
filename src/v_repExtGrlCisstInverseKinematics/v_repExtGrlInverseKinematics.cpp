@@ -15,7 +15,7 @@
 // This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
 
 #include <memory>
-#include <spdlog/spdlog.h>
+#include <boost/log/trivial.hpp>
 #include <boost/exception/diagnostic_information.hpp> 
 #include "v_repExtGrlInverseKinematics.h"
 #include "grl/cisst/VrepVFController.hpp"
