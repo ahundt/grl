@@ -744,7 +744,8 @@ public:
     /// may not need this it is in the base class
     /// blocking call, call in separate thread, just allocates memory
     void run_one(){
-       const bool ik = false;
+       // If true, run real inverse kinematics algorith, if false go to a test pose.
+       const bool ik = true;
        if(ik) updateKinematics();
        else   testPose();
     }
