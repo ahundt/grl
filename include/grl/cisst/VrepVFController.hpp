@@ -280,11 +280,11 @@ public:
                 if (i<jointHandles_.size()-1)
                     str+=", ";
        }
-        BOOST_LOG_TRIVIAL(trace) << "jointAngles_dt: "<< str;
+        this->logger_->info("jointAngles_dt: {}",str);
         
         auto optimizerCalculated_dx = this->currentKinematicsStateP_->Jacobian * jointAngles_dt;
        
-        BOOST_LOG_TRIVIAL(trace) << "\n            desired dx: " << inputDesired_dx << " " << dx_rotation << "\noptimizer Calculated dx: " << optimizerCalculated_dx;
+        this->logger_->info("\n            desired dx: {}{}{}{}{}",inputDesired_dx, " ", dx_rotation, "\noptimizer Calculated dx: ", optimizerCalculated_dx);
     }
     
     /// may not need this it is in the base class

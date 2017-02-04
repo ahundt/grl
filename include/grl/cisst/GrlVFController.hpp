@@ -8,6 +8,8 @@
 #include <sawConstraintController/mtsVFController.h>
 #include <sawConstraintController/mtsVFDataJointLimits.h>
 
+#include <spdlog/spdlog.h>
+
 namespace grl {
 
 /// create the data object and put the data inside
@@ -67,6 +69,7 @@ public:
     }
     
     void construct(){
+        logger_ = spdlog::get("console");
     }
     
     /// This will hold the Jacobian
@@ -84,7 +87,7 @@ public:
     /// joints cannot go to certain position
     std::unique_ptr<mtsVFDataJointLimits> jointPositionLimitsVFP_;
     
-    
+    std::shared_ptr<spdlog::logger> logger_;  
 };
 
 } // namespace grl
