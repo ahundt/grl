@@ -143,14 +143,14 @@ namespace grl { namespace robot { namespace arm {
 
       KukaJAVAdriver(Params params = defaultParams())
         : params_(params), armControlMode_(flatbuffer::ArmState::ArmState_NONE)
-      {logger_ = spdlog::get("console");}
+      {}
 
       void construct(){ construct(params_); sequenceNumber = 0; }
 
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
       void construct(Params params) {
-
+        try { logger_ = spdlog::stdout_logger_mt("console"); } catch (spdlog::spdlog_ex ex) { logger_ = spdlog::get("console"); }
         params_ = params;
 
 
