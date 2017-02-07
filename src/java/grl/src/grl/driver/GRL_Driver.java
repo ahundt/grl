@@ -228,7 +228,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 
 		// TODO: add a message that we send to the driver with data log strings
-		while (!stop && !_startStopUI.is_stopped()) {
+		while (!stop && !_startStopUI.is_stopped() && _lbr.getSafetyState().getEmergencyStopInt()==EmergencyStop.INACTIVE) {
 			message_counter+=1;
 			_currentKUKAiiwaState = udpMan.waitForNextMessage();
 			_previousKUKAiiwaState = udpMan.getPrevMessage();
