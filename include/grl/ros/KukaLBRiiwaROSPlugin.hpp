@@ -146,6 +146,7 @@ namespace grl {
       /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
       /// @warning getting the ik group is optional, so it does not throw an exception
       void construct(Params params) {
+	        try 	{ 		 logger_ = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		logger_ = spdlog::get("console"); 	}
 
           current_js_.name.resize(7);
           current_js_.name[0] = "iiwa_joint_1";
@@ -399,7 +400,8 @@ namespace grl {
     private:
 
       bool debug;
-      grl::flatbuffer::ArmState interaction_mode;
+      std::shared_ptr<spdlog::logger> logger_;
+      grl::flatbuffer::ArmState       interaction_mode;
 
       boost::mutex jt_mutex;
       boost::shared_ptr<robot::arm::KukaDriver> KukaDriverP_;
