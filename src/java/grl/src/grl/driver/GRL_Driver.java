@@ -533,7 +533,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				if(!cancelTeachMode()) continue;
 				if(!cancelSmartServo()) continue;
 				
-				if(message_counter_since_last_mode_change % 500 == 0) getLogger().info("StartArm mode active, connection established!\nHolding Position while waiting for mode change...\n");
+				if(message_counter_since_last_mode_change % 10000 == 0) getLogger().info("StartArm mode active, connection established!\nHolding position while waiting for mode change...\n");
 
 				PositionControlMode controlMode = new PositionControlMode();
 				if(message_counter_since_last_mode_change < 2 || message_counter_since_last_mode_change % 100 == 0){

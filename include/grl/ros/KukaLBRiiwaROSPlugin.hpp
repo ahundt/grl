@@ -336,7 +336,7 @@ namespace grl {
            case grl::flatbuffer::ArmState_ShutdownArm:
              break;
            default:
-             if(iteration_count_ % 100 == 0) {
+             if(iteration_count_ % 10000 == 0) {
                ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode! Valid grl::flatbuffer::ArmState required for interaction_mode topic!");
              }
          }
