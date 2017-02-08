@@ -184,6 +184,8 @@ namespace grl { namespace robot { namespace arm {
             FD_ZERO(&dummy_mask);
             FD_SET(socket_local, &mask);
 
+            // set arm to StartArm mode on initalization
+            set(grl::flatbuffer::ArmState_StartArm);
 
         } catch( boost::exception &e) {
           e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from " +

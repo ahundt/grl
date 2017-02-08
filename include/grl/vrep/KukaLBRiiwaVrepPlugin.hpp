@@ -183,6 +183,7 @@ void construct(Params params){
         
   ));
   kukaDriverP_->construct();
+  // Default to joint servo mode for commanding motion
   kukaDriverP_->set(flatbuffer::ArmState::ArmState_MoveArmJointServo);
     std::cout << "KUKA COMMAND MODE: " << std::get<KukaCommandMode>(params) << "\n";
   initHandles();

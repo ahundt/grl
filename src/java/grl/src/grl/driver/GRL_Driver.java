@@ -49,6 +49,7 @@ import com.kuka.connectivity.motionModel.smartServo.SmartServo;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
+import com.kuka.roboticsAPI.controllerModel.sunrise.SunriseSafetyState.EmergencyStop;
 import com.kuka.roboticsAPI.deviceModel.JointLimits;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
@@ -228,7 +229,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 
 		// TODO: add a message that we send to the driver with data log strings
-		while (!stop && !_startStopUI.is_stopped()) {
+		while (!stop && !_startStopUI.is_stopped() && _lbr.getSafetyState().getEmergencyStopInt()==EmergencyStop.INACTIVE) {
 			message_counter+=1;
 			_currentKUKAiiwaState = udpMan.waitForNextMessage();
 			_previousKUKAiiwaState = udpMan.getPrevMessage();
@@ -525,11 +526,26 @@ public class GRL_Driver extends RoboticsAPIApplication
 					_lbr.move(positionHold(controlMode,10,TimeUnit.MILLISECONDS));
 				}
 
+
+			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.StartArm) {
+
+				if (currentMotion != null) currentMotion.cancel();
+				if(!cancelTeachMode()) continue;
+				if(!cancelSmartServo()) continue;
+				
+				if(message_counter_since_last_mode_change % 10000 == 0) getLogger().info("StartArm mode active, connection established!\nHolding position while waiting for mode change...\n");
+
+				PositionControlMode controlMode = new PositionControlMode();
+				if(message_counter_since_last_mode_change < 2 || message_counter_since_last_mode_change % 100 == 0){
+					_lbr.move(positionHold(controlMode,10,TimeUnit.MILLISECONDS));
+				}
+
 			} else {
 				System.out.println("Unsupported Mode! stopping");
 				stop = true;
 			}
-
+			
+			
             ///////////////////////////////////////////////////////////////////////////
  			/// Sending commands back to the C++ interface here
 			/// Reading sensor values from Java Interface and sending them thrugh UDP

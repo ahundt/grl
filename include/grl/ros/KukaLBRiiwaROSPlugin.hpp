@@ -320,7 +320,7 @@ namespace grl {
              break;
            case grl::flatbuffer::ArmState_TeachArm:
              if (debug) {
-              ROS_INFO("Arm is in TEACH mode");
+               ROS_INFO("Arm is in TEACH mode");
              }
              break;
              break;
@@ -330,13 +330,15 @@ namespace grl {
              break;
            case grl::flatbuffer::ArmState_StartArm:
              if (debug) {
-              ROS_INFO("Sending start!");
+               ROS_INFO("Sending StartArm!");
              }
              break;
            case grl::flatbuffer::ArmState_ShutdownArm:
              break;
            default:
-             ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode!");
+             if(iteration_count_ % 10000 == 0) {
+               ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode! Valid grl::flatbuffer::ArmState required for interaction_mode topic!");
+             }
          }
 
          haveNewData = KukaDriverP_->run_one();
@@ -377,6 +379,7 @@ namespace grl {
 
        }
 
+       iteration_count_++;
        return haveNewData;
      }
 
@@ -399,6 +402,8 @@ namespace grl {
     private:
 
       bool debug;
+      std::size_t iteration_count_ = 0;
+      
       grl::flatbuffer::ArmState interaction_mode;
 
       boost::mutex jt_mutex;
