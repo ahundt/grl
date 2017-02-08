@@ -49,6 +49,7 @@ import com.kuka.connectivity.motionModel.smartServo.SmartServo;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.controllerModel.recovery.IRecovery;
+import com.kuka.roboticsAPI.controllerModel.sunrise.SunriseSafetyState.EmergencyStop;
 import com.kuka.roboticsAPI.deviceModel.JointLimits;
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
 import com.kuka.roboticsAPI.deviceModel.LBR;
@@ -94,9 +95,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 	/// or SmartServo/DirectServo (JAVA UDP interface will be used to send position/torques back (not yet implemented)
 	private byte _monitorInterface = KUKAiiwaInterface.SmartServo;
 
-	private FRIConfiguration _friConfiguration = null;
-	private FRISession       _friSession = null;
-	private FRIJointOverlay  _motionOverlay = null;
+	//private FRIConfiguration _friConfiguration = null;
+	//private FRISession       _friSession = null;
+	//private FRIJointOverlay  _motionOverlay = null;
 	private FRIMode _FRIModeRunnable = null;
 	private Thread _FRIModeThread = null;
     boolean waitingForUserToEndFRIMode = false;
@@ -153,10 +154,10 @@ public class GRL_Driver extends RoboticsAPIApplication
 //			_mediaFlangeIOGroup.setLEDBlue(true);
 		}
 
-        _friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _processDataManager.get_FRI_KONI_LaptopIPAddress());
-        _friConfiguration.setSendPeriodMilliSec(4);
+        //_friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _processDataManager.get_FRI_KONI_LaptopIPAddress());
+        //_friConfiguration.setSendPeriodMilliSec(4);
 
-        _friSession = new FRISession(_friConfiguration);
+        //_friSession = new FRISession(_friConfiguration);
 
 		_flangeAttachment = getApplicationData().createFromTemplate("FlangeAttachment");
 		_pausedApplicationRecovery = getRecovery();
@@ -196,10 +197,10 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_teachModeThread.start();
 
 
-
+        int millisecondsPerFRITimeStep = 4;
 		_FRIModeRunnable = new FRIMode(
 				_lbr,
-				_friSession);
+				_processDataManager.get_FRI_KONI_LaptopIPAddress(), millisecondsPerFRITimeStep);
 		_FRIModeRunnable.setLogger(getLogger());
 		_FRIModeThread = new Thread(_FRIModeRunnable);
 		_FRIModeThread.start();
@@ -228,7 +229,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 
 		// TODO: add a message that we send to the driver with data log strings
-		while (!stop && !_startStopUI.is_stopped()) {
+		while (!stop && !_startStopUI.is_stopped() && _lbr.getSafetyState().getEmergencyStopInt()==EmergencyStop.INACTIVE) {
 			message_counter+=1;
 			_currentKUKAiiwaState = udpMan.waitForNextMessage();
 			_previousKUKAiiwaState = udpMan.getPrevMessage();
@@ -460,15 +461,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 					// only start a new motion overlay if there isn't a current one actively commanding
 					/// TODO: perhaps it is possible commands won't actually be sent and that will still be valid, modify this if statement to deal with that
-					if(    _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_ACTIVE) != 0
-						&& _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_WAIT) != 0)
+					if( !_FRIModeRunnable.isCommandingWaitOrActive())
 					{
 						getLogger().info("FRI MotionOverlay starting...");
 						_FRIModeRunnable.setControlMode(_smartServoMotionControlMode);
 						_FRIModeRunnable.enable();
 					}
 
-					if(message_counter % 100 == 0) getLogger().info("FRI MotionOverlay Quality Sample: " + _friSession.getFRIChannelInformation().getQuality().toString());
+					if(message_counter % 100 == 0) getLogger().info("FRI MotionOverlay Quality Sample: " + _FRIModeRunnable.getQualityString());
 				} else if(_smartServoRuntime != null )  {
 
 					grl.flatbuffer.JointState jointState = mas.goal();
@@ -525,11 +525,26 @@ public class GRL_Driver extends RoboticsAPIApplication
 					_lbr.move(positionHold(controlMode,10,TimeUnit.MILLISECONDS));
 				}
 
+
+			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.StartArm) {
+
+				if (currentMotion != null) currentMotion.cancel();
+				if(!cancelTeachMode()) continue;
+				if(!cancelSmartServo()) continue;
+				
+				if(message_counter_since_last_mode_change % 500 == 0) getLogger().info("StartArm mode active, connection established!\nHolding Position while waiting for mode change...\n");
+
+				PositionControlMode controlMode = new PositionControlMode();
+				if(message_counter_since_last_mode_change < 2 || message_counter_since_last_mode_change % 100 == 0){
+					_lbr.move(positionHold(controlMode,10,TimeUnit.MILLISECONDS));
+				}
+
 			} else {
 				System.out.println("Unsupported Mode! stopping");
 				stop = true;
 			}
-
+			
+			
             ///////////////////////////////////////////////////////////////////////////
  			/// Sending commands back to the C++ interface here
 			/// Reading sensor values from Java Interface and sending them thrugh UDP

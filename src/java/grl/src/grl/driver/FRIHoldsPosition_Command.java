@@ -3,14 +3,19 @@ package grl.driver;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.positionHold;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
+import grl.FRIMode;
+import grl.ProcessDataManager;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.kuka.connectivity.fastRobotInterface.FRIConfiguration;
 import com.kuka.connectivity.fastRobotInterface.FRIJointOverlay;
 import com.kuka.connectivity.fastRobotInterface.FRISession;
+import com.kuka.connectivity.fastRobotInterface.FRIChannelInformation.FRISessionState;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
+import com.kuka.roboticsAPI.controllerModel.sunrise.SunriseSafetyState.EmergencyStop;
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import com.kuka.roboticsAPI.geometricModel.CartDOF;
 import com.kuka.roboticsAPI.motionModel.controlModeModel.CartesianImpedanceControlMode;
@@ -25,56 +30,57 @@ public class FRIHoldsPosition_Command extends RoboticsAPIApplication
     private Controller _lbrController;
     private LBR _lbr;
     private String _hostName;
+	//private FRIJointOverlay  _motionOverlay = null;
+	private FRIMode _FRIModeRunnable = null;
+	private Thread _FRIModeThread = null;
+	private ProcessDataManager _processDataManager = null;
 
     @Override
     public void initialize()
     {
+
+		_processDataManager = new ProcessDataManager(this);
+	
         _lbrController = (Controller) getContext().getControllers().toArray()[0];
         _lbr = (LBR) _lbrController.getDevices().toArray()[0];
         // **********************************************************************
         // *** change next line to the FRIClient's IP address                 ***
         // **********************************************************************
-        _hostName = "192.170.10.100";
+        _hostName = _processDataManager.get_FRI_KONI_LaptopIPAddress();
     }
 
     @Override
     public void run()
     {
-        // configure and start FRI session
-        FRIConfiguration friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
-        friConfiguration.setSendPeriodMilliSec(4);
-        FRISession friSession = new FRISession(friConfiguration);
-		FRIJointOverlay motionOverlay = new FRIJointOverlay(friSession);
+
+		int message_counter = 0;
+
+		_FRIModeRunnable = new FRIMode(
+				_lbr,_hostName,4);
+
+		_FRIModeRunnable.setLogger(getLogger());
+		_FRIModeThread = new Thread(_FRIModeRunnable);
+		_FRIModeThread.start();
 		
-		 try {
-			friSession.await(10, TimeUnit.SECONDS);
-		} catch (TimeoutException e) {
-			// TODO Automatisch generierter Erfassungsblock
-			e.printStackTrace();
-			friSession.close();
-			return;
-		}
-		//CartesianImpedanceControlMode controlMode = new CartesianImpedanceControlMode();
-		//controlMode.parametrize(CartDOF.X).setStiffness(500.0);
-		//controlMode.parametrize(CartDOF.ALL).setDamping(0.7);
-//		 JointImpedanceControlMode controlMode = new JointImpedenceControlMode();
-//		 controlMode.setDampingForAllJoints(0.7);
-//		 controlMode.setStiffnessForAllJoints(500);
 		 PositionControlMode controlMode = new PositionControlMode();
-        // TODO: remove default start pose
-        // move to default start pose
-        _lbr.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
+		while( _lbr.getSafetyState().getEmergencyStopInt()==EmergencyStop.INACTIVE)
+		{
+			
+			if(!_FRIModeRunnable.isCommandingWaitOrActive())    
+			{
+				    if(message_counter % 1000 == 0) getLogger().info("FRI MotionOverlay starting...");
+				    controlMode = new PositionControlMode();
+				    _lbr.move(positionHold(controlMode, 100, TimeUnit.MILLISECONDS));
+					_FRIModeRunnable.setControlMode(controlMode);
+					_FRIModeRunnable.enable();
+			}
 
-        // sync move for infinite time with overlay ...
-		_lbr.move(positionHold(controlMode, -1, TimeUnit.SECONDS).addMotionOverlay(motionOverlay));
-        //_lbr.moveAsync(ptp(Math.toRadians(-90), .0, .0, Math.toRadians(90), .0, Math.toRadians(-90), .0));
-        
-        // TODO: remove default start pose
-        // move to default start pose
-        _lbr.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
-
+			if(message_counter % 1000 == 0) getLogger().info("FRI MotionOverlay Quality Sample: " + _FRIModeRunnable.getQualityString());
+		    message_counter++;
+		}
+		_FRIModeRunnable.stop();
         // done
-        friSession.close();
+        //_friSession.close();
     }
 
     /**
