@@ -336,8 +336,8 @@ namespace grl {
            case grl::flatbuffer::ArmState_ShutdownArm:
              break;
            default:
-             if(debug) {
-               ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode!");
+             if(iteration_count_ % 100 == 0) {
+               ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode! Valid grl::flatbuffer::ArmState required for interaction_mode topic!");
              }
          }
 
@@ -379,6 +379,7 @@ namespace grl {
 
        }
 
+       iteration_count_++;
        return haveNewData;
      }
 
@@ -401,6 +402,8 @@ namespace grl {
     private:
 
       bool debug;
+      std::size_t iteration_count_ = 0;
+      
       grl::flatbuffer::ArmState interaction_mode;
 
       boost::mutex jt_mutex;
