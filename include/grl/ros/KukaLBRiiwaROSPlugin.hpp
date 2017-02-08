@@ -320,7 +320,7 @@ namespace grl {
              break;
            case grl::flatbuffer::ArmState_TeachArm:
              if (debug) {
-              ROS_INFO("Arm is in TEACH mode");
+               ROS_INFO("Arm is in TEACH mode");
              }
              break;
              break;
@@ -330,13 +330,15 @@ namespace grl {
              break;
            case grl::flatbuffer::ArmState_StartArm:
              if (debug) {
-              ROS_INFO("Sending start!");
+               ROS_INFO("Sending StartArm!");
              }
              break;
            case grl::flatbuffer::ArmState_ShutdownArm:
              break;
            default:
-             ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode!");
+             if(debug) {
+               ROS_INFO("KukaLBRiiwaROSPlugin in unsupported mode!");
+             }
          }
 
          haveNewData = KukaDriverP_->run_one();
