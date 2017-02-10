@@ -317,7 +317,7 @@ namespace grl { namespace robot { namespace arm {
           int ret;
           // Send UDP packet to Robot
           ret = sendto(socket_local, fbbP->GetBufferPointer(), fbbP->GetSize(), 0, (struct sockaddr *)&dst_sockaddr, sizeof(dst_sockaddr));
-          
+
           if (static_cast<long>(ret) != static_cast<long>(fbbP->GetSize())) printf("Error sending packet to KUKA iiwa: ret = %d, len = %u\n", ret, fbbP->GetSize());
 
 
@@ -346,7 +346,7 @@ namespace grl { namespace robot { namespace arm {
                            static const std::size_t udp_size = 1400;
                            unsigned char recbuf[udp_size];
                            static const int flags = 0;
-                      
+
                            ret = recvfrom(socket_local, recbuf, sizeof(recbuf), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
                            if (ret <= 0) printf("Receive Error: ret = %d\n", ret);
 
@@ -359,7 +359,7 @@ namespace grl { namespace robot { namespace arm {
 
                                auto verifier = flatbuffers::Verifier(rbPstart, ret);
                                auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
-                                
+
                                // Flatbuffer has been verified as valid
                                if (bufOK) {
                                    // only reading the wrench data currently
@@ -547,6 +547,13 @@ namespace grl { namespace robot { namespace arm {
         armControlMode_ = armControlMode;
    }
 
+   /// get the mode of the arm. Examples: Teach or MoveArmJointServo
+   /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
+   void get(flatbuffer::ArmState& armControlMode)
+   {
+        armControlMode = armControlMode_;
+   }
+
     private:
 
       std::shared_ptr<spdlog::logger> logger_;
@@ -588,7 +595,7 @@ namespace grl { namespace robot { namespace arm {
       boost::mutex jt_mutex;
 
       int64_t sequenceNumber;
-      
+
       bool debug_ = false;
 
     };
