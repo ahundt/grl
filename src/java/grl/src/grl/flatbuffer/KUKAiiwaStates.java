@@ -10,12 +10,13 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class KUKAiiwaStates extends Table {
   public static KUKAiiwaStates getRootAsKUKAiiwaStates(ByteBuffer _bb) { return getRootAsKUKAiiwaStates(_bb, new KUKAiiwaStates()); }
-  public static KUKAiiwaStates getRootAsKUKAiiwaStates(ByteBuffer _bb, KUKAiiwaStates obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public static KUKAiiwaStates getRootAsKUKAiiwaStates(ByteBuffer _bb, KUKAiiwaStates obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public static boolean KUKAiiwaStatesBufferHasIdentifier(ByteBuffer _bb) { return __has_identifier(_bb, "iiwa"); }
-  public KUKAiiwaStates __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public KUKAiiwaStates __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public KUKAiiwaState states(int j) { return states(new KUKAiiwaState(), j); }
-  public KUKAiiwaState states(KUKAiiwaState obj, int j) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
+  public KUKAiiwaState states(KUKAiiwaState obj, int j) { int o = __offset(4); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
   public int statesLength() { int o = __offset(4); return o != 0 ? __vector_len(o) : 0; }
 
   public static int createKUKAiiwaStates(FlatBufferBuilder builder,

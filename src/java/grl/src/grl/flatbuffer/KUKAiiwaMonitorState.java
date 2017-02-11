@@ -10,20 +10,21 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class KUKAiiwaMonitorState extends Table {
   public static KUKAiiwaMonitorState getRootAsKUKAiiwaMonitorState(ByteBuffer _bb) { return getRootAsKUKAiiwaMonitorState(_bb, new KUKAiiwaMonitorState()); }
-  public static KUKAiiwaMonitorState getRootAsKUKAiiwaMonitorState(ByteBuffer _bb, KUKAiiwaMonitorState obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public KUKAiiwaMonitorState __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static KUKAiiwaMonitorState getRootAsKUKAiiwaMonitorState(ByteBuffer _bb, KUKAiiwaMonitorState obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public KUKAiiwaMonitorState __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public grl.flatbuffer.JointState measuredState() { return measuredState(new grl.flatbuffer.JointState()); }
-  public grl.flatbuffer.JointState measuredState(grl.flatbuffer.JointState obj) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public grl.flatbuffer.JointState measuredState(grl.flatbuffer.JointState obj) { int o = __offset(4); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   public grl.flatbuffer.Pose cartesianFlangePose() { return cartesianFlangePose(new grl.flatbuffer.Pose()); }
-  public grl.flatbuffer.Pose cartesianFlangePose(grl.flatbuffer.Pose obj) { int o = __offset(6); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.Pose cartesianFlangePose(grl.flatbuffer.Pose obj) { int o = __offset(6); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
   public grl.flatbuffer.JointState jointStateReal() { return jointStateReal(new grl.flatbuffer.JointState()); }
-  public grl.flatbuffer.JointState jointStateReal(grl.flatbuffer.JointState obj) { int o = __offset(8); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public grl.flatbuffer.JointState jointStateReal(grl.flatbuffer.JointState obj) { int o = __offset(8); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   /**
    * FRI can adjust the java commanded position. "Interpolated" is the original Java commanded position.
    */
   public grl.flatbuffer.JointState jointStateInterpolated() { return jointStateInterpolated(new grl.flatbuffer.JointState()); }
-  public grl.flatbuffer.JointState jointStateInterpolated(grl.flatbuffer.JointState obj) { int o = __offset(10); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public grl.flatbuffer.JointState jointStateInterpolated(grl.flatbuffer.JointState obj) { int o = __offset(10); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   /**
    * The state of the arm as calculated by kuka after
    * subtracting the known weights of the arm
@@ -32,10 +33,10 @@ public final class KUKAiiwaMonitorState extends Table {
    * Most likely only contains torque.
    */
   public grl.flatbuffer.JointState externalState() { return externalState(new grl.flatbuffer.JointState()); }
-  public grl.flatbuffer.JointState externalState(grl.flatbuffer.JointState obj) { int o = __offset(12); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public grl.flatbuffer.JointState externalState(grl.flatbuffer.JointState obj) { int o = __offset(12); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   public byte operationMode() { int o = __offset(14); return o != 0 ? bb.get(o + bb_pos) : 0; }
   public grl.flatbuffer.Wrench CartesianWrench() { return CartesianWrench(new grl.flatbuffer.Wrench()); }
-  public grl.flatbuffer.Wrench CartesianWrench(grl.flatbuffer.Wrench obj) { int o = __offset(16); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.Wrench CartesianWrench(grl.flatbuffer.Wrench obj) { int o = __offset(16); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
 
   public static void startKUKAiiwaMonitorState(FlatBufferBuilder builder) { builder.startObject(7); }
   public static void addMeasuredState(FlatBufferBuilder builder, int measuredStateOffset) { builder.addOffset(0, measuredStateOffset, 0); }

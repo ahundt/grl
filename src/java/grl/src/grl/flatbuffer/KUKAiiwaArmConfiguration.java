@@ -10,8 +10,9 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class KUKAiiwaArmConfiguration extends Table {
   public static KUKAiiwaArmConfiguration getRootAsKUKAiiwaArmConfiguration(ByteBuffer _bb) { return getRootAsKUKAiiwaArmConfiguration(_bb, new KUKAiiwaArmConfiguration()); }
-  public static KUKAiiwaArmConfiguration getRootAsKUKAiiwaArmConfiguration(ByteBuffer _bb, KUKAiiwaArmConfiguration obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public KUKAiiwaArmConfiguration __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static KUKAiiwaArmConfiguration getRootAsKUKAiiwaArmConfiguration(ByteBuffer _bb, KUKAiiwaArmConfiguration obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public KUKAiiwaArmConfiguration __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public String name() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer nameAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }
@@ -36,17 +37,17 @@ public final class KUKAiiwaArmConfiguration extends Table {
    */
   public byte controlMode() { int o = __offset(14); return o != 0 ? bb.get(o + bb_pos) : 0; }
   public SmartServo smartServoConfig() { return smartServoConfig(new SmartServo()); }
-  public SmartServo smartServoConfig(SmartServo obj) { int o = __offset(16); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public SmartServo smartServoConfig(SmartServo obj) { int o = __offset(16); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   public FRI FRIConfig() { return FRIConfig(new FRI()); }
-  public FRI FRIConfig(FRI obj) { int o = __offset(18); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public FRI FRIConfig(FRI obj) { int o = __offset(18); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   public grl.flatbuffer.LinkObject tools(int j) { return tools(new grl.flatbuffer.LinkObject(), j); }
-  public grl.flatbuffer.LinkObject tools(grl.flatbuffer.LinkObject obj, int j) { int o = __offset(20); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
+  public grl.flatbuffer.LinkObject tools(grl.flatbuffer.LinkObject obj, int j) { int o = __offset(20); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
   public int toolsLength() { int o = __offset(20); return o != 0 ? __vector_len(o) : 0; }
   /**
    * set kuka tablet "processData" panel UI config strings
    */
   public ProcessData processData(int j) { return processData(new ProcessData(), j); }
-  public ProcessData processData(ProcessData obj, int j) { int o = __offset(22); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
+  public ProcessData processData(ProcessData obj, int j) { int o = __offset(22); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
   public int processDataLength() { int o = __offset(22); return o != 0 ? __vector_len(o) : 0; }
   public String currentMotionCenter() { int o = __offset(24); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer currentMotionCenterAsByteBuffer() { return __vector_as_bytebuffer(24, 1); }

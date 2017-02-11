@@ -10,13 +10,14 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class MoveArmCartesianServo extends Table {
   public static MoveArmCartesianServo getRootAsMoveArmCartesianServo(ByteBuffer _bb) { return getRootAsMoveArmCartesianServo(_bb, new MoveArmCartesianServo()); }
-  public static MoveArmCartesianServo getRootAsMoveArmCartesianServo(ByteBuffer _bb, MoveArmCartesianServo obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public MoveArmCartesianServo __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static MoveArmCartesianServo getRootAsMoveArmCartesianServo(ByteBuffer _bb, MoveArmCartesianServo obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public MoveArmCartesianServo __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public String parent() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer parentAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }
   public grl.flatbuffer.Pose goal() { return goal(new grl.flatbuffer.Pose()); }
-  public grl.flatbuffer.Pose goal(grl.flatbuffer.Pose obj) { int o = __offset(6); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.Pose goal(grl.flatbuffer.Pose obj) { int o = __offset(6); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
 
   public static void startMoveArmCartesianServo(FlatBufferBuilder builder) { builder.startObject(2); }
   public static void addParent(FlatBufferBuilder builder, int parentOffset) { builder.addOffset(0, parentOffset, 0); }

@@ -10,8 +10,9 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class StartArm extends Table {
   public static StartArm getRootAsStartArm(ByteBuffer _bb) { return getRootAsStartArm(_bb, new StartArm()); }
-  public static StartArm getRootAsStartArm(ByteBuffer _bb, StartArm obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public StartArm __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static StartArm getRootAsStartArm(ByteBuffer _bb, StartArm obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public StartArm __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
 
   public static void startStartArm(FlatBufferBuilder builder) { builder.startObject(0); }

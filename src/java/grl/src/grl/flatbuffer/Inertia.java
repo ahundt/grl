@@ -9,11 +9,12 @@ import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
 public final class Inertia extends Struct {
-  public Inertia __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public Inertia __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public double mass() { return bb.getDouble(bb_pos + 0); }
   public Pose pose() { return pose(new Pose()); }
-  public Pose pose(Pose obj) { return obj.__init(bb_pos + 8, bb); }
+  public Pose pose(Pose obj) { return obj.__assign(bb_pos + 8, bb); }
   public double ixx() { return bb.getDouble(bb_pos + 64); }
   public double ixy() { return bb.getDouble(bb_pos + 72); }
   public double ixz() { return bb.getDouble(bb_pos + 80); }
