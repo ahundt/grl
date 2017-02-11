@@ -34,8 +34,6 @@
 #include <boost/thread/mutex.hpp>
 //#endif
 
-#include <spdlog/spdlog.h>
-
 #include "grl/tags.hpp"
 #include "grl/exception.hpp"
 #include "grl/kuka/Kuka.hpp"
@@ -45,6 +43,8 @@
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 #include "grl/vector_ostream.hpp"
 
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
 namespace grl { namespace robot { namespace arm {
 
@@ -259,7 +259,7 @@ namespace grl { namespace robot { namespace arm {
                 auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
                 auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
-                std::cout << "\nKukaJAVAdriver sending armposition command:" <<armState_.commandedPosition_goal<<"\n";
+                    logger_->info("C++ KukaJAVAdriver: sending armposition command:",armState_.commandedPosition_goal);
                  break;
               }
               case flatbuffer::ArmState::ArmState_TeachArm: {
@@ -283,7 +283,7 @@ namespace grl { namespace robot { namespace arm {
                  break;
               }
               default:
-                 std::cerr << "KukaJAVAdriver unsupported use case: " << armControlMode_ << "\n";
+                 logger_->error("C++ KukaJAVAdriver: unsupported use case: ", armControlMode_);
           }
 
           auto name = fbbP->CreateString(std::get<RobotName>(params_));
@@ -306,19 +306,19 @@ namespace grl { namespace robot { namespace arm {
           {
               auto states2 = flatbuffer::GetKUKAiiwaStates(fbbP->GetBufferPointer());
               auto movearm = static_cast<const flatbuffer::MoveArmJointServo*>(states2->states()->Get(0)->armControlState()->state());
-              std::cout << "re-extracted " << movearm->goal()->position()->size() << " joint angles: ";
+              std::vector<double> angles;
               for(std::size_t i = 0; i <  movearm->goal()->position()->size(); ++i)
               {
-                std::cout << i << "=" << movearm->goal()->position()->Get(i) << ", ";
+                angles.push_back(movearm->goal()->position()->Get(i));
               }
-              std::cout << "\n";
+              logger_->info("re-extracted {}{}{}", movearm->goal()->position()->size(), " joint angles: ",angles);
           }
 
           int ret;
           // Send UDP packet to Robot
           ret = sendto(socket_local, fbbP->GetBufferPointer(), fbbP->GetSize(), 0, (struct sockaddr *)&dst_sockaddr, sizeof(dst_sockaddr));
 
-          if (static_cast<long>(ret) != static_cast<long>(fbbP->GetSize())) printf("Error sending packet to KUKA iiwa: ret = %d, len = %u\n", ret, fbbP->GetSize());
+          if (static_cast<long>(ret) != static_cast<long>(fbbP->GetSize())) logger_->error("Error sending packet to KUKA iiwa: ret = {}, len = {}", ret, fbbP->GetSize());
 
 
               // Receiving data from Sunrise
@@ -348,11 +348,11 @@ namespace grl { namespace robot { namespace arm {
                            static const int flags = 0;
 
                            ret = recvfrom(socket_local, recbuf, sizeof(recbuf), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
-                           if (ret <= 0) printf("Receive Error: ret = %d\n", ret);
+                           if (ret <= 0) logger_->error("C++ KukaJAVAdriver Error: Receive failed with ret = {}", ret);
 
                            if (ret > 0){
 
-                               if(debug_) std::cout << "received message size: " << ret << "\n";
+                               if(debug_) logger_->info("C++ KukaJAVAdriver received message size: {}",ret);
 
 
                                auto rbPstart = static_cast<const uint8_t *>(recbuf);
@@ -364,7 +364,7 @@ namespace grl { namespace robot { namespace arm {
                                if (bufOK) {
                                    // only reading the wrench data currently
                                    auto bufff = static_cast<const void *>(rbPstart);
-                                   if(debug_) std::cout << "Succeeded in verification.  " << "\n";
+                                   if(debug_) logger_->info("C++ KukaJAVAdriver: flatbuffer verified successfully");
 
                                    auto fbKUKAiiwaStates = grl::flatbuffer::GetKUKAiiwaStates(bufff);
                                    auto wrench = fbKUKAiiwaStates->states()->Get(0)->monitorState()->CartesianWrench();
@@ -379,7 +379,7 @@ namespace grl { namespace robot { namespace arm {
 
 
                                } else {
-                                   std::cout << "Failed verification. bufOk: " << bufOK << "\n";
+                                   logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", bufOK);
                                }
 
 

@@ -22,27 +22,13 @@
 #include "friClientData.h"
 #include "friClientIf.h"
 #include "grl/exception.hpp"
+#include "grl/vector_ostream.hpp"
 #include "grl/kuka/KukaFRIalgorithm.hpp"
 
 #include "Kuka.hpp"
 #include "KukaFRI.hpp"
 
 struct KukaState;
-
-/// @todo move somewhere that won't cause conflicts
-template <typename T, size_t N>
-std::ostream &operator<<(std::ostream &out,
-                         const boost::container::static_vector<T, N> &v) {
-  out << "[";
-  size_t last = v.size() - 1;
-  for (size_t i = 0; i < v.size(); ++i) {
-    out << v[i];
-    if (i != last)
-      out << ", ";
-  }
-  out << "]";
-  return out;
-}
 
 namespace grl {
 namespace robot {
@@ -56,7 +42,7 @@ namespace arm {
 void decode(KUKA::FRI::ClientData &friData, std::size_t msg_size) {
   // The decoder was given a pointer to the monitoringMessage at initialization
   if (!friData.decoder.decode(friData.receiveBuffer, msg_size)) {
-    BOOST_THROW_EXCEPTION(std::runtime_error("Error decoding received data"));
+    BOOST_THROW_EXCEPTION(std::runtime_error("Error decoding received data. This is most likely due to the application running on the KUKA went down or disabled FRI, and thus FRI has been shut off from the robot's side."));
   }
 
   // check message type
