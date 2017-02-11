@@ -251,6 +251,16 @@ namespace grl { namespace robot { namespace arm {
         }
    }
 
+   /// get the mode of the arm. Examples: Teach or MoveArmJointServo
+   /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
+   void get(flatbuffer::ArmState & armControlMode)
+   {
+        if(JAVAdriverP_)
+        {
+            JAVAdriverP_->get(armControlMode);
+        }
+   }
+
      /**
       * \brief Set the joint positions for the current interpolation step.
       *
