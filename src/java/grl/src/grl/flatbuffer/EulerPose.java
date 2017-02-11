@@ -9,12 +9,13 @@ import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
 public final class EulerPose extends Struct {
-  public EulerPose __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public EulerPose __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public grl.flatbuffer.Vector3d position() { return position(new grl.flatbuffer.Vector3d()); }
-  public grl.flatbuffer.Vector3d position(grl.flatbuffer.Vector3d obj) { return obj.__init(bb_pos + 0, bb); }
+  public grl.flatbuffer.Vector3d position(grl.flatbuffer.Vector3d obj) { return obj.__assign(bb_pos + 0, bb); }
   public EulerRotation rotation() { return rotation(new EulerRotation()); }
-  public EulerRotation rotation(EulerRotation obj) { return obj.__init(bb_pos + 24, bb); }
+  public EulerRotation rotation(EulerRotation obj) { return obj.__assign(bb_pos + 24, bb); }
 
   public static int createEulerPose(FlatBufferBuilder builder, double position_x, double position_y, double position_z, double rotation_r1, double rotation_r2, double rotation_r3, byte rotation_eulerOrder) {
     builder.prep(8, 56);

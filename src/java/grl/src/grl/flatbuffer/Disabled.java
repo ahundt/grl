@@ -10,8 +10,9 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class Disabled extends Table {
   public static Disabled getRootAsDisabled(ByteBuffer _bb) { return getRootAsDisabled(_bb, new Disabled()); }
-  public static Disabled getRootAsDisabled(ByteBuffer _bb, Disabled obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public Disabled __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static Disabled getRootAsDisabled(ByteBuffer _bb, Disabled obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public Disabled __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
 
   public static void startDisabled(FlatBufferBuilder builder) { builder.startObject(0); }

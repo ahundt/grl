@@ -10,11 +10,12 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class VrepPath extends Table {
   public static VrepPath getRootAsVrepPath(ByteBuffer _bb) { return getRootAsVrepPath(_bb, new VrepPath()); }
-  public static VrepPath getRootAsVrepPath(ByteBuffer _bb, VrepPath obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public VrepPath __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static VrepPath getRootAsVrepPath(ByteBuffer _bb, VrepPath obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public VrepPath __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public grl.flatbuffer.VrepControlPoint controlPoints(int j) { return controlPoints(new grl.flatbuffer.VrepControlPoint(), j); }
-  public grl.flatbuffer.VrepControlPoint controlPoints(grl.flatbuffer.VrepControlPoint obj, int j) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
+  public grl.flatbuffer.VrepControlPoint controlPoints(grl.flatbuffer.VrepControlPoint obj, int j) { int o = __offset(4); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
   public int controlPointsLength() { int o = __offset(4); return o != 0 ? __vector_len(o) : 0; }
 
   public static int createVrepPath(FlatBufferBuilder builder,

@@ -16,8 +16,9 @@ import com.google.flatbuffers.*;
  */
 public final class ProcessData extends Table {
   public static ProcessData getRootAsProcessData(ByteBuffer _bb) { return getRootAsProcessData(_bb, new ProcessData()); }
-  public static ProcessData getRootAsProcessData(ByteBuffer _bb, ProcessData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public ProcessData __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static ProcessData getRootAsProcessData(ByteBuffer _bb, ProcessData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public ProcessData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public String dataType() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer dataTypeAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }

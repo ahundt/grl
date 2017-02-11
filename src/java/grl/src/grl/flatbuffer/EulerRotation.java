@@ -9,7 +9,8 @@ import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
 public final class EulerRotation extends Struct {
-  public EulerRotation __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public EulerRotation __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public double r1() { return bb.getDouble(bb_pos + 0); }
   public double r2() { return bb.getDouble(bb_pos + 8); }

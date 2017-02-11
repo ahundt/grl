@@ -9,7 +9,8 @@ import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
 public final class Quaternion extends Struct {
-  public Quaternion __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public Quaternion __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public double x() { return bb.getDouble(bb_pos + 0); }
   public double y() { return bb.getDouble(bb_pos + 8); }

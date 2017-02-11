@@ -10,12 +10,13 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class ArmControlSeries extends Table {
   public static ArmControlSeries getRootAsArmControlSeries(ByteBuffer _bb) { return getRootAsArmControlSeries(_bb, new ArmControlSeries()); }
-  public static ArmControlSeries getRootAsArmControlSeries(ByteBuffer _bb, ArmControlSeries obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public static ArmControlSeries getRootAsArmControlSeries(ByteBuffer _bb, ArmControlSeries obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public static boolean ArmControlSeriesBufferHasIdentifier(ByteBuffer _bb) { return __has_identifier(_bb, "armc"); }
-  public ArmControlSeries __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public ArmControlSeries __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public ArmControlState states(int j) { return states(new ArmControlState(), j); }
-  public ArmControlState states(ArmControlState obj, int j) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(__vector(o) + j * 4), bb) : null; }
+  public ArmControlState states(ArmControlState obj, int j) { int o = __offset(4); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
   public int statesLength() { int o = __offset(4); return o != 0 ? __vector_len(o) : 0; }
 
   public static int createArmControlSeries(FlatBufferBuilder builder,

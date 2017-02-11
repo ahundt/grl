@@ -10,13 +10,14 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class VrepControlPoint extends Table {
   public static VrepControlPoint getRootAsVrepControlPoint(ByteBuffer _bb) { return getRootAsVrepControlPoint(_bb, new VrepControlPoint()); }
-  public static VrepControlPoint getRootAsVrepControlPoint(ByteBuffer _bb, VrepControlPoint obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public VrepControlPoint __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static VrepControlPoint getRootAsVrepControlPoint(ByteBuffer _bb, VrepControlPoint obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public VrepControlPoint __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public grl.flatbuffer.Vector3d position() { return position(new grl.flatbuffer.Vector3d()); }
-  public grl.flatbuffer.Vector3d position(grl.flatbuffer.Vector3d obj) { int o = __offset(4); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.Vector3d position(grl.flatbuffer.Vector3d obj) { int o = __offset(4); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
   public grl.flatbuffer.EulerXYZd rotation() { return rotation(new grl.flatbuffer.EulerXYZd()); }
-  public grl.flatbuffer.EulerXYZd rotation(grl.flatbuffer.EulerXYZd obj) { int o = __offset(6); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.EulerXYZd rotation(grl.flatbuffer.EulerXYZd obj) { int o = __offset(6); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
   public double relativeVelocity() { int o = __offset(8); return o != 0 ? bb.getDouble(o + bb_pos) : 1.0; }
   public int bezierPointCount() { int o = __offset(10); return o != 0 ? bb.getInt(o + bb_pos) : 1; }
   public double interpolationFactor1() { int o = __offset(12); return o != 0 ? bb.getDouble(o + bb_pos) : 0.5; }
