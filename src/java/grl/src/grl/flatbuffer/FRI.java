@@ -10,8 +10,9 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class FRI extends Table {
   public static FRI getRootAsFRI(ByteBuffer _bb) { return getRootAsFRI(_bb, new FRI()); }
-  public static FRI getRootAsFRI(ByteBuffer _bb, FRI obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public FRI __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static FRI getRootAsFRI(ByteBuffer _bb, FRI obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public FRI __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public byte overlayType() { int o = __offset(4); return o != 0 ? bb.get(o + bb_pos) : 1; }
   /**

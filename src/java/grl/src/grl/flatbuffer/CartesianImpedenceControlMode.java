@@ -10,19 +10,20 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class CartesianImpedenceControlMode extends Table {
   public static CartesianImpedenceControlMode getRootAsCartesianImpedenceControlMode(ByteBuffer _bb) { return getRootAsCartesianImpedenceControlMode(_bb, new CartesianImpedenceControlMode()); }
-  public static CartesianImpedenceControlMode getRootAsCartesianImpedenceControlMode(ByteBuffer _bb, CartesianImpedenceControlMode obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public CartesianImpedenceControlMode __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static CartesianImpedenceControlMode getRootAsCartesianImpedenceControlMode(ByteBuffer _bb, CartesianImpedenceControlMode obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public CartesianImpedenceControlMode __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   /**
    * actual stiffness to set rot:[nm/rad]
    */
   public grl.flatbuffer.EulerPoseParams stiffness() { return stiffness(new grl.flatbuffer.EulerPoseParams()); }
-  public grl.flatbuffer.EulerPoseParams stiffness(grl.flatbuffer.EulerPoseParams obj) { int o = __offset(4); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public grl.flatbuffer.EulerPoseParams stiffness(grl.flatbuffer.EulerPoseParams obj) { int o = __offset(4); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   /**
    * maximum deviation from set goal in mm and radians
    */
   public grl.flatbuffer.EulerPose maxPathDeviation() { return maxPathDeviation(new grl.flatbuffer.EulerPose()); }
-  public grl.flatbuffer.EulerPose maxPathDeviation(grl.flatbuffer.EulerPose obj) { int o = __offset(6); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.EulerPose maxPathDeviation(grl.flatbuffer.EulerPose obj) { int o = __offset(6); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
   /**
    * sets the maximum joint speed
    */
@@ -33,12 +34,12 @@ public final class CartesianImpedenceControlMode extends Table {
    * trans: [mm/s] rot: [rad/s]
    */
   public grl.flatbuffer.EulerPose maxCartesianVelocity() { return maxCartesianVelocity(new grl.flatbuffer.EulerPose()); }
-  public grl.flatbuffer.EulerPose maxCartesianVelocity(grl.flatbuffer.EulerPose obj) { int o = __offset(10); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.EulerPose maxCartesianVelocity(grl.flatbuffer.EulerPose obj) { int o = __offset(10); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
   /**
    * xyz: Newtons rpy:Nm (all >=0)
    */
   public grl.flatbuffer.EulerPose maxControlForce() { return maxControlForce(new grl.flatbuffer.EulerPose()); }
-  public grl.flatbuffer.EulerPose maxControlForce(grl.flatbuffer.EulerPose obj) { int o = __offset(12); return o != 0 ? obj.__init(o + bb_pos, bb) : null; }
+  public grl.flatbuffer.EulerPose maxControlForce(grl.flatbuffer.EulerPose obj) { int o = __offset(12); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
   /**
    * stop if max control force is exceeded
    */

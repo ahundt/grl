@@ -10,8 +10,9 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class EulerTranslationParams extends Table {
   public static EulerTranslationParams getRootAsEulerTranslationParams(ByteBuffer _bb) { return getRootAsEulerTranslationParams(_bb, new EulerTranslationParams()); }
-  public static EulerTranslationParams getRootAsEulerTranslationParams(ByteBuffer _bb, EulerTranslationParams obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public EulerTranslationParams __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static EulerTranslationParams getRootAsEulerTranslationParams(ByteBuffer _bb, EulerTranslationParams obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public EulerTranslationParams __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public double x() { int o = __offset(4); return o != 0 ? bb.getDouble(o + bb_pos) : 0.0; }
   public double y() { int o = __offset(6); return o != 0 ? bb.getDouble(o + bb_pos) : 0.0; }

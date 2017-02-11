@@ -9,14 +9,15 @@ import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
 public final class Wrench extends Struct {
-  public Wrench __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public Wrench __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public Vector3d force() { return force(new Vector3d()); }
-  public Vector3d force(Vector3d obj) { return obj.__init(bb_pos + 0, bb); }
+  public Vector3d force(Vector3d obj) { return obj.__assign(bb_pos + 0, bb); }
   public Vector3d torque() { return torque(new Vector3d()); }
-  public Vector3d torque(Vector3d obj) { return obj.__init(bb_pos + 24, bb); }
+  public Vector3d torque(Vector3d obj) { return obj.__assign(bb_pos + 24, bb); }
   public Vector3d forceOffset() { return forceOffset(new Vector3d()); }
-  public Vector3d forceOffset(Vector3d obj) { return obj.__init(bb_pos + 48, bb); }
+  public Vector3d forceOffset(Vector3d obj) { return obj.__assign(bb_pos + 48, bb); }
 
   public static int createWrench(FlatBufferBuilder builder, double force_x, double force_y, double force_z, double torque_x, double torque_y, double torque_z, double force_offset_x, double force_offset_y, double force_offset_z) {
     builder.prep(8, 72);

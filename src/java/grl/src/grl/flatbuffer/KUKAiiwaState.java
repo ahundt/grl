@@ -10,8 +10,9 @@ import com.google.flatbuffers.*;
 @SuppressWarnings("unused")
 public final class KUKAiiwaState extends Table {
   public static KUKAiiwaState getRootAsKUKAiiwaState(ByteBuffer _bb) { return getRootAsKUKAiiwaState(_bb, new KUKAiiwaState()); }
-  public static KUKAiiwaState getRootAsKUKAiiwaState(ByteBuffer _bb, KUKAiiwaState obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__init(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public KUKAiiwaState __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; return this; }
+  public static KUKAiiwaState getRootAsKUKAiiwaState(ByteBuffer _bb, KUKAiiwaState obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
+  public KUKAiiwaState __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public String name() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer nameAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }
@@ -22,16 +23,16 @@ public final class KUKAiiwaState extends Table {
   public double timestamp() { int o = __offset(10); return o != 0 ? bb.getDouble(o + bb_pos) : 0.0; }
   public boolean setArmControlState() { int o = __offset(12); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
   public grl.flatbuffer.ArmControlState armControlState() { return armControlState(new grl.flatbuffer.ArmControlState()); }
-  public grl.flatbuffer.ArmControlState armControlState(grl.flatbuffer.ArmControlState obj) { int o = __offset(14); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public grl.flatbuffer.ArmControlState armControlState(grl.flatbuffer.ArmControlState obj) { int o = __offset(14); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   public boolean setArmConfiguration() { int o = __offset(16); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
   public KUKAiiwaArmConfiguration armConfiguration() { return armConfiguration(new KUKAiiwaArmConfiguration()); }
-  public KUKAiiwaArmConfiguration armConfiguration(KUKAiiwaArmConfiguration obj) { int o = __offset(18); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public KUKAiiwaArmConfiguration armConfiguration(KUKAiiwaArmConfiguration obj) { int o = __offset(18); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   public boolean hasMonitorState() { int o = __offset(20); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
   public KUKAiiwaMonitorState monitorState() { return monitorState(new KUKAiiwaMonitorState()); }
-  public KUKAiiwaMonitorState monitorState(KUKAiiwaMonitorState obj) { int o = __offset(22); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public KUKAiiwaMonitorState monitorState(KUKAiiwaMonitorState obj) { int o = __offset(22); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
   public boolean hasMonitorConfig() { int o = __offset(24); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
   public KUKAiiwaMonitorConfiguration monitorConfig() { return monitorConfig(new KUKAiiwaMonitorConfiguration()); }
-  public KUKAiiwaMonitorConfiguration monitorConfig(KUKAiiwaMonitorConfiguration obj) { int o = __offset(26); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public KUKAiiwaMonitorConfiguration monitorConfig(KUKAiiwaMonitorConfiguration obj) { int o = __offset(26); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
 
   public static int createKUKAiiwaState(FlatBufferBuilder builder,
       int nameOffset,
