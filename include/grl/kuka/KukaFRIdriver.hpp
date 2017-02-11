@@ -42,7 +42,7 @@ namespace arm {
 void decode(KUKA::FRI::ClientData &friData, std::size_t msg_size) {
   // The decoder was given a pointer to the monitoringMessage at initialization
   if (!friData.decoder.decode(friData.receiveBuffer, msg_size)) {
-    BOOST_THROW_EXCEPTION(std::runtime_error("Error decoding received data. This is most likely due to the application running on the KUKA went down or disabled FRI, and thus FRI has been shut off from the robot's side."));
+    BOOST_THROW_EXCEPTION(std::runtime_error("Error decoding received FRI data, the message may be missing or corrupted. This error is most likely due to the application running on the KUKA robot's side of the connection going down or disabling FRI, so check the robot and the JAVA side of the system."));
   }
 
   // check message type
