@@ -84,7 +84,7 @@ RUN apt-get clean && add-apt-repository --yes ppa:xqms/opencv-nonfree \
 
 
 RUN cd ~\ 
-    && git clone https://github.com/davidadley/robotics_setup.git  
+    && git clone https://github.com/ahundt/robotics_setup.git  
 
 RUN ["/bin/bash","-c","cd ~/robotics_setup && ~/robotics_setup/vrep.sh"]
 RUN ["/bin/bash","-c","cd ~/robotics_setup && ~/robotics_setup/spdlog.sh"]
