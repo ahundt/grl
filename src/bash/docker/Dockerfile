@@ -34,6 +34,7 @@ CMD ["bash"]
 LABEL com.nvidia.volumes.needed="nvidia_driver"
 ENV PATH /usr/local/nvidia/bin:${PATH}
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+ENV CUDA_TOOLKIT_ROOT_DIR /usr/local/nvidia/lib:/usr/local/nvidia/lib64
 
 ENV HOME /root
 WORKDIR /root
