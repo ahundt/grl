@@ -7,29 +7,27 @@
 #Comment the following if you wish to use ROS 
 #--------------Start--------------------
 
-FROM ubuntu:16.04
-CMD ["bash"]
+#FROM ubuntu:16.04
+#CMD ["bash"]
 #---------------End-----------------
 
 #Uncomment the following if you wish to use ROS 
 #------------Start---------------------
-#Use Ubuntu 16.04 with ROS preinstalled
-#FROM osrf/ros:xenial-desktop
+FROM osrf/ros:kinetic-desktop
 
-# install ros packages
-#RUN apt-get update && apt-get install -y \
-#    ros-indigo-desktop-full=1.1.4-0* \
-#    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    ros-kinetic-desktop-full=1.3.0-0* \
+    && rm -rf /var/lib/apt/lists/*
 
-#RUN mkdir -p /etc/my_init.d
-#COPY startup.sh /etc/my_init.d/startup.sh
-#RUN chmod +x /etc/my_init.d/startup.sh
+RUN mkdir -p /etc/my_init.d
+COPY startup.sh /etc/my_init.d/startup.sh
+RUN chmod +x /etc/my_init.d/startup.sh
 
-#COPY pre-conf.sh /sbin/pre-conf
-#RUN chmod +x /sbin/pre-conf \
-#    && /bin/bash -c /sbin/pre-conf \
-#    && rm /sbin/pre-conf
-#CMD bash -c "/etc/my_init.d/startup.sh"; bash
+COPY pre-conf.sh /sbin/pre-conf
+RUN chmod +x /sbin/pre-conf \
+    && /bin/bash -c /sbin/pre-conf \
+    && rm /sbin/pre-conf
+CMD bash -c "/etc/my_init.d/startup.sh"; bash
 
 #-------------End-----------------------------
 
