@@ -18,7 +18,4 @@ sudo gpasswd -a ${USER} docker
 
 # source : http://dev-maziarz.blogspot.com/2015/01/running-docker-sock-permission-denied.html
 
-cd docker
-#Edit Dockerfile if ROS is required
-sh build.sh
 
