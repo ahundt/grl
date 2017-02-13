@@ -1,5 +1,6 @@
 #Should set up a system to use GRL
 #Includes dependencies for GrlInverseKinematics, PivotCalibration & HandEyeCalibration
+#NB - This is a complicated docker file and might need to be __run twice__!
 
 #Install on ubuntu 16.04
 
