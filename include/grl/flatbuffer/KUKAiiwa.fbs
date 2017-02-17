@@ -84,22 +84,23 @@ enum EOverlayType : byte {
 
 table CartesianImpedenceControlMode {
   /// actual stiffness to set rot:[nm/rad]
-  stiffness:EulerPoseParams;
-
+  stiffness:EulerPose;
+  /// actual damping to set
+  damping:EulerPose;
+  /// [Nm/rad] must be => 0.0
+  nullspaceStiffness:double;
+  /// must be between 0.3-1.0 suggested is 0.7
+  nullspaceDamping:double;
   /// maximum deviation from set goal in mm and radians
   maxPathDeviation:EulerPose;
-  /// sets the maximum joint speed
-  maxJointSpeed:[double];
   /// trans: [mm/s] rot: [rad/s]
   maxCartesianVelocity:EulerPose;
   /// xyz: Newtons rpy:Nm (all >=0)
   maxControlForce:EulerPose;
   /// stop if max control force is exceeded
   maxControlForceExceededStop:bool = 0;
-  /// must be between 0.3-1.0 suggested is 0.7
-  nullspaceDamping:double;
-  /// [Nm/rad] must be => 0.0
-  nullspaceStiffness:double;
+  /// sets the maximum joint speed (not used)
+  // maxJointSpeed:[double];
 }
 
 
@@ -208,6 +209,10 @@ table KUKAiiwaArmConfiguration {
   overlayType:EOverlayType;
   /// position, cartesian impedence, or joint impedence low level controller adjustments
   controlMode:EControlMode;
+
+  setCartImpedance:CartesianImpedenceControlMode;
+
+  setJointImpedance:JointImpedenceControlMode;
 
   smartServoConfig:SmartServo;
   FRIConfig:FRI;

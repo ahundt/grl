@@ -185,7 +185,8 @@ namespace grl { namespace robot { namespace arm {
             FD_SET(socket_local, &mask);
 
             // set arm to StartArm mode on initalization
-            set(grl::flatbuffer::ArmState_StartArm);
+            //set(grl::flatbuffer::ArmState_StartArm);
+            set(grl::flatbuffer::ArmState_MoveArmJointServo);
 
         } catch( boost::exception &e) {
           e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from " +
@@ -288,9 +289,27 @@ namespace grl { namespace robot { namespace arm {
 
           auto name = fbbP->CreateString(std::get<RobotName>(params_));
 
-          auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,name,commandInterface_,monitorInterface_);
+          auto clientCommandMode = grl::flatbuffer::EClientCommandMode_POSITION;
+          auto overlayType =  grl::flatbuffer::EOverlayType_NO_OVERLAY;
 
-          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,1,kukaiiwaArmConfiguration);
+          //auto stiffnessPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_stiffness_trans_,&cart_stiffness_rot_);
+          //auto dampingPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_damping_trans_,&cart_damping_rot_);
+
+          auto setCartesianImpedance = grl::flatbuffer::CreateCartesianImpedenceControlMode(*fbbP, &cart_stiffness_, &cart_damping_,
+                nullspace_stiffness_, nullspace_damping_, &cart_max_path_deviation_, &cart_max_ctrl_vel_, &cart_max_ctrl_force_, max_control_force_stop_);
+
+          auto jointStiffnessBuffer = fbbP->CreateVector(joint_stiffness_.data(),joint_stiffness_.size());
+          auto jointDampingBuffer = fbbP->CreateVector(joint_damping_.data(),joint_damping_.size());
+
+          auto setJointImpedance = grl::flatbuffer::CreateJointImpedenceControlMode(*fbbP, jointStiffnessBuffer, jointDampingBuffer);
+
+          auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,name,commandInterface_,monitorInterface_, clientCommandMode, overlayType,
+                      controlMode_, setCartesianImpedance, setJointImpedance);
+
+          bool setArmControlState = true; // only actually change the arm state when this is true.
+
+          // TODO fill the 0s
+          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,setArmConfiguration_,kukaiiwaArmConfiguration);
 
           auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
 
@@ -314,12 +333,14 @@ namespace grl { namespace robot { namespace arm {
               logger_->info("re-extracted {}{}{}", movearm->goal()->position()->size(), " joint angles: ",angles);
           }
 
+          logger_->info("sending packet to KUKA iiwa: len = {}", fbbP->GetSize());
           int ret;
           // Send UDP packet to Robot
           ret = sendto(socket_local, fbbP->GetBufferPointer(), fbbP->GetSize(), 0, (struct sockaddr *)&dst_sockaddr, sizeof(dst_sockaddr));
 
           if (static_cast<long>(ret) != static_cast<long>(fbbP->GetSize())) logger_->error("Error sending packet to KUKA iiwa: ret = {}, len = {}", ret, fbbP->GetSize());
 
+          setArmConfiguration_ = false;
 
               // Receiving data from Sunrise
 
@@ -397,6 +418,51 @@ namespace grl { namespace robot { namespace arm {
       volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
       volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
 
+
+
+      void setPositionControlMode()
+      {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        controlMode_ = grl::flatbuffer::EControlMode_POSITION_CONTROL_MODE;
+        setArmConfiguration_ = true;
+      }
+
+
+      bool setJointImpedanceMode(std::vector<double> joint_stiffnes, std::vector<double>joint_damping) {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        //TODO use tags
+        joint_stiffness_ = joint_stiffnes;
+        joint_damping_ = joint_damping;
+        controlMode_ = grl::flatbuffer::EControlMode_JOINT_IMP_CONTROL_MODE;
+        setArmConfiguration_ = true;
+      }
+
+      // TODO: define custom flatbuffer for Cartesion Quantities
+      void setCartesianImpedanceMode(
+          const grl::flatbuffer::EulerPose cart_stiffness, const grl::flatbuffer::EulerPose cart_damping,
+          const double nullspace_stiffness, const double nullspace_damping,
+          const grl::flatbuffer::EulerPose cart_max_path_deviation,
+          const grl::flatbuffer::EulerPose cart_max_ctrl_vel,
+          const grl::flatbuffer::EulerPose cart_max_ctrl_force,
+          const bool max_control_force_stop)
+      {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+
+        cart_stiffness_ = cart_stiffness;
+        cart_damping_ = cart_damping;
+
+        cart_max_path_deviation_  = cart_max_path_deviation;
+        cart_max_ctrl_vel_ = cart_max_ctrl_vel;
+        cart_max_ctrl_force_  = cart_max_ctrl_force;
+
+        nullspace_stiffness_ = nullspace_stiffness;
+        nullspace_damping_ = nullspace_damping;
+
+        max_control_force_stop_ = max_control_force_stop;
+
+        controlMode_ = grl::flatbuffer::EControlMode_CART_IMP_CONTROL_MODE;
+        setArmConfiguration_ = true;
+      }
 
      /**
       * \brief Set the joint positions for the current interpolation step.
@@ -597,6 +663,34 @@ namespace grl { namespace robot { namespace arm {
       int64_t sequenceNumber;
 
       bool debug_ = false;
+
+      bool setArmConfiguration_ = true; // set the arm config first time
+
+      grl::flatbuffer::EControlMode controlMode_ = grl::flatbuffer::EControlMode_POSITION_CONTROL_MODE;
+
+      //TODO: Custom flatbuffer type. Load defaults from params/config
+      //Cartesian Impedance Values
+      grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(500,500,500);
+      grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder_xyz);
+
+      grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0.3,0.3,0.3);
+      grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder_xyz);
+
+      grl::flatbuffer::EulerPose cart_stiffness_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(500,500,500), grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder_xyz));
+      grl::flatbuffer::EulerPose cart_damping_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0.3,0.3,0.3), grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder_xyz));
+
+      grl::flatbuffer::EulerPose cart_max_path_deviation_  = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,100), grl::flatbuffer::EulerRotation(5.,5.,5., grl::flatbuffer::EulerOrder_xyz));
+      grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,1000), grl::flatbuffer::EulerRotation(6.3,6.3,6.3, grl::flatbuffer::EulerOrder_xyz));
+      grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(200,200,200), grl::flatbuffer::EulerRotation(200.,200.,200., grl::flatbuffer::EulerOrder_xyz));
+
+      double nullspace_stiffness_ = 2.0;
+      double nullspace_damping_ = 0.5;
+
+      bool max_control_force_stop_ = false;
+
+      //Joint Impedance Values TODO: set default values?
+      std::vector<double> joint_stiffness_;
+      std::vector<double> joint_damping_;
 
     };
 
