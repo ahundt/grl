@@ -333,7 +333,7 @@ namespace grl { namespace robot { namespace arm {
               logger_->info("re-extracted {}{}{}", movearm->goal()->position()->size(), " joint angles: ",angles);
           }
 
-          logger_->info("sending packet to KUKA iiwa: len = {}", fbbP->GetSize());
+          if(debug_) logger_->info("sending packet to KUKA iiwa: len = {}", fbbP->GetSize());
           int ret;
           // Send UDP packet to Robot
           ret = sendto(socket_local, fbbP->GetBufferPointer(), fbbP->GetSize(), 0, (struct sockaddr *)&dst_sockaddr, sizeof(dst_sockaddr));
@@ -599,7 +599,8 @@ namespace grl { namespace robot { namespace arm {
    }
 
    void getWrench(KukaState & state)
-   { boost::lock_guard<boost::mutex> lock(jt_mutex);
+   {
+    boost::lock_guard<boost::mutex> lock(jt_mutex);
 
        if (!armState_.wrenchJava.empty()) {
            state.wrenchJava = armState_.wrenchJava;
@@ -610,6 +611,7 @@ namespace grl { namespace robot { namespace arm {
    /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
    void set(const flatbuffer::ArmState& armControlMode)
    {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
         armControlMode_ = armControlMode;
    }
 
@@ -617,6 +619,7 @@ namespace grl { namespace robot { namespace arm {
    /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
    void get(flatbuffer::ArmState& armControlMode)
    {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
         armControlMode = armControlMode_;
    }
 
