@@ -815,6 +815,7 @@ public:
     vrep::VrepRobotArmDriver::State currentArmState_;
     
     bool ranOnce_ = false;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 } // namespace vrep
