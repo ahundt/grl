@@ -108,6 +108,7 @@ int main(int argc, char* argv[])
     /// TODO(ahundt) remove deprecated arm state from here and implementation
     grl::robot::arm::KukaState armState;
     std::unique_ptr<grl::robot::arm::LinearInterpolation> lowLevelStepAlgorithmP;
+    armState.goal_position_command_time_duration = 4;
     lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation(armState));
     // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800) see grl::robot::arm::KukaState::KUKA_LBR_IIWA_14_R820
 
@@ -161,8 +162,13 @@ int main(int argc, char* argv[])
         if (grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
         {
 #if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
-            callIfMinPeriodPassed.execution( [&offsetFromipoJointPos,&delta,joint_to_move]()
+            callIfMinPeriodPassed.execution( [&armState,&offsetFromipoJointPos,&delta,joint_to_move]()
             {
+//                    for(auto& joint : offsetFromipoJointPos)
+//                    {
+//                      joint = -0.1;
+//                    }
+                    armState.goal_position_command_time_duration = 4;
                     offsetFromipoJointPos[joint_to_move]+=delta;
                     // swap directions when a half circle was completed
                     if (
