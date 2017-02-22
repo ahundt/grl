@@ -51,9 +51,16 @@ struct periodic
 
 enum { max_length = 1024 };
 
+enum class HowToMove
+{
+   absolute_position,
+   relative_position
+};
+
 int main(int argc, char* argv[])
 {
   bool debug = true;
+  HowToMove howToMove = HowToMove::relative_position;
   int print_every_n = 100;
   std::size_t q_size = 4096; //queue size must be power of 2
   spdlog::set_async_mode(q_size);
@@ -116,7 +123,19 @@ int main(int argc, char* argv[])
         std::make_tuple("KUKA_LBR_IIWA_14_R820",localhost,localport,remotehost,remoteport/*,4 ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically)
     );
 
-  unsigned int num_missed = 0;
+    //
+    unsigned int num_missed = 0;
+    if(howToMove == HowToMove::absolute_position)
+    {
+        // Execute a single move to the absolute goal position
+        // For example you can say you want to make your move over 5000 ms
+        armState.goal_position_command_time_duration = 5000; // ms
+        for(auto& joint : armState.commandedPosition_goal)
+        {
+          joint = -0.1;
+        }
+
+    }
 
 	for (std::size_t i = 0;;++i) {
 
@@ -159,16 +178,18 @@ int main(int argc, char* argv[])
 
 
 
-        if (grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
+        if (howToMove == HowToMove::relative_position
+            && grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE
+            )
         {
 #if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
-            callIfMinPeriodPassed.execution( [&armState,&offsetFromipoJointPos,&delta,joint_to_move]()
+            callIfMinPeriodPassed.execution( [&howToMove,&friData,&armState,&offsetFromipoJointPos,&delta,joint_to_move]()
             {
-//                    for(auto& joint : offsetFromipoJointPos)
-//                    {
-//                      joint = -0.1;
-//                    }
-                    armState.goal_position_command_time_duration = 4;
+                    // Need to tell the system how long in milliseconds it has to reach the goal or it will never move!
+                    // Here we are using the time step defined in the FRI communication frequency but larger values are ok.
+                    //armState.goal_position_command_time_duration = grl::robot::arm::get(friData->monitoringMsg, grl::time_step_tag()); // ms
+                    //armState.goal_position_command_time_duration = 4;
+                    // increment relative goal position
                     offsetFromipoJointPos[joint_to_move]+=delta;
                     // swap directions when a half circle was completed
                     if (
@@ -183,12 +204,15 @@ int main(int argc, char* argv[])
 #endif
         }
 
-            KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState());
+        KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState());
         // copy current joint position to commanded position
         if (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE)
         {
-            boost::transform ( ipoJointPos, offsetFromipoJointPos, jointStateToCommand.begin(), std::plus<double>());
-            grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
+            if (howToMove == HowToMove::relative_position) {
+                // go to a position relative to the current position
+                boost::transform ( ipoJointPos, offsetFromipoJointPos, jointStateToCommand.begin(), std::plus<double>());
+                grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
+            }
         }
 
         // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand

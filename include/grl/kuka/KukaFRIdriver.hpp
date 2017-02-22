@@ -129,6 +129,7 @@ struct LinearInterpolation {
         static_cast<double>(thisTimeStepMS) /
         static_cast<double>(goal_position_command_time_duration_remaining);
 
+    // makes viewing in a debugger easier
     boost::copy(armState.commandedPosition_goal, &rcommandedGoal[0]);
     // get the angular distance to the goal
     // use current time and time to destination to interpolate (scale) goal
