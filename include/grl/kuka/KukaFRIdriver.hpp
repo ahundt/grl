@@ -158,7 +158,7 @@ struct LinearInterpolation {
     boost::copy(diffToGoal, &rdiffToGoal[0]);
 
   /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
-    loggerPG->info("linearinterp duration_remaining:{} fractionofdistance:{}, this_time_step: {}",goal_position_command_time_duration_remaining, fractionOfDistanceToTraverse, thisTimeStepMS);
+    //loggerPG->info("linearinterp duration_remaining:{} fractionofdistance:{}, this_time_step: {}",goal_position_command_time_duration_remaining, fractionOfDistanceToTraverse, thisTimeStepMS);
     // decrease the time remaining by the current time step
     goal_position_command_time_duration_remaining -= thisTimeStepMS;
     

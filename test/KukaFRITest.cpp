@@ -30,6 +30,12 @@ enum class HowToMove
    relative_position
 };
 
+enum class DriverToUse
+{
+   low_level_function,
+   high_level_class
+};
+
 int main(int argc, char* argv[])
 {
   bool debug = true;
@@ -41,6 +47,7 @@ int main(int argc, char* argv[])
 
   grl::periodic<> callIfMinPeriodPassed;
   HowToMove howToMove = HowToMove::relative_position;
+  DriverToUse driverToUse = DriverToUse::high_level_class;
 
   try
   {
@@ -92,12 +99,32 @@ int main(int argc, char* argv[])
     armState.goal_position_command_time_duration = 4;
     lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation(armState));
     // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800) see grl::robot::arm::KukaState::KUKA_LBR_IIWA_14_R820
+  
+    std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>> highLevelDriverClassP;
 
+    if(driverToUse == DriverToUse::high_level_class)
+    {
       /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
       /// IDEA: PASS A LOW LEVEL STEP ALGORITHM PARAMS OBJECT ON EACH UPDATE AND ONLY ONE INSTANCE OF THE ALGORITHM OBJECT ITSELF
-    grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation> driver(io_service,
-        std::make_tuple("KUKA_LBR_IIWA_14_R820",localhost,localport,remotehost,remoteport/*,4 ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically)
-    );
+      highLevelDriverClassP = std::make_shared<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>>(io_service,
+        std::make_tuple("KUKA_LBR_IIWA_14_R820",localhost,localport,remotehost,remoteport/*,4 ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically));
+    
+    }
+  
+    std::shared_ptr<boost::asio::ip::udp::socket> socketP;
+  
+    if(driverToUse == DriverToUse::low_level_function)
+    {
+    
+        socketP = std::make_shared<boost::asio::ip::udp::socket>(io_service, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(localhost), boost::lexical_cast<short>(localport)));
+
+        boost::asio::ip::udp::resolver resolver(io_service);
+        boost::asio::ip::udp::endpoint endpoint = *resolver.resolve({boost::asio::ip::udp::v4(), remotehost, remoteport});
+        socketP->connect(endpoint);
+
+        /// @todo maybe there is a more convienient way to set this that is easier for users? perhaps initializeClientDataForiiwa()?
+        friData->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
+    }
 
     //
     unsigned int num_missed = 0;
@@ -113,27 +140,39 @@ int main(int argc, char* argv[])
 	for (std::size_t i = 0;;++i) {
 
         /// use the interpolated joint position from the previous update as the base
-        /// @todo why is this?
+        /// because the regular joint angle is what JAVA commanded, the interpolated joint angle is the real physical arm position!
+
         if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
         /// perform the update step, receiving and sending data to/from the arm
         boost::system::error_code send_ec, recv_ec;
         std::size_t send_bytes_transferred = 0, recv_bytes_transferred = 0;
-        bool haveNewData = !driver.update_state(*lowLevelStepAlgorithmP, friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
+        bool haveNewData = false;
+        
+        if(driverToUse == DriverToUse::high_level_class)
+        {
+            haveNewData = !highLevelDriverClassP->update_state(*lowLevelStepAlgorithmP, friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
+        }
+        
+        if(driverToUse == DriverToUse::low_level_function)
+        {
+            grl::robot::arm::update_state(*socketP,*lowLevelStepAlgorithmP,*friData,send_ec,send_bytes_transferred, recv_ec, recv_bytes_transferred);
+        }
 
         // if data didn't arrive correctly, skip and try again
         if(send_ec || recv_ec )
         {
+        
            loggerPG->error("receive error: ", recv_ec, "receive bytes: ", recv_bytes_transferred, " send error: ", send_ec, " send bytes: ", send_bytes_transferred,  " iteration: ", i);
-           std::this_thread::sleep_for(std::chrono::milliseconds(1));
+           if(driverToUse == DriverToUse::high_level_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
            continue;
         }
 
         // If we didn't receive anything new that is normal behavior,
         // but we can't process the new data so try updating again immediately.
-        if(!haveNewData)
+        if(!haveNewData && !recv_bytes_transferred)
         {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          if(driverToUse == DriverToUse::high_level_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
           ++num_missed;
           if(num_missed>10000) {
             loggerPG->warn("No new data for ", num_missed, " milliseconds.");
