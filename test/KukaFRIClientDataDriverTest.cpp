@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 
   grl::periodic<> callIfMinPeriodPassed;
-  HowToMove howToMove = HowToMove::absolute_position;
+  HowToMove howToMove = HowToMove::relative_position;
 
   try
   {
@@ -50,7 +50,6 @@ int main(int argc, char* argv[])
     std::string remoteport("30200");
 
     std::cout << "argc: " << argc << "\n";
-	  /// @todo add default localhost/localport
     if (argc !=5 && argc !=1)
     {
       loggerPG->error("Usage: ", argv[0], " <localip> <localport> <remoteip> <remoteport>\n");
@@ -74,6 +73,7 @@ int main(int argc, char* argv[])
     BOOST_VERIFY(friData);
 
     double delta = -0.0005;
+    double delta_sum = 0;
     /// consider moving joint angles based on time
     int joint_to_move = 6;
     loggerPG->warn("WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT ",
@@ -82,8 +82,9 @@ int main(int argc, char* argv[])
                       "Current delta (radians/update): ", delta, " Joint to move: ", joint_to_move);
 
     std::vector<double> ipoJointPos(7,0);
-    std::vector<double> offsetFromipoJointPos(7,0); // length 7, value 0
+    std::vector<double> jointOffset(7,0); // length 7, value 0
     std::vector<double> jointStateToCommand(7,0);
+    std::vector<double> absoluteGoalPos(7,0);
 
     /// TODO(ahundt) remove deprecated arm state from here and implementation
     grl::robot::arm::KukaState armState;
@@ -103,7 +104,7 @@ int main(int argc, char* argv[])
         // Execute a single move to the absolute goal position
         // For example you can say you want to make your move over 5000 ms
         armState.goal_position_command_time_duration = 5000; // ms
-        jointStateToCommand = std::vector<double>(7,0.1);
+        absoluteGoalPos = std::vector<double>(7,0.1);
     }
 
 	for (std::size_t i = 0;;++i) {
@@ -147,23 +148,22 @@ int main(int argc, char* argv[])
 
 
 
-        if (howToMove == HowToMove::relative_position
-            && grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE
-            )
+        if (grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
         {
 #if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
-            callIfMinPeriodPassed.execution( [&howToMove,&friData,&armState,&offsetFromipoJointPos,&delta,joint_to_move]()
+            callIfMinPeriodPassed.execution( [&howToMove,&friData,&armState,&jointOffset,&delta,&delta_sum,joint_to_move]()
             {
                     // Need to tell the system how long in milliseconds it has to reach the goal or it will never move!
                     // Here we are using the time step defined in the FRI communication frequency but larger values are ok.
                     //armState.goal_position_command_time_duration = grl::robot::arm::get(friData->monitoringMsg, grl::time_step_tag()); // ms
                     //armState.goal_position_command_time_duration = 4;
                     // increment relative goal position
-                    offsetFromipoJointPos[joint_to_move]+=delta;
+                    jointOffset[joint_to_move]+=delta;
+                    delta_sum+=delta;
                     // swap directions when a half circle was completed
                     if (
-                         (offsetFromipoJointPos[joint_to_move] >  0.2 && delta > 0) ||
-                         (offsetFromipoJointPos[joint_to_move] < -0.2 && delta < 0)
+                         (delta_sum >  0.2 && delta > 0) ||
+                         (delta_sum < -0.2 && delta < 0)
                        )
                     {
                        delta *=-1;
@@ -179,7 +179,10 @@ int main(int argc, char* argv[])
         {
             if (howToMove == HowToMove::relative_position) {
                 // go to a position relative to the current position
-                boost::transform ( ipoJointPos, offsetFromipoJointPos, jointStateToCommand.begin(), std::plus<double>());
+                boost::transform ( ipoJointPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
+            } else if (howToMove == HowToMove::absolute_position) {
+                // go to a position relative to the current position
+                boost::transform ( absoluteGoalPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             }
             grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
         }
@@ -192,7 +195,7 @@ int main(int argc, char* argv[])
         // copy the state data into a more accessible object
         /// TODO(ahundt) switch from this copy to a non-deprecated call
         grl::robot::arm::copy(friData->monitoringMsg,armState);
-        if(debug && (i % print_every_n) ==0 ) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " ipoJointPositionOffsets: ", armState.ipoJointPositionOffsets);
+        if(debug && (i % print_every_n) ==0 ) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " jointOffset: ", jointOffset);
 
 	}
   }
