@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 
   grl::periodic<> callIfMinPeriodPassed;
-  HowToMove howToMove = HowToMove::relative_position;
+  HowToMove howToMove = HowToMove::absolute_position;
 
   try
   {
@@ -103,11 +103,7 @@ int main(int argc, char* argv[])
         // Execute a single move to the absolute goal position
         // For example you can say you want to make your move over 5000 ms
         armState.goal_position_command_time_duration = 5000; // ms
-        for(auto& joint : armState.commandedPosition_goal)
-        {
-          joint = -0.1;
-        }
-
+        jointStateToCommand = std::vector<double>(7,0.1);
     }
 
 	for (std::size_t i = 0;;++i) {
@@ -184,8 +180,8 @@ int main(int argc, char* argv[])
             if (howToMove == HowToMove::relative_position) {
                 // go to a position relative to the current position
                 boost::transform ( ipoJointPos, offsetFromipoJointPos, jointStateToCommand.begin(), std::plus<double>());
-                grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
             }
+            grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
         }
 
         // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand

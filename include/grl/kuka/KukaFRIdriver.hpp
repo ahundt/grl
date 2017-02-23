@@ -100,6 +100,7 @@ struct LinearInterpolation {
     KukaState::joint_state diffToGoal;
     KukaState::joint_state amountToMove;
     KukaState::joint_state commandToSend;
+    KukaState::joint_state goal;
 
     double rcurrentJointPos[7];
     double rcommandedGoal[7];
@@ -115,6 +116,9 @@ struct LinearInterpolation {
     grl::robot::arm::copy(friData.monitoringMsg,
                           std::back_inserter(currentJointPos),
                           revolute_joint_angle_open_chain_state_tag());
+      
+    // Get the goal the user submitted
+    grl::robot::arm::copy(friData.commandMsg,std::back_inserter(goal),revolute_joint_angle_open_chain_command_tag());
     boost::copy(currentJointPos, &rcurrentJointPos[0]);
 
     // single timestep in ms
@@ -134,7 +138,7 @@ struct LinearInterpolation {
     // get the angular distance to the goal
     // use current time and time to destination to interpolate (scale) goal
     // joint position
-    boost::transform(armState.commandedPosition_goal, currentJointPos,
+    boost::transform(goal, currentJointPos,
                      std::back_inserter(diffToGoal),
                      [&](double commanded_angle, double current_angle) {
                        return (commanded_angle - current_angle) *
@@ -961,7 +965,7 @@ public:
     static const std::size_t minimumConsecutiveSuccessesBeforeSendingCommands =
         100;
 
-    std::unique_ptr<LinearInterpolation> lowLevelStepAlgorithmP;
+    std::unique_ptr<LowLevelStepAlgorithmType> lowLevelStepAlgorithmP;
 
     /// @todo probably only need to set this once
     armState.velocity_limits.clear();
@@ -973,7 +977,7 @@ public:
     if (this->m_haveReceivedRealDataCount >
         minimumConsecutiveSuccessesBeforeSendingCommands) {
       boost::lock_guard<boost::mutex> lock(jt_mutex);
-      lowLevelStepAlgorithmP.reset(new LinearInterpolation(armState));
+      lowLevelStepAlgorithmP.reset(new LowLevelStepAlgorithmType(armState));
       /// @todo construct new low level command object and pass to
       /// KukaFRIClientDataDriver
       /// this is where we used to setup a new FRI command
@@ -984,7 +988,7 @@ public:
     } else {
       KukaState tmp;
       tmp.velocity_limits = getMaxVel();
-      lowLevelStepAlgorithmP.reset(new LinearInterpolation(tmp));
+      lowLevelStepAlgorithmP.reset(new LowLevelStepAlgorithmType(tmp));
     }
 
     BOOST_VERIFY(lowLevelStepAlgorithmP != nullptr);

@@ -129,6 +129,13 @@ namespace grl { namespace robot {
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_open_chain_command_tag){
            kuka::detail::copyJointState(monitoringMsg.monitorData.commandedTorque.value.arg,it, monitoringMsg.monitorData.has_commandedTorque);
 	}
+    
+    
+	/// copy commanded joint angle to output iterator
+	template<typename OutputIterator>
+	void copy(const FRICommandMessage& commandMsg, OutputIterator it, revolute_joint_angle_open_chain_command_tag){
+        if (commandMsg.has_commandData) kuka::detail::copyJointState(commandMsg.commandData.jointPosition.value.arg,it,commandMsg.commandData.has_jointPosition);
+	}
 
 	/// @todo consider using another default value, or perhaps boost::optional<Kuka::FRI::ESafetyState>?
 	KUKA::FRI::ESafetyState get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::ESafetyState) {
