@@ -8,6 +8,7 @@
 #include <cstring>
 #include <vector>
 
+#include "grl/periodic.hpp"
 #include "grl/kuka/KukaFRIdriver.hpp"
 #include "grl/vector_ostream.hpp"
 
@@ -19,34 +20,6 @@
 
 
 using boost::asio::ip::udp;
-
-#include <chrono>
-
-/// @see https://stackoverflow.com/questions/2808398/easily-measure-elapsed-time for the code I based this on
-template<typename TimeT = std::chrono::milliseconds>
-struct periodic
-{
-    periodic(TimeT duration = TimeT(1)):
-    start(std::chrono::system_clock::now()),period_duration(duration.count()){};
-
-    template<typename F, typename ...Args>
-    typename TimeT::rep execution(F func, Args&&... args)
-    {
-        auto duration = std::chrono::duration_cast< TimeT>
-                            (std::chrono::system_clock::now() - start);
-        auto count = duration.count();
-        if(count > previous_count + period_duration)
-        {
-            func(std::forward<Args>(args)...);
-            previous_count = count;
-        }
-        return count;
-    }
-
-    std::chrono::time_point<std::chrono::system_clock> start;
-    typename TimeT::rep period_duration;
-    typename TimeT::rep previous_count;
-};
 
 
 enum { max_length = 1024 };
@@ -60,14 +33,14 @@ enum class HowToMove
 int main(int argc, char* argv[])
 {
   bool debug = true;
-  HowToMove howToMove = HowToMove::relative_position;
   int print_every_n = 100;
   std::size_t q_size = 4096; //queue size must be power of 2
   spdlog::set_async_mode(q_size);
   std::shared_ptr<spdlog::logger>                  loggerPG;
 	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 
-  periodic<> callIfMinPeriodPassed;
+  grl::periodic<> callIfMinPeriodPassed;
+  HowToMove howToMove = HowToMove::relative_position;
 
   try
   {
@@ -227,9 +200,13 @@ int main(int argc, char* argv[])
 
 	}
   }
-  catch (std::exception& e)
+  catch (boost::exception &e)
   {
-    loggerPG->error("Exception: ", e.what());
+    std::string errmsg("If you get an error 'std::exception::what: bind: Can't assign requested address', check your network connection.\n\nKukaFRIClientDataDriverTest Main Test Loop Stopped:\n" + boost::diagnostic_information(e));
+    loggerPG->error(errmsg);
+    spdlog::drop_all();
+    //
+    return 1;
   }
 
   // Release and close all loggers
