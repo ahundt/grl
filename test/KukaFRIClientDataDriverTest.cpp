@@ -93,6 +93,8 @@ int main(int argc, char* argv[])
     lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation(armState));
     // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800) see grl::robot::arm::KukaState::KUKA_LBR_IIWA_14_R820
 
+      /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
+      /// IDEA: PASS A LOW LEVEL STEP ALGORITHM PARAMS OBJECT ON EACH UPDATE AND ONLY ONE INSTANCE OF THE ALGORITHM OBJECT ITSELF
     grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation> driver(io_service,
         std::make_tuple("KUKA_LBR_IIWA_14_R820",localhost,localport,remotehost,remoteport/*,4 ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically)
     );
@@ -101,6 +103,7 @@ int main(int argc, char* argv[])
     unsigned int num_missed = 0;
     if(howToMove == HowToMove::absolute_position)
     {
+        /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control
         // Execute a single move to the absolute goal position
         // For example you can say you want to make your move over 5000 ms
         armState.goal_position_command_time_duration = 5000; // ms
@@ -186,11 +189,6 @@ int main(int argc, char* argv[])
             }
             grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
         }
-
-        // vector addition between ipoJointPosition and ipoJointPositionOffsets, copying the result into jointStateToCommand
-        /// @todo should we take the current joint state into consideration?
-        //loggerPG->info(/*"position: " << ipoJointPos <<*/ " sessionState: {}", friData->lastState);
-		    //BOOST_LOG_TRIVIAL(trace), "position: ", state.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(state.timestamp - startTime).count(), " connectionQuality: ", state.connectionQuality, " operationMode: ", state.operationMode, " sessionState: ", state.sessionState, " driveState: ", state.driveState, " ipoJointPosition: ", state.ipoJointPosition, " ipoJointPositionOffsets: ", state.ipoJointPositionOffsets, "\n";
 
         // copy the state data into a more accessible object
         /// TODO(ahundt) switch from this copy to a non-deprecated call

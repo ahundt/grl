@@ -28,6 +28,10 @@
 #include "Kuka.hpp"
 #include "KukaFRI.hpp"
 
+/// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
+
 struct KukaState;
 
 namespace grl {
@@ -69,6 +73,8 @@ void decode(KUKA::FRI::ClientData &friData, std::size_t msg_size) {
 /// traits". See boost.geometry access and coorinate_type classes for examples
 struct LinearInterpolation {
 
+  /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
+  std::shared_ptr<spdlog::logger>                  loggerPG;
   /// Default constructor
   /// @todo verify this doesn't corrupt the state of the system
   LinearInterpolation() : armState(KukaState()) {}
@@ -78,6 +84,8 @@ struct LinearInterpolation {
         goal_position_command_time_duration_remaining(
             armState_.goal_position_command_time_duration) {
     boost::copy(armState_.velocity_limits, std::back_inserter(velocity_limits));
+    
+	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
   };
 
   // no action by default
@@ -120,10 +128,13 @@ struct LinearInterpolation {
     // Get the goal the user submitted
     grl::robot::arm::copy(friData.commandMsg,std::back_inserter(goal),revolute_joint_angle_open_chain_command_tag());
     boost::copy(currentJointPos, &rcurrentJointPos[0]);
+    
+    
+    /// @todo TODO(ahundt) HACK TO WORK AROUND BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
+    goal_position_command_time_duration_remaining = 4;
 
     // single timestep in ms
-    int thisTimeStepMS(
-        grl::robot::arm::get(friData.monitoringMsg, grl::time_step_tag()));
+    int thisTimeStepMS(grl::robot::arm::get(friData.monitoringMsg, grl::time_step_tag()));
     double thisTimeStepS = (static_cast<double>(thisTimeStepMS) / 1000);
     //double secondsPerTick = std::chrono::duration_cast<std::chrono::seconds>(thisTimeStep).count();
 
@@ -146,8 +157,12 @@ struct LinearInterpolation {
                      });
     boost::copy(diffToGoal, &rdiffToGoal[0]);
 
+  /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
+    loggerPG->info("linearinterp duration_remaining:{} fractionofdistance:{}, this_time_step: {}",goal_position_command_time_duration_remaining, fractionOfDistanceToTraverse, thisTimeStepMS);
     // decrease the time remaining by the current time step
     goal_position_command_time_duration_remaining -= thisTimeStepMS;
+    
+    //loggerPG->info("linearinterp duration_remaining:{} fractionofdistance:{}, this_time_step: {}",goal_position_command_time_duration_remaining, fractionOfDistanceToTraverse, thisTimeStepMS);
 
     /// @todo correctly pass velocity limits from outside, use "copy" fuction in
     /// Kuka.hpp, correctly account for differing robot models. This  *should*
@@ -192,6 +207,9 @@ struct LinearInterpolation {
     grl::robot::arm::set(friData.commandMsg, commandToSend,
                          grl::revolute_joint_angle_open_chain_command_tag());
     // break;
+    
+    /// @todo TODO(ahundt) HACK TO WORK AROUND BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
+    goal_position_command_time_duration_remaining = 4;
   }
 
   /// @todo look in FRI_Client_SDK_Cpp.zip to see if position must be set for
@@ -976,6 +994,7 @@ public:
     // Set the FRI to the simulated joint positions
     if (this->m_haveReceivedRealDataCount >
         minimumConsecutiveSuccessesBeforeSendingCommands) {
+      /// @todo TODO(ahundt) BUG: Need way to pass time to reach specified goal for position contro and eliminate this allocation
       boost::lock_guard<boost::mutex> lock(jt_mutex);
       lowLevelStepAlgorithmP.reset(new LowLevelStepAlgorithmType(armState));
       /// @todo construct new low level command object and pass to
@@ -986,6 +1005,7 @@ public:
       // "currentJointPos: " << currentJointPos << "\n" << "amountToMove: " <<
       // amountToMove << "\n" << "maxVel: " << maxvel << "\n";
     } else {
+      /// @todo TODO(ahundt) BUG: Need way to pass time to reach specified goal for position control and eliminate this allocation
       KukaState tmp;
       tmp.velocity_limits = getMaxVel();
       lowLevelStepAlgorithmP.reset(new LowLevelStepAlgorithmType(tmp));
