@@ -26,14 +26,15 @@ enum { max_length = 1024 };
 
 enum class HowToMove
 {
+   remain_stationary,
    absolute_position,
    relative_position
 };
 
 enum class DriverToUse
 {
-   low_level_function,
-   high_level_class
+   low_level_fri_function,
+   low_level_fri_class
 };
 
 int main(int argc, char* argv[])
@@ -47,7 +48,7 @@ int main(int argc, char* argv[])
 
   grl::periodic<> callIfMinPeriodPassed;
   HowToMove howToMove = HowToMove::relative_position;
-  DriverToUse driverToUse = DriverToUse::high_level_class;
+  DriverToUse driverToUse = DriverToUse::low_level_fri_class;
 
   try
   {
@@ -90,19 +91,19 @@ int main(int argc, char* argv[])
 
     std::vector<double> ipoJointPos(7,0);
     std::vector<double> jointOffset(7,0); // length 7, value 0
-    std::vector<double> jointStateToCommand(7,0);
+    boost::container::static_vector<double, 7> jointStateToCommand(7,0);
     std::vector<double> absoluteGoalPos(7,0);
 
     /// TODO(ahundt) remove deprecated arm state from here and implementation
     grl::robot::arm::KukaState armState;
     std::unique_ptr<grl::robot::arm::LinearInterpolation> lowLevelStepAlgorithmP;
-    armState.goal_position_command_time_duration = 4;
-    lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation(armState));
+    std::size_t goal_position_command_time_duration = 4;
+    lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation());
     // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800) see grl::robot::arm::KukaState::KUKA_LBR_IIWA_14_R820
   
     std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>> highLevelDriverClassP;
 
-    if(driverToUse == DriverToUse::high_level_class)
+    if(driverToUse == DriverToUse::low_level_fri_class)
     {
       /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
       /// IDEA: PASS A LOW LEVEL STEP ALGORITHM PARAMS OBJECT ON EACH UPDATE AND ONLY ONE INSTANCE OF THE ALGORITHM OBJECT ITSELF
@@ -113,7 +114,7 @@ int main(int argc, char* argv[])
   
     std::shared_ptr<boost::asio::ip::udp::socket> socketP;
   
-    if(driverToUse == DriverToUse::low_level_function)
+    if(driverToUse == DriverToUse::low_level_fri_function)
     {
     
         socketP = std::make_shared<boost::asio::ip::udp::socket>(io_service, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(localhost), boost::lexical_cast<short>(localport)));
@@ -149,12 +150,13 @@ int main(int argc, char* argv[])
         std::size_t send_bytes_transferred = 0, recv_bytes_transferred = 0;
         bool haveNewData = false;
         
-        if(driverToUse == DriverToUse::high_level_class)
+        if(driverToUse == DriverToUse::low_level_fri_class)
         {
-            haveNewData = !highLevelDriverClassP->update_state(*lowLevelStepAlgorithmP, friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
+            auto step_commandP = std::make_shared<grl::robot::arm::LinearInterpolation::Params>(std::make_tuple(jointStateToCommand,goal_position_command_time_duration));
+            haveNewData = !highLevelDriverClassP->update_state(step_commandP, friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
         }
         
-        if(driverToUse == DriverToUse::low_level_function)
+        if(driverToUse == DriverToUse::low_level_fri_function)
         {
             grl::robot::arm::update_state(*socketP,*lowLevelStepAlgorithmP,*friData,send_ec,send_bytes_transferred, recv_ec, recv_bytes_transferred);
         }
@@ -164,7 +166,7 @@ int main(int argc, char* argv[])
         {
         
            loggerPG->error("receive error: ", recv_ec, "receive bytes: ", recv_bytes_transferred, " send error: ", send_ec, " send bytes: ", send_bytes_transferred,  " iteration: ", i);
-           if(driverToUse == DriverToUse::high_level_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+           if(driverToUse == DriverToUse::low_level_fri_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
            continue;
         }
 
@@ -172,7 +174,7 @@ int main(int argc, char* argv[])
         // but we can't process the new data so try updating again immediately.
         if(!haveNewData && !recv_bytes_transferred)
         {
-          if(driverToUse == DriverToUse::high_level_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          if(driverToUse == DriverToUse::low_level_fri_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
           ++num_missed;
           if(num_missed>10000) {
             loggerPG->warn("No new data for ", num_missed, " milliseconds.");
@@ -189,10 +191,10 @@ int main(int argc, char* argv[])
         if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
 
-
-        if (grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
+        // setting howToMove to HowToMove::remain_stationary block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
+        if (howToMove != HowToMove::remain_stationary &&
+            grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
         {
-#if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
             callIfMinPeriodPassed.execution( [&howToMove,&friData,&armState,&jointOffset,&delta,&delta_sum,joint_to_move]()
             {
                     // Need to tell the system how long in milliseconds it has to reach the goal or it will never move!
@@ -211,8 +213,6 @@ int main(int argc, char* argv[])
                        delta *=-1;
                     }
             });
-
-#endif
         }
 
         KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState());

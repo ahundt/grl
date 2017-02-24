@@ -70,35 +70,40 @@ void decode(KUKA::FRI::ClientData &friData, std::size_t msg_size) {
 /// @brief Default LowLevelStepAlgorithmType
 /// This algorithm is designed to be changed out
 /// @todo Generalize this class using C++ techinques "tag dispatching" and "type
-/// traits". See boost.geometry access and coorinate_type classes for examples
+/// traits". See boost.geometry access and coorinate_type classes for examples.
+/// Also perhaps make this the outer class which accepts drivers at the template param?
 struct LinearInterpolation {
 
-  /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
-  std::shared_ptr<spdlog::logger>                  loggerPG;
+  enum ParamIndex {
+    JointAngleDest,
+    TimeDurationToDestMS
+  };
+
+  typedef std::tuple<boost::container::static_vector<double,7>,std::size_t> Params;
+
+  // extremely conservative default timeframe to reach destination plus no goal position
+  static const Params defaultParams() {
+    boost::container::static_vector<double,7> nopos;
+    return std::make_tuple(nopos,10000);
+  }
   /// Default constructor
   /// @todo verify this doesn't corrupt the state of the system
-  LinearInterpolation() : armState(KukaState()) {}
-
-  LinearInterpolation(const KukaState &armState_)
-      : armState(armState_),
-        goal_position_command_time_duration_remaining(
-            armState_.goal_position_command_time_duration) {
-    boost::copy(armState_.velocity_limits, std::back_inserter(velocity_limits));
-    
-	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
+  LinearInterpolation() {
   };
 
   // no action by default
   template <typename ArmDataType, typename CommandModeType>
-  void operator()(ArmDataType &, CommandModeType &) {
+  void lowLevelTimestep(ArmDataType &, CommandModeType &) {
     // need to tag dispatch here
+    BOOST_VERIFY(false); // not yet supported
   }
 
-  /// @bug motion interpolation and scaling doesn't seem to move in quite the
-  /// right way, it is much slower and doesn't go to the right place.
   template <typename ArmData>
-  void operator()(ArmData &friData,
+  void lowLevelTimestep(ArmData &friData,
                   revolute_joint_angle_open_chain_command_tag) {
+      
+    // no updates if no goal has been set
+    if(goal_position.size() == 0) return;
     // switch (friData_->monitoringMsg.robotInfo.controlMode) {
     // case ControlMode_POSITION_CONTROLMODE:
     // case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
@@ -131,97 +136,102 @@ struct LinearInterpolation {
     
     
     /// @todo TODO(ahundt) HACK TO WORK AROUND BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
-    goal_position_command_time_duration_remaining = 4;
+    //goal_position_command_time_duration_remaining = 4;
+    if(goal_position_command_time_duration_remaining > 0)
+    {
+        // single timestep in ms
+        int thisTimeStepMS(grl::robot::arm::get(friData.monitoringMsg, grl::time_step_tag()));
+        double thisTimeStepS = (static_cast<double>(thisTimeStepMS) / 1000);
+        //double secondsPerTick = std::chrono::duration_cast<std::chrono::seconds>(thisTimeStep).count();
 
-    // single timestep in ms
-    int thisTimeStepMS(grl::robot::arm::get(friData.monitoringMsg, grl::time_step_tag()));
-    double thisTimeStepS = (static_cast<double>(thisTimeStepMS) / 1000);
-    //double secondsPerTick = std::chrono::duration_cast<std::chrono::seconds>(thisTimeStep).count();
+        // the fraction of the distance to the goal that should be traversed this
+        // tick
+        double fractionOfDistanceToTraverse =
+            static_cast<double>(thisTimeStepMS) /
+            static_cast<double>(goal_position_command_time_duration_remaining);
 
-    // the fraction of the distance to the goal that should be traversed this
-    // tick
-    double fractionOfDistanceToTraverse =
-        static_cast<double>(thisTimeStepMS) /
-        static_cast<double>(goal_position_command_time_duration_remaining);
+        // makes viewing in a debugger easier
+        boost::copy(goal_position, &rcommandedGoal[0]);
+        // get the angular distance to the goal
+        // use current time and time to destination to interpolate (scale) goal
+        // joint position
+        boost::transform(goal, currentJointPos,
+                         std::back_inserter(diffToGoal),
+                         [&](double commanded_angle, double current_angle) {
+                           return (commanded_angle - current_angle) *
+                                  fractionOfDistanceToTraverse;
+                         });
+        boost::copy(diffToGoal, &rdiffToGoal[0]);
+        
+        /// @todo TODO(ahundt) WHAT TO DO IF GOAL HASN'T BEEN UPDATED? (stay in place or not change goal command?)
 
-    // makes viewing in a debugger easier
-    boost::copy(armState.commandedPosition_goal, &rcommandedGoal[0]);
-    // get the angular distance to the goal
-    // use current time and time to destination to interpolate (scale) goal
-    // joint position
-    boost::transform(goal, currentJointPos,
-                     std::back_inserter(diffToGoal),
-                     [&](double commanded_angle, double current_angle) {
-                       return (commanded_angle - current_angle) *
-                              fractionOfDistanceToTraverse;
-                     });
-    boost::copy(diffToGoal, &rdiffToGoal[0]);
+        goal_position_command_time_duration_remaining -= thisTimeStepMS;
+        
+        /// @todo correctly pass velocity limits from outside, use "copy" fuction in
+        /// Kuka.hpp, correctly account for differing robot models. This  *should*
+        /// be in KukaFRIdriver at the end of this file.
 
-  /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
-    //loggerPG->info("linearinterp duration_remaining:{} fractionofdistance:{}, this_time_step: {}",goal_position_command_time_duration_remaining, fractionOfDistanceToTraverse, thisTimeStepMS);
-    // decrease the time remaining by the current time step
-    goal_position_command_time_duration_remaining -= thisTimeStepMS;
-    
-    //loggerPG->info("linearinterp duration_remaining:{} fractionofdistance:{}, this_time_step: {}",goal_position_command_time_duration_remaining, fractionOfDistanceToTraverse, thisTimeStepMS);
+        // R820 velocity limits
+        // A1 - 85 °/s  == 1.483529864195 rad/s
+        // A2 - 85 °/s  == 1.483529864195 rad/s
+        // A3 - 100 °/s == 1.745329251994 rad/s
+        // A4 - 75 °/s  == 1.308996938996 rad/s
+        // A5 - 130 °/s == 2.268928027593 rad/s
+        // A6 - 135 °/s == 2.356194490192 rad/s
+        // A1 - 135 °/s == 2.356194490192 rad/s
+        KukaState::joint_state velocity_limits;
+        velocity_limits.push_back(1.483529864195*thisTimeStepS);
+        velocity_limits.push_back(1.483529864195*thisTimeStepS);
+        velocity_limits.push_back(1.745329251994*thisTimeStepS);
+        velocity_limits.push_back(1.308996938996*thisTimeStepS);
+        velocity_limits.push_back(2.268928027593*thisTimeStepS);
+        velocity_limits.push_back(2.356194490192*thisTimeStepS);
+        velocity_limits.push_back(2.356194490192*thisTimeStepS);
 
-    /// @todo correctly pass velocity limits from outside, use "copy" fuction in
-    /// Kuka.hpp, correctly account for differing robot models. This  *should*
-    /// be in KukaFRIdriver at the end of this file.
+        boost::copy(velocity_limits, &rvelocity_limits[0]);
+        // use std::min to ensure commanded change in position remains under the
+        // maximum possible velocity for a single timestep
+        boost::transform(
+            diffToGoal, velocity_limits, std::back_inserter(amountToMove),
+            [&](double diff, double maxvel) {
+              return boost::math::copysign(std::min(std::abs(diff), maxvel), diff);
+            });
 
-    // R820 velocity limits
-    // A1 - 85 °/s  == 1.483529864195 rad/s
-    // A2 - 85 °/s  == 1.483529864195 rad/s
-    // A3 - 100 °/s == 1.745329251994 rad/s
-    // A4 - 75 °/s  == 1.308996938996 rad/s
-    // A5 - 130 °/s == 2.268928027593 rad/s
-    // A6 - 135 °/s == 2.356194490192 rad/s
-    // A1 - 135 °/s == 2.356194490192 rad/s
-    KukaState::joint_state velocity_limits;
-    velocity_limits.push_back(1.483529864195*thisTimeStepS);
-    velocity_limits.push_back(1.483529864195*thisTimeStepS);
-    velocity_limits.push_back(1.745329251994*thisTimeStepS);
-    velocity_limits.push_back(1.308996938996*thisTimeStepS);
-    velocity_limits.push_back(2.268928027593*thisTimeStepS);
-    velocity_limits.push_back(2.356194490192*thisTimeStepS);
-    velocity_limits.push_back(2.356194490192*thisTimeStepS);
+        boost::copy(amountToMove, &ramountToMove[0]);
 
-    boost::copy(velocity_limits, &rvelocity_limits[0]);
-    // use std::min to ensure commanded change in position remains under the
-    // maximum possible velocity for a single timestep
-    boost::transform(
-        diffToGoal, velocity_limits, std::back_inserter(amountToMove),
-        [&](double diff, double maxvel) {
-          return boost::math::copysign(std::min(std::abs(diff), maxvel), diff);
-        });
+        // add the current joint position to the amount to move to get the actual
+        // position command to send
+        boost::transform(currentJointPos, amountToMove,
+                         std::back_inserter(commandToSend), std::plus<double>());
 
-    boost::copy(amountToMove, &ramountToMove[0]);
+        boost::copy(commandToSend, &rcommandToSend[0]);
 
-    // add the current joint position to the amount to move to get the actual
-    // position command to send
-    boost::transform(currentJointPos, amountToMove,
-                     std::back_inserter(commandToSend), std::plus<double>());
-
-    boost::copy(commandToSend, &rcommandToSend[0]);
-
-    // send the command
-    grl::robot::arm::set(friData.commandMsg, commandToSend,
-                         grl::revolute_joint_angle_open_chain_command_tag());
+        // send the command
+        grl::robot::arm::set(friData.commandMsg, commandToSend,
+                             grl::revolute_joint_angle_open_chain_command_tag());
+    }
     // break;
-    
-    /// @todo TODO(ahundt) HACK TO WORK AROUND BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
-    goal_position_command_time_duration_remaining = 4;
+  }
+  
+  void setGoal(const Params& params ) {
+      /// @todo TODO(ahundt) support param tag structs for additional control modes
+      goal_position_command_time_duration_remaining = std::get<TimeDurationToDestMS>(params);
+      goal_position = std::get<JointAngleDest>(params);
+      
   }
 
   /// @todo look in FRI_Client_SDK_Cpp.zip to see if position must be set for
   /// joint torques. Ref files: LBRTorqueSineOverlayClient.cpp,
   /// LBRTorqueSineOverlayClient.h, friLBRCommand.cpp, friLBRCommand.h
   template <typename ArmData>
-  void operator()(ArmData &friData,
+  void lowLevelTimestep(ArmData &friData,
                   revolute_joint_torque_open_chain_command_tag) {
 
+    //not yet supported
+    BOOST_VERIFY(false);
     // case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
-    grl::robot::arm::set(friData.commandMsg, armState.commandedTorque,
-                         grl::revolute_joint_torque_open_chain_command_tag());
+//    grl::robot::arm::set(friData.commandMsg, armState.commandedTorque,
+//                         grl::revolute_joint_torque_open_chain_command_tag());
 
     /// @note encode() needs to be updated for each additional supported command
     /// type
@@ -232,12 +242,15 @@ struct LinearInterpolation {
   /// cartesian wrench. Ref files: LBRWrenchSineOverlayClient.cpp,
   /// LBRWrenchSineOverlayClient.h, friLBRCommand.cpp, friLBRCommand.h
   template <typename ArmData>
-  void operator()(ArmData &friData, cartesian_wrench_command_tag) {
+  void lowLevelTimestep(ArmData &friData, cartesian_wrench_command_tag) {
+  
+    //not yet supported
+    BOOST_VERIFY(false);
     // case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
     // not yet supported
-    grl::robot::arm::set(friData.commandMsg,
-                         armState.commandedCartesianWrenchFeedForward,
-                         grl::cartesian_wrench_command_tag());
+//    grl::robot::arm::set(friData.commandMsg,
+//                         armState.commandedCartesianWrenchFeedForward,
+//                         grl::cartesian_wrench_command_tag());
     // break;
   }
 
@@ -255,8 +268,8 @@ struct LinearInterpolation {
   //            }
 private:
   // the armstate at initialization of this object
-  KukaState armState;
   KukaState::joint_state velocity_limits;
+  KukaState::joint_state goal_position;
   double goal_position_command_time_duration_remaining; // milliseconds
 };
 
@@ -288,13 +301,13 @@ std::size_t encode(LowLevelStepAlgorithmType &step_alg,
         friData.monitoringMsg, KUKA::FRI::EClientCommandMode());
     switch (commandMode) {
     case ClientCommandMode_POSITION:
-      step_alg(friData, revolute_joint_angle_open_chain_command_tag());
+      step_alg.lowLevelTimestep(friData, revolute_joint_angle_open_chain_command_tag());
       break;
     case ClientCommandMode_WRENCH:
-      step_alg(friData, cartesian_wrench_command_tag());
+      step_alg.lowLevelTimestep(friData, cartesian_wrench_command_tag());
       break;
     case ClientCommandMode_TORQUE:
-      step_alg(friData, revolute_joint_torque_open_chain_command_tag());
+      step_alg.lowLevelTimestep(friData, revolute_joint_torque_open_chain_command_tag());
       break;
     default:
       // this is unhandled at the moment...
@@ -519,7 +532,7 @@ public:
   ///
   /// @return isError = false if you have new data, true when there is either an
   /// error or no new data
-  bool update_state(LowLevelStepAlgorithmType &step_alg,
+  bool update_state(std::shared_ptr<typename LowLevelStepAlgorithmType::Params> &step_alg_params,
                     std::shared_ptr<KUKA::FRI::ClientData> &friData,
                     boost::system::error_code &receive_ec,
                     std::size_t &receive_bytes_transferred,
@@ -537,8 +550,8 @@ public:
     if (!isConnectionEstablished_ ||
         !std::get<latest_receive_monitor_state>(latestStateForUser_)) {
       // no new data, so immediately return results accordingly
-      std::tie(friData, receive_ec, receive_bytes_transferred, send_ec,
-               send_bytes_transferred) = make_LatestState(friData);
+      std::tie(step_alg_params, friData, receive_ec, receive_bytes_transferred, send_ec,
+               send_bytes_transferred) = make_LatestState(step_alg_params,friData);
       return !haveNewData;
     }
 
@@ -546,15 +559,11 @@ public:
     // need to copy this over because friData will be set as an output value
     // later
     // and allocate/initialize data if null
-    auto validFriDataLatestState = make_valid_LatestState(friData);
+    auto validFriDataLatestState = make_valid_LatestState(step_alg_params,friData);
 
     // get the latest state from the driver thread
     {
       boost::lock_guard<boost::mutex> lock(ptrMutex_);
-
-      // update the stepping algorithm
-      /// @todo is this thread safe?
-      step_alg_ = step_alg;
 
       // get the update if one is available
       // the user has provided new data to send to the device
@@ -571,13 +580,13 @@ public:
 
       if (std::get<latest_receive_monitor_state>(latestStateForUser_)) {
         // return the latest state to the caller
-        std::tie(friData, receive_ec, receive_bytes_transferred, send_ec,
+        std::tie(step_alg_params,friData, receive_ec, receive_bytes_transferred, send_ec,
                  send_bytes_transferred) = std::move(latestStateForUser_);
         haveNewData = true;
       } else if (std::get<latest_receive_monitor_state>(
                      validFriDataLatestState)) {
         // all storage is full, return the spare data to the user
-        std::tie(friData, receive_ec, receive_bytes_transferred, send_ec,
+        std::tie(step_alg_params, friData, receive_ec, receive_bytes_transferred, send_ec,
                  send_bytes_transferred) = validFriDataLatestState;
       }
     }
@@ -610,6 +619,7 @@ private:
   void update() {
     try {
 
+      LowLevelStepAlgorithmType step_alg;
       /// nextState is the object currently being loaded with data off the
       /// network
       /// the driver thread should access this exclusively in update()
@@ -636,11 +646,16 @@ private:
         // set the flag that must always be there
         std::get<latest_receive_monitor_state>(nextState)
             ->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
+          
+        auto lowLevelAlgorithmParamP = std::get<latest_low_level_algorithm_params>(nextState);
+        
+        // if there is a valid low level algorithm param command set the new goal
+        if(lowLevelAlgorithmParamP) step_alg.setGoal(*lowLevelAlgorithmParamP);
 
         // actually talk over the network to receive an update and send out a
         // new command
         grl::robot::arm::update_state(
-            socket, step_alg_,
+            socket, step_alg,
             *std::get<latest_receive_monitor_state>(nextState),
             std::get<latest_receive_ec>(nextState),
             std::get<latest_receive_bytes_transferred>(nextState),
@@ -751,6 +766,7 @@ private:
   }
 
   enum LatestStateIndex {
+    latest_low_level_algorithm_params,
     latest_receive_monitor_state,
     latest_receive_ec,
     latest_receive_bytes_transferred,
@@ -758,15 +774,17 @@ private:
     latest_send_bytes_transferred
   };
 
-  typedef std::tuple<std::shared_ptr<KUKA::FRI::ClientData>,
+  typedef std::tuple<std::shared_ptr<typename LowLevelStepAlgorithmType::Params>,
+                     std::shared_ptr<KUKA::FRI::ClientData>,
                      boost::system::error_code, std::size_t,
                      boost::system::error_code, std::size_t>
       LatestState;
 
   /// Creates a default LatestState Object
   static LatestState
-  make_LatestState(std::shared_ptr<KUKA::FRI::ClientData> &clientData) {
-    return std::make_tuple(clientData, boost::system::error_code(),
+  make_LatestState(std::shared_ptr<typename LowLevelStepAlgorithmType::Params> lowLevelAlgorithmParams,
+                   std::shared_ptr<KUKA::FRI::ClientData> &clientData) {
+    return std::make_tuple(lowLevelAlgorithmParams, clientData, boost::system::error_code(),
                            std::size_t(), boost::system::error_code(),
                            std::size_t());
   }
@@ -775,7 +793,7 @@ private:
   /// status explicitly set to false
   /// @post std::shared_ptr<KUKA::FRI::ClientData> will be non-null
   static std::shared_ptr<KUKA::FRI::ClientData> make_shared_valid_ClientData(
-      std::shared_ptr<KUKA::FRI::ClientData> &friData) {
+    std::shared_ptr<KUKA::FRI::ClientData> &friData) {
     if (friData.get() == nullptr) {
       friData =
           std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF);
@@ -792,18 +810,22 @@ private:
   }
 
   /// Initialize valid shared ptr to LatestState object with a valid allocated
-  /// friData
+  /// friData. Note that lowLevelAlgorithmParams will remain null!
   static LatestState
-  make_valid_LatestState(std::shared_ptr<KUKA::FRI::ClientData> &friData) {
+  make_valid_LatestState(
+    std::shared_ptr<typename LowLevelStepAlgorithmType::Params> lowLevelAlgorithmParams,
+    std::shared_ptr<KUKA::FRI::ClientData> &friData
+  ) {
     if (!friData)
       friData = make_shared_valid_ClientData();
 
-    return make_LatestState(friData);
+    return make_LatestState(lowLevelAlgorithmParams,friData);
   }
 
   static LatestState make_valid_LatestState() {
+    std::shared_ptr<typename LowLevelStepAlgorithmType::Params> emptyLowLevelAlgParams;
     std::shared_ptr<KUKA::FRI::ClientData> friData;
-    return make_valid_LatestState(friData);
+    return make_valid_LatestState(emptyLowLevelAlgParams,friData);
   }
 
   Params params_;
@@ -832,7 +854,7 @@ private:
   std::unique_ptr<std::thread> driver_threadP_;
   boost::mutex ptrMutex_;
 
-  LowLevelStepAlgorithmType step_alg_;
+  typename LowLevelStepAlgorithmType::Params step_alg_params_;
 };
 
 /// @brief Primary Kuka FRI driver, only talks over realtime network FRI KONI
@@ -936,7 +958,7 @@ public:
   }
 
   /// gets the number of seconds in one message exchange "tick" aka "cycle",
-  /// "time step"
+  /// "time step" of the robot arm's low level controller
   double getSecondsPerTick() {
     return std::chrono::duration_cast<std::chrono::seconds>(
                std::chrono::milliseconds(grl::robot::arm::get(
@@ -983,7 +1005,7 @@ public:
     static const std::size_t minimumConsecutiveSuccessesBeforeSendingCommands =
         100;
 
-    std::unique_ptr<LowLevelStepAlgorithmType> lowLevelStepAlgorithmP;
+    std::shared_ptr<typename LowLevelStepAlgorithmType::Params> lowLevelStepAlgorithmCommandParamsP;
 
     /// @todo probably only need to set this once
     armState.velocity_limits.clear();
@@ -994,9 +1016,13 @@ public:
     // Set the FRI to the simulated joint positions
     if (this->m_haveReceivedRealDataCount >
         minimumConsecutiveSuccessesBeforeSendingCommands) {
-      /// @todo TODO(ahundt) BUG: Need way to pass time to reach specified goal for position contro and eliminate this allocation
+      /// @todo TODO(ahundt) Need to eliminate this allocation
       boost::lock_guard<boost::mutex> lock(jt_mutex);
-      lowLevelStepAlgorithmP.reset(new LowLevelStepAlgorithmType(armState));
+      
+      boost::container::static_vector<double, 7> jointStateToCommand(7,0);
+      boost::copy(armState.commandedPosition,std::back_inserter(jointStateToCommand));
+      // pass time to reach specified goal for position control
+      lowLevelStepAlgorithmCommandParamsP = std::make_shared<grl::robot::arm::LinearInterpolation::Params>(std::make_tuple(jointStateToCommand,armState.goal_position_command_time_duration));
       /// @todo construct new low level command object and pass to
       /// KukaFRIClientDataDriver
       /// this is where we used to setup a new FRI command
@@ -1006,17 +1032,15 @@ public:
       // amountToMove << "\n" << "maxVel: " << maxvel << "\n";
     } else {
       /// @todo TODO(ahundt) BUG: Need way to pass time to reach specified goal for position control and eliminate this allocation
-      KukaState tmp;
-      tmp.velocity_limits = getMaxVel();
-      lowLevelStepAlgorithmP.reset(new LowLevelStepAlgorithmType(tmp));
+      lowLevelStepAlgorithmCommandParamsP.reset(new typename LowLevelStepAlgorithmType::Params());
     }
 
-    BOOST_VERIFY(lowLevelStepAlgorithmP != nullptr);
+    BOOST_VERIFY(lowLevelStepAlgorithmCommandParamsP != nullptr);
     boost::system::error_code send_ec, recv_ec;
     std::size_t send_bytes, recv_bytes;
     // sync with device over network
     haveNewData = !kukaFRIClientDataDriverP_->update_state(
-        *lowLevelStepAlgorithmP, friData_, recv_ec, recv_bytes, send_ec,
+        lowLevelStepAlgorithmCommandParamsP, friData_, recv_ec, recv_bytes, send_ec,
         send_bytes);
     m_attemptedCommunicationCount++;
 
@@ -1133,7 +1157,7 @@ public:
    * If the time point is too near in the future
    * to make it, the robot will move at the max speed towards that position.
    *
-   * @see KukaFRIdriver::set(TimePoint && time, time_point_command_tag) to set
+   * @see KukaFRIdriver::set(TimePoint && duration_to_goal_command, time_duration_command_tag) to set
    * the destination time point in the future so the position motion can start.
    *
    * @param state Object which stores the current state of the robot, including
