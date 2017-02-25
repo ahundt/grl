@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 
   grl::periodic<> callIfMinPeriodPassed;
-  HowToMove howToMove = HowToMove::relative_position;//HowToMove::absolute_position; HowToMove::relative_position;
+  HowToMove howToMove = HowToMove::absolute_position_with_relative_rotation;//HowToMove::absolute_position; HowToMove::relative_position;
   DriverToUse driverToUse = DriverToUse::low_level_fri_class;
 
   try
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
     double delta_sum = 0;
     /// consider moving joint angles based on time
     int joint_to_move = 6;
-    loggerPG->warn("WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT ",
+    loggerPG->warn("WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT {}{}{}{}{}{}",
                       "if joint angle delta variable is too large with respect to ",
                       "the time it takes to go around the loop and change it. ",
                       "Current delta (radians/update): ", delta, " Joint to move: ", joint_to_move);
@@ -93,7 +93,10 @@ int main(int argc, char* argv[])
     std::vector<double> ipoJointPos(7,0);
     std::vector<double> jointOffset(7,0); // length 7, value 0
     boost::container::static_vector<double, 7> jointStateToCommand(7,0);
-    std::vector<double> absoluteGoalPos(7,0);
+  
+    // Absolute goal position to travel to in some modes of HowToMove
+    // Set all 7 joints to go to a position 1 radian from the center
+    std::vector<double> absoluteGoalPos(7,0.2);
 
     /// TODO(ahundt) remove deprecated arm state from here and implementation
     grl::robot::arm::KukaState armState;
@@ -128,23 +131,15 @@ int main(int argc, char* argv[])
         friData->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
     }
 
-    //
     unsigned int num_missed = 0;
-    if(howToMove == HowToMove::absolute_position)
-    {
-        /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control
-        // Execute a single move to the absolute goal position
-        // For example you can say you want to make your move over 5000 ms
-        absoluteGoalPos = std::vector<double>(7,0.1);
-        goal_position_command_time_duration = 5000; //ms
-    }
 
 	for (std::size_t i = 0;;++i) {
 
-        /// use the interpolated joint position from the previous update as the base
-        /// because the regular joint angle is what JAVA commanded, the interpolated joint angle is the real physical arm position!
-
-        //if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+        /// Save the interpolated joint position from the previous update as the base for some motions
+        /// The interpolated position is where the JAVA side is commanding,
+        /// Specifically in the case of the GRL drivers this the fixed starting position set
+        /// with a hold position command on the java side.
+        if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
         /// perform the update step, receiving and sending data to/from the arm
         boost::system::error_code send_ec, recv_ec;
@@ -188,8 +183,9 @@ int main(int argc, char* argv[])
         }
 
         /// use the interpolated joint position from the previous update as the base
-        /// @todo why is this?
-        //if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+        /// The interpolated position is where the java side is commanding,
+        /// or the fixed starting position with a hold position command on the java side.
+        if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
 
         // setting howToMove to HowToMove::remain_stationary block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
@@ -222,18 +218,19 @@ int main(int argc, char* argv[])
                 boost::transform ( ipoJointPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             } else if (howToMove == HowToMove::absolute_position) {
                 // go to an absolute position
+                //boost::transform ( ipoJointPos, absoluteGoalPos, jointStateToCommand.begin(), std::plus<double>());
                 boost::copy ( absoluteGoalPos, jointStateToCommand.begin());
             } else if (howToMove == HowToMove::absolute_position_with_relative_rotation) {
                 // go to a position relative to the current position
+                
                 boost::transform ( absoluteGoalPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             }
-            grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
         }
 
         // copy the state data into a more accessible object
         /// TODO(ahundt) switch from this copy to a non-deprecated call
         grl::robot::arm::copy(friData->monitoringMsg,armState);
-        if(debug && (i % print_every_n) ==0 ) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " jointOffset: ", jointOffset);
+        if(debug && (i % print_every_n) ==0 ) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " commanded Position: ", jointStateToCommand, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " jointOffset: ", jointOffset);
 
 	}
   }

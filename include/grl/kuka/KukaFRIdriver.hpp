@@ -109,21 +109,22 @@ struct LinearInterpolation {
     KukaState::joint_state ipoJointPos;
     KukaState::joint_state currentJointPos;
     KukaState::joint_state currentMinusIPOJointPos;
-    KukaState::joint_state goalMinusIPOJointPos;
+    KukaState::joint_state goalPlusIPOJointPos;
     KukaState::joint_state diffToGoal;
     KukaState::joint_state amountToMove;
     KukaState::joint_state commandToSend;
+    KukaState::joint_state commandToSendPlusIPOJointPos;
 
     double ripoJointPos[7];
     double rcurrentJointPos[7];
     double rcurrentMinusIPOJointPos[7];
-    double rgoalMinusIPOJointPos[7];
+    double rgoalPlusIPOJointPos[7];
     double rcommandedGoal[7];
-    double rcommandedGoalMinusIPOJointPos[7];
     double rdiffToGoal[7];
     double ramountToMove[7];
     double rcommandToSend[7];
     double rvelocity_limits[7];
+    double rcommandToSendPlusIPOJointPos[7];
 
     // the current "holdposition" joint angles
     /// @todo maybe this should be the
@@ -144,12 +145,12 @@ struct LinearInterpolation {
         boost::transform(currentJointPos, ipoJointPos,
                          std::back_inserter(currentMinusIPOJointPos), std::minus<double>());
         boost::transform(goal_position, ipoJointPos,
-                         std::back_inserter(goalMinusIPOJointPos), std::minus<double>());
+                         std::back_inserter(goalPlusIPOJointPos), std::plus<double>());
       
                          
     boost::copy(currentMinusIPOJointPos, &rcurrentMinusIPOJointPos[0]);
     boost::copy(goal_position, &rcommandedGoal[0]);
-    boost::copy(goalMinusIPOJointPos, &rgoalMinusIPOJointPos[0]);
+    boost::copy(goalPlusIPOJointPos, &rgoalPlusIPOJointPos[0]);
     
     // only move if there is time left to reach the goal
     if(goal_position_command_time_duration_remaining > 0)
@@ -221,7 +222,16 @@ struct LinearInterpolation {
 
         boost::copy(currentMinusIPOJointPos, &rcurrentMinusIPOJointPos[0]);
         boost::copy(commandToSend, &rcommandToSend[0]);
+    
+        
+        boost::transform(commandToSend, ipoJointPos,
+                         std::back_inserter(commandToSendPlusIPOJointPos), std::plus<double>());
+    
 
+        boost::copy(commandToSendPlusIPOJointPos, &rcommandToSendPlusIPOJointPos[0]);
+        // send the command
+//        grl::robot::arm::set(friData.commandMsg, commandToSend,
+//                             grl::revolute_joint_angle_open_chain_command_tag());
         // send the command
         grl::robot::arm::set(friData.commandMsg, commandToSend,
                              grl::revolute_joint_angle_open_chain_command_tag());
