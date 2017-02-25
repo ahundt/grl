@@ -28,7 +28,8 @@ enum class HowToMove
 {
    remain_stationary,
    absolute_position,
-   relative_position
+   relative_position,
+   absolute_position_with_relative_rotation
 };
 
 enum class DriverToUse
@@ -47,7 +48,7 @@ int main(int argc, char* argv[])
 	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 
   grl::periodic<> callIfMinPeriodPassed;
-  HowToMove howToMove = HowToMove::relative_position;
+  HowToMove howToMove = HowToMove::relative_position;//HowToMove::absolute_position; HowToMove::relative_position;
   DriverToUse driverToUse = DriverToUse::low_level_fri_class;
 
   try
@@ -134,8 +135,8 @@ int main(int argc, char* argv[])
         /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control
         // Execute a single move to the absolute goal position
         // For example you can say you want to make your move over 5000 ms
-        armState.goal_position_command_time_duration = 5000; // ms
         absoluteGoalPos = std::vector<double>(7,0.1);
+        goal_position_command_time_duration = 5000; //ms
     }
 
 	for (std::size_t i = 0;;++i) {
@@ -143,7 +144,7 @@ int main(int argc, char* argv[])
         /// use the interpolated joint position from the previous update as the base
         /// because the regular joint angle is what JAVA commanded, the interpolated joint angle is the real physical arm position!
 
-        if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+        //if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
         /// perform the update step, receiving and sending data to/from the arm
         boost::system::error_code send_ec, recv_ec;
@@ -188,7 +189,7 @@ int main(int argc, char* argv[])
 
         /// use the interpolated joint position from the previous update as the base
         /// @todo why is this?
-        if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+        //if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
 
         // setting howToMove to HowToMove::remain_stationary block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
@@ -199,9 +200,6 @@ int main(int argc, char* argv[])
             {
                     // Need to tell the system how long in milliseconds it has to reach the goal or it will never move!
                     // Here we are using the time step defined in the FRI communication frequency but larger values are ok.
-                    //armState.goal_position_command_time_duration = grl::robot::arm::get(friData->monitoringMsg, grl::time_step_tag()); // ms
-                    //armState.goal_position_command_time_duration = 4;
-                    // increment relative goal position
                     jointOffset[joint_to_move]+=delta;
                     delta_sum+=delta;
                     // swap directions when a half circle was completed
@@ -223,6 +221,9 @@ int main(int argc, char* argv[])
                 // go to a position relative to the current position
                 boost::transform ( ipoJointPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             } else if (howToMove == HowToMove::absolute_position) {
+                // go to an absolute position
+                boost::copy ( absoluteGoalPos, jointStateToCommand.begin());
+            } else if (howToMove == HowToMove::absolute_position_with_relative_rotation) {
                 // go to a position relative to the current position
                 boost::transform ( absoluteGoalPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             }

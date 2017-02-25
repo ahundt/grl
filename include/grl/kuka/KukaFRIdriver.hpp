@@ -19,14 +19,12 @@
 //#endif
 
 // friClientData is found in the kuka connectivity FRI cpp zip file
-#include "friClientData.h"
-#include "friClientIf.h"
+#include "grl/kuka/Kuka.hpp"
+#include "grl/kuka/KukaFRI.hpp"
 #include "grl/exception.hpp"
 #include "grl/vector_ostream.hpp"
 #include "grl/kuka/KukaFRIalgorithm.hpp"
 
-#include "Kuka.hpp"
-#include "KukaFRI.hpp"
 
 /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
 #include <spdlog/spdlog.h>
@@ -110,13 +108,18 @@ struct LinearInterpolation {
 
     KukaState::joint_state ipoJointPos;
     KukaState::joint_state currentJointPos;
+    KukaState::joint_state currentMinusIPOJointPos;
+    KukaState::joint_state goalMinusIPOJointPos;
     KukaState::joint_state diffToGoal;
     KukaState::joint_state amountToMove;
     KukaState::joint_state commandToSend;
-    KukaState::joint_state goal;
 
+    double ripoJointPos[7];
     double rcurrentJointPos[7];
+    double rcurrentMinusIPOJointPos[7];
+    double rgoalMinusIPOJointPos[7];
     double rcommandedGoal[7];
+    double rcommandedGoalMinusIPOJointPos[7];
     double rdiffToGoal[7];
     double ramountToMove[7];
     double rcommandToSend[7];
@@ -129,14 +132,26 @@ struct LinearInterpolation {
     grl::robot::arm::copy(friData.monitoringMsg,
                           std::back_inserter(currentJointPos),
                           revolute_joint_angle_open_chain_state_tag());
-      
-    // Get the goal the user submitted
-    grl::robot::arm::copy(friData.commandMsg,std::back_inserter(goal),revolute_joint_angle_open_chain_command_tag());
+    grl::robot::arm::copy(friData.monitoringMsg,
+                          std::back_inserter(ipoJointPos),
+                          revolute_joint_angle_interpolated_open_chain_state_tag());
+
+    // copy value for debugging
+    boost::copy(ipoJointPos, &ripoJointPos[0]);
     boost::copy(currentJointPos, &rcurrentJointPos[0]);
+    boost::copy(goal_position, &rcommandedGoal[0]);
     
+        boost::transform(currentJointPos, ipoJointPos,
+                         std::back_inserter(currentMinusIPOJointPos), std::minus<double>());
+        boost::transform(goal_position, ipoJointPos,
+                         std::back_inserter(goalMinusIPOJointPos), std::minus<double>());
+      
+                         
+    boost::copy(currentMinusIPOJointPos, &rcurrentMinusIPOJointPos[0]);
+    boost::copy(goal_position, &rcommandedGoal[0]);
+    boost::copy(goalMinusIPOJointPos, &rgoalMinusIPOJointPos[0]);
     
-    /// @todo TODO(ahundt) HACK TO WORK AROUND BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
-    //goal_position_command_time_duration_remaining = 4;
+    // only move if there is time left to reach the goal
     if(goal_position_command_time_duration_remaining > 0)
     {
         // single timestep in ms
@@ -155,16 +170,14 @@ struct LinearInterpolation {
         // get the angular distance to the goal
         // use current time and time to destination to interpolate (scale) goal
         // joint position
-        boost::transform(goal, currentJointPos,
+        boost::transform(goal_position, currentJointPos,
                          std::back_inserter(diffToGoal),
                          [&](double commanded_angle, double current_angle) {
                            return (commanded_angle - current_angle) *
                                   fractionOfDistanceToTraverse;
                          });
         boost::copy(diffToGoal, &rdiffToGoal[0]);
-        
-        /// @todo TODO(ahundt) WHAT TO DO IF GOAL HASN'T BEEN UPDATED? (stay in place or not change goal command?)
-
+    
         goal_position_command_time_duration_remaining -= thisTimeStepMS;
         
         /// @todo correctly pass velocity limits from outside, use "copy" fuction in
@@ -189,6 +202,7 @@ struct LinearInterpolation {
         velocity_limits.push_back(2.356194490192*thisTimeStepS);
 
         boost::copy(velocity_limits, &rvelocity_limits[0]);
+        // clamp the commanded velocities to below the system limits
         // use std::min to ensure commanded change in position remains under the
         // maximum possible velocity for a single timestep
         boost::transform(
@@ -199,11 +213,13 @@ struct LinearInterpolation {
 
         boost::copy(amountToMove, &ramountToMove[0]);
 
+
         // add the current joint position to the amount to move to get the actual
         // position command to send
         boost::transform(currentJointPos, amountToMove,
                          std::back_inserter(commandToSend), std::plus<double>());
 
+        boost::copy(currentMinusIPOJointPos, &rcurrentMinusIPOJointPos[0]);
         boost::copy(commandToSend, &rcommandToSend[0]);
 
         // send the command
