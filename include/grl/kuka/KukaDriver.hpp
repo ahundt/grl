@@ -261,6 +261,49 @@ namespace grl { namespace robot { namespace arm {
         }
    }
 
+  bool setPositionControlMode()
+  {
+    if(JAVAdriverP_)
+    {
+      JAVAdriverP_->setPositionControlMode();
+      return true;
+    }
+    else
+      return false;
+  }
+
+
+  bool setJointImpedanceMode(std::vector<double> joint_stiffnes, std::vector<double>joint_damping)
+  {
+    if(JAVAdriverP_)
+    {
+      JAVAdriverP_->setJointImpedanceMode(joint_stiffnes, joint_damping);
+    }
+    else
+      return false;
+  }
+
+  // TODO: define custom flatbuffer for Cartesion Quantities, currently flatbuffer::CartesianImpedenceControlMode
+  bool setCartesianImpedanceMode(
+      grl::flatbuffer::EulerPose cart_stiffness, grl::flatbuffer::EulerPose cart_damping,
+      double nullspace_stiffness, double nullspace_damping,
+      grl::flatbuffer::EulerPose cart_max_path_deviation,
+      grl::flatbuffer::EulerPose cart_max_ctrl_vel,
+      grl::flatbuffer::EulerPose cart_max_ctrl_force,
+      bool max_control_force_stop)
+  {
+    if(JAVAdriverP_)
+    {
+      JAVAdriverP_->setCartesianImpedanceMode(cart_stiffness, cart_damping,
+          nullspace_stiffness, nullspace_damping,
+          cart_max_path_deviation, cart_max_ctrl_vel, cart_max_ctrl_force,
+          max_control_force_stop);
+      return true;
+    }
+    else
+      return false;
+  }
+
      /**
       * \brief Set the joint positions for the current interpolation step.
       *
