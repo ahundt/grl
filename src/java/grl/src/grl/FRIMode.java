@@ -35,10 +35,13 @@ public class FRIMode implements Runnable {
 	private AbstractMotionControlMode _activeMotionControlMode;
 	private FRISession       _friSession = null;
 	private FRIJointOverlay  _motionOverlay = null;
-	private static volatile boolean useHandGuidingMotion;
-	private static volatile boolean isEnableEnded;
-	private static volatile boolean stop = false;
-
+	private FRIConfiguration _friConfiguration = null;
+	private String _hostName = null;
+	private volatile boolean useHandGuidingMotion;
+	private volatile boolean isEnableEnded;
+	private volatile boolean stop = false;
+    private volatile boolean timedOut = false;
+	
 	IMotionContainer currentMotion = null;
 	ITaskLogger _logger = null;
 	int iter = 0;
@@ -49,22 +52,52 @@ public class FRIMode implements Runnable {
 	 * @param maxAllowedJoints
 	 * @param minAllowedJoints
 	 */
-	public FRIMode(LBR lbr, FRISession friSession) {
+	public FRIMode(LBR lbr, String hostName, int sendPeriodMillisec) {
 		_lbr = lbr;
-		_friSession = friSession;
+		_hostName = hostName;
 		useHandGuidingMotion = false;
+		stop = false;
+		timedOut = false;
+
+        _friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
+        _friConfiguration.setSendPeriodMilliSec(sendPeriodMillisec);
+        if(_friSession == null) _friSession = new FRISession(_friConfiguration);
+		//_motionOverlay = new FRIJointOverlay(_friSession);
 	}
 
 	public void setLogger(ITaskLogger logger) {
 		_logger = logger;
 	}
 
+	public boolean isCommandingWaitOrActive()
+	{
+		boolean ret;
+		synchronized (this) {
+			ret = _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_ACTIVE) != 0
+					&& _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_WAIT) != 0;
+		}
+		
+		return !ret;
+	}
+	
+	public String getQualityString()
+	{
+		return _friSession.getFRIChannelInformation().getQuality().toString();
+	}
+	
 	/**
 	 * 
 	 * @param setControlMode
 	 */
 	public void setControlMode(AbstractMotionControlMode teachModeControlMode) {
-		_activeMotionControlMode = teachModeControlMode;
+
+		synchronized (this) {
+			_activeMotionControlMode = teachModeControlMode;
+		}
+	}
+	
+	public void setFRIConfiguration(FRIConfiguration friConfguration){
+		_friConfiguration = friConfguration;
 	}
 
 	public void enable() {
@@ -89,6 +122,9 @@ public class FRIMode implements Runnable {
 		return true;
 	}
 	
+	public synchronized boolean isTimedOut(){
+	   return timedOut;
+	}
 	
 	/**
 	 * 
@@ -143,14 +179,14 @@ public class FRIMode implements Runnable {
 		}
 		_motionOverlay = null;
 		
-		while(!stop) {
+		while(!stop && !timedOut) {
 			//warn("Starting new hand guiding motion");
 
 			try {
 
 				// see kuka documentation 1.9 for details
 				synchronized(this) {
-
+					if(!timedOut){
 					if (!useHandGuidingMotion) {
 						//warn("breaking hand guiding motion");
 						try {
@@ -176,9 +212,11 @@ public class FRIMode implements Runnable {
 //							.setAxisLimitViolationFreezesAll(false).setPermanentPullOnViolationAtStart(true);
 					isEnableEnded = false;
 				}
+				}
 				//warn("hand guiding motion moving... " + useHandGuidingMotion);
 				//if (_handGuidingMotionContainer == null || _handGuidingMotionContainer.isFinished()) {
-				if(    _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_ACTIVE) != 0
+				if(     !timedOut
+						&& _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_ACTIVE) != 0
 						&& _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_WAIT) != 0)
 					{
 						_logger.info("FRI Joint Overlay starting...");
@@ -186,12 +224,21 @@ public class FRIMode implements Runnable {
 						try {
 							_friSession.await(10, TimeUnit.SECONDS);
 
+							_motionOverlay = new FRIJointOverlay(_friSession);
 							currentMotion = _lbr.move(positionHold(_activeMotionControlMode, -1, TimeUnit.SECONDS).addMotionOverlay(_motionOverlay));
+							_logger.info("FRI Joint Overlay ended...");
 							
 						} catch (TimeoutException e) {
-							_logger.error("FRISession timed out, closing...");
-							e.printStackTrace();
-							_friSession.close();
+							//_logger.error("FRISession timed out, closing...");
+							//e.printStackTrace();
+							//_friSession.close();
+							_logger.error("FRIMode: FRISession timed out, need to restart from scratch...");
+
+							if(currentMotion !=null) currentMotion.cancel();
+							//_friSession.close();
+							//timedOut = true;
+							//e.printStackTrace();
+							//_friSession.close();
 							return;
 						}
 					}
@@ -210,7 +257,7 @@ public class FRIMode implements Runnable {
 			}
 		}
 
-		warn("Teach Mode Thread Exiting");
+		warn("FRI Mode Thread Exiting");
 	}
 
 }

@@ -26,14 +26,16 @@ enum { max_length = 1024 };
 
 enum class HowToMove
 {
+   remain_stationary,
    absolute_position,
-   relative_position
+   relative_position,
+   absolute_position_with_relative_rotation
 };
 
 enum class DriverToUse
 {
-   low_level_function,
-   high_level_class
+   low_level_fri_function,
+   low_level_fri_class
 };
 
 int main(int argc, char* argv[])
@@ -46,8 +48,8 @@ int main(int argc, char* argv[])
 	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
 
   grl::periodic<> callIfMinPeriodPassed;
-  HowToMove howToMove = HowToMove::relative_position;
-  DriverToUse driverToUse = DriverToUse::high_level_class;
+  HowToMove howToMove = HowToMove::absolute_position_with_relative_rotation;//HowToMove::absolute_position; HowToMove::relative_position;
+  DriverToUse driverToUse = DriverToUse::low_level_fri_class;
 
   try
   {
@@ -83,26 +85,29 @@ int main(int argc, char* argv[])
     double delta_sum = 0;
     /// consider moving joint angles based on time
     int joint_to_move = 6;
-    loggerPG->warn("WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT ",
+    loggerPG->warn("WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT {}{}{}{}{}{}",
                       "if joint angle delta variable is too large with respect to ",
                       "the time it takes to go around the loop and change it. ",
                       "Current delta (radians/update): ", delta, " Joint to move: ", joint_to_move);
 
     std::vector<double> ipoJointPos(7,0);
     std::vector<double> jointOffset(7,0); // length 7, value 0
-    std::vector<double> jointStateToCommand(7,0);
-    std::vector<double> absoluteGoalPos(7,0);
+    boost::container::static_vector<double, 7> jointStateToCommand(7,0);
+  
+    // Absolute goal position to travel to in some modes of HowToMove
+    // Set all 7 joints to go to a position 1 radian from the center
+    std::vector<double> absoluteGoalPos(7,0.2);
 
     /// TODO(ahundt) remove deprecated arm state from here and implementation
     grl::robot::arm::KukaState armState;
     std::unique_ptr<grl::robot::arm::LinearInterpolation> lowLevelStepAlgorithmP;
-    armState.goal_position_command_time_duration = 4;
-    lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation(armState));
+    std::size_t goal_position_command_time_duration = 4;
+    lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation());
     // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800) see grl::robot::arm::KukaState::KUKA_LBR_IIWA_14_R820
   
     std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>> highLevelDriverClassP;
 
-    if(driverToUse == DriverToUse::high_level_class)
+    if(driverToUse == DriverToUse::low_level_fri_class)
     {
       /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
       /// IDEA: PASS A LOW LEVEL STEP ALGORITHM PARAMS OBJECT ON EACH UPDATE AND ONLY ONE INSTANCE OF THE ALGORITHM OBJECT ITSELF
@@ -113,7 +118,7 @@ int main(int argc, char* argv[])
   
     std::shared_ptr<boost::asio::ip::udp::socket> socketP;
   
-    if(driverToUse == DriverToUse::low_level_function)
+    if(driverToUse == DriverToUse::low_level_fri_function)
     {
     
         socketP = std::make_shared<boost::asio::ip::udp::socket>(io_service, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(localhost), boost::lexical_cast<short>(localport)));
@@ -126,22 +131,14 @@ int main(int argc, char* argv[])
         friData->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
     }
 
-    //
     unsigned int num_missed = 0;
-    if(howToMove == HowToMove::absolute_position)
-    {
-        /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control
-        // Execute a single move to the absolute goal position
-        // For example you can say you want to make your move over 5000 ms
-        armState.goal_position_command_time_duration = 5000; // ms
-        absoluteGoalPos = std::vector<double>(7,0.1);
-    }
 
 	for (std::size_t i = 0;;++i) {
 
-        /// use the interpolated joint position from the previous update as the base
-        /// because the regular joint angle is what JAVA commanded, the interpolated joint angle is the real physical arm position!
-
+        /// Save the interpolated joint position from the previous update as the base for some motions
+        /// The interpolated position is where the JAVA side is commanding,
+        /// Specifically in the case of the GRL drivers this the fixed starting position set
+        /// with a hold position command on the java side.
         if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
         /// perform the update step, receiving and sending data to/from the arm
@@ -149,12 +146,13 @@ int main(int argc, char* argv[])
         std::size_t send_bytes_transferred = 0, recv_bytes_transferred = 0;
         bool haveNewData = false;
         
-        if(driverToUse == DriverToUse::high_level_class)
+        if(driverToUse == DriverToUse::low_level_fri_class)
         {
-            haveNewData = !highLevelDriverClassP->update_state(*lowLevelStepAlgorithmP, friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
+            auto step_commandP = std::make_shared<grl::robot::arm::LinearInterpolation::Params>(std::make_tuple(jointStateToCommand,goal_position_command_time_duration));
+            haveNewData = !highLevelDriverClassP->update_state(step_commandP, friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
         }
         
-        if(driverToUse == DriverToUse::low_level_function)
+        if(driverToUse == DriverToUse::low_level_fri_function)
         {
             grl::robot::arm::update_state(*socketP,*lowLevelStepAlgorithmP,*friData,send_ec,send_bytes_transferred, recv_ec, recv_bytes_transferred);
         }
@@ -164,7 +162,7 @@ int main(int argc, char* argv[])
         {
         
            loggerPG->error("receive error: ", recv_ec, "receive bytes: ", recv_bytes_transferred, " send error: ", send_ec, " send bytes: ", send_bytes_transferred,  " iteration: ", i);
-           if(driverToUse == DriverToUse::high_level_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+           if(driverToUse == DriverToUse::low_level_fri_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
            continue;
         }
 
@@ -172,7 +170,7 @@ int main(int argc, char* argv[])
         // but we can't process the new data so try updating again immediately.
         if(!haveNewData && !recv_bytes_transferred)
         {
-          if(driverToUse == DriverToUse::high_level_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          if(driverToUse == DriverToUse::low_level_fri_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
           ++num_missed;
           if(num_missed>10000) {
             loggerPG->warn("No new data for ", num_missed, " milliseconds.");
@@ -185,21 +183,19 @@ int main(int argc, char* argv[])
         }
 
         /// use the interpolated joint position from the previous update as the base
-        /// @todo why is this?
+        /// The interpolated position is where the java side is commanding,
+        /// or the fixed starting position with a hold position command on the java side.
         if(i!=0 && friData) grl::robot::arm::copy(friData->monitoringMsg,ipoJointPos.begin(),grl::revolute_joint_angle_interpolated_open_chain_state_tag());
 
 
-
-        if (grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
+        // setting howToMove to HowToMove::remain_stationary block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
+        if (howToMove != HowToMove::remain_stationary &&
+            grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
         {
-#if 1 // disabling this block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
             callIfMinPeriodPassed.execution( [&howToMove,&friData,&armState,&jointOffset,&delta,&delta_sum,joint_to_move]()
             {
                     // Need to tell the system how long in milliseconds it has to reach the goal or it will never move!
                     // Here we are using the time step defined in the FRI communication frequency but larger values are ok.
-                    //armState.goal_position_command_time_duration = grl::robot::arm::get(friData->monitoringMsg, grl::time_step_tag()); // ms
-                    //armState.goal_position_command_time_duration = 4;
-                    // increment relative goal position
                     jointOffset[joint_to_move]+=delta;
                     delta_sum+=delta;
                     // swap directions when a half circle was completed
@@ -211,8 +207,6 @@ int main(int argc, char* argv[])
                        delta *=-1;
                     }
             });
-
-#endif
         }
 
         KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState());
@@ -223,16 +217,20 @@ int main(int argc, char* argv[])
                 // go to a position relative to the current position
                 boost::transform ( ipoJointPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             } else if (howToMove == HowToMove::absolute_position) {
+                // go to an absolute position
+                //boost::transform ( ipoJointPos, absoluteGoalPos, jointStateToCommand.begin(), std::plus<double>());
+                boost::copy ( absoluteGoalPos, jointStateToCommand.begin());
+            } else if (howToMove == HowToMove::absolute_position_with_relative_rotation) {
                 // go to a position relative to the current position
+                
                 boost::transform ( absoluteGoalPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             }
-            grl::robot::arm::set(friData->commandMsg, jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
         }
 
         // copy the state data into a more accessible object
         /// TODO(ahundt) switch from this copy to a non-deprecated call
         grl::robot::arm::copy(friData->monitoringMsg,armState);
-        if(debug && (i % print_every_n) ==0 ) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " jointOffset: ", jointOffset);
+        if(debug && (i % print_every_n) ==0 ) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " commanded Position: ", jointStateToCommand, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " jointOffset: ", jointOffset);
 
 	}
   }

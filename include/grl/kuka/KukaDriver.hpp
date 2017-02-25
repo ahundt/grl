@@ -165,7 +165,7 @@ namespace grl { namespace robot { namespace arm {
       }
 
      /**
-      * spin once
+      * @brief spin once - call this function as frequently as possible, it drives the system
       *
       */
       bool run_one(){
@@ -278,6 +278,7 @@ namespace grl { namespace robot { namespace arm {
     if(JAVAdriverP_)
     {
       JAVAdriverP_->setJointImpedanceMode(joint_stiffnes, joint_damping);
+      return true;
     }
     else
       return false;
