@@ -251,7 +251,7 @@ void initHandles() {
 }
 
 void getRealKukaAngles() {
-      /// @todo m_haveReceivedRealData = true is a DANGEROUS HACK!!!! REMOVE ME AFTER DEBUGGING
+      /// @todo TODO(ahundt) m_haveReceivedRealData = true is a DANGEROUS HACK!!!! REMOVE ME AFTER DEBUGGING
       m_haveReceivedRealData = true;
 
 

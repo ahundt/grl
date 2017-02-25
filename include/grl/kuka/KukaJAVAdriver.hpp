@@ -189,7 +189,7 @@ namespace grl { namespace robot { namespace arm {
             set(grl::flatbuffer::ArmState_MoveArmJointServo);
 
         } catch( boost::exception &e) {
-          e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from " +
+          e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from {}{}{}" +
                            std::get<LocalUDPAddress>             (params_) + " to " +
                            std::get<RemoteUDPAddress>            (params_));
           throw;
@@ -260,7 +260,7 @@ namespace grl { namespace robot { namespace arm {
                 auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
                 auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
-                    logger_->info("C++ KukaJAVAdriver: sending armposition command:",armState_.commandedPosition_goal);
+                    logger_->info("C++ KukaJAVAdriver: sending armposition command: {}{}",armState_.commandedPosition_goal);
                  break;
               }
               case flatbuffer::ArmState::ArmState_TeachArm: {
@@ -284,7 +284,7 @@ namespace grl { namespace robot { namespace arm {
                  break;
               }
               default:
-                 logger_->error("C++ KukaJAVAdriver: unsupported use case: ", armControlMode_);
+                 logger_->error("C++ KukaJAVAdriver: unsupported use case: {}", armControlMode_);
           }
 
           auto name = fbbP->CreateString(std::get<RobotName>(params_));

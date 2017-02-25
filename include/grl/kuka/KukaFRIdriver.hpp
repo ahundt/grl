@@ -1045,7 +1045,7 @@ public:
       /// @todo TODO(ahundt) Need to eliminate this allocation
       boost::lock_guard<boost::mutex> lock(jt_mutex);
       
-      boost::container::static_vector<double, 7> jointStateToCommand(7,0);
+      boost::container::static_vector<double, 7> jointStateToCommand;
       boost::copy(armState.commandedPosition,std::back_inserter(jointStateToCommand));
       // pass time to reach specified goal for position control
       lowLevelStepAlgorithmCommandParamsP = std::make_shared<grl::robot::arm::LinearInterpolation::Params>(std::make_tuple(jointStateToCommand,armState.goal_position_command_time_duration));
