@@ -112,7 +112,6 @@ basis_project (
     Threads            # pthreads, see CMake documentation
     Eigen3             # Linear Algebra eigen.tuxfamily.com
     Nanopb             # Used in Kuka Fast Robot Interface
-    FRI_Client_SDK_Cpp # Kuka Fast Robot Interface (FRI) Client SDK
     ur_modern_driver   # Universal Robots Arm Device Driver https://github.com/ThomasTimm/ur_modern_driver/
     CisstNetlib        # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
     cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin

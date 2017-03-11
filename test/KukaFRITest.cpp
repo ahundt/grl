@@ -11,6 +11,7 @@
 #include "grl/periodic.hpp"
 #include "grl/kuka/KukaFRIdriver.hpp"
 #include "grl/vector_ostream.hpp"
+#include "grl/kuka/KukaDriver.hpp"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
@@ -35,7 +36,8 @@ enum class HowToMove
 enum class DriverToUse
 {
    low_level_fri_function,
-   low_level_fri_class
+   low_level_fri_class,
+   kuka_driver_high_level_class
 };
 
 int main(int argc, char* argv[])
@@ -49,7 +51,7 @@ int main(int argc, char* argv[])
 
   grl::periodic<> callIfMinPeriodPassed;
   HowToMove howToMove = HowToMove::absolute_position_with_relative_rotation;//HowToMove::absolute_position; HowToMove::relative_position;
-  DriverToUse driverToUse = DriverToUse::low_level_fri_class;
+  DriverToUse driverToUse = DriverToUse::kuka_driver_high_level_class;
 
   try
   {
@@ -101,6 +103,9 @@ int main(int argc, char* argv[])
     /// TODO(ahundt) remove deprecated arm state from here and implementation
     grl::robot::arm::KukaState armState;
     std::unique_ptr<grl::robot::arm::LinearInterpolation> lowLevelStepAlgorithmP;
+    
+    // Need to tell the system how long in milliseconds it has to reach the goal
+    // or it will never move!
     std::size_t goal_position_command_time_duration = 4;
     lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation());
     // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800) see grl::robot::arm::KukaState::KUKA_LBR_IIWA_14_R820
@@ -130,6 +135,34 @@ int main(int argc, char* argv[])
         /// @todo maybe there is a more convienient way to set this that is easier for users? perhaps initializeClientDataForiiwa()?
         friData->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
     }
+  
+    std::shared_ptr<grl::robot::arm::KukaDriver> kukaDriverP;
+  
+    if(driverToUse == DriverToUse::kuka_driver_high_level_class)
+    {
+        grl::robot::arm::KukaDriver::Params params = std::make_tuple(
+                "Robotiiwa"               , // RobotName,
+                "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
+                "0.0.0.0"                 , // LocalUDPAddress
+                "30010"                   , // LocalUDPPort
+                "172.31.1.147"            , // RemoteUDPAddress
+                "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
+                "30200"                   , // LocalHostKukaKoniUDPPort,
+                remotehost                , // RemoteHostKukaKoniUDPAddress,
+                remoteport                , // RemoteHostKukaKoniUDPPort
+                "FRI"                     , // KukaCommandMode (options are FRI, JAVA)
+                "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
+                );
+        /// @todo TODO(ahundt) Currently assumes ip address
+        kukaDriverP=std::make_shared<grl::robot::arm::KukaDriver>(params);
+        kukaDriverP->construct();
+        // Default to joint servo mode for commanding motion
+        kukaDriverP->set(grl::flatbuffer::ArmState::ArmState_MoveArmJointServo);
+        kukaDriverP->set(goal_position_command_time_duration,grl::time_duration_command_tag());
+        std::cout << "KUKA COMMAND MODE: " << std::get<grl::robot::arm::KukaDriver::KukaCommandMode>(params) << "\n";
+    
+    }
+  
 
     unsigned int num_missed = 0;
 
@@ -155,6 +188,13 @@ int main(int argc, char* argv[])
         if(driverToUse == DriverToUse::low_level_fri_function)
         {
             grl::robot::arm::update_state(*socketP,*lowLevelStepAlgorithmP,*friData,send_ec,send_bytes_transferred, recv_ec, recv_bytes_transferred);
+        }
+        
+        if(driverToUse == DriverToUse::kuka_driver_high_level_class)
+        {
+        
+            kukaDriverP->set( jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
+            kukaDriverP->run_one();
         }
 
         // if data didn't arrive correctly, skip and try again
@@ -192,9 +232,8 @@ int main(int argc, char* argv[])
         if (howToMove != HowToMove::remain_stationary &&
             grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
         {
-            callIfMinPeriodPassed.execution( [&howToMove,&friData,&armState,&jointOffset,&delta,&delta_sum,joint_to_move]()
+            callIfMinPeriodPassed.execution( [&armState,&jointOffset,&delta,&delta_sum,joint_to_move]()
             {
-                    // Need to tell the system how long in milliseconds it has to reach the goal or it will never move!
                     // Here we are using the time step defined in the FRI communication frequency but larger values are ok.
                     jointOffset[joint_to_move]+=delta;
                     delta_sum+=delta;
@@ -218,7 +257,6 @@ int main(int argc, char* argv[])
                 boost::transform ( ipoJointPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             } else if (howToMove == HowToMove::absolute_position) {
                 // go to an absolute position
-                //boost::transform ( ipoJointPos, absoluteGoalPos, jointStateToCommand.begin(), std::plus<double>());
                 boost::copy ( absoluteGoalPos, jointStateToCommand.begin());
             } else if (howToMove == HowToMove::absolute_position_with_relative_rotation) {
                 // go to a position relative to the current position
@@ -236,7 +274,7 @@ int main(int argc, char* argv[])
   }
   catch (boost::exception &e)
   {
-    std::string errmsg("If you get an error 'std::exception::what: bind: Can't assign requested address', check your network connection.\n\nKukaFRIClientDataDriverTest Main Test Loop Stopped:\n" + boost::diagnostic_information(e));
+    std::string errmsg("If you get an error 'std::exception::what: bind: Can't assign requested address', check your network connection.\n\nKukaFRITest Main Test Loop Stopped:\n" + boost::diagnostic_information(e));
     loggerPG->error(errmsg);
     spdlog::drop_all();
     //
