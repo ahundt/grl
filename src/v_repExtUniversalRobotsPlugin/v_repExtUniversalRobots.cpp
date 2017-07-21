@@ -15,6 +15,7 @@
 // This file was automatically created for V-REP release V3.2.0 on Feb. 3rd 2015
 
 #include <boost/lexical_cast.hpp>
+#include <spdlog/spdlog.h>
 
 #include "luaFunctionData.h"
 #include "v_repExtUniversalRobots.h"
@@ -45,6 +46,7 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 
 
 std::shared_ptr<grl::vrep::UniversalRobotsVrepPlugin> kukaPluginPG;
+std::shared_ptr<spdlog::logger>            loggerPG;
 
 const int inArgs_KUKA_LBR_IIWA_START[]={
  19,                   //   Example Value              // Parameter name
@@ -77,7 +79,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
   
   try {
       if (!kukaPluginPG) {
-        BOOST_LOG_TRIVIAL(info) << "Starting UniversalRobots plugin connection to UR hardware\n";
+        loggerPG->info("Starting UniversalRobots plugin connection to UR hardware\n");
 
     	CLuaFunctionData data;
 
@@ -146,19 +148,19 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
       // log the error and print it to the screen, don't release the exception
       std::string initerr("v_repExtUniversalRobots plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
       simAddStatusbarMessage( initerr.c_str());
-      BOOST_LOG_TRIVIAL(error) <<  initerr;
+      loggerPG->error( initerr );
       kukaPluginPG.reset();
   } catch (const std::exception& e){
       // log the error and print it to the screen, don't release the exception
       std::string initerr("v_repExtUniversalRobots plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
       simAddStatusbarMessage( initerr.c_str());
-      BOOST_LOG_TRIVIAL(error) <<  initerr;
+      loggerPG->error( initerr );
       kukaPluginPG.reset();
   } catch (...){
       // log the error and print it to the screen, don't release the exception
       std::string initerr("v_repExtUniversalRobots plugin encountered an unknown error and will disable itself. Please debug this issue! file and line:" + std::string(__FILE__) + " " + boost::lexical_cast<std::string>(__LINE__) + "\n");
       simAddStatusbarMessage( initerr.c_str());
-      BOOST_LOG_TRIVIAL(error) <<  initerr;
+      loggerPG->error( initerr );
       kukaPluginPG.reset();
   }
 }
@@ -191,12 +193,12 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	vrepLib=loadVrepLibrary(temp.c_str());
 	if (vrepLib==NULL)
 	{
-		BOOST_LOG_TRIVIAL(error) << "Error, could not find or correctly load the V-REP library. Cannot start 'v_repExtUniversalRobots' plugin.\n";
+        loggerPG->error( "Error, could not find or correctly load the V-REP library. Cannot start 'v_repExtUniversalRobots' plugin.\n" );
 		return(0); // Means error, V-REP will unload this plugin
 	}
 	if (getVrepProcAddresses(vrepLib)==0)
 	{
-		BOOST_LOG_TRIVIAL(error) << "Error, could not find all required functions in the V-REP library. Cannot start 'v_repExtUniversalRobots' plugin.\n";
+		loggerPG->error( "Error, could not find all required functions in the V-REP library. Cannot start 'v_repExtUniversalRobots' plugin.\n" );
 		unloadVrepLibrary(vrepLib);
 		return(0); // Means error, V-REP will unload this plugin
 	}
@@ -208,7 +210,7 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simGetIntegerParameter(sim_intparam_program_version,&vrepVer);
 	if (vrepVer<20604) // if V-REP version is smaller than 2.06.04
 	{
-		BOOST_LOG_TRIVIAL(error) << "Sorry, your V-REP copy is somewhat old. Cannot start 'v_repExtUniversalRobots' plugin.\n";
+		loggerPG->error( "Sorry, your V-REP copy is somewhat old. Cannot start 'v_repExtUniversalRobots' plugin.\n");
 		unloadVrepLibrary(vrepLib);
 		return(0); // Means error, V-REP will unload this plugin
 	}
@@ -238,7 +240,7 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	//simRegisterCustomLuaFunction(LUA_GET_SENSOR_DATA_COMMAND,strConCat("number result,table data,number distance=",LUA_GET_SENSOR_DATA_COMMAND,"(number sensorIndex,table_3 floatParams,table_2 intParams)"),inArgs_getSensorData,LUA_GET_SENSOR_DATA_CALLBACK);
 	// ******************************************
 
-    BOOST_LOG_TRIVIAL(info) << "KUKA LBR iiwa plugin initialized. Build date/time: " << __DATE__ << " " << __TIME__ <<"\n";
+    loggerPG->error("KUKA LBR iiwa plugin initialized. Build date/time: ", __DATE__, " ", __TIME__ );
 
 	return(PLUGIN_VERSION); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
 }
@@ -329,19 +331,19 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
                   // log the error and print it to the screen, don't release the exception
                   std::string initerr("v_repExtUniversalRobots plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
                   simAddStatusbarMessage( initerr.c_str());
-                  BOOST_LOG_TRIVIAL(error) <<  initerr;
+                  loggerPG->error( initerr );
                   kukaPluginPG.reset();
               } catch (const std::exception& e){
                   // log the error and print it to the screen, don't release the exception
                   std::string initerr("v_repExtUniversalRobots plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
                   simAddStatusbarMessage( initerr.c_str());
-                  BOOST_LOG_TRIVIAL(error) <<  initerr;
+                  loggerPG->error( initerr );
                   kukaPluginPG.reset();
               } catch (...){
                   // log the error and print it to the screen, don't release the exception
                   std::string initerr("v_repExtUniversalRobots plugin encountered an unknown error and will disable itself. Please debug this issue! file and line:" + std::string(__FILE__) + " " + boost::lexical_cast<std::string>(__LINE__) + "\n");
                   simAddStatusbarMessage( initerr.c_str());
-                  BOOST_LOG_TRIVIAL(error) <<  initerr;
+                  loggerPG->error( initerr );
                   kukaPluginPG.reset();
               }
                       
@@ -384,7 +386,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
-        BOOST_LOG_TRIVIAL(info) << "Ending KUKA LBR iiwa plugin connection to Kuka iiwa\n";
+        loggerPG->info( "Ending UR5 plugin connection" );
 		kukaPluginPG.reset();
 
 	}

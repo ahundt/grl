@@ -148,3 +148,10 @@ if(PCL_FOUND AND freenect2_LIBRARIES AND OpenCV_FOUND)
         basis_target_link_libraries(kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
     endif()
 endif()
+
+
+if(CERES_FOUND OR USE_INTERNAL_CERES)
+    basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${PROJECT_INCLUDE_DIR}/thirdparty/camodocal/include ${EIGEN3_INCLUDE_DIR})
+    basis_add_test(HandEyeCalibration_test.cpp)
+    basis_target_link_libraries(HandEyeCalibration_test ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}  v_repExtHandEyeCalibration)
+endif()
