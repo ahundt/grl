@@ -29,10 +29,10 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 message(STATUS "HandEyCalib: CAMODOCAL:${CAMODOCAL_FOUND} AND (${CERES_FOUND} OR ${USE_INTERNAL_CERES})")
-if(CAMODOCAL_FOUND AND (CERES_FOUND OR USE_INTERNAL_CERES))
-    basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${camodocal_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-    basis_add_library(v_repExtHandEyeCalibration SHARED v_repExtHandEyeCalibration.cpp )
-    basis_target_link_libraries(v_repExtHandEyeCalibration ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}  v_repLib camodocal_calib)
+if(CERES_FOUND OR USE_INTERNAL_CERES)
+    basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${PROJECT_INCLUDE_DIR}/thirdparty/camodocal/include ${EIGEN3_INCLUDE_DIR})
+    basis_add_library(v_repExtHandEyeCalibration SHARED v_repExtHandEyeCalibration.cpp camodocal/HandEyeCalibration.cpp )
+    basis_target_link_libraries(v_repExtHandEyeCalibration ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CERES_LIBRARIES}  v_repLib)
 endif()
 
 
