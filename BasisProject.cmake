@@ -95,7 +95,7 @@ basis_project (
   DIVISION_NAME    #<division-name>
   DIVISION_LOGO    #<division-logo>
   DIVISION_WEBSITE "http://www.github.com/ahundt/grl"
-  COPYRIGHT        "2015-2016 Andrew Hundt et al"
+  COPYRIGHT        "2015-2017 Andrew Hundt et al"
   LICENSE          "BSD license, See COPYING file for license information."
   CONTACT          "Andrew Hundt <ATHundt@gmail.com>"
   TEMPLATE         "basis/1.1"
@@ -117,7 +117,7 @@ basis_project (
     cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin
     sawConstraintController #  used for inverse kinematics plugin https://github.com/jhu-saw/sawConstraintController
     Ceres              # http://ceres-solver.org/ used in arm hand eye calibration
-    CAMODOCAL          # used for hand eye calibration plugin https://github.com/hengli/camodocal
+    #CAMODOCAL         # used for hand eye calibration plugin, files included directly https://github.com/hengli/camodocal
     PCL                # point cloud library, for vision components >=1.7 recommended https://github.com/PointCloudLibrary/pcl
     freenect2          # kinect v2 drivers, for vision components https://github.com/OpenKinect/libfreenect2
     ROS                # Robot Operating System http://ROS.org
