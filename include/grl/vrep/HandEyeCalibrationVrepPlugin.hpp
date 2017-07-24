@@ -10,7 +10,6 @@
 #include "grl/vrep/Eigen.hpp"
 #include "grl/vrep/Vrep.hpp"
 #include "camodocal/calib/HandEyeCalibration.h"
-#include "camodocal/calib/CamOdoCalibration.h"
 
 #include "v_repLib.h"
 
@@ -42,7 +41,7 @@ public:
         OpticalTrackerBaseName,    ///<  V-REP handle string for the tip of the first known transform, often a robot tip
         OpticalTrackerDetectedObjectName
     };
-    
+
     /// @todo allow default params
     typedef std::tuple<
         std::string,
@@ -50,8 +49,8 @@ public:
         std::string,
         std::string
         > Params;
-    
-    
+
+
     static const Params defaultParams(){
         return std::make_tuple(
                     "Robotiiwa"               , // RobotBaseHandle,
@@ -77,7 +76,7 @@ HandEyeCalibrationVrepPlugin (Params params = defaultParams())
 void construct(){
   logger_ = spdlog::get("console");
   initHandles();
-  
+
   // set the current transformEstimate to the initial estimate already in vrep
   if(allHandlesSet) transformEstimate = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
 }
@@ -85,39 +84,39 @@ void construct(){
 
 void addFrame() {
    logger_->info( "Adding hand eye calibration frame #", ++frameCount);
-    
+
     auto robotTipInRobotBase    = getObjectTransform(robotTip,robotBase);
     auto fiducialInOpticalTrackerBase = getObjectTransform(opticalTrackerDetectedObjectName,opticalTrackerBase);
-    
+
     if(isFirstFrame){
       firstRobotTipInRobotBaseInverse             = robotTipInRobotBase.inverse();
       firstFiducialInOpticalTrackerBaseInverse    = fiducialInOpticalTrackerBase.inverse();
       isFirstFrame = false;
     }
-    
+
     auto robotTipInFirstTipBase      = firstRobotTipInRobotBaseInverse * robotTipInRobotBase;        // A_0_Inv * A_i
     auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;  // B_0_Inv * B_i
-    
-    
+
+
     rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation()        ));
     tvecsArm.push_back(                                      robotTipInFirstTipBase.translation()     );
-    
+
     rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
     tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
-    
-    
+
+
    if(debug){
-   
+
      logger_->info( "\nrobotTipInRobotBase:\n", poseString(robotTipInRobotBase));
      logger_->info( "\nfiducialInOpticalTrackerBase:\n", poseString(fiducialInOpticalTrackerBase));
-     
+
      logger_->info( "\nrobotTipInFirstTipBase:\n", poseString(robotTipInFirstTipBase));
      logger_->info( "\nfiducialInFirstFiducialBase:\n", poseString(fiducialInFirstFiducialBase));
-   
+
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
      logger_->info( poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
-     
+
      BOOST_VERIFY(robotTipInFirstTipBase.translation().norm() - fiducialInFirstFiducialBase.translation().norm() < 0.1);
    }
 }
@@ -129,13 +128,13 @@ void addFrame() {
 /// @todo probably want to run at least part of this in a separate thread.
 /// @todo evaluate if applyEstimate should not be called by this
 void estimateHandEyeScrew(){
-  
+
    logger_->info(  "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial",rvecsFiducial.size(),
    " tvecsFiducial: ", tvecsFiducial.size(), " rvecsArm: ", rvecsArm.size(), " tvecsArm: ", tvecsArm.size());
 
    BOOST_VERIFY(allHandlesSet);
-  
-  
+
+
   handEyeCalib.estimateHandEyeScrew(
       rvecsArm,
       tvecsArm,
@@ -143,8 +142,8 @@ void estimateHandEyeScrew(){
       tvecsFiducial,
       transformEstimate.matrix()
   );
-    
-    
+
+
     // get fiducial in optical tracker base frame
     int ret = simGetObjectPosition(opticalTrackerDetectedObjectName, opticalTrackerBase, detectedObjectPosition.begin());
     if(ret==-1) BOOST_THROW_EXCEPTION(std::runtime_error("HandEyeCalibrationVrepPlugin: Could not get position"));
@@ -158,15 +157,15 @@ void estimateHandEyeScrew(){
    }
 
    logger_->info( "\n", poseString(transformEstimate,"estimated RobotTipToFiducial:"));
-   
+
    applyEstimate();
-   
+
    // print results
    Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
    logger_->info( "Hand Eye Screw Estimate quat wxyz\n: ", eigenQuat.w(), " ", eigenQuat.x(), " ", eigenQuat.y(), " ", eigenQuat.z(), " ", " translation xyz: ", transformEstimate.translation().x(), " ", transformEstimate.translation().y(), " ", transformEstimate.translation().z(), " ");
-    
+
     logger_->info( "Optical Tracker Base Measured quat wxyz\n: ", detectedObjectQuaternion[0], " ", detectedObjectQuaternion[1], " ", detectedObjectQuaternion[2], " ", detectedObjectQuaternion[3], " ", " translation xyz: ", detectedObjectPosition[0], " ", detectedObjectPosition[1], " ", detectedObjectPosition[2], " ");
-  
+
 }
 
 /// @brief  Will apply the stored estimate to the v-rep simulation value
@@ -208,7 +207,7 @@ void initHandles() {
 	robotBase                        = grl::vrep::getHandleFromParam<RobotBaseName>                   (params_);
 	opticalTrackerBase               = grl::vrep::getHandleFromParam<OpticalTrackerBaseName>          (params_);
 	opticalTrackerDetectedObjectName = grl::vrep::getHandleFromParam<OpticalTrackerDetectedObjectName>(params_);
-    
+
 	allHandlesSet  = true;
 }
 
@@ -248,7 +247,7 @@ std::shared_ptr<spdlog::logger> logger_;
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
-  
+
 }
 
 #endif
