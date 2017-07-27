@@ -310,7 +310,7 @@ namespace grl {
 
 
          switch(interaction_mode) {
-           case grl::flatbuffer::ArmState_MoveArmJointServo:
+           case grl::flatbuffer::ArmState::MoveArmJointServo:
              if (debug) {
               ROS_INFO("Arm is in SERVO Mode");
              }
@@ -318,22 +318,22 @@ namespace grl {
              /// @todo setting joint position clears joint force in KukaDriverP_. Is this right or should position and force be configurable simultaeously?
              //if(simJointForce.size()) KukaDriverP_->set( simJointForce, grl::revolute_joint_torque_open_chain_command_tag());
              break;
-           case grl::flatbuffer::ArmState_TeachArm:
+           case grl::flatbuffer::ArmState::TeachArm:
              if (debug) {
                ROS_INFO("Arm is in TEACH mode");
              }
              break;
              break;
-           case grl::flatbuffer::ArmState_StopArm:
+           case grl::flatbuffer::ArmState::StopArm:
              break;
-           case grl::flatbuffer::ArmState_PauseArm:
+           case grl::flatbuffer::ArmState::PauseArm:
              break;
-           case grl::flatbuffer::ArmState_StartArm:
+           case grl::flatbuffer::ArmState::StartArm:
              if (debug) {
                ROS_INFO("Sending StartArm!");
              }
              break;
-           case grl::flatbuffer::ArmState_ShutdownArm:
+           case grl::flatbuffer::ArmState::ShutdownArm:
              break;
            default:
              if(iteration_count_ % 10000 == 0) {

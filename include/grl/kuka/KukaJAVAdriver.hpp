@@ -142,7 +142,7 @@ namespace grl { namespace robot { namespace arm {
 
 
       KukaJAVAdriver(Params params = defaultParams())
-        : params_(params), armControlMode_(flatbuffer::ArmState::ArmState_NONE)
+        : params_(params), armControlMode_(flatbuffer::ArmState::NONE)
       {}
 
       void construct(){ construct(params_); sequenceNumber = 0; }
@@ -185,8 +185,8 @@ namespace grl { namespace robot { namespace arm {
             FD_SET(socket_local, &mask);
 
             // set arm to StartArm mode on initalization
-            //set(grl::flatbuffer::ArmState_StartArm);
-            set(grl::flatbuffer::ArmState_MoveArmJointServo);
+            //set(grl::flatbuffer::ArmState::StartArm);
+            set(grl::flatbuffer::ArmState::MoveArmJointServo);
 
         } catch( boost::exception &e) {
           e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from {}{}{}" +
@@ -248,11 +248,11 @@ namespace grl { namespace robot { namespace arm {
 
           switch (armControlMode_) {
 
-              case flatbuffer::ArmState::ArmState_StartArm: {
+              case flatbuffer::ArmState::StartArm: {
                  controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStartArm(*fbbP).Union());
                  break;
               }
-              case flatbuffer::ArmState::ArmState_MoveArmJointServo: {
+              case flatbuffer::ArmState::MoveArmJointServo: {
 
                 /// @todo when new
                 auto armPositionBuffer = fbbP->CreateVector(armState_.commandedPosition_goal.data(),armState_.commandedPosition_goal.size());
@@ -260,37 +260,37 @@ namespace grl { namespace robot { namespace arm {
                 auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
                 auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
-                    logger_->info("C++ KukaJAVAdriver: sending armposition command: {}{}",armState_.commandedPosition_goal);
+                    logger_->info("C++ KukaJAVAdriver: sending armposition command: {}{}", armState_.commandedPosition_goal);
                  break;
               }
-              case flatbuffer::ArmState::ArmState_TeachArm: {
+              case flatbuffer::ArmState::TeachArm: {
                  controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateTeachArm(*fbbP).Union());
                  break;
               }
-              case flatbuffer::ArmState::ArmState_PauseArm: {
+              case flatbuffer::ArmState::PauseArm: {
                  controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreatePauseArm(*fbbP).Union());
                  break;
               }
-              case flatbuffer::ArmState::ArmState_StopArm: {
+              case flatbuffer::ArmState::StopArm: {
                  controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
                  break;
               }
-              case flatbuffer::ArmState::ArmState_ShutdownArm: {
+              case flatbuffer::ArmState::ShutdownArm: {
                  controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
                  break;
               }
-              case flatbuffer::ArmState::ArmState_NONE: {
+              case flatbuffer::ArmState::NONE: {
                  //std::cerr << "Waiting for interation mode... (currently NONE)\n";
                  break;
               }
               default:
-                 logger_->error("C++ KukaJAVAdriver: unsupported use case: {}", armControlMode_);
+                 logger_->error("C++ KukaJAVAdriver: unsupported use case: {}", EnumNameArmState(armControlMode_));
           }
 
           auto name = fbbP->CreateString(std::get<RobotName>(params_));
 
-          auto clientCommandMode = grl::flatbuffer::EClientCommandMode_POSITION;
-          auto overlayType =  grl::flatbuffer::EOverlayType_NO_OVERLAY;
+          auto clientCommandMode = grl::flatbuffer::EClientCommandMode::POSITION;
+          auto overlayType =  grl::flatbuffer::EOverlayType::NO_OVERLAY;
 
           //auto stiffnessPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_stiffness_trans_,&cart_stiffness_rot_);
           //auto dampingPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_damping_trans_,&cart_damping_rot_);
@@ -321,7 +321,7 @@ namespace grl { namespace robot { namespace arm {
           BOOST_VERIFY(grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier));
 
 
-          if(armControlMode_ == flatbuffer::ArmState::ArmState_MoveArmJointServo)
+          if(armControlMode_ == flatbuffer::ArmState::MoveArmJointServo)
           {
               auto states2 = flatbuffer::GetKUKAiiwaStates(fbbP->GetBufferPointer());
               auto movearm = static_cast<const flatbuffer::MoveArmJointServo*>(states2->states()->Get(0)->armControlState()->state());
@@ -423,7 +423,7 @@ namespace grl { namespace robot { namespace arm {
       void setPositionControlMode()
       {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
-        controlMode_ = grl::flatbuffer::EControlMode_POSITION_CONTROL_MODE;
+        controlMode_ = grl::flatbuffer::EControlMode::POSITION_CONTROL_MODE;
         setArmConfiguration_ = true;
       }
 
@@ -433,7 +433,7 @@ namespace grl { namespace robot { namespace arm {
         //TODO use tags
         joint_stiffness_ = joint_stiffnes;
         joint_damping_ = joint_damping;
-        controlMode_ = grl::flatbuffer::EControlMode_JOINT_IMP_CONTROL_MODE;
+        controlMode_ = grl::flatbuffer::EControlMode::JOINT_IMP_CONTROL_MODE;
         setArmConfiguration_ = true;
       }
 
@@ -460,7 +460,7 @@ namespace grl { namespace robot { namespace arm {
 
         max_control_force_stop_ = max_control_force_stop;
 
-        controlMode_ = grl::flatbuffer::EControlMode_CART_IMP_CONTROL_MODE;
+        controlMode_ = grl::flatbuffer::EControlMode::CART_IMP_CONTROL_MODE;
         setArmConfiguration_ = true;
       }
 
@@ -648,8 +648,8 @@ namespace grl { namespace robot { namespace arm {
         //  ArmState_MoveArmJointServo = 7,
         //  ArmState_MoveArmCartesianServo = 8
       flatbuffer::ArmState                 armControlMode_;
-      flatbuffer::KUKAiiwaInterface commandInterface_ = flatbuffer::KUKAiiwaInterface_SmartServo;// KUKAiiwaInterface_SmartServo;
-       flatbuffer::KUKAiiwaInterface monitorInterface_ = flatbuffer::KUKAiiwaInterface_FRI;
+      flatbuffer::KUKAiiwaInterface commandInterface_ = flatbuffer::KUKAiiwaInterface::SmartServo;// KUKAiiwaInterface::SmartServo;
+       flatbuffer::KUKAiiwaInterface monitorInterface_ = flatbuffer::KUKAiiwaInterface::FRI;
 //      flatbuffers::FlatBufferBuilder       builder_;
 //
 //      flatbuffer::JointStateBuilder        jointStateServoBuilder_;
@@ -669,22 +669,22 @@ namespace grl { namespace robot { namespace arm {
 
       bool setArmConfiguration_ = true; // set the arm config first time
 
-      grl::flatbuffer::EControlMode controlMode_ = grl::flatbuffer::EControlMode_POSITION_CONTROL_MODE;
+      grl::flatbuffer::EControlMode controlMode_ = grl::flatbuffer::EControlMode::POSITION_CONTROL_MODE;
 
       //TODO: Custom flatbuffer type. Load defaults from params/config
       //Cartesian Impedance Values
       grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(500,500,500);
-      grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder_xyz);
+      grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder::xyz);
 
       grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0.3,0.3,0.3);
-      grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder_xyz);
+      grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder::xyz);
 
-      grl::flatbuffer::EulerPose cart_stiffness_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(500,500,500), grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder_xyz));
-      grl::flatbuffer::EulerPose cart_damping_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0.3,0.3,0.3), grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder_xyz));
+      grl::flatbuffer::EulerPose cart_stiffness_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(500,500,500), grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder::xyz));
+      grl::flatbuffer::EulerPose cart_damping_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0.3,0.3,0.3), grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder::xyz));
 
-      grl::flatbuffer::EulerPose cart_max_path_deviation_  = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,100), grl::flatbuffer::EulerRotation(5.,5.,5., grl::flatbuffer::EulerOrder_xyz));
-      grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,1000), grl::flatbuffer::EulerRotation(6.3,6.3,6.3, grl::flatbuffer::EulerOrder_xyz));
-      grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(200,200,200), grl::flatbuffer::EulerRotation(200.,200.,200., grl::flatbuffer::EulerOrder_xyz));
+      grl::flatbuffer::EulerPose cart_max_path_deviation_  = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,100), grl::flatbuffer::EulerRotation(5.,5.,5., grl::flatbuffer::EulerOrder::xyz));
+      grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,1000), grl::flatbuffer::EulerRotation(6.3,6.3,6.3, grl::flatbuffer::EulerOrder::xyz));
+      grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(200,200,200), grl::flatbuffer::EulerRotation(200.,200.,200., grl::flatbuffer::EulerOrder::xyz));
 
       double nullspace_stiffness_ = 2.0;
       double nullspace_damping_ = 0.5;

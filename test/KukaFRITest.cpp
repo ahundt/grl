@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
         kukaDriverP=std::make_shared<grl::robot::arm::KukaDriver>(params);
         kukaDriverP->construct();
         // Default to joint servo mode for commanding motion
-        kukaDriverP->set(grl::flatbuffer::ArmState::ArmState_MoveArmJointServo);
+        kukaDriverP->set(grl::flatbuffer::ArmState::MoveArmJointServo);
         kukaDriverP->set(goal_position_command_time_duration,grl::time_duration_command_tag());
         std::cout << "KUKA COMMAND MODE: " << std::get<grl::robot::arm::KukaDriver::KukaCommandMode>(params) << "\n";
     
@@ -268,7 +268,18 @@ int main(int argc, char* argv[])
         // copy the state data into a more accessible object
         /// TODO(ahundt) switch from this copy to a non-deprecated call
         grl::robot::arm::copy(friData->monitoringMsg,armState);
-        if(debug && (i % print_every_n) ==0 ) loggerPG->info("position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position, " commanded Position: ", jointStateToCommand, " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(), " connectionQuality: ", armState.connectionQuality, " operationMode: ", armState.operationMode, " sessionState: ", armState.sessionState, " driveState: ", armState.driveState, " ipoJointPosition: ", armState.ipoJointPosition, " jointOffset: ", jointOffset);
+        if(debug && (i % print_every_n) ==0 ) {
+            loggerPG->info(
+                "position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position,
+                " commanded Position: ", jointStateToCommand,
+                " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(),
+                " connectionQuality: ", EnumNameEConnectionQuality(armState.connectionQuality),
+                " operationMode: ", EnumNameEOperationMode(armState.operationMode),
+                " sessionState: ", EnumNameESessionState(armState.sessionState),
+                " driveState: ", EnumNameEDriveState(armState.driveState),
+                " ipoJointPosition: ", armState.ipoJointPosition,
+                " jointOffset: ", jointOffset);
+        }
 
 	}
   }

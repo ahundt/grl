@@ -213,7 +213,7 @@ Fast Robot Interface SDK      | >= 3.0     | C++      | Provided by KUKA, driver
 [CMake BASIS][1]              | >= 3.2     | C++      | Meta-project which makes it easy to create sharable software and libraries that work together.
 [Boost][4]                    | >= 1.54.0  | C++      | Collection of general use C++ libraries.
 [Eigen][14]                   | >= 3.2     | C++      | C++ template library for linear algebra.
-[Google Flatbuffers][9]       | >= 1.0     | Java/C++ | High Performance Message Serialization Library
+[Google Flatbuffers][9]       | >= 1.7     | Java/C++ | High Performance Message Serialization Library
 [spdlog][23]                  | >= 0.11    | C++      | Super Fast C++ Logging Library
 [V-REP][10]                   | >= 3.2     | C++      | Recommended robot simulation library (Optional)
 

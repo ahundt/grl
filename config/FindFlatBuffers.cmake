@@ -24,8 +24,8 @@
 #   for the given flatbuffer schema files.
 #   Returns the header files in ${Name}_OUTPUTS
 #   Name is the CMake variable name prefix that will be used.
-#        for example MY_FLATBUFFERS will set the variable 
-#        MY_FLATBUFFERS_OUTPUTS with the 
+#        for example MY_FLATBUFFERS will set the variable
+#        MY_FLATBUFFERS_OUTPUTS with the
 #   FLATBUFFERS_DIR is the directory where the flatbuffers are stored.
 #   OUTPUT_DIR is where the output generated flatbuffer files are stored.
 #
@@ -48,7 +48,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(flatbuffers
   DEFAULT_MSG FLATBUFFERS_FLATC_EXECUTABLE FLATBUFFERS_INCLUDE_DIR)
 
-if(FLATBUFFERS_FOUND) 
+if(FLATBUFFERS_FOUND)
   function(FLATBUFFERS_GENERATE_C_HEADERS Name FLATBUFFERS_DIR OUTPUT_DIR)
     set(FLATC_OUTPUTS)
     foreach(FILE ${ARGN})
@@ -59,9 +59,12 @@ if(FLATBUFFERS_FOUND)
 
       add_custom_command(OUTPUT ${FLATC_OUTPUT}
         COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
-        ARGS -c -j -o "${OUTPUT_DIR}" ${FILE}
+        # Note: We are setting several custom parameters here to make life easier.
+        # see flatbuffers documentation for details.
+        # flatc --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o
+        ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "${OUTPUT_DIR}" ${FILE}
 		MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}/${FILE}
-        COMMENT "Building C++ and Java header for ${FILE}"
+        COMMENT "Building C++, Java, and Python header for ${FILE}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR})
     endforeach()
     set(${Name}_OUTPUTS ${FLATC_OUTPUTS} PARENT_SCOPE)
