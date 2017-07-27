@@ -75,30 +75,6 @@ endif ()
 # public tests
 # ============================================================================
 
-if(ZeroMQ_FOUND AND AZMQ_FOUND)
-    # TODO(ahundt) remove these tests and related source, zeromq support is deprecated
-    basis_add_executable(zmqFlatbuffersTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-    basis_target_link_libraries(zmqFlatbuffersTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} )
-    basis_add_dependencies(zmqFlatbuffersTest grlflatbuffers)
-
-    basis_add_executable(AzmqFlatbufferTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-    basis_target_link_libraries(AzmqFlatbufferTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-    basis_add_dependencies(AzmqFlatbufferTest grlflatbuffers)
-
-    basis_add_executable(AzmqTest.cpp)
-    basis_target_link_libraries(AzmqTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-
-    basis_add_executable(asioSocketTest.cpp)
-    basis_target_link_libraries(asioSocketTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-endif()
-
-if(OpenCV_FOUND AND (OpenCV_VERSION VERSION_GREATER 3.0))
-    basis_find_package( OpenCV REQUIRED )
-    basis_include_directories( ${OpenCV_INCLUDE_DIRS})
-    basis_add_executable( ppf_load_match ppf_load_match.cpp)
-    basis_target_link_libraries( ppf_load_match ${OpenCV_LIBS} )
-endif()
-
 # For KUKA IIWA FRI Libraries
 if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
 
@@ -117,41 +93,15 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
 endif()
 
 
-
-if(PCL_FOUND AND freenect2_LIBRARIES AND OpenCV_FOUND)
-    pkg_search_module(GLFW REQUIRED glfw3)
-
-    link_directories(${PCL_LIBRARY_DIRS})
-    add_definitions(${PCL_DEFINITIONS})
-
-    basis_include_directories(${OpenCV_INCLUDE_DIRS})
-    basis_include_directories(${GLEWF_INCLUDE_DIRS})
-    basis_include_directories(${PCL_INCLUDE_DIRS})
-    basis_include_directories(${GLFW_INCLUDE_DIRS})
-
-    basis_add_executable(kinect2grabber kinect2pclgrabber.cpp)
-
-
-    basis_target_link_libraries(kinect2grabber ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
-
-
-    if(OpenCV_FOUND AND (OpenCV_VERSION VERSION_GREATER 3.0))
-
-        basis_add_executable(pcl_grabbing_and_matching pcl_grabbing_and_matching.cpp pcl_grabbing_and_matching_class.cpp)
-
-        basis_target_link_libraries(pcl_grabbing_and_matching ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
-
-        basis_add_executable(homography2d homography2d.cpp)
-        basis_target_link_libraries(homography2d ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
-
-        basis_add_executable(kinect2pclObjRecRansac kinect2pclObjRecRansac.cpp)
-        basis_target_link_libraries(kinect2pclObjRecRansac ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_LOG_LIBRARY})
-    endif()
-endif()
-
-
 if(CERES_FOUND OR USE_INTERNAL_CERES)
     basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include ${PROJECT_INCLUDE_DIR}/thirdparty/camodocal/include ${EIGEN3_INCLUDE_DIR})
     basis_add_test(HandEyeCalibration_test.cpp)
     basis_target_link_libraries(HandEyeCalibration_test ${Boost_LIBRARIES}  ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}  v_repExtHandEyeCalibration)
+endif()
+
+
+if(FUSIONTRACK_FOUND)
+    basis_include_directories(${GRL_INCLUDE_DIRS}/thirdparty/vrep/include ${FUSIONTRACK_INCLUDE_DIRS} ${grl_INCLUDE_DIRS}/thirdparty/vrep/include)
+    basis_add_executable(fusionTrackTest.cpp)
+    basis_target_link_libraries(fusionTrackTest ${Boost_LIBRARIES}   ${CMAKE_THREAD_LIBS_INIT} ${FUSIONTRACK_LIBRARIES}  v_repLib)
 endif()

@@ -3,6 +3,7 @@ include "LinkObject.fbs";
 include "JointState.fbs";
 include "Euler.fbs";
 include "ArmControlState.fbs";
+include "Time.fbs";
 
 namespace grl.flatbuffer;
 

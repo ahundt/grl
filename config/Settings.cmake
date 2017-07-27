@@ -38,7 +38,7 @@ else()
         message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support, or our tests failed to detect it correctly. Please use a different C++ compiler or report this problem to the developers.")
 endif()
 
-if(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64") 
+if(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 	ADD_DEFINITIONS(-fPIC)
 endif(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 
@@ -67,7 +67,7 @@ if(OpenCV_FOUND)
 endif()
 
 # list flatbuffer headers
-set(RFB ArmControlState.fbs Geometry.fbs JointState.fbs KUKAiiwa.fbs LinkObject.fbs Euler.fbs Time.fbs VrepControlPoint.fbs VrepPath.fbs)
+set(RFB FusionTrack.fbs ArmControlState.fbs Geometry.fbs JointState.fbs KUKAiiwa.fbs LinkObject.fbs Euler.fbs Time.fbs VrepControlPoint.fbs VrepPath.fbs)
 # directory to include flatbuffers
 set(GRL_FLATBUFFERS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include)
 # Generate flatbuffer message C++ headers
@@ -76,7 +76,7 @@ add_custom_target(grlflatbuffers DEPENDS ${GRL_FLATBUFFERS_OUTPUTS})
 basis_include_directories(${GRL_FLATBUFFERS_INCLUDE_DIR} )
 
 # workaround so that compilation will work if FindFRI-Client-SDK_Cpp is a module
-# it may also be an external, see config/FindFRI-Client-SDK_Cpp 
+# it may also be an external, see config/FindFRI-Client-SDK_Cpp
 # if(MODULE_FRI-Client-SDK_Cpp)
 #     set(FRI-Client-SDK_Cpp_LIBRARIES  KukaFRIClient)
 #

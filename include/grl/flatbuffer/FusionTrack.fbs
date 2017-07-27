@@ -1,0 +1,105 @@
+// Generated from fusiontrack.proto
+// Atracsys FusionTrack Optical Tracker data log
+include "Time.fbs";
+include "Geometry.fbs";
+
+namespace grl.flatbuffer;
+
+enum ftkQueryStatus : int {
+  QS_WAR_SKIPPED = -1,
+  QS_OK = 0,
+  QS_ERR_OVERFLOW = 1,
+  QS_ERR_INVALID_RESERVED_SIZE = 2,
+  QS_REPROCESS = 10,
+}
+
+enum ftkDeviceType : int {
+  DEV_SIMULATOR = 0,
+  DEV_INFINITRACK = 1,
+  DEV_FUSIONTRACK_500 = 2,
+  DEV_FUSIONTRACK_250 = 3,
+  DEV_UNKNOWN_DEVICE = 127,
+}
+
+table ftkGeometry {
+  name:string;
+  geometryID:uint;
+  version:uint;
+  positions:[Vector3d];
+}
+
+table ftkMarker {
+  name:string;
+  id:uint;
+  geometryID:uint;
+  geometryPresenceMask:[uint];
+  transform:Pose;
+}
+
+table ftk3DFiducial {
+  markerName:string;
+  leftIndex:uint;
+  rightIndex:uint;
+  position:Vector3d;
+  epipolarErrorPixels:double;
+  triangulationError:double;
+  probability:double;
+}
+
+table ftkRegionOfInterest {
+  centerXPixels:double;
+  centerYPixels:double;
+  RightEdge:uint;
+  BottomEdge:uint;
+  LeftEdge:uint;
+  TopEdge:uint;
+  pixelsCount:uint;
+  probability:double;
+}
+
+/// Data for one frame capture
+/// On the Atracsys FusionTrack optical tracker
+/// look at ftkInterface.h for details
+table FusionTrackFrame {
+  // seconds timestamp
+  timestamp:double;
+  serialNumber:ulong;
+  // hardware timestamp
+  hardwareTimestampUS:ulong;
+  desynchroUS:ulong;
+  counter:uint;
+  format:uint;
+  width:uint;
+  height:uint;
+  imageStrideInBytes:int;
+  imageHeaderVersion:uint;
+  imageHeaderStatus:int;
+  imageRightPixels:string;
+  imageRightPixelsVersion:uint;
+  imageRightStatus:int;
+  imageLeftPixels:string;
+  imageLeftPixelsVersion:uint;
+  imageLeftStatus:int;
+  regionsOfInterestLeft:[ftkRegionOfInterest];
+  regionsOfInterestLeftVersion:uint;
+  regionsOfInterestLeftStatus:int;
+  regionsOfInterestRight:[ftkRegionOfInterest];
+  regionsOfInterestRightVersion:uint;
+  regionsOfInterestRightStatus:int;
+  threeDFiducials:[ftk3DFiducial];
+  threeDFiducialsVersion:uint;
+  threeDFiducialsStatus:int;
+  markers:[ftkMarker];
+  markersVersion:uint;
+  markersStatus:int;
+  deviceType:int;
+  ftkError:long;
+}
+
+table FusionTrackMessage {
+  timestamp:double;
+  geometries:[ftkGeometry];
+  timeEvent:TimeEvent;
+  frames:[FusionTrackFrame];
+}
+

@@ -6,3 +6,36 @@ struct Time {
   // sec:long;  // should sec/nsec be it?
   // nsec:long; 
 }
+
+/// Note that all of these time entries are
+/// longs with a minimum step of 100ns,
+/// see google cartographer's cartographer::common::time
+table TimeEvent {
+  /// Identifying string for this time stamped data topic
+  /// something like "/opticaltracker/00000000/frame" where
+  /// 00000000 is the serial number of the optical tracker.
+  event_name:string;
+  /// The time just before a data update request is made
+  local_request_time:long;
+  /// Identifying string for the clock used to drive the device
+  /// something like "/opticaltracker/00000000/clock"
+  /// if it is the clock internal to a sensor like an optical tracker
+  device_clock_id:string;
+  /// The time provided by the device specified by device_clock_id
+  device_time:long;
+  /// Identifying string for the clock used to drive the device
+  /// or "/control_computer/clock/steady" if the device has no clock
+  /// and the time is the desktop computer
+  /// running the steady clock (vs clocks which might change time)
+  local_clock_id:string;
+  /// The time at which the data was received
+  local_receive_time:long;
+  /// The corrected local time which represents when the sensor
+  /// data was actually captured.
+  corrected_local_time:long;
+  /// Estimated duration of the skew between the device clock
+  /// and the local time clock
+  clock_skew:long;
+  /// The minimum expected delay in transporting the data request
+  min_transport_delay:long;
+}

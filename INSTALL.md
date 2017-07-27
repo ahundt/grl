@@ -15,18 +15,18 @@ Ubuntu 14.04 and 16.04 Automated Installation
 This will do an automated build the minimal KUKA Driver code in the `~/src` folder.
 It supports use with [ROS](ros.org) indigo and kinetic, or direct use as a library.
 
-**ROS Users:** 
+**ROS Users:**
 
-We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack) 
+We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack)
 in addition to grl for full ROS integration.
 
-Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack) 
+Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack)
 which uses grl and provides full blown system integration tools
 for many typical robot arm tasks such as pick and place operations.
 
 **Install Steps:**
 
-1. [Setup git as explained in these instructions](https://help.github.com/articles/set-up-git/#platform-linux)  
+1. [Setup git as explained in these instructions](https://help.github.com/articles/set-up-git/#platform-linux)
 2. [Enable connecting to github with ssh as explained in these instructions](https://help.github.com/articles/connecting-to-github-with-ssh/)
 3. Run the following in terminal:
 ```sh
@@ -53,7 +53,7 @@ These instructions are for manually installing the ubuntu 14.04 package dependen
 
 ```
 sudo apt-get install libtool pkg-config build-essential autoconf automake
-sudo apt-get install libboost-all-dev libeigen3-dev libopencv-dev 
+sudo apt-get install libboost-all-dev libeigen3-dev libopencv-dev
 ```
 
 #### [ceres-solver](http://ceres-solver.org/building.html#linux) setup
@@ -107,33 +107,6 @@ cd ../..
 ```
 
 
-optional:
-```
-sudo apt-get install libpcl-1.7-all-dev
-````
-
-
-#### [OpenCV](http://ceres-solver.org/building.html#linux) setup
-
-```
-sudo apt-get install libopencv-dev
-sudo add-apt-repository --yes ppa:xqms/opencv-nonfree
-sudo apt-get update 
-sudo apt-get install libopencv-nonfree-dev
-```
-
-#### [Camodocal](https://github.com/hengli/camodocal)
-
-```
-git clone git@github.com:hengli/camodocal.git
-cd camodocal
-mkdir build
-cd build
-cmake ..
-sudo make install
-cd ../..
-```
-
 #### [grl](https://github.com/ahundt/grl)
 
 
@@ -154,14 +127,14 @@ Homebrew Installation for OS X and Linux
 
 The easy installation instructions work on OS X via [homebrew](http://brew.sh) and Ubuntu 14.04 Linux via [Linuxbrew](http://linuxbrew.sh).
 
-**ROS users:** 
+**ROS users:**
 
 Install ROS before following these instructions.
 
 **Linux users:**
 
 Please note that on Linux these instructions will build many dependencies from source
-and install them in `~/.linuxbrew`, so if you need to use specific versions that are 
+and install them in `~/.linuxbrew`, so if you need to use specific versions that are
 already installed these instructions may not work for you! ROS users, this may mean you!
 
 Also on linux you may want to use `brew install libname --env=inherit`
@@ -175,12 +148,12 @@ so it uses your native environment variable configuration.
 2. Linux only - add linuxbrew to your `~/.bashrc` or ~/.zshrc:
     export PKG_CONFIG_PATH="/usr/bin/pkg-config:$HOME/.linuxbrew/bin/pkg-config"
     export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$HOME/.linuxbrew/lib/pkgconfig"
-    export PATH="$HOME/.linuxbrew/bin:$PATH"                                    
-    export MANPATH="$HOME/.linuxbrew/share/man:$MANPATH"                        
+    export PATH="$HOME/.linuxbrew/bin:$PATH"
+    export MANPATH="$HOME/.linuxbrew/share/man:$MANPATH"
     export INFOPATH="$HOME/.linuxbrew/share/info:$INFOPATH"
 3. Check that it is setup correctly `brew help` should output the homebrew help.
 4. OS X only - install [Homebrew Cask](http://caskroom.io/) `brew install caskroom/cask/brew-cask`
-5. 
+5.
 
 ```
 brew tap homebrew/science # [homebrew-science](http://brew.sh/homebrew-science/) contains many scientific libraries, such as OpenCV and pcl
@@ -209,12 +182,12 @@ Now follow the instructions in:
 
 [KUKA LBR iiwa Java Setup](https://ahundt.github.io/grl/howto/iiwaKukaRobotSetup.html)
 
-**ROS Users:** 
+**ROS Users:**
 
-We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack) 
+We recommend installing [iiwa_stack](https://github.com/SalvoVirga/iiwa_stack)
 in addition to grl for full ROS integration.
 
-Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack) 
+Also take a look at [costar_stack](https://github.com/cpaxton/costar_stack)
 which is integrated with grl and provides full blown system integration tools
 for many typical robot arm tasks such as pick and place operations.
 
@@ -241,6 +214,7 @@ Fast Robot Interface SDK      | >= 3.0     | C++      | Provided by KUKA, driver
 [Boost][4]                    | >= 1.54.0  | C++      | Collection of general use C++ libraries.
 [Eigen][14]                   | >= 3.2     | C++      | C++ template library for linear algebra.
 [Google Flatbuffers][9]       | >= 1.0     | Java/C++ | High Performance Message Serialization Library
+[spdlog][23]                  | >= 0.11    | C++      | Super Fast C++ Logging Library
 [V-REP][10]                   | >= 3.2     | C++      | Recommended robot simulation library (Optional)
 
 
@@ -254,25 +228,9 @@ Package                       | Version    | Language |     Description
 [CAMODOCAL][13]               | ?          | C++      | CamOdoCal: Automatic Intrinsic and Extrinsic Calibration
 [ceres-solver][12]            | >= 1.11    | C++      | Nonlinear Optimization library developed by google
 BLAS                          | ?          | ?        | Standard linear algebra APIs, see ceres-solver install instructions
-[CUDA][15]                    | >= 7.5     | C++      | NVIDIA GPU C/C++ Development Environment used by CAMODOCAL
 [gtest][16]                   | >= 1.7.0   | C++      | Google's C++ test framework used by ceres-solver
 [glog][17]                    | >= 0.3.4   | C++      | Google's C++ logging framework used by ceres-solver
 
-
-Deprecated Build Dependencies
------------------------------
-
-You almost certainly don't need these, but they are here for reference.
-
-Package                       | Version    | Language |     Description
------------------------------ | ---------- | -------- | ----------------------------------------------
-[ZeroMQ][6]                   | >= 4.0     | C++      | High Performance Network Communication Library
-[libsodium][11]               | >= 1.0.4   | C++      | A modern and easy-to-use crypto library used by ZeroMQ.
-[AZMQ][7]                     | >= 1.0     | C++      | [Boost.asio][5] based official ZeroMQ C++ Networking Library Interface
-[JeroMQ][8]                   | >= 3.0     | Java     | Official Pure Java implementation of ZeroMQ
-[cisst-netlib][18]            | >= 0.3.4   | C++      | Binary distribution of [netlib][21] numerical routines
-[cisst][19]                   | >= 0.3.4   | C++      | Google's C++ logging framework used by ceres-solver
-[sawConstraintController][20] | >= 1.0.2   | C++      | cisst component for constrained optimization and arm path planning
 
 ### KUKA Driver Dependencies
 
@@ -280,7 +238,7 @@ Standalone driver C++ dependencies:
 
 ```
     Threads            # pthreads, see CMake documentation
-    ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq 
+    ZeroMQ      # zeromq.org https://github.com/zeromq/libzmq
 	AZMQ        # https://github.com/zeromq/azmq
 	FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
 	Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,log,chrono}
@@ -295,7 +253,7 @@ You must follow the instructions at https://ahundt.github.io/grl/howto/iiwaKukaR
 
     ROS    # for ROS driver http://www.ros.org/
     V-REP  # for V-REP driver http://coppeliarobotics.com
-    
+
 
 ### Hand Eye Calibration Dependencies
 
@@ -316,7 +274,7 @@ Constrained Optimization based arm path planning dependencies:
 ```
 
     CisstNetlib        # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
-    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin 
+    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin
     sawConstraintController #  used for inverse kinematics plugin https://github.com/jhu-saw/sawConstraintController
 ```
 
@@ -457,3 +415,4 @@ Advanced CMake Options
 [20]: https://github.com/jhu-saw/sawConstraintController
 [21]: http://www.netlib.org
 [22]: http://www.ros.org
+[23]: https://github.com/gabime/spdlog/

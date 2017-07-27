@@ -28,22 +28,12 @@
 #       be placed in the lib/[<lang>/]grl/ directory,
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
+if(FUSIONTRACK_FOUND)
+basis_include_directories(${GRL_INCLUDE_DIRS}/thirdparty/vrep/include ${FUSIONTRACK_INCLUDE_DIRS} ${grl_INCLUDE_DIRS}/thirdparty/vrep/include)
+basis_add_library(v_repExtAtracsysFusionTrack SHARED v_repExtAtracsysFusionTrack.cpp )
+basis_target_link_libraries(v_repExtAtracsysFusionTrack ${Boost_LIBRARIES}   ${CMAKE_THREAD_LIBS_INIT} ${FUSIONTRACK_LIBRARIES}  v_repLib)
+endif()
 
-basis_include_directories(${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
-
-# kuka iiwa FRI-Client-SDK_Cpp robotic arm C++ interface
-# needed by ROS and VREP kuka iiwa APIS
-include(FRI_Client_SDK_Cpp)
-
-add_subdirectory(ros)
-add_subdirectory(v_rep)
-add_subdirectory(v_repExtUniversalRobotsPlugin)
-add_subdirectory(v_repExtKukaLBRiiwaPlugin)
-add_subdirectory(v_repExtHandEyeCalibration)
-add_subdirectory(v_repExtPivotCalibration)
-add_subdirectory(v_repExtGrlInverseKinematics)
-add_subdirectory(v_repExtGrlCisstInverseKinematics)
-add_subdirectory(v_repExtAtracsysFusionTrack)
 
 # ============================================================================
 # executable target(s)

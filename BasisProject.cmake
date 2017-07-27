@@ -108,18 +108,11 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
-    OpenCV             # Open Computer Vision Library github.com/opencv/opencv
     Threads            # pthreads, see CMake documentation
     Eigen3             # Linear Algebra eigen.tuxfamily.com
-    Nanopb             # Used in Kuka Fast Robot Interface
-    ur_modern_driver   # Universal Robots Arm Device Driver https://github.com/ThomasTimm/ur_modern_driver/
-    CisstNetlib        # https://github.com/jhu-cisst/cisstNetlib  used for inverse kinematics plugin
-    cisst{cisstNumerical,cisstOSAbstraction,cisstVector,cisstCommon} # https://github.com/jhu-cisst/cisst used for inverse kinematics plugin
-    sawConstraintController #  used for inverse kinematics plugin https://github.com/jhu-saw/sawConstraintController
+    Nanopb             # Used in Kuka Fast Robot Interface for serializing and deserializing protobufs
     Ceres              # http://ceres-solver.org/ used in arm hand eye calibration
     #CAMODOCAL         # used for hand eye calibration plugin, files included directly https://github.com/hengli/camodocal
-    PCL                # point cloud library, for vision components >=1.7 recommended https://github.com/PointCloudLibrary/pcl
-    freenect2          # kinect v2 drivers, for vision components https://github.com/OpenKinect/libfreenect2
     ROS                # Robot Operating System http://ROS.org
     TRTK               # Transform Registration Toolkit, for pivot calibration https://github.com/RWTHmediTEC/TRTK
     SpaceVecAlg        # Implementation of Roy Featherstone's Spatial Vector Algebra https://github.com/jrl-umi3218/SpaceVecAlg
@@ -128,9 +121,6 @@ basis_project (
     Tasks              # Real time control of Kinematic Trees https://github.com/jrl-umi3218/Tasks used for inverse kinematics
     spdlog             # fast logging library https://github.com/gabime/spdlog
     LibDL              # Linux Dynamic Loader library, linux only https://refspecs.linuxfoundation.org/LSB_2.0.1/LSB-Core/LSB-Core/libdl.html
-    # ZeroMQ             # (Deprecated) zeromq.org https://github.com/zeromq/libzmq
-    # libsodium          # (Deprecated) https://github.com/jedisct1/libsodium # todo: test this dependency
-    # AZMQ               # (Deprecated) Boost Asio implementation of ZeroMQ https://github.com/zeromq/azmq
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
@@ -138,4 +128,6 @@ basis_project (
   INCLUDE_DIRS
     include
     include/thirdparty/vrep/include
+    include/thirdparty/cartographer/include
+    include/thirdparty/camodocal/include
 )

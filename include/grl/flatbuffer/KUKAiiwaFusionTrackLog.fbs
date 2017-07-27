@@ -1,0 +1,24 @@
+import "FusionTrack.fbs";
+import "KUKAiiwa.fbs"
+
+namespace grl.flatbuffer;
+
+// a log file is a series of GRLMessage entities
+table GRLMessage {
+    // an easy to use ros compatible timestamp
+    timestamp:double;
+    // a more detailed timestamp based on google cartographer
+    // and the triggersync paper
+    timeEvent:TimeEvent;
+    kukaiiwa:KUKAiiwaState;
+    fusionTrack:FusionTrackMessage;
+}
+
+table KUKAiiwaFusionTrackLog {
+  states:[GRLMessage];
+}
+
+
+root_type KUKAiiwaFusionTrackLog;
+file_identifier "kitl";
+file_extension  "kitl";
