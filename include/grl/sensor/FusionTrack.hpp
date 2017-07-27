@@ -287,7 +287,7 @@ public:
             uint32_t maxMarkerInstances = 32):
             SerialNumber(serialNumber),
             FrameQueryP(ftkCreateFrame()),
-            ErrorsP(std::make_shared<ftkErrorExt>())
+            Error(FTK_OK)
         {
 
             if(FrameQueryP == nullptr) throw std::bad_alloc();
@@ -412,8 +412,8 @@ public:
         /// @see ftkErrors.h
         /// @see ftkErrorExt
         ///
-        /// @todo TODO(ahunct) remove the shared_ptr and make it a regular object once ftkErrorExt follows the C++ Rule of Three (https://en.wikipedia.org/wiki/Rule_of_three_(C%2B%2B_programming))
-        std::shared_ptr<ftkErrorExt> ErrorsP;
+        /// @todo TODO(ahundt) remove the shared_ptr and make it a regular object once ftkErrorExt follows the C++ Rule of Three (https://en.wikipedia.org/wiki/Rule_of_three_(C%2B%2B_programming))
+        ftkError Error;
         TimeEvent TimeStamp;
     };
 
@@ -451,38 +451,38 @@ public:
 
         // get a local clock timestamp, then the latest frame from the device, then another timestamp
         rs.TimeStamp.local_request_time = cartographer::common::UniversalTimeScaleClock::now();
-        auto error = ftkGetLastFrame(
+        ftkError error = ftkGetLastFrame(
             m_ftkLibrary,
             rs.SerialNumber,
             rs.FrameQueryP.get(),
             m_params.blockLimitMilliseconds /* block up to limit (ex: 100 ms) if next frame is not available*/);
         rs.TimeStamp.local_receive_time = cartographer::common::UniversalTimeScaleClock::now();
 
-        if (error == FTK_OK && !rs.ErrorsP->isOk()) {
-            //  update the old error status to FTK_OK
-            *(rs.ErrorsP) = ftkErrorExt(error);
-        } else if (error != FTK_OK) {
+        ftkErrorExt errors(rs.Error);
+
+        rs.Error = error;
+        if (error != FTK_OK) {
             // provide clean and useful errors
-            ftkGetLastError( m_ftkLibrary, rs.ErrorsP.get());
+            ftkGetLastError( m_ftkLibrary, &errors);
 
             #ifdef HAVE_SPDLOG
-            if(m_logger && rs.ErrorsP->isWarning() && rs.ErrorsP->isError()) {
+            if(m_logger && errors.isWarning() && errors.isError()) {
                 std::string error;
-                rs.ErrorsP->messageStack(error);
+                errors.messageStack(error);
                 m_logger->error(std::string("FusionTrack::receive() encountered both warnings and errors:\n") + error);
-            } else if(m_logger && rs.ErrorsP->isWarning()) {
+            } else if(m_logger && errors.isWarning()) {
                 std::string warning;
-                rs.ErrorsP->warningString(warning);
+                errors.warningString(warning);
                 m_logger->warn(std::string("FusionTrack::receive():") + warning);
 
-            } else if(m_logger && rs.ErrorsP->isError()) {
+            } else if(m_logger && errors.isError()) {
                 std::string error;
-                rs.ErrorsP->errorString(error);
+                errors.errorString(error);
                 m_logger->error(std::string("FusionTrack::receive():") + error);
             }
             #endif // HAVE_SPDLOG
 
-            if(rs.ErrorsP->isError())
+            if(errors.isError())
             {
                 // don't do any additional processing upon errors
                 return;

@@ -1,0 +1,29 @@
+// Log format for time synchonization of kuka and fusiontrack
+include "FusionTrack.fbs";
+include "KUKAiiwa.fbs";
+
+namespace grl.flatbuffer;
+
+union DeviceState {KUKAiiwaState, FusionTrackMessage}
+// a log file is a series of GRLMessage entities
+// The TimeEvent should contain the necessary data,
+// and only ONE of kukaiiwa or fusionTrack should
+// be filled out for each message.
+table KUKAiiwaFusionTrackMessage {
+    // an easy to use ros compatible timestamp
+    timestamp:double;
+    // a more detailed timestamp based on google cartographer
+    // and the triggersync paper
+    timeEvent:TimeEvent;
+    deviceState:DeviceState;
+}
+
+table LogKUKAiiwaFusionTrack {
+  states:[KUKAiiwaFusionTrackMessage];
+}
+
+
+root_type LogKUKAiiwaFusionTrack;
+// FLIK: Fusiontrack Log Iiwa Kuka
+file_identifier "flik";
+file_extension  "flik";

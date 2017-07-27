@@ -28,7 +28,7 @@ std::cout << "sizeof(ftkMarker     ): " << sizeof(ftkMarker       ) << std::endl
 std::cout << "sizeof(ftkFrameQuery ): " << sizeof(ftkFrameQuery   ) << std::endl;
 
 //    grl::sensor::FusionTrack ft;
-    
+
 
 //// uncomment to test error output
 //        try {
@@ -62,7 +62,7 @@ for(int i = 0; i < num_updates; ++i) {
   for(auto serialNumber : serialNumbers) {
     frame.SerialNumber = serialNumber;
     ft.receive(frame);
-    if (frame.ErrorsP->isOk())
+    if (frame.Error == FTK_OK)
     {
       if(debug) std::cout << "time_us_member: " << frame.imageHeader.timestampUS
                 <<  " time_us_ftkQuery: "<< frame.FrameQueryP->imageHeader->timestampUS << "\n";

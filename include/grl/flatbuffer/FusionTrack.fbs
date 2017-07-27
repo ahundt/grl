@@ -74,12 +74,12 @@ table FusionTrackFrame {
   imageStrideInBytes:int;
   imageHeaderVersion:uint;
   imageHeaderStatus:int;
-  imageRightPixels:string;
-  imageRightPixelsVersion:uint;
-  imageRightStatus:int;
   imageLeftPixels:string;
   imageLeftPixelsVersion:uint;
   imageLeftStatus:int;
+  imageRightPixels:string;
+  imageRightPixelsVersion:uint;
+  imageRightStatus:int;
   regionsOfInterestLeft:[ftkRegionOfInterest];
   regionsOfInterestLeftVersion:uint;
   regionsOfInterestLeftStatus:int;
