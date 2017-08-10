@@ -19,18 +19,19 @@ matrix:
          - sourceline: 'ppa:xqms/opencv-nonfree'
          - sourceline: 'ppa:ubuntu-toolchain-r/test'
          - sourceline: 'ppa:george-edison55/cmake-3.x'
+         - sourceline: 'ppa:pierre-gergondet+ppa/multi-contact-unstable'
          packages:
-         - libtool 
-         - pkg-config 
-         - build-essential 
-         - autoconf 
+         - libtool
+         - pkg-config
+         - build-essential
+         - autoconf
          - automake
          - gfortran
          - libgflags-dev
          - libgoogle-glog-dev
          - libgtest-dev
-         - libboost-all-dev 
-         - libeigen3-dev 
+         - libboost-all-dev
+         - libeigen3-dev
          - libopenblas-dev
          - libopencv-dev
          - libopencv-nonfree-dev
@@ -40,9 +41,11 @@ matrix:
          - libeigen3-dev
          - libsuitesparse-dev
          - libtbb-dev
+         - libtasks-dev
+         - libtasks-qld-doc
 
 # dependency install steps
-before_install:   
+before_install:
   - git clone https://ceres-solver.googlesource.com/ceres-solver -b 1.12.0
   - cd ceres-solver
   - mkdir build
@@ -50,22 +53,22 @@ before_install:
   - cmake ..
   - sudo make -j3 install
   - cd ../..
-  - 
+  -
   # workaround for:
   # https://github.com/cmake-basis/BASIS/pull/609
   # https://github.com/cmake-basis/BASIS/issues/608
   # https://github.com/cmake-basis/BASIS/issues/612
-  # switch to commented version after changes are merged
-  #- git clone https://github.com/schuhschuh/cmake-basis.git
-  - git clone --depth=1 https://github.com/ahundt/BASIS.git cmake-basis --branch grl
+  # switch to commented version if changes did not work
+  - git clone https://github.com/schuhschuh/cmake-basis.git
+  #- git clone --depth=1 https://github.com/ahundt/BASIS.git cmake-basis --branch grl
   - cd cmake-basis
   - mkdir build
   - cd build
   - cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
   - sudo make -j install
   - cd ../..
-  - 
-  - git clone https://github.com/google/flatbuffers.git -b v1.5.0
+  -
+  - git clone https://github.com/google/flatbuffers.git -b v1.7.0
   - cd flatbuffers
   - mkdir build
   - cd build
@@ -73,15 +76,7 @@ before_install:
   - sudo make -j install
   - cd ../..
   -
-  - git clone https://github.com/hengli/camodocal.git -b v1.0.1
-  - cd camodocal
-  - mkdir build
-  - cd build
-  - cmake ..
-  - sudo make -j install
-  - cd ../..
-  -
-  - git clone https://github.com/gabime/spdlog.git -b v0.11.0
+  - git clone https://github.com/gabime/spdlog.git -b v0.13.0
   - cd spdlog
   - mkdir build
   - cd build
