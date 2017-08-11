@@ -19,7 +19,10 @@ matrix:
          - sourceline: 'ppa:xqms/opencv-nonfree'
          - sourceline: 'ppa:ubuntu-toolchain-r/test'
          - sourceline: 'ppa:george-edison55/cmake-3.x'
-         - sourceline: 'ppa:pierre-gergondet+ppa/multi-contact-unstable'
+         # github.com/jrl-umi3218/Tasks ppa is disabled for now
+         # because it does not include CMake Config files.
+         # It is instead being built from source below.
+         #  - sourceline: 'ppa:pierre-gergondet+ppa/multi-contact-unstable'
          packages:
          - libtool
          - pkg-config
@@ -88,7 +91,7 @@ before_install:
   - git clone https://github.com/ahundt/robotics_setup.git
   - cd robotics_setup
   # tasks disabled because it is being installed via ppa now
-  #- ./robotics_tasks.sh
+  - ./robotics_tasks.sh -p OFF
   - ./trtk.sh
   - cd ..
   -
@@ -105,7 +108,7 @@ script:
   #- cd grl
   - mkdir build
   - cd build
-  - cmake .. -DBUILD_ALL_MODULES=ON -DBUILD_DOCUMENTATION=OFF -DBUILD_EXAMPLE=ON -DMODULE_grl=ON -DMODULE_robone=ON -DMODULE_roboneprivate=ON  -DWITH_CAMODOCAL=ON  -DWITH_Ceres=ON  -DWITH_CisstNetlib=OFF   -DWITH_Eigen3=ON -DWITH_FRI_Client_SDK_Cpp=OFF  -DWITH_Nanopb=OFF  -DWITH_OpenCV=OFF  -DWITH_PCL=OFF -DWITH_RBDyn=ON  -DWITH_SpaceVecAlg=ON -DWITH_TRTK=ON -DWITH_Tasks=ON  -DWITH_Threads=ON  -DWITH_cisst=OFF -DWITH_freenect2=OFF -DWITH_sawConstraintController=OFF -DWITH_sch-core=ON  -DWITH_spdlog=ON  -DWITH_ur_modern_driver=OFF
+  - cmake .. -DBUILD_ALL_MODULES=ON -DBUILD_DOCUMENTATION=OFF -DBUILD_EXAMPLE=ON -DMODULE_grl=ON -DMODULE_robone=ON -DMODULE_roboneprivate=ON  -DWITH_Ceres=ON  -DWITH_CisstNetlib=OFF   -DWITH_Eigen3=ON -DWITH_FRI_Client_SDK_Cpp=OFF  -DWITH_Nanopb=OFF  -DWITH_PCL=OFF -DWITH_RBDyn=ON  -DWITH_SpaceVecAlg=ON -DWITH_TRTK=ON -DWITH_Tasks=ON  -DWITH_Threads=ON  -DWITH_cisst=OFF -DWITH_freenect2=OFF -DWITH_sawConstraintController=OFF -DWITH_sch-core=ON  -DWITH_spdlog=ON  -DWITH_ur_modern_driver=OFF
   - make
 #  - sudo make install
 #  - cd ../..
