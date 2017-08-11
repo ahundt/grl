@@ -87,7 +87,8 @@ before_install:
   - mkdir -p ~/src
   - git clone https://github.com/ahundt/robotics_setup.git
   - cd robotics_setup
-  - ./robotics_tasks.sh
+  # tasks disabled because it is being installed via ppa now
+  #- ./robotics_tasks.sh
   - ./trtk.sh
   - cd ..
   -
