@@ -44,8 +44,11 @@ matrix:
          - libeigen3-dev
          - libsuitesparse-dev
          - libtbb-dev
-         - libtasks-dev
-         - libtasks-qld-doc
+         # github.com/jrl-umi3218/Tasks ppa is disabled for now
+         # because it does not include CMake Config files.
+         # It is instead being built from source below.
+         # - libtasks-dev
+         # - libtasks-qld-doc
 
 # dependency install steps
 before_install:
@@ -90,7 +93,7 @@ before_install:
   - mkdir -p ~/src
   - git clone https://github.com/ahundt/robotics_setup.git
   - cd robotics_setup
-  # tasks disabled because it is being installed via ppa now
+  # Tasks is built from source because the ppa doesn't include cmake config files
   - ./robotics_tasks.sh -p OFF
   - ./trtk.sh
   - cd ..
