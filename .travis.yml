@@ -68,7 +68,6 @@ before_install:
   # https://github.com/cmake-basis/BASIS/issues/612
   # switch to commented version if changes did not work
   - git clone https://github.com/schuhschuh/cmake-basis.git
-  - git reset --hard 92d3f9f3ad34955d657bcda999c624f342784904 # check out specific working version
   #- git clone --depth=1 https://github.com/ahundt/BASIS.git cmake-basis --branch grl
   - cd cmake-basis
   - mkdir build
@@ -93,12 +92,6 @@ before_install:
   - sudo make -j install
   - cd ../..
   -
-  - mkdir -p ~/src
-  - git clone https://github.com/ahundt/robotics_setup.git
-  - cd robotics_setup
-  # Tasks is built from source because the ppa doesn't include cmake config files
-  - ./robotics_tasks.sh -p OFF
-  - ./trtk.sh
   - cd ..
   -
   # ROS indigo setup
@@ -107,6 +100,17 @@ before_install:
   - sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
   - sudo apt-get update
   - sudo apt-get install ros-indigo-ros-base
+  -
+  # IMPORTANT: You must create new tags/branches of the robotics_setup script,
+  # and ensure the script checks out specific versions on git to
+  # ensure builds of past versions are always consistent.
+  - mkdir -p ~/src
+  - git clone https://github.com/ahundt/robotics_setup.git
+  - cd robotics_setup
+  - git reset --hard 529b003fe0eaa74045f32b94cc671261d1776c11 # check out specific working version
+  # Tasks is built from source because the ppa doesn't include cmake config files
+  - ./robotics_tasks.sh -p OFF
+  - ./trtk.sh
 
 # Build steps
 script:
