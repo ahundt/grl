@@ -18,7 +18,7 @@ matrix:
          - sourceline: 'ppa:bzindovic/suitesparse-bugfix-1319687'
          - sourceline: 'ppa:xqms/opencv-nonfree'
          - sourceline: 'ppa:ubuntu-toolchain-r/test'
-         - sourceline: 'ppa:george-edison55/cmake-3.x'
+         - sourceline: 'ppa:adrozdoff/cmake'
          # github.com/jrl-umi3218/Tasks ppa is disabled for now
          # because it does not include CMake Config files.
          # It is instead being built from source below.
