@@ -52,6 +52,8 @@ matrix:
 
 # dependency install steps
 before_install:
+  - mkdir -p ~/src/
+  - cd ~/src/
   - git clone https://ceres-solver.googlesource.com/ceres-solver -b 1.12.0
   - cd ceres-solver
   - mkdir build
@@ -66,6 +68,7 @@ before_install:
   # https://github.com/cmake-basis/BASIS/issues/612
   # switch to commented version if changes did not work
   - git clone https://github.com/schuhschuh/cmake-basis.git
+  - git reset --hard 92d3f9f3ad34955d657bcda999c624f342784904 # check out specific working version
   #- git clone --depth=1 https://github.com/ahundt/BASIS.git cmake-basis --branch grl
   - cd cmake-basis
   - mkdir build
