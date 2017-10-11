@@ -5,7 +5,6 @@
 #include "FusionTrack.hpp"
 #include "ftkInterface.h"
 #include "grl/flatbuffer/FusionTrack_generated.h"
-#include <typeinfo>
 
 namespace grl
 {
@@ -103,19 +102,19 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const std::vector<::ftkMarker>
     return fbmarkervector;
 }
 /*
-    Transfer a global variable from ::ftk3DFiducial to grl::flatbutter::ftk3DFiducial.
+    Converte a global variable ::ftk3DFiducial to grl::flatbutter::ftk3DFiducial.
 */
 flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const ::ftk3DFiducial &Fiducial, const std::string markername = "")
 {
-    // ftk3DPoint, type of Fiducial.positionMM
+    // The type of Fiducial.positionMM is ftk3DPoint.
     auto positiont3Dpoint = toFlatBuffer(Fiducial.positionMM);
     return grl::flatbuffer::Createftk3DFiducial(
         fbb,
         fbb.CreateString(markername),
         Fiducial.leftIndex,
         Fiducial.rightIndex,
-        &positiont3Dpoint, // here the type of the parameter should be Vector3d, not grl::flatbuffer::Vector3d
+        &positiont3Dpoint,
         Fiducial.epipolarErrorPixels,
         Fiducial.triangulationErrorMM,
         Fiducial.probability);
@@ -136,38 +135,19 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const std::vector<::ftk3DFiduc
     auto fbfiducialvector = fbb.CreateVector(&fbfiducials[0], fiducialsize);
     return fbfiducialvector;
 }
-/*
-flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>
-toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const ::ftkRegionOfInterest &RegionOfInterest, const std::string markername = "")
-{
-    return grl::flatbuffer::CreateftkRegionOfInterest(
-        fbb,
-        _centerXPixels,
-        _centerYPixels,
-        _RightEdge,
-        _BottomEdge,
-        _LeftEdge,
-        _TopEdge,
-        _pixelsCount,
-        _probability);
-}
-*/
+
 flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack::Frame &frame)
 {
     /// @todo TODO(ahundt) IN PROGRESS
-    /// Here we should get the markers'name for
-    /// flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>>
-    /// toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const std::vector<::ftk3DFiducial> &fiducials, const std::vector<std::string> &markername)
-
+    /// Here we should get the markers'name
     std::vector<std::string> markerNames;
     for (auto& fiducial : frame.Fiducials)
     {
         // @todo TODO(ahundt) look up actual marker names and set with "id_geometryID" here, or "" if no marker.
         markerNames.push_back("");
     }
-    /****************************************************************/
-    //std::cout<<"frame.CameraImageLeftP->begin()" << reinterpret_cast<const char*>(frame.CameraImageLeftP->begin()) << std::endl;
+   
     static const double microsecToSec = 1 / 1000000;
     flatbuffers::FlatBufferBuilder &_fbb = fbb;
     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
@@ -181,18 +161,13 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
     int32_t imageStrideInBytes = frame.imageHeader.imageStrideInBytes;
     uint32_t imageHeaderVersion = 0;
     int32_t imageHeaderStatus = frame.FrameQueryP->imageHeaderStat;
-    //for ( auto it = frame.CameraImageLeftP->begin(); it != frame.CameraImageLeftP->end(); ++it )
-    //    std::cout << ' ' << *it;
-    // std::cout << '\n';
-    // std::cout << "frame.CameraImageLeftP \t " << frame.CameraImageLeftP << std::endl;
-    // std::cout << "Type of *frame.CameraImageLeftP \t " << typeid((*frame.CameraImageLeftP).begin()).name() << std::endl;
-    // std::cout << "Type of frame.CameraImageLeftP->begin() \t " << typeid(frame.CameraImageLeftP->begin()).name() << std::endl;
     flatbuffers::Offset<flatbuffers::String> imageLeftPixels = frame.CameraImageLeftP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageLeftP->begin()), sizeof(frame.CameraImageLeftP)) : 0;
     uint32_t imageLeftPixelsVersion = frame.FrameQueryP->imageLeftVersionSize.Version;
     int32_t imageLeftStatus = frame.FrameQueryP->imageLeftStat;
     flatbuffers::Offset<flatbuffers::String> imageRightPixels = frame.CameraImageRightP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageRightP->begin()), sizeof(frame.CameraImageRightP)) : 0;
     uint32_t imageRightPixelsVersion = frame.FrameQueryP->imageRightVersionSize.Version;
     int32_t imageRightStatus = frame.FrameQueryP->imageRightStat;
+    // It should use the flatbuffers vector instead of standard one.
     // flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ftkRegionOfInterest>>>
     const std::vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>> *regionsOfInterestLeft = nullptr;
     uint32_t regionsOfInterestLeftVersion = 0;
@@ -242,44 +217,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
         markersStatus,
         deviceType,
         ftkError);
-    /*
-    return grl::flatbuffer::CreateFusionTrackFrame(
-        fbb,
-        frame.imageHeader.timestampUS * microsecToSec, // happens to claim unix time, so we can just multiply.
-        frame.SerialNumber,
-        0, // hardwareTimestampUS:ulong;
-        frame.imageHeader.desynchroUS,
-        frame.imageHeader.counter,
-        frame.imageHeader.format, //type?
-        frame.imageHeader.width,
-        frame.imageHeader.height,
-        frame.imageHeader.imageStrideInBytes,
-        // imageHeaderVersion:uint;
-        frame.FrameQueryP->imageHeaderStat,
-        frame.CameraImageLeftP ? fbb.CreateString(frame.CameraImageLeftP->begin()) : 0,
-        frame.FrameQueryP->imageLeftVersionSize.Version,
-        frame.FrameQueryP->imageLeftStat,
-        frame.CameraImageRightP ? fbb.CreateString(frame.CameraImageRightP->begin()) : 0,
-        frame.FrameQueryP->imageRightVersionSize.Version,
-        frame.FrameQueryP->imageRightStat,
-        /// @todo TODO(ahundt) Region Of Interest aka ftkRawData
-        frame.ImageRegionOfInterestBoxesLeft,
-        0, /// @todo TODO(ahundt) Region Of Interest aka ftkRawData
-        0, /// @todo TODO(ahundt) Region Of Interest aka ftkRawData
-        frame.ImageRegionOfInterestBoxesRight,
-        0, /// @todo TODO(ahundt) Region Of Interest aka ftkRawData
-        0, /// @todo TODO(ahundt) Region Of Interest aka ftkRawData
-        // flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ftk3DFiducial>>> threeDFiducials = 0,
-        //  frame.Fiducials --> std::vector<ftk3DFiducial> Fiducials
-        toFlatBuffer(fbb, frame.Fiducials, markerNames),
-        frame.FrameQueryP->threeDFiducialsVersionSize.Version,
-        frame.FrameQueryP->threeDFiducialsStat,
-        0, //toFlatBuffer(frame.Markers),
-        frame.FrameQueryP->markersVersionSize.Version,
-        frame.FrameQueryP->markersStat,
-        0, /// @todo TODO(ahundt) set the device type correctly
-        frame.Error);
-        */
 }
 }
 

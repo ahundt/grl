@@ -17,12 +17,11 @@
 int main(int argc, char** argv){
 
 bool debug = true;
-//if(debug) std::cout << "starting fusiontrack" << std::endl;
-std::cout << "starting fusiontrack" << std::endl;
+if(debug) std::cout << "starting fusiontrack" << std::endl;
 grl::sensor::FusionTrack::Params ftp = grl::sensor::FusionTrack::emptyDefaultParams();
-ftp.retrieveLeftPixels = false;
-ftp.retrieveRightPixels = false;
-//ftp.geometryFilenames = {"geometry004.ini", "geometry104.ini"};
+// ftp.retrieveLeftPixels = false;
+// ftp.retrieveRightPixels = false;
+// ftp.geometryFilenames = {"geometry004.ini", "geometry104.ini"};
 ftp.geometryFilenames = {"geometry0022.ini", "geometry0055.ini"};
 grl::sensor::FusionTrack ft(ftp);
 auto serialNumbers = ft.getDeviceSerialNumbers();
@@ -49,7 +48,6 @@ for(int i = 0; i < num_updates; ++i) {
       if(debug) std::cout << "time_us_member: " << frame.imageHeader.timestampUS
                 <<  " time_us_ftkQuery: "<< frame.FrameQueryP->imageHeader->timestampUS << "\n";
       if(debug) std::cout << " imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
-      // std::cout << "serial: " << frame.SerialNumber << std::endl;
       for(const ftkMarker& marker : frame.Markers){
         Eigen::Affine3f fusionTrackToMarker = grl::sensor::ftkMarkerToAffine3f(marker);
         if(debug) std::cout << " matrix: " << fusionTrackToMarker.matrix();
@@ -63,8 +61,10 @@ for(int i = 0; i < num_updates; ++i) {
       // print byte data for debugging:
       auto p = fbb.GetBufferPointer();
       std::cout << " fbb.GetSize(): " << fbb.GetSize() << std::endl;
-      for (flatbuffers::uoffset_t i = 0; i < fbb.GetSize(); i++)
-        printf("%d ", p[i]);
+      for (flatbuffers::uoffset_t i = 0; i < fbb.GetSize(); i++) {
+        std::cout << p[i];
+      }
+      std::cout << std::endl;
     } else {
       // handle problem
       std::cout << "There is something wrong" << std::endl;
