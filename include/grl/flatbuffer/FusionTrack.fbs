@@ -96,10 +96,47 @@ table FusionTrackFrame {
   ftkError:long;
 }
 
-table FusionTrackMessage {
-  timestamp:double;
+// Data that doesn't change often
+table FusionTrackParameters {
+
+
+  /// Name for this connection / FusionTrack driver instance
+  /// useful for debugging and when multiple data sources are used
+  name:string;
+
+  /// Name for the clock on the FusionTrack
+  /// Useful for timing calculations and debugging.
+  deviceClockID:string;
+
+  /// Name for the local clock on which this driver runs
+  /// Useful for timing calculations and debugging.
+  localClockID:string;
+
+  /// dimensions of the markers that may be present
   geometries:[ftkGeometry];
-  timeEvent:TimeEvent;
-  frames:[FusionTrackFrame];
+
+  /// Geometries aka fiducials aka markers to be loaded from ini files.
+  /// The data loaded should not repeat IDs from MarkerIDs.
+  geometryFilenames:[string];
+  /// Path to the directory with the marker ini files listed above
+  /// Uses the default current working directory if empty
+  geometryDir:[string];
+  /// Optional list of optical tracker device ids to expect
+  /// will be loaded automatically if empty
+  TrackerDeviceIDs:[ulong];
+  /// Marker geometry unique integer IDs
+  markerIDs[ulong];
+  /// Optional Marker geometry names with one for each ID, none otherwise
+  markerNames:[string];
+  // device serial numbers
+  m_deviceSerialNumbers:[ulong];
+  // fusiontrack vs infinitrack
+  m_device_types:[ubyte];
 }
 
+table FusionTrackMessage {
+  timestamp:double;
+  parameters:FusionTrackParameters;
+  timeEvent:TimeEvent;
+  frame:FusionTrackFrame;
+}
