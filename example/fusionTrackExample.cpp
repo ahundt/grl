@@ -26,12 +26,14 @@ ftp.geometryFilenames = {"geometry0022.ini", "geometry0055.ini"};
 grl::sensor::FusionTrack ft(ftp);
 auto serialNumbers = ft.getDeviceSerialNumbers();
 
+if(debug) std::cout << "allocating frame" << std::endl;
 // allocating frame object
 grl::sensor::FusionTrack::Frame frame(ft.makeFrame());
 std::cout << "makeframe imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
 // get a fixed total number of updates from each device
 int num_updates = 3;
 
+if(debug) std::cout << "entering data receive loop" << std::endl;
 
 /******************************************************************/
 
@@ -62,12 +64,12 @@ for(int i = 0; i < num_updates; ++i) {
       auto p = fbb.GetBufferPointer();
       std::cout << " fbb.GetSize(): " << fbb.GetSize() << std::endl;
       for (flatbuffers::uoffset_t i = 0; i < fbb.GetSize(); i++) {
-        std::cout << p[i];
+        std::cout << static_cast<int>(*(p+i)) << ", ";
       }
       std::cout << std::endl;
     } else {
       // handle problem
-      std::cout << "There is something wrong" << std::endl;
+      std::cout << "Couldn't receive data from the FusionTrack device, something was wrong." << std::endl;
     }
   }
 }
