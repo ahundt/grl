@@ -152,14 +152,14 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
     flatbuffers::FlatBufferBuilder &_fbb = fbb;
     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
     uint64_t serialNumber = frame.SerialNumber;
-    uint64_t hardwareTimestampUS = 0;
+    uint64_t hardwareTimestampUS = frame.imageHeader.timestampUS;
     uint64_t desynchroUS = frame.imageHeader.desynchroUS;
     uint32_t counter = frame.imageHeader.counter;
-    uint32_t format = 0;
+    uint32_t format = frame.imageHeader.format;
     uint32_t width = frame.imageHeader.width;
     uint32_t height = frame.imageHeader.height;
     int32_t imageStrideInBytes = frame.imageHeader.imageStrideInBytes;
-    uint32_t imageHeaderVersion = 0;
+    uint32_t imageHeaderVersion = frame.FrameQueryP->imageHeaderVersionSize.Version;
     int32_t imageHeaderStatus = frame.FrameQueryP->imageHeaderStat;
     flatbuffers::Offset<flatbuffers::String> imageLeftPixels = frame.CameraImageLeftP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageLeftP->begin()), sizeof(frame.CameraImageLeftP)) : 0;
     uint32_t imageLeftPixelsVersion = frame.FrameQueryP->imageLeftVersionSize.Version;
@@ -170,18 +170,18 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
     // It should use the flatbuffers vector instead of standard one.
     // flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ftkRegionOfInterest>>>
     const std::vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>> *regionsOfInterestLeft = nullptr;
-    uint32_t regionsOfInterestLeftVersion = 0;
-    int32_t regionsOfInterestLeftStatus = 0;
+    uint32_t regionsOfInterestLeftVersion = frame.FrameQueryP->rawDataLeftVersionSize.Version;
+    int32_t regionsOfInterestLeftStatus = frame.FrameQueryP->rawDataLeftStat;
     const std::vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>> *regionsOfInterestRight = nullptr;
-    uint32_t regionsOfInterestRightVersion = 0;
-    int32_t regionsOfInterestRightStatus = 0;
+    uint32_t regionsOfInterestRightVersion = frame.FrameQueryP->rawDataRightVersionSize.Version;
+    int32_t regionsOfInterestRightStatus = frame.FrameQueryP->rawDataRightStat;
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>> threeDFiducials = toFlatBuffer(fbb, frame.Fiducials, markerNames);
     uint32_t threeDFiducialsVersion = frame.FrameQueryP->threeDFiducialsVersionSize.Version;
     int32_t threeDFiducialsStatus = frame.FrameQueryP->threeDFiducialsStat;
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkMarker>>> markers = toFlatBuffer(fbb, frame.Markers, markerNames);
     uint32_t markersVersion = frame.FrameQueryP->markersVersionSize.Version;
     int32_t markersStatus = frame.FrameQueryP->markersStat;
-    int32_t deviceType = 0;
+    int32_t deviceType = frame.DeviceType;
     int64_t ftkError = frame.Error;
 
     return grl::flatbuffer::CreateFusionTrackFrame(

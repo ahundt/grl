@@ -346,6 +346,11 @@ public:
 
         /// The serial number of the device that produced this data
         uint64_t SerialNumber;
+
+        /// Device Type identifier, the physical model being used,
+        /// such as a FusionTrack 500, 250, simulator, etc.
+        ftkDeviceType DeviceType;
+
         /// Contains all the data pointers and status information
         /// used internally within the FusionTrack library.
         /// @see ftkFrameQuery
@@ -537,6 +542,12 @@ public:
         m_device_types.push_back(type);
     }
 
+    int8_t getTypeFromSerialNumber(uint64_t id) {
+        ptrdiff_t pos = std::distance(m_deviceSerialNumbers.begin(), std::find(m_deviceSerialNumbers.begin(), m_deviceSerialNumbers.end(), id));
+        uint8_t type = *(m_device_types.begin() + pos);
+        return type;
+    }
+
     ~FusionTrack(){
        ftkClose(&m_ftkLibrary);
     }
@@ -557,6 +568,7 @@ private:
         frame.Markers.resize(frame.FrameQueryP->markersCount, ftkMarker());
         frame.ImageRegionOfInterestBoxesLeft.resize(frame.FrameQueryP->rawDataLeftCount, ftkRawData());
         frame.ImageRegionOfInterestBoxesRight.resize(frame.FrameQueryP->rawDataRightCount, ftkRawData());
+        frame.DeviceType = ftkDeviceType(getTypeFromSerialNumber(frame.SerialNumber));
     }
 
     #ifdef HAVE_SPDLOG
