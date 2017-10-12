@@ -220,4 +220,5 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
 }
 }
 
+
 #endif // GRL_ATRACSYS_FUSION_TRACK_TO_FLATBUFFER
