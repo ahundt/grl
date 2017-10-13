@@ -125,7 +125,7 @@ table FusionTrackParameters {
   /// will be loaded automatically if empty
   TrackerDeviceIDs:[ulong];
   /// Marker geometry unique integer IDs
-  markerIDs[ulong];
+  markerIDs:[ulong];
   /// Optional Marker geometry names with one for each ID, none otherwise
   markerNames:[string];
   // device serial numbers
