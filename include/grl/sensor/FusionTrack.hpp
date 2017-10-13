@@ -195,9 +195,9 @@ public:
     /// std::vector<MarkerModelGeometry> markerModelGeometries;
     Params::MarkerModelGeometry ftkGeometryToMarkerModelGeometry(::ftkGeometry& ftkg){
         Params::MarkerModelGeometry geom;
-        for(i = 0; i < ftkg.pointsCount; ++i)
+        for(int i = 0; i < ftkg.pointsCount; ++i)
         {
-            geom.push_back(ftkg.positions[i])
+            geom.push_back(ftkg.positions[i]);
         }
         return geom;
     }
@@ -253,16 +253,16 @@ public:
             case 1:
                 BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: loaded ") + fileName + " from installation directory"));
             case 0:
-                for( serialNumber : m_deviceSerialNumbers)
+                for( auto serialNumber : m_deviceSerialNumbers)
                 {
                     error = ftkSetGeometry(m_ftkLibrary, serialNumber, &geometry);
                     if (error != FTK_OK) {
                         BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: unable to set geometry for tool ") + fileName + " (FusionTrack)" ));
                     }
                 }
-                m_params.markerIDs.push_back(ftkGeometry.geometryId)
-                m_params.markerNames.push_back(fileName)
-                m_params.markerModelGeometries.push_back(ftkGeometryToMarkerModelGeometry(geometry))
+                m_params.markerIDs.push_back(geometry.geometryId);
+                m_params.markerNames.push_back(fileName);
+                m_params.markerModelGeometries.push_back(ftkGeometryToMarkerModelGeometry(geometry));
                 break;
             default:
                 BOOST_THROW_EXCEPTION(std::runtime_error(std::string( "FusionTrack: error, cannot load geometry file ") + fileName ));
