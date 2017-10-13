@@ -557,7 +557,7 @@ public:
     }
 
     /// Get the serial numbers of all connected devices.
-    std::vector<uint64_t> getDeviceSerialNumbers() {
+    std::vector<uint64_t> getDeviceSerialNumbers() const {
         return m_deviceSerialNumbers;
     }
 
@@ -574,7 +574,10 @@ public:
         uint8_t type = *(m_device_types.begin() + pos);
         return type;
     }
-
+    std::vector<uint8_t> getDeviceTypes() const {
+        return  m_device_types;
+    }
+    
     ~FusionTrack(){
        ftkClose(&m_ftkLibrary);
     }

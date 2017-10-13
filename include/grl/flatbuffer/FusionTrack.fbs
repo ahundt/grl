@@ -120,7 +120,8 @@ table FusionTrackParameters {
   geometryFilenames:[string];
   /// Path to the directory with the marker ini files listed above
   /// Uses the default current working directory if empty
-  geometryDir:[string];
+  /// geometryDir:[string];
+  geometryDir:string;
   /// Optional list of optical tracker device ids to expect
   /// will be loaded automatically if empty
   TrackerDeviceIDs:[ulong];

@@ -53,17 +53,37 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const ::ftkGeometry &geometry,
         fbb.CreateVectorOfStructs<grl::flatbuffer::Vector3d>(fiducials.begin(), geometry.pointsCount));
 }
 
+/// ======================================================================================
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkGeometry>>>
-toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const std::vector<::ftkGeometry> &fbGeometris, const std::vector<std::string> &name)
+toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, grl::sensor::FusionTrack::Params& params)
 {
-    std::vector<flatbuffers::Offset<grl::flatbuffer::ftkGeometry>> fbGeometry;
-    int geometry_size = fbGeometris.size();
+    flatbuffers::Offset<grl::flatbuffer::ftkGeometry> fbGeometry;
+    std::vector<flatbuffers::Offset<grl::flatbuffer::ftkGeometry>> geometryvector;
+    int geometry_size = params.markerIDs.size();
+    std::array<grl::flatbuffer::Vector3d, FTK_MAX_FIDUCIALS> fiducials;
+    std::vector<ftk3DPoint> MarkerModelGeometry;
+
+
+
     for (int i = 0; i < geometry_size; i++) {
-        fbGeometry.push_back(toFlatBuffer(fbb, fbGeometris[i], name[i]));
+        MarkerModelGeometry = params.markerModelGeometries[i];
+        for (int j = 0; j < MarkerModelGeometry.size(); j++) {
+            fiducials[j] = toFlatBuffer(MarkerModelGeometry[j]);
+        }
+        fbGeometry = grl::flatbuffer::CreateftkGeometry(
+            fbb,
+            fbb.CreateString(params.markerNames[i]),
+            params.markerIDs[i],
+            0, ///version,
+            fbb.CreateVectorOfStructs<grl::flatbuffer::Vector3d>(fiducials.begin(), MarkerModelGeometry.size())
+        );
+        geometryvector.push_back(fbGeometry);
     }
-    auto fbGemetryvector = fbb.CreateVector(&fbGeometry[0], geometry_size);
+    auto fbGemetryvector = fbb.CreateVector(&geometryvector[0], geometryvector.size());
     return fbGemetryvector;
 }
+
+/// ======================================================================================
 /* 
 *       Convert uint32 Mask to a std::vector.
 *       Refer to https://stackoverflow.com/a/2686571
@@ -231,40 +251,50 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
         ftkError);
 }
 
-/*
+
 flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack &fusiontrack)
 {
-    grl::sensor::FusionTrack::Params params = fusiontrack.getParams();
-   
-    flatbuffers::FlatBufferBuilder &_fbb = fbb,
-    flatbuffers::Offset<flatbuffers::String> name = fbb.CreateString(params.name);
-    flatbuffers::Offset<flatbuffers::String> deviceClockID = fbb.CreateString(params.deviceClockID);
-    flatbuffers::Offset<flatbuffers::String> localClockID = fbb.CreateString(params.localClockID);
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ftkGeometry>>> geometries = toFlatbuffer(fbb, const std::vector< grl::sensor::FusionTrack> &ftkparams, const std::vector<std::string> &name);
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> geometryFilenames = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> geometryDir = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> TrackerDeviceIDs = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> markerIDs = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> markerNames = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> m_deviceSerialNumbers = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> m_device_types = 0) {
-  FusionTrackParametersBuilder builder_(_fbb);
-  builder_.add_m_device_types(m_device_types);
-  builder_.add_m_deviceSerialNumbers(m_deviceSerialNumbers);
-  builder_.add_markerNames(markerNames);
-  builder_.add_markerIDs(markerIDs);
-  builder_.add_TrackerDeviceIDs(TrackerDeviceIDs);
-  builder_.add_geometryDir(geometryDir);
-  builder_.add_geometryFilenames(geometryFilenames);
-  builder_.add_geometries(geometries);
-  builder_.add_localClockID(localClockID);
-  builder_.add_deviceClockID(deviceClockID);
-  builder_.add_name(name);
-  return builder_.Finish();
+    grl::sensor::FusionTrack::Params _params = fusiontrack.getParams();
+    int geometryFiles_size = _params.geometryFilenames.size();
+    std::vector<flatbuffers::Offset<flatbuffers::String>> geometryFilenames;
+    std::vector<flatbuffers::Offset<flatbuffers::String>> markerNames;
+    for ( int i = 0; i < geometryFiles_size; i++) {
+        geometryFilenames.push_back(fbb.CreateString(_params.geometryFilenames[i]));
+        markerNames.push_back(fbb.CreateString(_params.markerNames[i]));
+    }
+
+    // device serial numbers
+    std::vector<uint64_t> _m_deviceSerialNumbers = fusiontrack.getDeviceSerialNumbers();
+    std::vector<uint8_t> _m_device_types = fusiontrack.getDeviceTypes();
+    flatbuffers::Offset<flatbuffers::String> _name = fbb.CreateString(_params.name);
+    flatbuffers::Offset<flatbuffers::String> _deviceClockID = fbb.CreateString(_params.deviceClockID);
+    flatbuffers::Offset<flatbuffers::String> _localClockID = fbb.CreateString(_params.localClockID);
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkGeometry>>> _geometries = toFlatBuffer(fbb, _params);
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> _geometryFilenames = fbb.CreateVector(&geometryFilenames[0], geometryFiles_size);  
+    flatbuffers::Offset<flatbuffers::String> _geometryDir = fbb.CreateString(_params.geometryDir);
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> _TrackerDeviceIDs = fbb.CreateVector(&(_params.TrackerDeviceIDs[0]),_params.TrackerDeviceIDs.size());
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> _markerIDs = fbb.CreateVector(&_params.markerIDs[0],_params.markerIDs.size());
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> _markerNames = fbb.CreateVector(&markerNames[0], geometryFiles_size);
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> m_deviceSerialNumbers = fbb.CreateVector(&_m_deviceSerialNumbers[0], _m_deviceSerialNumbers.size());
+    
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> m_device_types = fbb.CreateVector(&_m_device_types[0], _m_device_types.size());
+    return flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters> CreateFusionTrackParameters (
+        fbb,
+        _name,
+        _deviceClockID,
+        _localClockID,
+        _geometries,
+        _geometryFilenames,
+        _geometryDir,
+        _TrackerDeviceIDs,
+        _markerIDs,
+        _markerNames,
+        m_deviceSerialNumbers,
+        m_device_types);
 }
 
-
+/*
 
 flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack &fusiontrack, const grl::sensor::FusionTrack::Frame &frame)
