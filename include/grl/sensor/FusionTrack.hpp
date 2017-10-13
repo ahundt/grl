@@ -50,6 +50,8 @@ namespace detail {
 class FusionTrack {
 public:
 
+    /// Note that some params will be modified during the initialization of the FusionTrack object.
+    /// In particular, any geometryFilenames will be loaded and added to the list of markerModelGeometries.
     struct Params {
         /// Maximum time the API can block waiting on data before giving up
         uint64_t blockLimitMilliseconds = 100;
@@ -64,7 +66,9 @@ public:
         /// Optional list of optical tracker device ids to expect
         /// will be loaded automatically if empty
         std::vector<uint64_t> TrackerDeviceIDs;
-        /// Marker geometry unique integer IDs
+        /// Marker geometry unique integer IDs.
+        /// This ids the shape of a marker and more than marker can have
+        /// an identical shape.
         std::vector<uint64_t> markerIDs;
         /// Optional Marker geometry names with one for each ID, none otherwise
         std::vector<std::string> markerNames;
@@ -75,7 +79,9 @@ public:
         /// to the center of each fiducial attached to the marker.
         /// Often there is a physical indicator on the marker such as an
         /// arrow or metal pointer indicating the location of the origin.
-        /// ftk3DPoint simply has 3 floats x,y,z.
+        /// ftk3DPoint simply has 3 floats x,y,z. Note that if two identical
+        /// physical marker devices are visible, two instances of the same geometry
+        /// will be visible at once.
         ///
         /// @see FusionTrackToEigen.hpp for a converter to and from the
         ///      widely used Eigen::Vector3f class.
@@ -180,9 +186,20 @@ public:
     }
 
 
-    cartographer::common::Time ImageHeaderToCommonTime(const ftkImageHeader& tq) {
+    cartographer::common::Time ImageHeaderToCommonTime(const ::ftkImageHeader& tq) {
         typename MicrosecondClock::time_point fttp(MicrosecondClock::duration(tq.timestampUS));
         return FusionTrackTimeToCommonTime(fttp);
+    }
+
+    /// typedef std::vector<ftk3DPoint> MarkerModelGeometry;
+    /// std::vector<MarkerModelGeometry> markerModelGeometries;
+    Params::MarkerModelGeometry ftkGeometryToMarkerModelGeometry(::ftkGeometry& ftkg){
+        Params::MarkerModelGeometry geom;
+        for(i = 0; i < ftkg.pointsCount; ++i)
+        {
+            geom.push_back(ftkg.positions[i])
+        }
+        return geom;
     }
 
 
@@ -224,18 +241,28 @@ public:
                 std::make_error_code(std::errc::no_such_device),
                 std::string("FusionTrack: no device connected (FusionTrack)" )));
         }
+
+        /// TODO(ahundt) call loadGeometry for geometries already defined in params object using: TrackerDeviceIDs markerIDs markerNames markerModelGeometries
+
         // make sure we can find and load this tool ini file
-        ftkGeometry geometry;
+        // data loaded from the ini file is also placed back in params
         for(auto fileName : m_params.geometryFilenames){
+            ftkGeometry geometry;
             switch (loadGeometry(m_ftkLibrary, m_deviceSerialNumbers[0], fileName, geometry))
             {
             case 1:
                 BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: loaded ") + fileName + " from installation directory"));
             case 0:
-                error = ftkSetGeometry(m_ftkLibrary, m_deviceSerialNumbers[0], &geometry);
-                if (error != FTK_OK) {
-                    BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: unable to set geometry for tool ") + fileName + " (FusionTrack)" ));
+                for( serialNumber : m_deviceSerialNumbers)
+                {
+                    error = ftkSetGeometry(m_ftkLibrary, serialNumber, &geometry);
+                    if (error != FTK_OK) {
+                        BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: unable to set geometry for tool ") + fileName + " (FusionTrack)" ));
+                    }
                 }
+                m_params.markerIDs.push_back(ftkGeometry.geometryId)
+                m_params.markerNames.push_back(fileName)
+                m_params.markerModelGeometries.push_back(ftkGeometryToMarkerModelGeometry(geometry))
                 break;
             default:
                 BOOST_THROW_EXCEPTION(std::runtime_error(std::string( "FusionTrack: error, cannot load geometry file ") + fileName ));
@@ -550,6 +577,10 @@ public:
 
     ~FusionTrack(){
        ftkClose(&m_ftkLibrary);
+    }
+
+    Params getParams() const {
+        return m_params;
     }
 private:
 
