@@ -1,10 +1,12 @@
 #ifndef GRL_ATRACSYS_FUSION_TRACK_TO_FLATBUFFER
 #define GRL_ATRACSYS_FUSION_TRACK_TO_FLATBUFFER
 
+#include <stdlib.h>
 #include "FusionTrackToEigen.hpp"
 #include "FusionTrack.hpp"
 #include "ftkInterface.h"
 #include "grl/flatbuffer/FusionTrack_generated.h"
+#include "grl/flatbuffer/Time_generated.h"
 
 namespace grl
 {
@@ -277,10 +279,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
     flatbuffers::Offset<flatbuffers::Vector<uint64_t>> _markerIDs = fbb.CreateVector(&_params.markerIDs[0],_params.markerIDs.size());
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> _markerNames = fbb.CreateVector(&markerNames[0], geometryFiles_size);
     flatbuffers::Offset<flatbuffers::Vector<uint64_t>> m_deviceSerialNumbers = fbb.CreateVector(&_m_deviceSerialNumbers[0], _m_deviceSerialNumbers.size());
-    
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> m_device_types = fbb.CreateVector(&_m_device_types[0], _m_device_types.size());
-    return flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters> CreateFusionTrackParameters (
-        fbb,
+    return grl::flatbuffer::CreateFusionTrackParameters (fbb,
         _name,
         _deviceClockID,
         _localClockID,
@@ -294,8 +294,41 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
         m_device_types);
 }
 
-/*
+flatbuffers::Offset<grl::flatbuffer::TimeEvent>
+toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::TimeEvent &timeStamp)
+{
+    std::string event_name_string(reinterpret_cast<const char *>(timeStamp.event_name,sizeof(timeStamp.event_name)));
+    std::string device_clock_id_string(reinterpret_cast<const char *>(timeStamp.device_clock_id,sizeof(timeStamp.device_clock_id)));
+    std::string local_clock_id_string(reinterpret_cast<const char *>(timeStamp.local_clock_id,sizeof(timeStamp.local_clock_id)));
+    flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(event_name_string);
+    /// https://github.com/googlecartographer/cartographer/blob/master/cartographer/common/time.cc
+    /// convert time to int64
+    int64_t local_request_time = ToUniversal(timeStamp.local_request_time);
+    flatbuffers::Offset<flatbuffers::String> device_clock_id = fbb.CreateString(device_clock_id_string);
+    int64_t device_time = ToUniversal(timeStamp.device_time);
+    flatbuffers::Offset<flatbuffers::String> local_clock_id = fbb.CreateString(local_clock_id_string);
+    int64_t local_receive_time = ToUniversal(timeStamp.local_receive_time);
+    int64_t corrected_local_time = ToUniversal(timeStamp.corrected_local_time);
+    int64_t clock_skew = cartographer::common::ToSeconds(timeStamp.clock_skew);
+    int64_t min_transport_delay = cartographer::common::ToSeconds(timeStamp.min_transport_delay);
+    return grl::flatbuffer::CreateTimeEvent(
+        fbb,
+        event_name,
+        local_request_time,
+        device_clock_id,
+        device_time,
+        local_clock_id,
+        local_receive_time,
+        corrected_local_time,
+        clock_skew,
+        min_transport_delay
+    );
+    
+}
 
+
+
+/*
 flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack &fusiontrack, const grl::sensor::FusionTrack::Frame &frame)
 {
@@ -303,7 +336,9 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
     static const double microsecToSec = 1 / 1000000;
     flatbuffers::FlatBufferBuilder &_fbb = fbb;
     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
-    
+    flatbuffers::Offset<FusionTrackParameters> parameters = toFlatBuffer(fbb, fusiontrack);
+    flatbuffers::Offset<TimeEvent> timeEvent = 0,
+    flatbuffers::Offset<FusionTrackFrame> frame = 0
 
     return grl::flatbuffer::CreateFusionTrackMessage(
         _fbb,
@@ -311,6 +346,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
         );
 }
 */
+
 }
 
 
