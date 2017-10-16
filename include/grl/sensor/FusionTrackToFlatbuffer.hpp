@@ -333,25 +333,24 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::TimeEvent &timeStam
 }
 
 
-
-/*
 flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack &fusiontrack, const grl::sensor::FusionTrack::Frame &frame)
 {
-   
+    //grl::sensor::FusionTrack::Frame frame(fusiontrack.makeFrame());
     static const double microsecToSec = 1 / 1000000;
-    flatbuffers::FlatBufferBuilder &_fbb = fbb;
     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
-    flatbuffers::Offset<FusionTrackParameters> parameters = toFlatBuffer(fbb, fusiontrack);
-    flatbuffers::Offset<TimeEvent> timeEvent = 0,
-    flatbuffers::Offset<FusionTrackFrame> frame = 0
-
+    flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters> parameters = toFlatBuffer(fbb, fusiontrack);
+    flatbuffers::Offset<grl::flatbuffer::TimeEvent> timeEvent = toFlatBuffer(fbb, frame.TimeStamp);
+    flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame> fbframe = toFlatBuffer(fbb, frame);
     return grl::flatbuffer::CreateFusionTrackMessage(
-        _fbb,
+        fbb,
         timestamp,
+        parameters,
+        timeEvent,
+        fbframe
         );
 }
-*/
+
 
 }
 
