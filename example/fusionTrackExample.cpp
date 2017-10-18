@@ -58,7 +58,7 @@ for(int i = 0; i < num_updates; ++i) {
       // shortcut for creating frame with all fields set.
       // ftk_loc = FusionTrack_local, stored in local
       auto ftk_loc = grl::toFlatBuffer(fbb, frame);
-      auto ftk_loc_timeEvent = toFlatBuffer(fbb,frame.TimeStamp);
+      auto ftk_loc_timeEvent = grl::toFlatBuffer(fbb,frame.TimeStamp);
       // Call `Finish()` to instruct the builder fbb that this frame is complete.
       fbb.Finish(ftk_loc);
       // print byte data for debugging:

@@ -6,6 +6,8 @@
 #include "ftkInterface.h"
 #include "grl/flatbuffer/FusionTrack_generated.h"
 #include "grl/flatbuffer/Time_generated.h"
+#include "grl/flatbuffer/Time_generated.h"
+#include "grl/flatbuffer/LogKUKAiiwaFusionTrack_generated.h"
 #include <typeinfo>
 #include <iostream>
 
@@ -295,24 +297,32 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
         m_device_types);
 }
 
+template<typename T>
+typename T::value_type stringLength (const T& array) {
+
+    auto iter = std::find(array.begin(), array.end(),'\0');
+    auto len = std::distance(array.begin(), iter);
+    return len;
+}
+
 flatbuffers::Offset<grl::flatbuffer::TimeEvent>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::TimeEvent &timeStamp)
 {
-    std::cout << "timeStamp.event_name: ";
-    for (int i = 0; i < 512; i++) {
-      std::cout << timeStamp.event_name[i];
-    }
-    std::cout << std::endl;
-
-    flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(reinterpret_cast<const char *>(&timeStamp.event_name[0],sizeof(timeStamp.event_name)));
+    
+    // std::cout << "timeStamp.event_name: ";
+    // for (int i = 0; i < timeStamp.event_name.size(); i++) {
+    //   std::cout << timeStamp.event_name[i];
+    // // }
+    // std::cout << std::endl;
+    
+    flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(const_cast<const char*>(timeStamp.event_name.begin()),stringLength(timeStamp.event_name));
+    std::cout << "Type: " << typeid(timeStamp.local_request_time).name() << std::endl;
     /// https://github.com/googlecartographer/cartographer/blob/master/cartographer/common/time.cc
     /// convert time to int64
-    
-    std::cout << "Type: " << typeid(timeStamp.local_request_time).name() << std::endl;
     int64_t local_request_time = 0; //ToUniversal(timeStamp.local_request_time);
-    flatbuffers::Offset<flatbuffers::String> device_clock_id = fbb.CreateString(reinterpret_cast<const char *>(timeStamp.device_clock_id,sizeof(timeStamp.device_clock_id)));
+    flatbuffers::Offset<flatbuffers::String> device_clock_id = fbb.CreateString(const_cast<const char*>(timeStamp.device_clock_id.begin()),stringLength(timeStamp.device_clock_id));
     int64_t device_time = 0; //ToUniversal(timeStamp.device_time);
-    flatbuffers::Offset<flatbuffers::String> local_clock_id = fbb.CreateString(reinterpret_cast<const char *>(timeStamp.local_clock_id,sizeof(timeStamp.local_clock_id)));
+    flatbuffers::Offset<flatbuffers::String> local_clock_id = fbb.CreateString(const_cast<const char*>(timeStamp.local_clock_id.begin()),stringLength(timeStamp.local_clock_id));
     int64_t local_receive_time = 0; //ToUniversal(timeStamp.local_receive_time);
     int64_t corrected_local_time = 0; //ToUniversal(timeStamp.corrected_local_time);
     int64_t clock_skew = 0; //cartographer::common::ToSeconds(timeStamp.clock_skew);
@@ -351,7 +361,49 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack
         );
 }
 
+/*
+flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>
+toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack &fusiontrack, const grl::sensor::FusionTrack::Frame &frame)
+{
+    //grl::sensor::FusionTrack::Frame frame(fusiontrack.makeFrame());
+    static const double microsecToSec = 1 / 1000000;
+    double timestamp = frame.imageHeader.timestampUS * microsecToSec;
+    flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters> parameters = toFlatBuffer(fbb, fusiontrack);
+    flatbuffers::Offset<grl::flatbuffer::TimeEvent> timeEvent = toFlatBuffer(fbb, frame.TimeStamp);
+    flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame> fbframe = toFlatBuffer(fbb, frame);
+    return grl::flatbuffer::CreateFusionTrackMessage(
+        fbb,
+        timestamp,
+        parameters,
+        timeEvent,
+        fbframe
+        );
+}
 
+flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> toFlatBuffer( flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack::Frame &frame) {
+    static const double microsecToSec = 1 / 1000000;
+    double timestamp = frame.imageHeader.timestampUS * microsecToSec;
+    flatbuffers::Offset<grl::flatbuffer::TimeEvent> timeEvent = toFlatBuffer(fbb, frame.TimeStamp);
+    DeviceState deviceState_type = DeviceState::NONE,
+    flatbuffers::Offset<void> deviceState = 0
+    KUKAiiwaFusionTrackMessageBuilder builder_(_fbb);
+    builder_.add_timestamp(timestamp);
+    builder_.add_deviceState(deviceState);
+    builder_.add_timeEvent(timeEvent);
+    builder_.add_deviceState_type(deviceState_type);
+    return grl::flatbuffer::CreateKUKAiiwaFusionTrackMessage(
+        fbb,
+        timestamp,
+        parameters,
+        timeEvent,
+        fbframe
+        );
+
+    }
+    */
+    
+
+//}
 }
 
 

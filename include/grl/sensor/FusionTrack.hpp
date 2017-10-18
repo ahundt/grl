@@ -122,6 +122,7 @@ public:
 
         /// Name for the local clock on which this driver runs
         /// Useful for timing calculations and debugging.
+        /// defaults to "/control_computer/clock/steady"
         std::string localClockID;
 
         #ifdef HAVE_SPDLOG
@@ -143,7 +144,7 @@ public:
         params.maximumConnectionAttempts = 10;
         params.name = "/FusionTrack";
         params.localClockID = "/control_computer/clock/steady";
-        params.deviceClockID = "/FusionTrack";
+        params.deviceClockID = "/clock/device";
         return params;
     }
 
@@ -480,7 +481,7 @@ public:
 
         // resize frame contents to the user specified capacity
         prepareFrameToReceiveData(rs);
-
+        
         // get a local clock timestamp, then the latest frame from the device, then another timestamp
         rs.TimeStamp.local_request_time = cartographer::common::UniversalTimeScaleClock::now();
         ftkError error = ftkGetLastFrame(
@@ -525,6 +526,7 @@ public:
         // Adjust the size of Frame contents according to the actual amount of data received.
         correctFrameAfterReceivingData(rs);
 
+
         // check results of last frame
         switch (rs.FrameQueryP->markersStat) {
             case QS_WAR_SKIPPED:
@@ -567,13 +569,43 @@ public:
     {
         m_deviceSerialNumbers.push_back(id);
         m_device_types.push_back(type);
+        std::stringstream ss_event_name;
+
+        // create the device name strings for filling out TimeEvent objects
+        int8_t devicetype = getTypeFromSerialNumber(id);
+        ss_event_name << m_params.name << "/";
+        ftkDevicetypetoString(ss_event_name, devicetype); 
+        ss_event_name << "/" << id << "/frame";
+        std::string s_event_name = ss_event_name.str();
+        std::string device_clock_id_str = s_event_name + m_params.deviceClockID;
+        TimeEvent::UnsignedCharArray event_name;
+        s_event_name.copy(event_name.begin(),std::min(event_name.size(),s_event_name.size()));
+        m_event_names.push_back(event_name);
+
+        TimeEvent::UnsignedCharArray device_clock_id;
+        device_clock_id_str.copy(device_clock_id.begin(),std::min(device_clock_id_str.size(),device_clock_id.size()));
+        m_device_clock_ids.push_back(device_clock_id);
+
+        TimeEvent::UnsignedCharArray local_clock_name_arr;
+        m_params.localClockID.copy(local_clock_name_arr.begin(),std::min(local_clock_name_arr.size(),m_params.localClockID.size()));
+        m_local_clock_ids.push_back(local_clock_name_arr);
+    }
+
+
+    /// all the member variable vectors are indexed together,
+    /// so one index will get you the data for that device on
+    /// all the member variable vectors.
+    std::size_t getIndexFromSerialNumber(uint64_t id) {
+        std::size_t pos = std::distance(m_deviceSerialNumbers.begin(), std::find(m_deviceSerialNumbers.begin(), m_deviceSerialNumbers.end(), id));
+        return pos;
     }
 
     int8_t getTypeFromSerialNumber(uint64_t id) {
-        ptrdiff_t pos = std::distance(m_deviceSerialNumbers.begin(), std::find(m_deviceSerialNumbers.begin(), m_deviceSerialNumbers.end(), id));
+        ptrdiff_t pos = getIndexFromSerialNumber(id);
         uint8_t type = *(m_device_types.begin() + pos);
         return type;
     }
+
     std::vector<uint8_t> getDeviceTypes() const {
         return  m_device_types;
     }
@@ -585,6 +617,33 @@ public:
     Params getParams() const {
         return m_params;
     }
+
+    // Convet the device type from uint8_t to string
+    
+    std::ostream& ftkDevicetypetoString(std::ostream& out, const int8_t DEV)
+    {
+        switch (DEV) {
+            case DEV_SIMULATOR: /*!< Internal use only */
+                out << "SIMULATOR";
+            break;
+    
+            case DEV_INFINITRACK: /*!< Device is an infiniTrack */
+                out << "INFINITRACK";
+            break;
+            case DEV_FUSIONTRACK_500: /*!< Device is a fusionTrack 500 */
+                out << "FUSIONTRACK_500";
+            break;
+
+            case DEV_FUSIONTRACK_250: /*!< Device is a fusionTrack 250 */
+                out << "FUSIONTRACK_250";
+            break;
+            default: /**< Unknown device type. */
+                out << "UNKNOWN_DEVICE";
+            break;
+      };
+      return out;
+    }
+
 private:
 
     /// Prepare the Frame contents for a new data update,
@@ -602,7 +661,12 @@ private:
         frame.Markers.resize(frame.FrameQueryP->markersCount, ftkMarker());
         frame.ImageRegionOfInterestBoxesLeft.resize(frame.FrameQueryP->rawDataLeftCount, ftkRawData());
         frame.ImageRegionOfInterestBoxesRight.resize(frame.FrameQueryP->rawDataRightCount, ftkRawData());
-        frame.DeviceType = ftkDeviceType(getTypeFromSerialNumber(frame.SerialNumber));
+        std::size_t index = getIndexFromSerialNumber(frame.SerialNumber);
+        frame.DeviceType = ftkDeviceType(m_device_types[index]);
+        // set the arrays naming the various time data sources
+        frame.TimeStamp.event_name = m_event_names[index];
+        frame.TimeStamp.device_clock_id = m_device_clock_ids[index];
+        frame.TimeStamp.local_clock_id = m_local_clock_ids[index];
     }
 
     #ifdef HAVE_SPDLOG
@@ -614,6 +678,10 @@ private:
     std::vector<uint64_t> m_deviceSerialNumbers;
     // fusiontrack vs infinitrack
     std::vector<uint8_t> m_device_types;
+    std::vector<TimeEvent::UnsignedCharArray> m_event_names;
+    std::vector<TimeEvent::UnsignedCharArray> m_local_clock_ids;
+    std::vector<TimeEvent::UnsignedCharArray> m_device_clock_ids;
+
 
 };
 
