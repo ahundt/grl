@@ -42,11 +42,13 @@ namespace detail {
 ///
 /// Next specify the filenames of the ini files which store the marker geometry
 /// including the 3d origin and position of each reflector or LED on the marker,
-/// or specify them in code. Then construct a FusionTrack object and a FusionTrack::Frame,
+/// or specify them in code. Then construct a FusionTrack object and a FusionTrack::Frame
+/// with FusionTrack::makeFrame().
 /// finally, simply call FusionTrack::receive(receive) every time you want updated data.
 /// It is important to note that if you call the update on an extremely fast loop,
 /// the ReceivedData object may simply have an error code set indicating no new data was
-/// available.
+/// available, this is expected behavior, not a critical error, and you can call 
+/// FusionTrack::receive() again to see if new data is available.
 class FusionTrack {
 public:
 
@@ -114,15 +116,22 @@ public:
 
         /// Name for this connection / FusionTrack driver instance
         /// useful for debugging and when multiple data sources are used
+        /// This is the name given to a specific FusionTrack Object instance,
+        ///  and can be used to identify the connection or why the program is being run, 
+        /// such as data collection for performing analysis on a robot's motion.
         std::string name;
 
         /// Name for the clock on the FusionTrack
         /// Useful for timing calculations and debugging.
+        /// This one string you will want to check when analyzing
+        /// logged data for time differences and error. 
         std::string deviceClockID;
 
         /// Name for the local clock on which this driver runs
         /// Useful for timing calculations and debugging.
         /// defaults to "/control_computer/clock/steady"
+        /// This one string you will want to check when analyzing
+        /// logged data for time differences and error.
         std::string localClockID;
 
         #ifdef HAVE_SPDLOG
@@ -138,6 +147,11 @@ public:
         #endif // HAVE_SPDLOG
     };
 
+
+    /// Create the default parameters needed to initialize
+    /// a FusionTrack Object, all marker geometry files
+    /// must be specified manually before calling the
+    /// FusionTrack constructor.
     static const Params emptyDefaultParams(){
         Params params;
         params.blockLimitMilliseconds = 100;
@@ -148,6 +162,9 @@ public:
         return params;
     }
 
+    /// Create the default parameters needed to initialize
+    /// a FusionTrack Object, assumes two default marker geometry files
+    /// are present: geometry0022.ini and geometry0055.ini
     static const Params defaultParams(){
         Params params = emptyDefaultParams();
 
@@ -280,6 +297,9 @@ public:
     /// It is important to note that if you call the update on an extremely fast loop,
     /// the FusionTrack::Frame object may simply have an error code set
     /// indicating no new data was available.
+    ///
+    /// To use the Frame class, we recommend you first create a FusionTrack object,
+    /// and then call FusionTrack::makeFrame() to create the object correctly.
     ///
     /// Creating a Frame involves memory allocation, so it is recommended that you
     /// initialize a fixed number of frames you will use at startup
