@@ -79,9 +79,11 @@ int main(int argc, char **argv)
   } // End of updates loop
   //ftk_loc_LogKUKAiiwaFusionTrack = grl::toFlatBuffer(fbb, ftk_local_KUKAiiwaFusionTrackMessage_vector);
   // Call `Finish()` to instruct the builder fbb that this frame is complete.
-  fbb.Finish(oneKUKAiiwaFusionTrackMessage);
-  //fbb.Finish(ftk_loc_timeEvent);
-  //fbb.Finish(ftk_loc_FusionTrackMessage);
+ 
+  flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
+  flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> LogKUKAiiwaFusionTrack = grl::toFlatBuffer(fbb, states);
+  fbb.Finish(LogKUKAiiwaFusionTrack);
+  
   // print byte data for debugging:
   //flatbuffers::SaveFile("test.flik", fbb.GetBufferPointer(), fbb.GetSize());
   std::string filename = "test.flik";
