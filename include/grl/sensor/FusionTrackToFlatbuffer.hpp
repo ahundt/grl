@@ -189,7 +189,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 }
 
 flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame>
-toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const grl::sensor::FusionTrack::Frame &frame)
+toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, 
+    const grl::sensor::FusionTrack::Frame &frame)
 {
     /// @todo TODO(ahundt) IN PROGRESS
     /// Here we should get the markers'name
@@ -353,7 +354,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 }
 
 
-flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>
+flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::sensor::FusionTrack &fusiontrack,
              const grl::sensor::FusionTrack::Frame &frame)
@@ -364,24 +365,13 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters> parameters = toFlatBuffer(fbb, fusiontrack);
     flatbuffers::Offset<grl::flatbuffer::TimeEvent> timeEvent = toFlatBuffer(fbb, frame.TimeStamp);
     flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame> fbframe = toFlatBuffer(fbb, frame);
-    return grl::flatbuffer::CreateFusionTrackMessage(
+    flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage> message = grl::flatbuffer::CreateFusionTrackMessage(
         fbb,
         timestamp,
         parameters,
         timeEvent,
         fbframe);
-}
 
-
-flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>
-toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
-    const grl::sensor::FusionTrack::Frame &frame,
-    const flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>& message)
-{
-    //grl::sensor::FusionTrack::Frame frame(fusiontrack.makeFrame());
-    static const double microsecToSec = 1 / 1000000;
-    double timestamp = frame.imageHeader.timestampUS * microsecToSec;
-    flatbuffers::Offset<grl::flatbuffer::TimeEvent> timeEvent = toFlatBuffer(fbb, frame.TimeStamp);
     grl::flatbuffer::DeviceState deviceState_type = grl::flatbuffer::DeviceState::FusionTrackMessage;
    // toFlatBuffer(fbb, fusiontrack, frame).Union()
     return grl::flatbuffer::CreateKUKAiiwaFusionTrackMessage(
@@ -392,24 +382,48 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         message.Union());
 }
 
-flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>
+
+// flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>
+// toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
+//     const grl::sensor::FusionTrack::Frame &frame,
+//     const flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>& message)
+// {
+//     //grl::sensor::FusionTrack::Frame frame(fusiontrack.makeFrame());
+//     static const double microsecToSec = 1 / 1000000;
+//     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
+//     flatbuffers::Offset<grl::flatbuffer::TimeEvent> timeEvent = toFlatBuffer(fbb, frame.TimeStamp);
+//     grl::flatbuffer::DeviceState deviceState_type = grl::flatbuffer::DeviceState::FusionTrackMessage;
+//    // toFlatBuffer(fbb, fusiontrack, frame).Union()
+//     return grl::flatbuffer::CreateKUKAiiwaFusionTrackMessage(
+//         fbb,
+//         timestamp,
+//         timeEvent,
+//         deviceState_type,
+//         message.Union());
+// }
+
+// flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>
+// toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
+//              const flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>& message)
+// {
+//     std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>> kkfbkmessagevector;
+//     int frame_size = frames.size();
+//     for (int i = 0; i < frame_size; i++)
+//     {
+//         kkfbkmessagevector.push_back(toFlatBuffer(fbb, frames[i], messages[i]));
+//     }
+
+//     /// @todo TODO(ahundt) IN PROGRESS
+//     auto KUKAiiwaFusionTrackMessages = fbb.CreateVector(&kkfbkmessagevector[0], frame_size);
+//     return KUKAiiwaFusionTrackMessages;
+// }
+
+flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
-             const std::vector<grl::sensor::FusionTrack::Frame> &frames,
-             const std::vector<flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>>& messages)
+    const flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states)
 {
-    std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>> kkfbkmessagevector;
-    int frame_size = frames.size();
-    for (int i = 0; i < frame_size; i++)
-    {
-        kkfbkmessagevector.push_back(toFlatBuffer(fbb, frames[i], messages[i]));
-    }
-
-    /// @todo TODO(ahundt) IN PROGRESS
-    auto KUKAiiwaFusionTrackMessages = fbb.CreateVector(&kkfbkmessagevector[0], frame_size);
-    return KUKAiiwaFusionTrackMessages;
+    return  grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);;
 }
-
-//}
 }
 
 #endif // GRL_ATRACSYS_FUSION_TRACK_TO_FLATBUFFER
