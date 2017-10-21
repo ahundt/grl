@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   grl::sensor::FusionTrack::Frame frame(ft.makeFrame());
   std::cout << "makeframe imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
   // get a fixed total number of updates from each device
-  int num_updates = 100;
+  int num_updates = 3;
   if (debug)
     std::cout << "entering data receive loop" << std::endl;
   /******************************************************************/
@@ -79,13 +79,13 @@ int main(int argc, char **argv)
     }
 
   } // End of updates loop
-  //ftk_loc_LogKUKAiiwaFusionTrack = grl::toFlatBuffer(fbb, ftk_local_KUKAiiwaFusionTrackMessage_vector);
   // Call `Finish()` to instruct the builder fbb that this frame is complete.
  
   flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
-  flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> LogKUKAiiwaFusionTrack = grl::toFlatBuffer(fbb, states);
+  flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
   // Finish a buffer with a given root object
-  fbb.Finish(LogKUKAiiwaFusionTrack);
+  fbb.Finish(oneKUKAiiwaFusionTrackMessage);
+  fbb.Finish(fbLogKUKAiiwaFusionTrack);
   
   // print byte data for debugging:
   //flatbuffers::SaveFile("test.flik", fbb.GetBufferPointer(), fbb.GetSize());
@@ -95,15 +95,20 @@ int main(int argc, char **argv)
   
   std::string schemafile;
   std::string jsongen;
-  const char* fbs_name = "grl/flatbuffer/LogKUKAiiwaFusionTrack.fbs";
+  const char* fbs_name = "/home/chunting/src/robonetracker/modules/grl/include/grl/flatbuffer/LogKUKAiiwaFusionTrack.fbs";
   bool binary = false;
+  // Can't step into this function, since this library (only this one) is release version.
   bool ok = flatbuffers::LoadFile(fbs_name, binary, &schemafile);
-
+  std::cout << schemafile << std::endl;
   flatbuffers::Parser parser;
-  const char *include_directories[] = { "grl/flatbuffer", nullptr };
+  const char *include_directories[] = { "/home/chunting/src/robonetracker/modules/grl/include/grl/flatbuffer/", nullptr };
   ok = parser.Parse(schemafile.c_str(), include_directories);
-  GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
+  // GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
+  GenerateText(parser, buf, &jsongen);
   std::cout << jsongen.c_str() << std::endl;
+  std::ofstream out("LogKUKAiiwaFusionTrack.json");
+  out << jsongen.c_str();
+  out.close();
 
 /// ================================================================================================
   flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*> (buf), fbb.GetSize(), true);
