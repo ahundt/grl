@@ -422,7 +422,7 @@ flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     const flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states)
 {
-    return  grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);;
+    return  grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
 }
 }
 

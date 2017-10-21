@@ -5,11 +5,13 @@
 #include <vector>
 
 //// local includes
-#include "flatbuffers/util.h"
 #include "grl/sensor/FusionTrack.hpp"
 #include "grl/sensor/FusionTrackToEigen.hpp"
 #include "grl/sensor/FusionTrackToFlatbuffer.hpp"
 #include <ftkInterface.h>
+#include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/util.h"
+#include "flatbuffers/idl.h"
 
 int main(int argc, char **argv)
 {
@@ -41,7 +43,7 @@ int main(int argc, char **argv)
 
   // shortcut for creating FusionTrackMessage with all fields set.
   // ftk_loc_ = FusionTrack_local, stored in local
-  flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage> ftk_loc_message = 0;
+
   flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> oneKUKAiiwaFusionTrackMessage = 0;
   flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> ftk_loc_LogKUKAiiwaFusionTrack = 0;
   for (int i = 0; i < num_updates; ++i)
@@ -82,12 +84,28 @@ int main(int argc, char **argv)
  
   flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
   flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> LogKUKAiiwaFusionTrack = grl::toFlatBuffer(fbb, states);
+  // Finish a buffer with a given root object
   fbb.Finish(LogKUKAiiwaFusionTrack);
   
   // print byte data for debugging:
   //flatbuffers::SaveFile("test.flik", fbb.GetBufferPointer(), fbb.GetSize());
   std::string filename = "test.flik";
   uint8_t *buf = fbb.GetBufferPointer();
+  /// ==============================================================================================
+  
+  std::string schemafile;
+  std::string jsongen;
+  const char* fbs_name = "grl/flatbuffer/LogKUKAiiwaFusionTrack.fbs";
+  bool binary = false;
+  bool ok = flatbuffers::LoadFile(fbs_name, binary, &schemafile);
+
+  flatbuffers::Parser parser;
+  const char *include_directories[] = { "grl/flatbuffer", nullptr };
+  ok = parser.Parse(schemafile.c_str(), include_directories);
+  GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
+  std::cout << jsongen.c_str() << std::endl;
+
+/// ================================================================================================
   flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*> (buf), fbb.GetSize(), true);
   std::cout << " fbb.GetSize(): " << fbb.GetSize() << std::endl;
   /*

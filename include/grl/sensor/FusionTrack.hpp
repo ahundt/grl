@@ -48,7 +48,7 @@ namespace detail {
 /// It is important to note that if you call the update on an extremely fast loop,
 /// the ReceivedData object may simply have an error code set indicating no new data was
 /// available, this is expected behavior, not a critical error, and you can call 
-/// FusionTrack::receive() again to see if new data is available.
+/// FusionTrack::receive() again .
 class FusionTrack {
 public:
 
