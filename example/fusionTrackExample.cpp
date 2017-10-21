@@ -36,13 +36,9 @@ int main(int argc, char **argv)
   int num_updates = 3;
   if (debug)
     std::cout << "entering data receive loop" << std::endl;
-  /******************************************************************/
 
   flatbuffers::FlatBufferBuilder fbb;
   std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>> KUKAiiwaFusionTrackMessage_vector;
-
-  // shortcut for creating FusionTrackMessage with all fields set.
-  // ftk_loc_ = FusionTrack_local, stored in local
 
   flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> oneKUKAiiwaFusionTrackMessage = 0;
   flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> ftk_loc_LogKUKAiiwaFusionTrack = 0;
@@ -83,43 +79,33 @@ int main(int argc, char **argv)
  
   flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
   flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
-  // Finish a buffer with a given root object
+  // Finish a buffer with given object
   fbb.Finish(oneKUKAiiwaFusionTrackMessage);
   fbb.Finish(fbLogKUKAiiwaFusionTrack);
-  
-  // print byte data for debugging:
-  //flatbuffers::SaveFile("test.flik", fbb.GetBufferPointer(), fbb.GetSize());
+
   std::string filename = "test.flik";
   uint8_t *buf = fbb.GetBufferPointer();
-  /// ==============================================================================================
   
   std::string schemafile;
   std::string jsongen;
+  /// @TODO(Chunting) Change from the absolute path to relative path. 
   const char* fbs_name = "/home/chunting/src/robonetracker/modules/grl/include/grl/flatbuffer/LogKUKAiiwaFusionTrack.fbs";
   bool binary = false;
   // Can't step into this function, since this library (only this one) is release version.
   bool ok = flatbuffers::LoadFile(fbs_name, binary, &schemafile);
   std::cout << schemafile << std::endl;
   flatbuffers::Parser parser;
+  /// @TODO(Chunting) Change from the absolute path to relative path. 
   const char *include_directories[] = { "/home/chunting/src/robonetracker/modules/grl/include/grl/flatbuffer/", nullptr };
   ok = parser.Parse(schemafile.c_str(), include_directories);
-  // GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
   GenerateText(parser, buf, &jsongen);
-  std::cout << jsongen.c_str() << std::endl;
+  /// Write the data get from flatbuffer to json file on disc.
   std::ofstream out("LogKUKAiiwaFusionTrack.json");
   out << jsongen.c_str();
   out.close();
 
-/// ================================================================================================
   flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*> (buf), fbb.GetSize(), true);
   std::cout << " fbb.GetSize(): " << fbb.GetSize() << std::endl;
-  /*
-  for (flatbuffers::uoffset_t i = 0; i < fbb.GetSize(); i++)
-  {
-    std::cout << static_cast<int>(*(p + i)) << ", ";
-  }
-  */
-  std::cout << std::endl;
 
   std::cout << "End of the program" << std::endl;
 } // End of main function
