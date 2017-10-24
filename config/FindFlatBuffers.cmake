@@ -97,22 +97,57 @@ FLATBUFFERS_COMPILER
 
 if(FLATBUFFERS_FOUND)
   function(FLATBUFFERS_GENERATE_C_HEADERS Name FLATBUFFERS_DIR OUTPUT_DIR)
+  # Name is the name of the user defined variable that will be created by this function
+  #     Another variable that will be set is ${NAME}_OUTPUTS which will be set to the names
+  #     of all output files that have been generated.
+  # FLATBUFFERS_DIR is the directory in which to look for the .fbs files
+  # OUTPUT_DIR is the directory in which all output files should be placed
     set(FLATC_OUTPUTS)
     foreach(FILE ${ARGN})
       get_filename_component(FLATC_OUTPUT ${FILE} NAME_WE)
+      # create a target for the specific flatbuffers file
+      set(FBS_FILE_COPY_INCLUDE copy_${FLATC_OUTPUT}_to_include)
+      set(FBS_FILE_COPY_BIN copy_${FLATC_OUTPUT}_to_bin)
+      # create a target for the generated output cpp file
       set(FLATC_OUTPUT
         "${OUTPUT_DIR}/${FLATC_OUTPUT}_generated.h")
-      list(APPEND FLATC_OUTPUTS ${FLATC_OUTPUT})
+        list(APPEND FLATC_OUTPUTS ${FLATC_OUTPUT} ${FBS_FILE_COPY_INCLUDE} ${FBS_FILE_COPY_BIN})
+
+      # this is the absolute path to the actual filename.fbs file
+      set(ABSOLUTE_FBS_FILE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}/${FILE})
 
       add_custom_command(OUTPUT ${FLATC_OUTPUT}
         COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
         # Note: We are setting several custom parameters here to make life easier.
         # see flatbuffers documentation for details.
         # flatc --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o
+        # see https://google.github.io/flatbuffers/flatbuffers_guide_using_schema_compiler.html
         ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "${OUTPUT_DIR}" ${FILE}
-		MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}/${FILE}
+		    MAIN_DEPENDENCY ${ABSOLUTE_FBS_FILE_PATH}
         COMMENT "Building C++, Java, and Python header for ${FILE}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR})
+
+         # need to copy the flatbuffers schema so config files can be loaded
+         # http://stackoverflow.com/a/13429998/99379
+         # CMAKE_CURRENT_SOURCE_DIR 
+         #    this is the directory where the currently processed CMakeLists.txt is located in
+      # terminal copy commands change between OS versions, so we use CMake's built in file
+      # copy command which runs with "cmake -E copy file_to_copy file_destination"
+      # we use some variables here so the path is reproducible.
+	     add_custom_command(OUTPUT ${FBS_FILE_COPY_INCLUDE}
+          COMMAND ${CMAKE_COMMAND} ARGS -E copy ${ABSOLUTE_FBS_FILE_PATH} ${OUTPUT_DIR}
+          MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}/${FILE}
+          COMMENT "Copying fbs file ${FILE} to ${OUTPUT_DIR}"
+          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}
+       )
+
+       add_custom_command(OUTPUT ${FBS_FILE_COPY_BIN}
+       # TODO(ahundt) remove hacky /bin manually set path, this will break for some IDEs
+       COMMAND ${CMAKE_COMMAND} ARGS -E copy ${ABSOLUTE_FBS_FILE_PATH} ${CMAKE_BINARY_DIR}/bin
+       MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}/${FILE}
+       COMMENT "Copying fbs file ${FILE} to ${CMAKE_BINARY_DIR}"
+       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}
+       )
     endforeach()
     set(${Name}_OUTPUTS ${FLATC_OUTPUTS} PARENT_SCOPE)
   endfunction()

@@ -3,6 +3,8 @@
 #include <exception>
 #include <iostream>
 #include <vector>
+#include <unistd.h>
+#include <stdio.h> 
 
 //// local includes
 #include "grl/sensor/FusionTrack.hpp"
@@ -13,9 +15,9 @@
 #include "flatbuffers/util.h"
 #include "flatbuffers/idl.h"
 
+
 int main(int argc, char **argv)
 {
-
   bool debug = true;
   if (debug)
     std::cout << "starting fusiontrack" << std::endl;
@@ -51,8 +53,7 @@ int main(int argc, char **argv)
       std::cout << "SerialNumber: " << frame.SerialNumber << std::endl;
 
       ft.receive(frame);
-      if (frame.Error == FTK_OK)
-      {
+      if (frame.Error == FTK_OK) {
         if (debug)
           std::cout << "time_us_member: " << frame.imageHeader.timestampUS
                     << " time_us_ftkQuery: " << frame.FrameQueryP->imageHeader->timestampUS << "\n";
@@ -75,11 +76,12 @@ int main(int argc, char **argv)
     }
 
   } // End of updates loop
-  // Call `Finish()` to instruct the builder fbb that this frame is complete.
+ 
  
   flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
   flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
-  // Finish a buffer with given object
+  /// Finish a buffer with given object
+  /// Call `Finish()` to instruct the builder fbb that this frame is complete.
   fbb.Finish(oneKUKAiiwaFusionTrackMessage);
   fbb.Finish(fbLogKUKAiiwaFusionTrack);
 
@@ -89,11 +91,22 @@ int main(int argc, char **argv)
   std::string schemafile;
   std::string jsongen;
   /// @TODO(Chunting) Change from the absolute path to relative path. 
-  const char* fbs_name = "/home/chunting/src/robonetracker/modules/grl/include/grl/flatbuffer/LogKUKAiiwaFusionTrack.fbs";
+  /// Get the current working directory 
+  char buff[512];
+  getcwd( buff, 512 );
+  std::string current_working_dir(buff);
+  std::cout << "Current working dir: " << buff << std::endl;
+  std::string build_path = flatbuffers::StripFileName(buff);
+  std::cout << "Build dir: " << build_path << std::endl;
+  std::string fbs_filename("LogKUKAiiwaFusionTrack.fbs");
+  std::string fbs_name = flatbuffers::ConCatPathFileName(build_path, fbs_filename);
+  std::cout << "fbs_name: " << fbs_name << std::endl;
+
+  //const char* fbs_name = "/home/chunting/src/robonetracker/modules/grl/include/grl/flatbuffer/LogKUKAiiwaFusionTrack.fbs";
   bool binary = false;
   // Can't step into this function, since this library (only this one) is release version.
-  bool ok = flatbuffers::LoadFile(fbs_name, binary, &schemafile);
-  std::cout << schemafile << std::endl;
+  bool ok = flatbuffers::LoadFile(fbs_name.c_str(), binary, &schemafile);
+  // std::cout << schemafile << std::endl;
   flatbuffers::Parser parser;
   /// @TODO(Chunting) Change from the absolute path to relative path. 
   const char *include_directories[] = { "/home/chunting/src/robonetracker/modules/grl/include/grl/flatbuffer/", nullptr };
@@ -109,3 +122,4 @@ int main(int argc, char **argv)
 
   std::cout << "End of the program" << std::endl;
 } // End of main function
+
