@@ -36,7 +36,6 @@ grl::flatbuffer::Pose toFlatBuffer(Eigen::Affine3d tf)
 {
     Eigen::Vector3d pos = tf.translation();
     Eigen::Quaterniond eigenQuat(tf.rotation());
-    // rl::flatbuffer::Quaternion
     return grl::flatbuffer::Pose(toFlatBuffer(pos), toFlatBuffer(eigenQuat));
 }
 
@@ -180,6 +179,45 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     auto fbfiducialvector = fbb.CreateVector(&fbfiducials[0], fiducialsize);
     return fbfiducialvector;
 }
+flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>
+toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
+             const ::ftkRawData &ftkRegionOfInterest)
+{
+    double _centerXPixels = ftkRegionOfInterest.centerXPixels;
+    double _centerYPixels = ftkRegionOfInterest.centerYPixels;
+    uint32_t _RightEdge = ftkRegionOfInterest.status.RightEdge;
+    uint32_t _BottomEdge = ftkRegionOfInterest.status.BottomEdge;
+    uint32_t _LeftEdge = ftkRegionOfInterest.status.LeftEdge;
+    uint32_t _TopEdge = ftkRegionOfInterest.status.TopEdge;
+    uint32_t _pixelsCount = ftkRegionOfInterest.pixelsCount;
+    double _probability = ftkRegionOfInterest.probability;
+    return grl::flatbuffer::CreateftkRegionOfInterest(
+        fbb,
+        _centerXPixels,
+        _centerYPixels,
+        _RightEdge,
+        _BottomEdge,
+        _LeftEdge,
+        _TopEdge,
+        _pixelsCount,
+        _probability);
+}
+
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>>
+toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
+             const std::vector<::ftkRawData> &ftkRawDatas)
+{
+    std::vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>> ftkRegionOfInterests;
+    int ftkRegionOfInterest_size = ftkRawDatas.size();
+
+    for (int i = 0; i < ftkRegionOfInterest_size; i++)
+    {
+        ftkRegionOfInterests.push_back(toFlatBuffer(fbb, ftkRawDatas[i]));
+    }
+    return fbb.CreateVector(ftkRegionOfInterests);
+}
+
+
 
 flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
@@ -213,12 +251,11 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     flatbuffers::Offset<flatbuffers::String> imageRightPixels = frame.CameraImageRightP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageRightP->begin()), sizeof(frame.CameraImageRightP)) : 0;
     uint32_t imageRightPixelsVersion = frame.FrameQueryP->imageRightVersionSize.Version;
     int32_t imageRightStatus = frame.FrameQueryP->imageRightStat;
-    // It should use the flatbuffers vector instead of standard one.
-    // flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ftkRegionOfInterest>>>
-    const std::vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>> *regionsOfInterestLeft = nullptr;
+    
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> regionsOfInterestLeft = toFlatBuffer(fbb, frame.ImageRegionOfInterestBoxesLeft);
     uint32_t regionsOfInterestLeftVersion = frame.FrameQueryP->rawDataLeftVersionSize.Version;
     int32_t regionsOfInterestLeftStatus = frame.FrameQueryP->rawDataLeftStat;
-    const std::vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>> *regionsOfInterestRight = nullptr;
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> regionsOfInterestRight = toFlatBuffer(fbb, frame.ImageRegionOfInterestBoxesRight);
     uint32_t regionsOfInterestRightVersion = frame.FrameQueryP->rawDataRightVersionSize.Version;
     int32_t regionsOfInterestRightStatus = frame.FrameQueryP->rawDataRightStat;
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>> threeDFiducials = toFlatBuffer(fbb, frame.Fiducials, markerNames);
@@ -249,10 +286,10 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         imageRightPixels,
         imageRightPixelsVersion,
         imageRightStatus,
-        regionsOfInterestLeft ? _fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>(*regionsOfInterestLeft) : 0,
+        regionsOfInterestLeft,
         regionsOfInterestLeftVersion,
         regionsOfInterestLeftStatus,
-        regionsOfInterestRight ? _fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>(*regionsOfInterestRight) : 0,
+        regionsOfInterestRight,
         regionsOfInterestRightVersion,
         regionsOfInterestRightStatus,
         threeDFiducials,
