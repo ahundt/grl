@@ -23,10 +23,14 @@
 #define BOOST_THROW_EXCEPTION(x) throw x
 #endif
 
-namespace grl { namespace sensor {
+namespace grl
+{
+namespace sensor
+{
 
-namespace detail {
-    void updateDeviceSerialNumber(uint64 device, void * user, ftkDeviceType type);
+namespace detail
+{
+void updateDeviceSerialNumber(uint64 device, void *user, ftkDeviceType type);
 }
 
 /// @class FusionTrack provides a single threaded driver for
@@ -47,14 +51,15 @@ namespace detail {
 /// finally, simply call FusionTrack::receive(receive) every time you want updated data.
 /// It is important to note that if you call the update on an extremely fast loop,
 /// the ReceivedData object may simply have an error code set indicating no new data was
-/// available, this is expected behavior, not a critical error, and you can call 
+/// available, this is expected behavior, not a critical error, and you can call
 /// FusionTrack::receive() again .
-class FusionTrack {
-public:
-
+class FusionTrack
+{
+  public:
     /// Note that some params will be modified during the initialization of the FusionTrack object.
     /// In particular, any geometryFilenames will be loaded and added to the list of markerModelGeometries.
-    struct Params {
+    struct Params
+    {
         /// Maximum time the API can block waiting on data before giving up
         uint64_t blockLimitMilliseconds = 100;
         /// Maximum number of attempts to connect to any FusionTrack device before giving up
@@ -117,14 +122,14 @@ public:
         /// Name for this connection / FusionTrack driver instance
         /// useful for debugging and when multiple data sources are used
         /// This is the name given to a specific FusionTrack Object instance,
-        ///  and can be used to identify the connection or why the program is being run, 
+        ///  and can be used to identify the connection or why the program is being run,
         /// such as data collection for performing analysis on a robot's motion.
         std::string name;
 
         /// Name for the clock on the FusionTrack
         /// Useful for timing calculations and debugging.
         /// This one string you will want to check when analyzing
-        /// logged data for time differences and error. 
+        /// logged data for time differences and error.
         std::string deviceClockID;
 
         /// Name for the local clock on which this driver runs
@@ -134,7 +139,7 @@ public:
         /// logged data for time differences and error.
         std::string localClockID;
 
-        #ifdef HAVE_SPDLOG
+#ifdef HAVE_SPDLOG
         /// The spdlog logger library https://github.com/gabime/spdlog
         /// is optional but recommended for fast data and error
         /// logging. Enabling spdlog provides useful error messages
@@ -144,15 +149,15 @@ public:
         /// otherwise this string should be the name of the logger,
         /// and "console" for the default logger.
         std::string loggerName;
-        #endif // HAVE_SPDLOG
+#endif // HAVE_SPDLOG
     };
-
 
     /// Create the default parameters needed to initialize
     /// a FusionTrack Object, all marker geometry files
     /// must be specified manually before calling the
     /// FusionTrack constructor.
-    static const Params emptyDefaultParams(){
+    static const Params emptyDefaultParams()
+    {
         Params params;
         params.blockLimitMilliseconds = 100;
         params.maximumConnectionAttempts = 10;
@@ -165,7 +170,8 @@ public:
     /// Create the default parameters needed to initialize
     /// a FusionTrack Object, assumes two default marker geometry files
     /// are present: geometry0022.ini and geometry0055.ini
-    static const Params defaultParams(){
+    static const Params defaultParams()
+    {
         Params params = emptyDefaultParams();
 
         std::vector<std::string> geometries;
@@ -176,106 +182,115 @@ public:
     }
 
     /// A custom clock for the FusionTrack microsecond time stamps
-    struct MicrosecondClock {
-      using rep = int64_t;
-      /// 1 microsecond
-      using period = std::ratio<1, 1000000>;
-      using duration = std::chrono::duration<rep, period>;
-      using time_point = std::chrono::time_point<MicrosecondClock>;
-      static constexpr bool is_steady = true;
+    struct MicrosecondClock
+    {
+        using rep = int64_t;
+        /// 1 microsecond
+        using period = std::ratio<1, 1000000>;
+        using duration = std::chrono::duration<rep, period>;
+        using time_point = std::chrono::time_point<MicrosecondClock>;
+        static constexpr bool is_steady = true;
 
         /// TODO(ahundt) currently assuming the FusionTrack timestamp is from the unix time epoch
         static time_point now() noexcept
         {
             using namespace std::chrono;
-            return time_point
-              (
-                duration_cast<duration>(system_clock::now().time_since_epoch())
-              );
+            return time_point(
+                duration_cast<duration>(system_clock::now().time_since_epoch()));
         }
     };
 
     /// TODO(ahundt) currently assuming the FusionTrack timestamp is from the unix time epoch
-    cartographer::common::Time FusionTrackTimeToCommonTime(typename MicrosecondClock::time_point FTtime) {
+    cartographer::common::Time FusionTrackTimeToCommonTime(typename MicrosecondClock::time_point FTtime)
+    {
         return cartographer::common::Time(
             std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(FTtime.time_since_epoch()) +
-                std::chrono::seconds(cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds)
-        );
+            std::chrono::seconds(cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds));
     }
 
-
-    cartographer::common::Time ImageHeaderToCommonTime(const ::ftkImageHeader& tq) {
+    cartographer::common::Time ImageHeaderToCommonTime(const ::ftkImageHeader &tq)
+    {
         typename MicrosecondClock::time_point fttp(MicrosecondClock::duration(tq.timestampUS));
         return FusionTrackTimeToCommonTime(fttp);
     }
 
-    /// typedef std::vector<ftk3DPoint> MarkerModelGeometry;
-    /// std::vector<MarkerModelGeometry> markerModelGeometries;
-    Params::MarkerModelGeometry ftkGeometryToMarkerModelGeometry(::ftkGeometry& ftkg){
+    /// Convert the ftkGrometry to MarkerModelGeometry
+    /// A MarkerModelGeometry is a std::vector<ftk3DPoint>
+    /// which contains the dimensions from the origin point of a marker
+    Params::MarkerModelGeometry ftkGeometryToMarkerModelGeometry(::ftkGeometry &ftkg)
+    {
         Params::MarkerModelGeometry geom;
-        for(int i = 0; i < ftkg.pointsCount; ++i)
+        for (int i = 0; i < ftkg.pointsCount; ++i)
         {
             geom.push_back(ftkg.positions[i]);
         }
         return geom;
     }
 
-
-    FusionTrack(Params params = defaultParams()):
-      m_params(params)
+    FusionTrack(Params params = defaultParams()) : m_params(params)
     {
-        #ifdef HAVE_SPDLOG
-        if(!params.loggerName.empty()){
+#ifdef HAVE_SPDLOG
+        if (!params.loggerName.empty())
+        {
             m_logger = spdlog::get(params.loggerName);
         }
 
-        #endif // HAVE_SPDLOG
+#endif // HAVE_SPDLOG
         ftkError error;
         // search for devices
-        for(std::size_t i = 0; i < m_params.maximumConnectionAttempts; i++) {
-          m_ftkLibrary = ftkInit();
-          // try a number of times before giving up
-          error = ftkEnumerateDevices(m_ftkLibrary,
-                                      detail::updateDeviceSerialNumber,
-                                      this);
-          if (error == FTK_OK && m_deviceSerialNumbers.size() != 0) {
-            break;
-          } else {
-            ftkClose(&m_ftkLibrary);
-            m_ftkLibrary = nullptr;
-          }
-
+        for (std::size_t i = 0; i < m_params.maximumConnectionAttempts; i++)
+        {
+            m_ftkLibrary = ftkInit();
+            // try a number of times before giving up
+            error = ftkEnumerateDevices(m_ftkLibrary,
+                                        detail::updateDeviceSerialNumber,
+                                        this);
+            if (error == FTK_OK && m_deviceSerialNumbers.size() != 0)
+            {
+                break;
+            }
+            else
+            {
+                ftkClose(&m_ftkLibrary);
+                m_ftkLibrary = nullptr;
+            }
         }
 
-        if (error != FTK_OK) {
-            if(m_ftkLibrary != nullptr) ftkClose(&m_ftkLibrary);
+        if (error != FTK_OK)
+        {
+            if (m_ftkLibrary != nullptr)
+                ftkClose(&m_ftkLibrary);
             BOOST_THROW_EXCEPTION(std::system_error(
                 std::make_error_code(std::errc::no_such_device),
-                std::string("FusionTrack: unable to enumerate devices (FusionTrack)" )));
+                std::string("FusionTrack: unable to enumerate devices (FusionTrack)")));
         }
-        if (m_deviceSerialNumbers.size() == 0 || m_deviceSerialNumbers[0] == 0) {
-            if(m_ftkLibrary != nullptr) ftkClose(&m_ftkLibrary);
+        if (m_deviceSerialNumbers.size() == 0 || m_deviceSerialNumbers[0] == 0)
+        {
+            if (m_ftkLibrary != nullptr)
+                ftkClose(&m_ftkLibrary);
             BOOST_THROW_EXCEPTION(std::system_error(
                 std::make_error_code(std::errc::no_such_device),
-                std::string("FusionTrack: no device connected (FusionTrack)" )));
+                std::string("FusionTrack: no device connected (FusionTrack)")));
         }
 
         /// TODO(ahundt) call loadGeometry for geometries already defined in params object using: TrackerDeviceIDs markerIDs markerNames markerModelGeometries
 
         // make sure we can find and load this tool ini file
         // data loaded from the ini file is also placed back in params
-        for(auto fileName : m_params.geometryFilenames){
+        for (auto fileName : m_params.geometryFilenames)
+        {
             ftkGeometry geometry;
             switch (loadGeometry(m_ftkLibrary, m_deviceSerialNumbers[0], fileName, geometry))
             {
             case 1:
                 BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: loaded ") + fileName + " from installation directory"));
             case 0:
-                for( auto serialNumber : m_deviceSerialNumbers)
+                for (auto serialNumber : m_deviceSerialNumbers)
                 {
                     error = ftkSetGeometry(m_ftkLibrary, serialNumber, &geometry);
-                    if (error != FTK_OK) {
-                        BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: unable to set geometry for tool ") + fileName + " (FusionTrack)" ));
+                    if (error != FTK_OK)
+                    {
+                        BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: unable to set geometry for tool ") + fileName + " (FusionTrack)"));
                     }
                 }
                 m_params.markerIDs.push_back(geometry.geometryId);
@@ -283,7 +298,7 @@ public:
                 m_params.markerModelGeometries.push_back(ftkGeometryToMarkerModelGeometry(geometry));
                 break;
             default:
-                BOOST_THROW_EXCEPTION(std::runtime_error(std::string( "FusionTrack: error, cannot load geometry file ") + fileName ));
+                BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: error, cannot load geometry file ") + fileName));
             }
         }
     }
@@ -304,10 +319,11 @@ public:
     /// Creating a Frame involves memory allocation, so it is recommended that you
     /// initialize a fixed number of frames you will use at startup
     /// to minimize the performance effects caused by allocation.
-    class Frame {
+    class Frame
+    {
       public:
         static const uint8_t Version = 0;
-        static const std::size_t CameraImageSize = 2048u*1088u;
+        static const std::size_t CameraImageSize = 2048u * 1088u;
         typedef std::array<uint8_t, CameraImageSize> CameraImage;
 
         /// Initialize Frame to contain a frame in a way equivalent
@@ -332,13 +348,13 @@ public:
             uint32_t maxLeftImageRegionOfInterestBoxes = 0,
             uint32_t maxRightImageRegionOfInterestBoxes = 0,
             uint32_t max3DFiducialInstances = 128,
-            uint32_t maxMarkerInstances = 32):
-            SerialNumber(serialNumber),
-            FrameQueryP(ftkCreateFrame()),
-            Error(FTK_OK)
+            uint32_t maxMarkerInstances = 32) : SerialNumber(serialNumber),
+                                                FrameQueryP(ftkCreateFrame()),
+                                                Error(FTK_OK)
         {
 
-            if(FrameQueryP == nullptr) throw std::bad_alloc();
+            if (FrameQueryP == nullptr)
+                throw std::bad_alloc();
 
             // image header
             FrameQueryP->imageHeader = &imageHeader;
@@ -346,24 +362,30 @@ public:
             FrameQueryP->imageHeaderVersionSize.ReservedSize = sizeof(ftkImageHeader);
 
             // actual left camera image
-            if(retrieveLeftPixels){
+            if (retrieveLeftPixels)
+            {
                 CameraImageLeftP = std::make_shared<CameraImage>();
                 FrameQueryP->imageLeftPixels = CameraImageLeftP->begin();
                 FrameQueryP->imageLeftVersionSize.Version = Version;
                 FrameQueryP->imageLeftVersionSize.ReservedSize = sizeof(ftkMarker) * Markers.size();
-            } else {
+            }
+            else
+            {
                 FrameQueryP->imageLeftPixels = nullptr;
                 FrameQueryP->imageLeftVersionSize.Version = Version;
                 FrameQueryP->imageLeftVersionSize.ReservedSize = 0;
             }
 
             // actual right camera image
-            if(retrieveRightPixels){
+            if (retrieveRightPixels)
+            {
                 CameraImageRightP = std::make_shared<CameraImage>();
                 FrameQueryP->imageRightPixels = CameraImageRightP->begin();
                 FrameQueryP->imageRightVersionSize.Version = Version;
                 FrameQueryP->imageRightVersionSize.ReservedSize = sizeof(ftkMarker) * Markers.size();
-            } else {
+            }
+            else
+            {
                 FrameQueryP->imageRightPixels = nullptr;
                 FrameQueryP->imageRightVersionSize.Version = Version;
                 FrameQueryP->imageRightVersionSize.ReservedSize = 0;
@@ -470,7 +492,6 @@ public:
         TimeEvent TimeStamp;
     };
 
-
     /// Create a Frame using the parameters defined when the FusionTrack class was created.
     ///
     /// @param serialNumber the serial number of the FusionTrack device you wish to receive data from,
@@ -485,23 +506,25 @@ public:
             m_params.maxLeftImageRegionOfInterestBoxes,
             m_params.maxRightImageRegionOfInterestBoxes,
             m_params.max3DFiducialInstances,
-            m_params.maxMarkerInstances
-        );
+            m_params.maxMarkerInstances);
     }
 
     /// Load Frame with data from the device specified in the
     /// Frame.SerialNumber field. If Frame.SerialNumber is 0 it
     /// Defaults to the first connected device. For data from
     /// another device specify the serial number.
-    void receive(Frame& rs) {
-        if(m_deviceSerialNumbers.size() == 0 ) throw std::runtime_error("FusionTrack::receive() called but no trackers are connected.");
+    void receive(Frame &rs)
+    {
+        if (m_deviceSerialNumbers.size() == 0)
+            throw std::runtime_error("FusionTrack::receive() called but no trackers are connected.");
 
         // default to the first device if none is specified
-        if( rs.SerialNumber == 0 ) rs.SerialNumber = m_deviceSerialNumbers[0];
+        if (rs.SerialNumber == 0)
+            rs.SerialNumber = m_deviceSerialNumbers[0];
 
         // resize frame contents to the user specified capacity
         prepareFrameToReceiveData(rs);
-        
+
         // get a local clock timestamp, then the latest frame from the device, then another timestamp
         rs.TimeStamp.local_request_time = cartographer::common::UniversalTimeScaleClock::now();
         ftkError error = ftkGetLastFrame(
@@ -514,28 +537,33 @@ public:
         ftkErrorExt errors(rs.Error);
 
         rs.Error = error;
-        if (error != FTK_OK) {
+        if (error != FTK_OK)
+        {
             // provide clean and useful errors
-            ftkGetLastError( m_ftkLibrary, &errors);
+            ftkGetLastError(m_ftkLibrary, &errors);
 
-            #ifdef HAVE_SPDLOG
-            if(m_logger && errors.isWarning() && errors.isError()) {
+#ifdef HAVE_SPDLOG
+            if (m_logger && errors.isWarning() && errors.isError())
+            {
                 std::string error;
                 errors.messageStack(error);
                 m_logger->error(std::string("FusionTrack::receive() encountered both warnings and errors:\n") + error);
-            } else if(m_logger && errors.isWarning()) {
+            }
+            else if (m_logger && errors.isWarning())
+            {
                 std::string warning;
                 errors.warningString(warning);
                 m_logger->warn(std::string("FusionTrack::receive():") + warning);
-
-            } else if(m_logger && errors.isError()) {
+            }
+            else if (m_logger && errors.isError())
+            {
                 std::string error;
                 errors.errorString(error);
                 m_logger->error(std::string("FusionTrack::receive():") + error);
             }
-            #endif // HAVE_SPDLOG
+#endif // HAVE_SPDLOG
 
-            if(errors.isError())
+            if (errors.isError())
             {
                 // don't do any additional processing upon errors
                 return;
@@ -546,24 +574,27 @@ public:
         // Adjust the size of Frame contents according to the actual amount of data received.
         correctFrameAfterReceivingData(rs);
 
-
         // check results of last frame
-        switch (rs.FrameQueryP->markersStat) {
-            case QS_WAR_SKIPPED:
-                #ifdef HAVE_SPDLOG
-                if(m_logger) m_logger->error("FusionTrack::receive: marker fields in the frame are not set correctly");
-                #endif // HAVE_SPDLOG
-            case QS_ERR_INVALID_RESERVED_SIZE:
-                #ifdef HAVE_SPDLOG
-                if(m_logger) m_logger->error("FusionTrack::receive: FrameQueryP->markersVersionSize is invalid");
-                #endif // HAVE_SPDLOG
-            case QS_OK:
-                break;
-            default:
-                #ifdef HAVE_SPDLOG
-                if(m_logger) m_logger->error("FusionTrack::receive: invalid status of value: ", rs.FrameQueryP->markersStat);
-                #endif // HAVE_SPDLOG
-                break;
+        switch (rs.FrameQueryP->markersStat)
+        {
+        case QS_WAR_SKIPPED:
+#ifdef HAVE_SPDLOG
+            if (m_logger)
+                m_logger->error("FusionTrack::receive: marker fields in the frame are not set correctly");
+#endif // HAVE_SPDLOG
+        case QS_ERR_INVALID_RESERVED_SIZE:
+#ifdef HAVE_SPDLOG
+            if (m_logger)
+                m_logger->error("FusionTrack::receive: FrameQueryP->markersVersionSize is invalid");
+#endif // HAVE_SPDLOG
+        case QS_OK:
+            break;
+        default:
+#ifdef HAVE_SPDLOG
+            if (m_logger)
+                m_logger->error("FusionTrack::receive: invalid status of value: ", rs.FrameQueryP->markersStat);
+#endif // HAVE_SPDLOG
+            break;
         }
 
         // convert the device time to a common timestamp
@@ -571,15 +602,18 @@ public:
 
         // make sure we're not getting more markers than allocated
         auto count = rs.FrameQueryP->markersCount;
-        if (count > rs.Markers.capacity()) {
-            #ifdef HAVE_SPDLOG
-            if(m_logger) m_logger->warn("FusionTrack::receive: marker overflow, please increase number of markers.  Only the first ", rs.Markers.size(), " marker(s) will processed.");
-            #endif // HAVE_SPDLOG
+        if (count > rs.Markers.capacity())
+        {
+#ifdef HAVE_SPDLOG
+            if (m_logger)
+                m_logger->warn("FusionTrack::receive: marker overflow, please increase number of markers.  Only the first ", rs.Markers.size(), " marker(s) will processed.");
+#endif // HAVE_SPDLOG
         }
     }
 
     /// Get the serial numbers of all connected devices.
-    std::vector<uint64_t> getDeviceSerialNumbers() const {
+    std::vector<uint64_t> getDeviceSerialNumbers() const
+    {
         return m_deviceSerialNumbers;
     }
 
@@ -594,89 +628,95 @@ public:
         // create the device name strings for filling out TimeEvent objects
         int8_t devicetype = getTypeFromSerialNumber(id);
         ss_event_name << m_params.name << "/";
-        ftkDevicetypetoString(ss_event_name, devicetype); 
+        ftkDevicetypetoString(ss_event_name, devicetype);
         ss_event_name << "/" << id << "/frame";
         std::string s_event_name = ss_event_name.str();
         std::string device_clock_id_str = s_event_name + m_params.deviceClockID;
         TimeEvent::UnsignedCharArray event_name;
-        s_event_name.copy(event_name.begin(),std::min(event_name.size(),s_event_name.size()));
+        s_event_name.copy(event_name.begin(), std::min(event_name.size(), s_event_name.size()));
         m_event_names.push_back(event_name);
 
         TimeEvent::UnsignedCharArray device_clock_id;
-        device_clock_id_str.copy(device_clock_id.begin(),std::min(device_clock_id_str.size(),device_clock_id.size()));
+        device_clock_id_str.copy(device_clock_id.begin(), std::min(device_clock_id_str.size(), device_clock_id.size()));
         m_device_clock_ids.push_back(device_clock_id);
 
         TimeEvent::UnsignedCharArray local_clock_name_arr;
-        m_params.localClockID.copy(local_clock_name_arr.begin(),std::min(local_clock_name_arr.size(),m_params.localClockID.size()));
+        m_params.localClockID.copy(local_clock_name_arr.begin(), std::min(local_clock_name_arr.size(), m_params.localClockID.size()));
         m_local_clock_ids.push_back(local_clock_name_arr);
     }
-
 
     /// all the member variable vectors are indexed together,
     /// so one index will get you the data for that device on
     /// all the member variable vectors.
-    std::size_t getIndexFromSerialNumber(uint64_t id) {
+    std::size_t getIndexFromSerialNumber(uint64_t id)
+    {
         std::size_t pos = std::distance(m_deviceSerialNumbers.begin(), std::find(m_deviceSerialNumbers.begin(), m_deviceSerialNumbers.end(), id));
         return pos;
     }
-
-    int8_t getTypeFromSerialNumber(uint64_t id) {
+    /// Get device type (int8_t) from SerialNumber
+    int8_t getTypeFromSerialNumber(uint64_t id)
+    {
         ptrdiff_t pos = getIndexFromSerialNumber(id);
         uint8_t type = *(m_device_types.begin() + pos);
         return type;
     }
-
-    std::vector<uint8_t> getDeviceTypes() const {
-        return  m_device_types;
-    }
-    
-    ~FusionTrack(){
-       ftkClose(&m_ftkLibrary);
+    /// Get all the device types (int8_t) and put them into a vector
+    std::vector<uint8_t> getDeviceTypes() const
+    {
+        return m_device_types;
     }
 
-    Params getParams() const {
+    ~FusionTrack()
+    {
+        ftkClose(&m_ftkLibrary);
+    }
+
+    Params getParams() const
+    {
         return m_params;
     }
 
-    // Convet the device type from uint8_t to string
-    
-    std::ostream& ftkDevicetypetoString(std::ostream& out, const int8_t DEV)
+    /// Convet the device type from uint8_t to string
+    /// Devicetype is defined in FusionTrack.fbs and ftkInterface.h
+    std::ostream &ftkDevicetypetoString(std::ostream &out, const int8_t DEV)
     {
-        switch (DEV) {
-            case DEV_SIMULATOR: /*!< Internal use only */
-                out << "SIMULATOR";
-            break;
-    
-            case DEV_INFINITRACK: /*!< Device is an infiniTrack */
-                out << "INFINITRACK";
-            break;
-            case DEV_FUSIONTRACK_500: /*!< Device is a fusionTrack 500 */
-                out << "FUSIONTRACK_500";
+        switch (DEV)
+        {
+        case DEV_SIMULATOR: /*!< Internal use only */
+            out << "SIMULATOR";
             break;
 
-            case DEV_FUSIONTRACK_250: /*!< Device is a fusionTrack 250 */
-                out << "FUSIONTRACK_250";
+        case DEV_INFINITRACK: /*!< Device is an infiniTrack */
+            out << "INFINITRACK";
             break;
-            default: /**< Unknown device type. */
-                out << "UNKNOWN_DEVICE";
+        case DEV_FUSIONTRACK_500: /*!< Device is a fusionTrack 500 */
+            out << "FUSIONTRACK_500";
             break;
-      };
-      return out;
+
+        case DEV_FUSIONTRACK_250: /*!< Device is a fusionTrack 250 */
+            out << "FUSIONTRACK_250";
+            break;
+        default: /**< Unknown device type. */
+            out << "UNKNOWN_DEVICE";
+            break;
+        };
+        return out;
     }
 
-private:
-
+  private:
     /// Prepare the Frame contents for a new data update,
     /// accounting for the maximum amount of data that might arrive.
-    void prepareFrameToReceiveData(FusionTrack::Frame& frame) {
-        frame.Fiducials.resize(frame.FrameQueryP->threeDFiducialsVersionSize.ReservedSize/sizeof(ftk3DFiducial), ftk3DFiducial());
-        frame.Markers.resize(frame.FrameQueryP->markersVersionSize.ReservedSize/sizeof(ftkMarker), ftkMarker());
-        frame.ImageRegionOfInterestBoxesLeft.resize(frame.FrameQueryP->rawDataLeftVersionSize.ReservedSize/sizeof(ftkRawData), ftkRawData());
-        frame.ImageRegionOfInterestBoxesRight.resize(frame.FrameQueryP->rawDataRightVersionSize.ReservedSize/sizeof(ftkRawData), ftkRawData());
+    void prepareFrameToReceiveData(FusionTrack::Frame &frame)
+    {
+        frame.Fiducials.resize(frame.FrameQueryP->threeDFiducialsVersionSize.ReservedSize / sizeof(ftk3DFiducial), ftk3DFiducial());
+        frame.Markers.resize(frame.FrameQueryP->markersVersionSize.ReservedSize / sizeof(ftkMarker), ftkMarker());
+        frame.ImageRegionOfInterestBoxesLeft.resize(frame.FrameQueryP->rawDataLeftVersionSize.ReservedSize / sizeof(ftkRawData), ftkRawData());
+        frame.ImageRegionOfInterestBoxesRight.resize(frame.FrameQueryP->rawDataRightVersionSize.ReservedSize / sizeof(ftkRawData), ftkRawData());
     }
 
     /// Correct the Frame contents to reflect actual data received.
-    void correctFrameAfterReceivingData(FusionTrack::Frame& frame) {
+    void correctFrameAfterReceivingData(FusionTrack::Frame &frame)
+    {
         frame.Fiducials.resize(frame.FrameQueryP->threeDFiducialsCount, ftk3DFiducial());
         frame.Markers.resize(frame.FrameQueryP->markersCount, ftkMarker());
         frame.ImageRegionOfInterestBoxesLeft.resize(frame.FrameQueryP->rawDataLeftCount, ftkRawData());
@@ -689,9 +729,9 @@ private:
         frame.TimeStamp.local_clock_id = m_local_clock_ids[index];
     }
 
-    #ifdef HAVE_SPDLOG
+#ifdef HAVE_SPDLOG
     std::shared_ptr<spdlog::logger> m_logger;
-    #endif // HAVE_SPDLOG
+#endif // HAVE_SPDLOG
     Params m_params;
     ftkLibrary m_ftkLibrary;
     // device serial numbers
@@ -701,21 +741,17 @@ private:
     std::vector<TimeEvent::UnsignedCharArray> m_event_names;
     std::vector<TimeEvent::UnsignedCharArray> m_local_clock_ids;
     std::vector<TimeEvent::UnsignedCharArray> m_device_clock_ids;
-
-
 };
 
-
-namespace detail {
-    void updateDeviceSerialNumber(uint64 device, void * user, ftkDeviceType type)
-    {
-        FusionTrack * driver = reinterpret_cast<FusionTrack *>(user);
-        driver->internalAddDevice(device,type);
-    }
+namespace detail
+{
+void updateDeviceSerialNumber(uint64 device, void *user, ftkDeviceType type)
+{
+    FusionTrack *driver = reinterpret_cast<FusionTrack *>(user);
+    driver->internalAddDevice(device, type);
 }
-
-}} // grl::sensor
-
+}
+}
+} // grl::sensor
 
 #endif
-

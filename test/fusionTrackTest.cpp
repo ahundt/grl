@@ -46,8 +46,7 @@ BOOST_AUTO_TEST_CASE(initialization)
 BOOST_AUTO_TEST_CASE(runRepeatedly)
 {
   bool debug = false;
-  if (debug)
-    std::cout << "starting fusiontrack" << std::endl;
+  if (debug) std::cout << "starting fusiontrack" << std::endl;
 
   grl::sensor::FusionTrack::Params ftp = grl::sensor::FusionTrack::emptyDefaultParams();
   ftp.geometryFilenames = {"geometry004.ini", "geometry104.ini"};
@@ -72,12 +71,9 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
       ft.receive(frame);
       if (frame.Error == FTK_OK)
       {
-        if (debug)
-          std::cout << "time_us_member: " << frame.imageHeader.timestampUS
-                    << " time_us_ftkQuery: " << frame.FrameQueryP->imageHeader->timestampUS << "\n";
-        if (debug)
-          std::cout << " imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
-        // std::cout << "serial: " << frame.SerialNumber << std::endl;
+        if (debug) std::cout << "time_us_member: " << frame.imageHeader.timestampUS
+                             << " time_us_ftkQuery: " << frame.FrameQueryP->imageHeader->timestampUS << "\n";
+        if (debug) std::cout << " imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
         for (const ftkMarker &marker : frame.Markers)
         {
           Eigen::Affine3f fusionTrackToMarker = grl::sensor::ftkMarkerToAffine3f(marker);

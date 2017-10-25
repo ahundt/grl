@@ -6,10 +6,13 @@
 #include "ftkInterface.h"
 #include "grl/flatbuffer/FusionTrack_generated.h"
 #include "grl/flatbuffer/Time_generated.h"
-#include "grl/flatbuffer/Time_generated.h"
 #include "grl/flatbuffer/LogKUKAiiwaFusionTrack_generated.h"
+#include "flatbuffers/util.h"
+#include "flatbuffers/idl.h"
 #include <typeinfo>
 #include <iostream>
+#include <unistd.h>
+#include <stdio.h>
 
 namespace grl
 {
@@ -61,7 +64,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         fbb.CreateVectorOfStructs<grl::flatbuffer::Vector3d>(fiducials.begin(), geometry.pointsCount));
 }
 
-/// ======================================================================================
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkGeometry>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::sensor::FusionTrack::Params &params)
@@ -69,7 +71,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     flatbuffers::Offset<grl::flatbuffer::ftkGeometry> fbGeometry;
     std::vector<flatbuffers::Offset<grl::flatbuffer::ftkGeometry>> geometryvector;
     int geometry_size = params.markerIDs.size();
-    std::array<grl::flatbuffer::Vector3d, FTK_MAX_FIDUCIALS> fiducials;
+    std::vector<grl::flatbuffer::Vector3d> fiducials;
     std::vector<ftk3DPoint> MarkerModelGeometry;
 
     for (int i = 0; i < geometry_size; i++)
@@ -77,25 +79,22 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         MarkerModelGeometry = params.markerModelGeometries[i];
         for (int j = 0; j < MarkerModelGeometry.size(); j++)
         {
-            fiducials[j] = toFlatBuffer(MarkerModelGeometry[j]);
+            fiducials.push_back(toFlatBuffer(MarkerModelGeometry[j]));
         }
         fbGeometry = grl::flatbuffer::CreateftkGeometry(
             fbb,
             fbb.CreateString(params.markerNames[i]),
             params.markerIDs[i],
             0, ///version,
-            fbb.CreateVectorOfStructs<grl::flatbuffer::Vector3d>(fiducials.begin(), MarkerModelGeometry.size()));
+            fbb.CreateVectorOfStructs<grl::flatbuffer::Vector3d>(fiducials));
         geometryvector.push_back(fbGeometry);
     }
     auto fbGemetryvector = fbb.CreateVector(&geometryvector[0], geometryvector.size());
     return fbGemetryvector;
 }
 
-/// ======================================================================================
-/* 
-*       Convert uint32 Mask to a std::vector.
-*       Refer to https://stackoverflow.com/a/2686571
-*/
+/// Convert uint32 Mask to a std::vector.
+/// Refer to https://stackoverflow.com/a/2686571
 std::vector<uint32> bitMaskToVector(uint32 x)
 {
     std::vector<uint32> ret;
@@ -144,20 +143,16 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     {
         fbMarkers.push_back(toFlatBuffer(fbb, ftkMarkers[i], markername[i]));
     }
-
-    /// @todo TODO(ahundt) IN PROGRESS
     auto fbmarkervector = fbb.CreateVector(&fbMarkers[0], markersize);
     return fbmarkervector;
 }
-/*
-    Converte a global variable ::ftk3DFiducial to grl::flatbutter::ftk3DFiducial.
-*/
+   /// Converte a global variable ::ftk3DFiducial to grl::flatbutter::ftk3DFiducial.
 flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const ::ftk3DFiducial &Fiducial,
              const std::string markername = "")
 {
-    // The type of Fiducial.positionMM is ftk3DPoint.
+    /// The type of Fiducial.positionMM is ftk3DPoint.
     auto positiont3Dpoint = toFlatBuffer(Fiducial.positionMM);
     return grl::flatbuffer::Createftk3DFiducial(
         fbb,
@@ -182,22 +177,20 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     {
         fbfiducials.push_back(toFlatBuffer(fbb, fiducials[i], markername[i]));
     }
-
-    /// @todo TODO(ahundt) IN PROGRESS
     auto fbfiducialvector = fbb.CreateVector(&fbfiducials[0], fiducialsize);
     return fbfiducialvector;
 }
 
 flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame>
-toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, 
-    const grl::sensor::FusionTrack::Frame &frame)
+toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
+             const grl::sensor::FusionTrack::Frame &frame)
 {
     /// @todo TODO(ahundt) IN PROGRESS
     /// Here we should get the markers'name
     std::vector<std::string> markerNames;
     for (auto &fiducial : frame.Fiducials)
     {
-        // @todo TODO(ahundt) look up actual marker names and set with "id_geometryID" here, or "" if no marker.
+        /// @todo TODO(ahundt) look up actual marker names and set with "id_geometryID" here, or "" if no marker.
         markerNames.push_back("");
     }
 
@@ -353,13 +346,11 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         min_transport_delay);
 }
 
-
 flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::sensor::FusionTrack &fusiontrack,
              const grl::sensor::FusionTrack::Frame &frame)
 {
-    //grl::sensor::FusionTrack::Frame frame(fusiontrack.makeFrame());
     static const double microsecToSec = 1 / 1000000;
     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
     flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters> parameters = toFlatBuffer(fbb, fusiontrack);
@@ -373,7 +364,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         fbframe);
 
     grl::flatbuffer::DeviceState deviceState_type = grl::flatbuffer::DeviceState::FusionTrackMessage;
-   // toFlatBuffer(fbb, fusiontrack, frame).Union()
     return grl::flatbuffer::CreateKUKAiiwaFusionTrackMessage(
         fbb,
         timestamp,
@@ -382,48 +372,26 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         message.Union());
 }
 
-
-// flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>
-// toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
-//     const grl::sensor::FusionTrack::Frame &frame,
-//     const flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>& message)
-// {
-//     //grl::sensor::FusionTrack::Frame frame(fusiontrack.makeFrame());
-//     static const double microsecToSec = 1 / 1000000;
-//     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
-//     flatbuffers::Offset<grl::flatbuffer::TimeEvent> timeEvent = toFlatBuffer(fbb, frame.TimeStamp);
-//     grl::flatbuffer::DeviceState deviceState_type = grl::flatbuffer::DeviceState::FusionTrackMessage;
-//    // toFlatBuffer(fbb, fusiontrack, frame).Union()
-//     return grl::flatbuffer::CreateKUKAiiwaFusionTrackMessage(
-//         fbb,
-//         timestamp,
-//         timeEvent,
-//         deviceState_type,
-//         message.Union());
-// }
-
-// flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>
-// toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
-//              const flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage>& message)
-// {
-//     std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>> kkfbkmessagevector;
-//     int frame_size = frames.size();
-//     for (int i = 0; i < frame_size; i++)
-//     {
-//         kkfbkmessagevector.push_back(toFlatBuffer(fbb, frames[i], messages[i]));
-//     }
-
-//     /// @todo TODO(ahundt) IN PROGRESS
-//     auto KUKAiiwaFusionTrackMessages = fbb.CreateVector(&kkfbkmessagevector[0], frame_size);
-//     return KUKAiiwaFusionTrackMessages;
-// }
-
 flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
-    const flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states)
+             const flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states)
 {
-    return  grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
+    return grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
 }
+/// Change from the absolute path to relative path.
+std::string getpathtofbsfile(const std::string &filename)
+{
+
+    char buff[512];
+    /// Get the current working directory
+    /// ../src/robonetracker/build/bin
+    getcwd(buff, 512);
+    std::string current_working_dir(buff);
+    /// std::cout << "Current working dir: " << buff << std::endl;
+    /// Strip the last component of the path + separator.
+    /// ../src/robonetracker/build
+    return flatbuffers::StripFileName(buff);
 }
+} // End of grl namespace
 
 #endif // GRL_ATRACSYS_FUSION_TRACK_TO_FLATBUFFER
