@@ -228,6 +228,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     std::vector<std::string> markerNames;
     for (auto &fiducial : frame.Fiducials)
     {
+        /// @todo TODO(ahundt) look up actual marker names and set with "id_geometryID" here, or "" if no marker.
         markerNames.push_back("");
     }
 
