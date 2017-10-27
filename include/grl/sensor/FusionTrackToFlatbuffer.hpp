@@ -228,7 +228,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     std::vector<std::string> markerNames;
     for (auto &fiducial : frame.Fiducials)
     {
-        /// @todo TODO(ahundt) look up actual marker names and set with "id_geometryID" here, or "" if no marker.
         markerNames.push_back("");
     }
 
@@ -357,7 +356,8 @@ flatbuffers::Offset<grl::flatbuffer::TimeEvent>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::TimeEvent &timeStamp)
 {
-
+    /// @todo TODO(ahundt) IN PROGRESS
+    /// There remains the time issue
     flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(const_cast<const char *>(timeStamp.event_name.begin()), stringLength(timeStamp.event_name));
     std::cout << "Type: " << typeid(timeStamp.local_request_time).name() << std::endl;
     /// https://github.com/googlecartographer/cartographer/blob/master/cartographer/common/time.cc

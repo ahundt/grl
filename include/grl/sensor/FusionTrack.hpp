@@ -579,20 +579,17 @@ class FusionTrack
         {
         case QS_WAR_SKIPPED:
 #ifdef HAVE_SPDLOG
-            if (m_logger)
-                m_logger->error("FusionTrack::receive: marker fields in the frame are not set correctly");
+            if (m_logger) m_logger->error("FusionTrack::receive: marker fields in the frame are not set correctly");
 #endif // HAVE_SPDLOG
         case QS_ERR_INVALID_RESERVED_SIZE:
 #ifdef HAVE_SPDLOG
-            if (m_logger)
-                m_logger->error("FusionTrack::receive: FrameQueryP->markersVersionSize is invalid");
+            if (m_logger) m_logger->error("FusionTrack::receive: FrameQueryP->markersVersionSize is invalid");
 #endif // HAVE_SPDLOG
         case QS_OK:
             break;
         default:
 #ifdef HAVE_SPDLOG
-            if (m_logger)
-                m_logger->error("FusionTrack::receive: invalid status of value: ", rs.FrameQueryP->markersStat);
+            if (m_logger) m_logger->error("FusionTrack::receive: invalid status of value: ", rs.FrameQueryP->markersStat);
 #endif // HAVE_SPDLOG
             break;
         }
@@ -605,8 +602,7 @@ class FusionTrack
         if (count > rs.Markers.capacity())
         {
 #ifdef HAVE_SPDLOG
-            if (m_logger)
-                m_logger->warn("FusionTrack::receive: marker overflow, please increase number of markers.  Only the first ", rs.Markers.size(), " marker(s) will processed.");
+            if (m_logger) m_logger->warn("FusionTrack::receive: marker overflow, please increase number of markers.  Only the first ", rs.Markers.size(), " marker(s) will processed.");
 #endif // HAVE_SPDLOG
         }
     }
