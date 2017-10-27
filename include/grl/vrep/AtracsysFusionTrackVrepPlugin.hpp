@@ -11,6 +11,11 @@
 
 #include <spdlog/spdlog.h>
 
+
+#include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/util.h"
+#include "flatbuffers/idl.h"
+
 #include <boost/exception/all.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -130,6 +135,11 @@ void destruct(){
    if(m_driverThread){
      m_driverThread->join();
    }
+
+   for(auto& saveThreadP : m_saveRecordingThreads)
+   {
+     m_driverThread->join();
+   }
 }
 
 /// adds an object to active tracking, replacing existing objects with the same GeometryID
@@ -183,7 +193,7 @@ void run_one(){
    // if any of the components haven't finished initializing, halt the program with an error
    BOOST_VERIFY(m_receivedFrame && m_nextState && opticalTrackerP);
 
-   Eigen::Affine3f cameraToMarkerTransform;
+   Eigen::Affine3f cameraToMarkerTransform;  /// Relative distance between camera and marker?
 
    for(auto& marker : m_receivedFrame->Markers){
 
@@ -208,8 +218,47 @@ void run_one(){
   destruct();
 }
 
-private:
+// start recording the fusiontrack frame data in memory
+bool start_recording()
+{
+  m_isRecording = true;
+}
 
+// stop recording the fusiontrack frame data in memory
+bool stop_recording()
+{
+  m_isRecording = false;
+}
+
+
+// save the currently recorded fusiontrack frame data, this also clears the recording
+bool save_recording(std::string filename)
+{
+  std::lock_guard<std::mutex> lock(m_frameAccess);
+  auto saveLambdaFunction = [ save_fbbP = std::move(m_logFileBufferBuilderP),  
+                  save_KUKAiiwaFusionTrackMessageBufferP = std::move(m_KUKAiiwaFusionTrackMessageBufferP), 
+                  filename ] () mutable {
+
+        // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
+        flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = fbb.CreateVector(*save_KUKAiiwaFusionTrackMessageBufferP);
+        flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(*save_fbbP, states);
+        save_fbbP->Finish(states);
+        flatbuffers::SaveFile(filename.c_str(), save_fbbP->GetBufferPointer(), fsave_fbbP->GetSize(), true);
+  };
+  std::shared_ptr<std::thread> saveLogThread(std::make_shared<std::thread>(saveLambdaFunction));
+  m_saveRecordingThreads.push_back(saveLogThread)
+}
+
+// clear the recording buffer from memory immediately to start fresh
+bool clear_recording()
+{
+  std::lock_guard<std::mutex> lock(m_frameAccess);
+  m_logFileBufferBuilder.reset();
+  m_KUKAiiwaFusionTrackMessageBufferP.reset();
+}
+
+
+private:
 
 /// @todo support boost::asio
 /// Reads data off of the real optical tracker device in a separate thread
@@ -231,6 +280,18 @@ void update() {
    while (!m_shouldStop) {
     opticalTrackerP->receive(*m_nextState);
     std::lock_guard<std::mutex> lock(m_frameAccess);
+    if(m_isRecording){
+      // convert the buffer into a flatbuffer for recording and add it to the in memory buffer
+      /// @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
+      if(!m_logFileBufferBuilder){
+        // flatbuffersbuilder does not yet exist
+        m_logFileBufferBuilder.reset(new flatbuffers::FlatBufferBuilder());
+        m_KUKAiiwaFusionTrackMessageBufferP.reset(new std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>());
+      }
+      flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> oneKUKAiiwaFusionTrackMessage = grl::toFlatBuffer(*m_logFileBufferBuilderP, *opticalTrackerP, *m_nextState);
+      m_KUKAiiwaFusionTrackMessageBufferP->push_back(oneKUKAiiwaFusionTrackMessage);
+    }
+    /// Swaps the values.
     std::swap(m_receivedFrame,m_nextState);
    }
 
@@ -238,6 +299,7 @@ void update() {
 
 
 void initHandles() {
+  /// Retrieves an vrep object handle based on its name. 
     m_opticalTrackerBase = grl::vrep::getHandle(params_.OpticalTrackerBase);
     m_geometryIDToVrepMotionConfigMap = MotionConfigParamsToVrepHandleConfigMap(params_.MotionConfigParamsVector);
 	allHandlesSet  = true;
@@ -260,20 +322,33 @@ std::atomic<bool> isConnectionEstablished_;
 
 
 
-
+// mutex that protects access of the main driver thread in update() from the separate vrep plugin messages thread
+// it also protects the recording buffer when recording is being started, stopped, or cleared
 std::mutex m_frameAccess;
 
+/// the current frame available to the user, always acces after locking m_frameAccess
 std::unique_ptr<grl::sensor::FusionTrack::Frame> m_receivedFrame;
+/// the next frame state to access, always acces after locking m_frameAccess
 std::unique_ptr<grl::sensor::FusionTrack::Frame> m_nextState;
+/// builds up the file log in memory as data is received
+std::unique_ptr<flatbuffers::FlatBufferBuilder> m_logFileBufferBuilderP;
+/// this is the current log data stored in memory
+std::unique_ptr<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> m_KUKAiiwaFusionTrackMessageBufferP;
+// should the driver stop collecting data from the atracsys devices
 std::atomic<bool> m_shouldStop;
+// is data currently being recorded
+std::atomic<bool> m_isRecording;
 std::exception_ptr exceptionPtr;
 
+// thread that polls the driver for new data and puts the data into the recording
 std::unique_ptr<std::thread> m_driverThread;
+/// @todo TODO(ahundt) the threads that saved files will build up forever, figure out how they can clear themselves out
+std::vector<std::shared_ptr<std::thread>> m_saveRecordingThreads;
 
 // note: elements match up with MotionConfigParams and MotionConfigParamsIndex, except here there are 3 and the main int is the geometryID.
 // The first int is the object that is being moved
 // The second int is the frame the object is being moved within
-// The third int is the object being measured by the optical tracker.
+// The third int is the object being measured by the optical tracker??.
 typedef std::tuple<int,int,int> VrepMotionConfigTuple;
 typedef std::map<int, VrepMotionConfigTuple> GeometryIDToVrepMotionConfigMap;
 
@@ -283,7 +358,8 @@ GeometryIDToVrepMotionConfigMap m_geometryIDToVrepMotionConfigMap;
 static void MotionConfigParamsAddConfig(const MotionConfigParams& motionConfig, GeometryIDToVrepMotionConfigMap& IDToHandleConfig)
 {
        IDToHandleConfig[boost::lexical_cast<int>(std::get<GeometryID>(motionConfig))] =
-         std::make_tuple(
+       /// Creates a tuple object, deducing the target type from the types of arguments.   
+       std::make_tuple(
              grl::vrep::getHandleFromParam<ObjectToMove            >(motionConfig),
              grl::vrep::getHandleFromParam<FrameInWhichToMoveObject>(motionConfig),
              grl::vrep::getHandleFromParam<ObjectBeingMeasured     >(motionConfig)

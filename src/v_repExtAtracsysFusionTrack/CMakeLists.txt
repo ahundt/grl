@@ -29,9 +29,10 @@
 #       where <lang> is the language name in lowercase and is optional.
 #       BASIS will automatically add a library build target for these modules.
 if(FUSIONTRACK_FOUND)
-basis_include_directories(${GRL_INCLUDE_DIRS}/thirdparty/vrep/include ${FUSIONTRACK_INCLUDE_DIRS} ${grl_INCLUDE_DIRS}/thirdparty/vrep/include)
+basis_include_directories(${GRL_INCLUDE_DIRS}/thirdparty/vrep/include ${FUSIONTRACK_INCLUDE_DIRS} ${grl_INCLUDE_DIRS}/thirdparty/vrep/include ${FLATBUFFERS_INCLUDE_DIRS})
 basis_add_library(v_repExtAtracsysFusionTrack SHARED v_repExtAtracsysFusionTrack.cpp )
-basis_target_link_libraries(v_repExtAtracsysFusionTrack ${Boost_LIBRARIES}   ${CMAKE_THREAD_LIBS_INIT} ${FUSIONTRACK_LIBRARIES}  v_repLib)
+basis_target_link_libraries(v_repExtAtracsysFusionTrack ${Boost_LIBRARIES}   ${CMAKE_THREAD_LIBS_INIT} ${FUSIONTRACK_LIBRARIES}  v_repLib  ${FLATBUFFERS_STATIC_LIB})
+basis_add_dependencies(v_repExtAtracsysFusionTrack grlflatbuffers)
 endif()
 
 
