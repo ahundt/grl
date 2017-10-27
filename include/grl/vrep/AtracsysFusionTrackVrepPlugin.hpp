@@ -11,11 +11,6 @@
 
 #include <spdlog/spdlog.h>
 
-
-#include "flatbuffers/flatbuffers.h"
-#include "flatbuffers/util.h"
-#include "flatbuffers/idl.h"
-
 #include <boost/exception/all.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -24,10 +19,15 @@
 
 #include "grl/sensor/FusionTrack.hpp"
 #include "grl/sensor/FusionTrackToEigen.hpp"
+#include "grl/sensor/FusionTrackToFlatbuffer.hpp"
 
 #include "v_repLib.h"
 
 #include "grl/vector_ostream.hpp"
+
+#include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/util.h"
+#include "flatbuffers/idl.h"
 
 namespace grl {
 
@@ -235,25 +235,28 @@ bool stop_recording()
 bool save_recording(std::string filename)
 {
   std::lock_guard<std::mutex> lock(m_frameAccess);
-  auto saveLambdaFunction = [ save_fbbP = std::move(m_logFileBufferBuilderP),  
-                  save_KUKAiiwaFusionTrackMessageBufferP = std::move(m_KUKAiiwaFusionTrackMessageBufferP), 
-                  filename ] () mutable {
+  auto saveLambdaFunction = [ 
+    save_fbbP = std::move(m_logFileBufferBuilderP),  
+    save_KUKAiiwaFusionTrackMessageBufferP = std::move(m_KUKAiiwaFusionTrackMessageBufferP), 
+    filename ] () mutable {
 
         // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
-        flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = fbb.CreateVector(*save_KUKAiiwaFusionTrackMessageBufferP);
+        flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = save_fbbP->CreateVector(*save_KUKAiiwaFusionTrackMessageBufferP);
         flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(*save_fbbP, states);
         save_fbbP->Finish(states);
-        flatbuffers::SaveFile(filename.c_str(), save_fbbP->GetBufferPointer(), fsave_fbbP->GetSize(), true);
+        flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char *>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), true);
   };
+  m_logFileBufferBuilderP.reset();
+  m_KUKAiiwaFusionTrackMessageBufferP.reset();
   std::shared_ptr<std::thread> saveLogThread(std::make_shared<std::thread>(saveLambdaFunction));
-  m_saveRecordingThreads.push_back(saveLogThread)
+  m_saveRecordingThreads.push_back(saveLogThread);
 }
 
 // clear the recording buffer from memory immediately to start fresh
 bool clear_recording()
 {
   std::lock_guard<std::mutex> lock(m_frameAccess);
-  m_logFileBufferBuilder.reset();
+  m_logFileBufferBuilderP.reset();
   m_KUKAiiwaFusionTrackMessageBufferP.reset();
 }
 
@@ -283,10 +286,10 @@ void update() {
     if(m_isRecording){
       // convert the buffer into a flatbuffer for recording and add it to the in memory buffer
       /// @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
-      if(!m_logFileBufferBuilder){
+      if(!m_logFileBufferBuilderP){
         // flatbuffersbuilder does not yet exist
-        m_logFileBufferBuilder.reset(new flatbuffers::FlatBufferBuilder());
-        m_KUKAiiwaFusionTrackMessageBufferP.reset(new std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>());
+        m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+        m_KUKAiiwaFusionTrackMessageBufferP = std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
       }
       flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> oneKUKAiiwaFusionTrackMessage = grl::toFlatBuffer(*m_logFileBufferBuilderP, *opticalTrackerP, *m_nextState);
       m_KUKAiiwaFusionTrackMessageBufferP->push_back(oneKUKAiiwaFusionTrackMessage);
@@ -331,9 +334,11 @@ std::unique_ptr<grl::sensor::FusionTrack::Frame> m_receivedFrame;
 /// the next frame state to access, always acces after locking m_frameAccess
 std::unique_ptr<grl::sensor::FusionTrack::Frame> m_nextState;
 /// builds up the file log in memory as data is received
-std::unique_ptr<flatbuffers::FlatBufferBuilder> m_logFileBufferBuilderP;
+/// @todo TODO(ahundt) once using C++14 use unique_ptr https://stackoverflow.com/questions/8640393/move-capture-in-lambda
+std::shared_ptr<flatbuffers::FlatBufferBuilder> m_logFileBufferBuilderP;
 /// this is the current log data stored in memory
-std::unique_ptr<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> m_KUKAiiwaFusionTrackMessageBufferP;
+/// @todo TODO(ahundt) once using C++14 use unique_ptr https://stackoverflow.com/questions/8640393/move-capture-in-lambda
+std::shared_ptr<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> m_KUKAiiwaFusionTrackMessageBufferP;
 // should the driver stop collecting data from the atracsys devices
 std::atomic<bool> m_shouldStop;
 // is data currently being recorded
