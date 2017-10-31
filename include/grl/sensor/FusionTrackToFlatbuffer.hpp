@@ -131,6 +131,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         &fbPose //const Pose *transform = 0;
         );
 }
+
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkMarker>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::vector<::ftkMarker> &ftkMarkers,
@@ -145,7 +146,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     auto fbmarkervector = fbb.CreateVector(&fbMarkers[0], markersize);
     return fbmarkervector;
 }
-   /// Converte a global variable ::ftk3DFiducial to grl::flatbutter::ftk3DFiducial.
+
+/// Convert a global variable ::ftk3DFiducial to grl::flatbutter::ftk3DFiducial.
 flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const ::ftk3DFiducial &Fiducial,
@@ -163,6 +165,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         Fiducial.triangulationErrorMM,
         Fiducial.probability);
 }
+
+
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::vector<::ftk3DFiducial> &fiducials,
@@ -179,6 +183,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     auto fbfiducialvector = fbb.CreateVector(&fbfiducials[0], fiducialsize);
     return fbfiducialvector;
 }
+
+
 flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const ::ftkRawData &ftkRegionOfInterest)
@@ -203,6 +209,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         _probability);
 }
 
+
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::vector<::ftkRawData> &ftkRawDatas)
@@ -216,7 +223,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     }
     return fbb.CreateVector(ftkRegionOfInterests);
 }
-
 
 
 flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame>
@@ -233,7 +239,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     }
 
     static const double microsecToSec = 1 / 1000000;
-    flatbuffers::FlatBufferBuilder &_fbb = fbb;
     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
     uint64_t serialNumber = frame.SerialNumber;
     uint64_t hardwareTimestampUS = frame.imageHeader.timestampUS;
@@ -251,7 +256,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     flatbuffers::Offset<flatbuffers::String> imageRightPixels = frame.CameraImageRightP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageRightP->begin()), sizeof(frame.CameraImageRightP)) : 0;
     uint32_t imageRightPixelsVersion = frame.FrameQueryP->imageRightVersionSize.Version;
     int32_t imageRightStatus = frame.FrameQueryP->imageRightStat;
-    
+
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> regionsOfInterestLeft = toFlatBuffer(fbb, frame.ImageRegionOfInterestBoxesLeft);
     uint32_t regionsOfInterestLeftVersion = frame.FrameQueryP->rawDataLeftVersionSize.Version;
     int32_t regionsOfInterestLeftStatus = frame.FrameQueryP->rawDataLeftStat;
@@ -268,7 +273,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     int64_t ftkError = frame.Error;
 
     return grl::flatbuffer::CreateFusionTrackFrame(
-        _fbb,
+        fbb,
         timestamp,
         serialNumber,
         hardwareTimestampUS,
