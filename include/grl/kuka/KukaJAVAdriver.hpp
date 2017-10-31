@@ -1,3 +1,5 @@
+/// KukaJavaDriver.hpp handles communication with the Kuka Sunrise Java software.
+/// If you are new to this code base you are most likely looking for KukaDriver.hpp
 #ifndef GRL_KUKA_JAVA_DRIVER
 #define GRL_KUKA_JAVA_DRIVER
 

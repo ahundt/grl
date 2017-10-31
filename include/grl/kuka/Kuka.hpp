@@ -1,3 +1,5 @@
+/// Kuka.hpp provides some internal KUKA specific definitions and utility implementation functions.
+/// If you are not familiar with this code, you are most likely looking for KukaDriver.hpp.
 #ifndef GRL_KUKA_HPP
 #define GRL_KUKA_HPP
 
@@ -96,7 +98,7 @@ struct KukaState {
   /// velocity limits the arm stops immediately with an error.
   joint_state velocity_limits;
 
-    
+
   void clear() {
     position.clear();
     torque.clear();

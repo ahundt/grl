@@ -1,3 +1,5 @@
+/// KukaDriver.hpp defines the main Kuka driver class most people implementing new libraries or integrations should use
+/// See the class grl::robot::arm::KukaDriver in this file and the grl documentation.
 #ifndef GRL_KUKA_DRIVER
 #define GRL_KUKA_DRIVER
 
