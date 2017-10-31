@@ -8,6 +8,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <ctime>
 
 #include <spdlog/spdlog.h>
 
@@ -185,6 +186,12 @@ public:
     return allHandlesSet && !exceptionPtr && opticalTrackerP && isConnectionEstablished_;
   }
 
+  /// Is the optical tracker plugin currently recording log data?
+  bool is_recording()
+  {
+    return is_active() && m_isRecording;
+  }
+ 
   void run_one()
   {
 
@@ -236,21 +243,27 @@ public:
     destruct();
   }
 
-  // start recording the fusiontrack frame data in memory
+  /// start recording the fusiontrack frame data in memory
+  /// return true on success, false on failure
   bool start_recording()
   {
+    std::cout <<"Start Recording..." << std::endl;
     m_isRecording = true;
+    return m_isRecording;
   }
-
-  // stop recording the fusiontrack frame data in memory
+  /// stop recording the fusiontrack frame data in memory
+  /// return true on success, false on failure
   bool stop_recording()
   {
+    std::cout <<"Stop Recording..." << std::endl;
     m_isRecording = false;
+    return !m_isRecording;
   }
 
   // save the currently recorded fusiontrack frame data, this also clears the recording
   bool save_recording(std::string filename)
   {
+    std::cout <<"Save Recording..." << filename << std::endl;
     /// lock mutex before accessing file
     std::lock_guard<std::mutex> lock(m_frameAccess);
     /// std::move std::move is used to indicate that an object (m_logFileBufferBuilderP) may be "moved from",
@@ -282,7 +295,7 @@ public:
   }
 
   // clear the recording buffer from memory immediately to start fresh
-  bool clear_recording()
+  void clear_recording()
   {
     std::lock_guard<std::mutex> lock(m_frameAccess);
     m_logFileBufferBuilderP.reset();
@@ -411,7 +424,7 @@ private:
     }
     return IDToHandleConfig;
   }
-};
+};  /// End of class AtracsysFusionTrackVrepPlugin
 }
 
 #endif // _ATRACSYS_FUSION_TRACK_VREP_PLUGIN_HPP_

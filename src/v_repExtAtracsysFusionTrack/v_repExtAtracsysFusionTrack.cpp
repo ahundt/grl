@@ -45,6 +45,9 @@ grl::AtracsysFusionTrackVrepPlugin::Params fusionTrackParamsG = grl::AtracsysFus
 std::shared_ptr<grl::AtracsysFusionTrackVrepPlugin> fusionTrackPG;
 /// spdlog is a header only library. Just copy the files under include to your build tree and use a C++11 compiler.
 std::shared_ptr<spdlog::logger> loggerPG;
+/// By default once the simulation starts, we start the recording procedure.
+bool recordWhileSimulationIsRunningG = true;
+
 
 void removeGeometryID(std::string geometryID_lua_param, grl::AtracsysFusionTrackVrepPlugin::Params &params)
 {
@@ -301,7 +304,9 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING(SLuaCallBack *p)
 	bool success = false;
 	if (fusionTrackPG)
 	{
-		loggerPG->info("Start recording the fusiontrack frame data in memory\n");
+		std::string log_message("Starting the recording of fusiontrack frame data in memory.\n");
+		simAddStatusbarMessage(log_message.c_str());
+		loggerPG->info(log_message);
 		success = fusionTrackPG->start_recording();
 	}
 	D.pushOutData(CLuaFunctionDataItem(success));
@@ -317,7 +322,9 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_STOP_RECORDING(SLuaCallBack *p)
 	bool success = false;
 	if (fusionTrackPG)
 	{
-		loggerPG->info("Stop recording the fusiontrack frame data in memory\n");
+		std::string log_message("Stopping the recording of fusiontrack frame data in memory.\n");
+		simAddStatusbarMessage(log_message.c_str());
+		loggerPG->info(log_message);
 		success = fusionTrackPG->stop_recording();
 	}
 	D.pushOutData(CLuaFunctionDataItem(success));
@@ -333,8 +340,11 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_CLEAR_RECORDING(SLuaCallBack *p)
 	bool success = false;
 	if (fusionTrackPG)
 	{
-		loggerPG->info("Clear recording the fusiontrack frame data in memory\n");
-		success = fusionTrackPG->clear_recording();
+		std::string log_message("Clearing the recorded fusiontrack frame data from memory.\n");
+		simAddStatusbarMessage(log_message.c_str());
+		loggerPG->info(log_message);
+		fusionTrackPG->clear_recording();
+		success = true;
 	}
 	D.pushOutData(CLuaFunctionDataItem(success));
 	D.writeDataToLua(p);
@@ -364,7 +374,9 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING(SLuaCallBack *p)
 
 		if (fusionTrackPG)
 		{
-			loggerPG->info("Saving the currently recorded fusiontrack frame data to a file\n");
+			std::string log_message("Saving the currently recorded fusiontrack frame data to a file.\n");
+			simAddStatusbarMessage(log_message.c_str());
+			loggerPG->info(log_message);
 			success = fusionTrackPG->save_recording(filename_lua_param);
 		}
 		D.pushOutData(CLuaFunctionDataItem(success));
@@ -605,17 +617,23 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
 		//            simAddStatusbarMessage( initerr.c_str());
 		//            LoggerPG->error( initerr);
 		//        }
+
+		if(fusionTrackPG && recordWhileSimulationIsRunningG) {
+			fusionTrackPG->start_recording();
+		}
 	}
 
 	if (message == sim_message_eventcallback_simulationended)
 	{ // Simulation just ended
 
 		/////////////////////////
-		// PUT OBJECT RESET CODE HERE
+		// SIMULATION STOPS RUNNING HERE
 		// close out as necessary
 		////////////////////
-		//BOOST_LOG_TRIVIAL(info) << "Ending Atracsys Fusion Track Plugin connection to Optical Tracker\n";
-		//fusionTrackPG.reset();
+		if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
+			fusionTrackPG->save_recording("test.flik");
+			fusionTrackPG->stop_recording();
+		}
 	}
 
 	if (message == sim_message_eventcallback_moduleopen)

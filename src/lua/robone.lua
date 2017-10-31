@@ -497,7 +497,7 @@ robone.configureOpticalTracker=function()
 												)
 			end
 
-			-- Start collecting data from the optical tracker?
+			-- Start collecting data from the optical tracker
 			simExtAtracsysFusionTrackStart()
 		end
 

@@ -359,7 +359,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 {
 
     flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(const_cast<const char *>(timeStamp.event_name.begin()), stringLength(timeStamp.event_name));
-    std::cout << "Type: " << typeid(timeStamp.local_request_time).name() << std::endl;
+    // std::cout << "Type: " << typeid(timeStamp.local_request_time).name() << std::endl;
     /// https://github.com/googlecartographer/cartographer/blob/master/cartographer/common/time.cc
     /// convert time to int64
     int64_t local_request_time = 0; //cartographer::common::ToUniversal(timeStamp.local_request_time);
