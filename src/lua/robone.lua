@@ -446,6 +446,7 @@ robone.configureOpticalTracker=function()
 		-- Check if the required plugin is there:
 
 		require "grl"
+		simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: configuring optical tracker, loading geometry files and defining objects to move')
 		-- Check if the required plugin is there:
 		if (not grl.isModuleLoaded('AtracsysFusionTrack')) then
 			simDisplayDialog('Error','AtracsysFusionTrack plugin was not found. (v_repExtAtracsysFusionTrack.dll)&&nSimulation will not run correctly',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
@@ -455,7 +456,9 @@ robone.configureOpticalTracker=function()
 			simExtAtracsysFusionTrackSetOpticalTrackerBase('OpticalTrackerBase#0')
 
 			-- set the files defining the marker wth balls' geometry
+			simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: loading geometry0022.ini')
 			simExtAtracsysFusionTrackAddGeometry('geometry0022.ini')
+			simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: loading geometry0055.ini')
 			simExtAtracsysFusionTrackAddGeometry('geometry0055.ini')
 
 
@@ -464,6 +467,7 @@ robone.configureOpticalTracker=function()
 			-- true enables moving the tracker, false disables it
 			moveTracker = false
 			if (moveTracker) then
+				simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: Moving Optical tracker position relative to marker on robot end effector.')
 				simExtAtracsysFusionTrackClearObjects()
 				-- The OpticalTrackerBase#0 should move
 				-- (base moves relative to Fiducial #22 on the arm)
@@ -479,6 +483,7 @@ robone.configureOpticalTracker=function()
 			-- true enables moving the bone, false disables it
 			moveBone = not moveTracker
 			if (moveBone) then
+				simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: Moving bone marker position relative to the optical tracker.')
 				simExtAtracsysFusionTrackClearObjects()
 			-- The bone should move  (bone is attached to Fiducial #55)
 				simExtAtracsysFusionTrackAddObject('Fiducial#55',           -- ObjectToMove
