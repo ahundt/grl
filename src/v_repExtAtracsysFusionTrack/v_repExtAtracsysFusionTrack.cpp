@@ -383,8 +383,8 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING(SLuaCallBack *p)
 		D.writeDataToLua(p);
 	}
 }
-
-// This is the plugin start routine (called just once, just after the plugin was loaded):
+/// v-rep plugin: http://www.coppeliarobotics.com/helpFiles/en/plugins.htm
+/// This is the plugin start routine (called just once, just after the plugin was loaded):
 VREP_DLLEXPORT unsigned char v_repStart(void *reservedPointer, int reservedInt)
 {
 	try
@@ -518,8 +518,9 @@ VREP_DLLEXPORT void v_repEnd()
 }
 
 // This is the plugin messaging routine (i.e. V-REP calls this function very often, with various messages):
+// This is called quite often. Just watch out for messages/events you want to handle
 VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customData, int *replyData)
-{ // This is called quite often. Just watch out for messages/events you want to handle
+{ 
 	// Keep following 5 lines at the beginning and unchanged:
 	static bool refreshDlgFlag = true;
 	int errorModeSaved;
@@ -530,6 +531,7 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
 	// Here we can intercept many messages from V-REP (actually callbacks). Only the most important messages are listed here.
 	// For a complete list of messages that you can intercept/react with, search for "sim_message_eventcallback"-type constants
 	// in the V-REP user manual.
+	// http://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#simulatorMessages
 
 	if (message == sim_message_eventcallback_refreshdialogs)
 		refreshDlgFlag = true; // V-REP dialogs were refreshed. Maybe a good idea to refresh this plugin's dialog too
