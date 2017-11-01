@@ -88,8 +88,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
             fbb.CreateVectorOfStructs<grl::flatbuffer::Vector3d>(fiducials));
         geometryvector.push_back(fbGeometry);
     }
-    auto fbGemetryvector = fbb.CreateVector(&geometryvector[0], geometryvector.size());
-    return fbGemetryvector;
+    auto fbGeometryvector = fbb.CreateVector(&geometryvector[0], geometryvector.size());
+    return fbGeometryvector;
 }
 
 /// Convert uint32 Mask to a std::vector.
@@ -131,6 +131,9 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         &fbPose //const Pose *transform = 0;
         );
 }
+
+/// Convert ftk marker objects along with the name to flatbuffers
+/// @see FusionTrack.hpp for details
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkMarker>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::vector<::ftkMarker> &ftkMarkers,
@@ -142,10 +145,12 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     {
         fbMarkers.push_back(toFlatBuffer(fbb, ftkMarkers[i], markername[i]));
     }
-    auto fbmarkervector = fbb.CreateVector(&fbMarkers[0], markersize);
-    return fbmarkervector;
+    auto fbMarkerVector = fbb.CreateVector(&fbMarkers[0], markersize);
+    return fbMarkerVector;
 }
-   /// Converte a global variable ::ftk3DFiducial to grl::flatbutter::ftk3DFiducial.
+
+/// Convert a global variable ::ftk3DFiducial to grl::flatbutter::ftk3DFiducial.
+/// @see FusionTrack.hpp for details
 flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const ::ftk3DFiducial &Fiducial,
@@ -163,6 +168,10 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         Fiducial.triangulationErrorMM,
         Fiducial.probability);
 }
+
+
+/// Convert ftk3DFiducial representation of an optical traker's reflective ball or ir LED to a flatbuffer
+/// @see FusionTrack.hpp for details
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::vector<::ftk3DFiducial> &fiducials,
@@ -179,6 +188,9 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     auto fbfiducialvector = fbb.CreateVector(&fbfiducials[0], fiducialsize);
     return fbfiducialvector;
 }
+
+
+/// Convert ftkRegionOfInterest, aka ftkRawData to flatbuffer formatted version
 flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const ::ftkRawData &ftkRegionOfInterest)
@@ -203,6 +215,9 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         _probability);
 }
 
+
+/// Convert Atracsys FusionTrack optical tracker library's ftkRawData to flatbuffer
+/// @see FusionTrack.hpp for details
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::vector<::ftkRawData> &ftkRawDatas)
@@ -217,8 +232,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     return fbb.CreateVector(ftkRegionOfInterests);
 }
 
-
-
+/// grl::sensor::FusionTrack::Frame to flatbuffer
+/// @see FusionTrack.hpp for details
 flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::sensor::FusionTrack::Frame &frame)
@@ -233,7 +248,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     }
 
     static const double microsecToSec = 1 / 1000000;
-    flatbuffers::FlatBufferBuilder &_fbb = fbb;
     double timestamp = frame.imageHeader.timestampUS * microsecToSec;
     uint64_t serialNumber = frame.SerialNumber;
     uint64_t hardwareTimestampUS = frame.imageHeader.timestampUS;
@@ -251,7 +265,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     flatbuffers::Offset<flatbuffers::String> imageRightPixels = frame.CameraImageRightP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageRightP->begin()), sizeof(frame.CameraImageRightP)) : 0;
     uint32_t imageRightPixelsVersion = frame.FrameQueryP->imageRightVersionSize.Version;
     int32_t imageRightStatus = frame.FrameQueryP->imageRightStat;
-    
+
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> regionsOfInterestLeft = toFlatBuffer(fbb, frame.ImageRegionOfInterestBoxesLeft);
     uint32_t regionsOfInterestLeftVersion = frame.FrameQueryP->rawDataLeftVersionSize.Version;
     int32_t regionsOfInterestLeftStatus = frame.FrameQueryP->rawDataLeftStat;
@@ -268,7 +282,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     int64_t ftkError = frame.Error;
 
     return grl::flatbuffer::CreateFusionTrackFrame(
-        _fbb,
+        fbb,
         timestamp,
         serialNumber,
         hardwareTimestampUS,
@@ -357,19 +371,18 @@ flatbuffers::Offset<grl::flatbuffer::TimeEvent>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::TimeEvent &timeStamp)
 {
-
+    /// @todo TODO(ahundt) IN PROGRESS There remains the time issue
     flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(const_cast<const char *>(timeStamp.event_name.begin()), stringLength(timeStamp.event_name));
-    // std::cout << "Type: " << typeid(timeStamp.local_request_time).name() << std::endl;
     /// https://github.com/googlecartographer/cartographer/blob/master/cartographer/common/time.cc
     /// convert time to int64
-    int64_t local_request_time = 0; //cartographer::common::ToUniversal(timeStamp.local_request_time);
+    int64_t local_request_time = cartographer::common::ToUniversal(timeStamp.local_request_time);
     flatbuffers::Offset<flatbuffers::String> device_clock_id = fbb.CreateString(const_cast<const char *>(timeStamp.device_clock_id.begin()), stringLength(timeStamp.device_clock_id));
-    int64_t device_time = 0; //ToUniversal(timeStamp.device_time);
+    int64_t device_time = cartographer::common::ToUniversal(timeStamp.device_time);
     flatbuffers::Offset<flatbuffers::String> local_clock_id = fbb.CreateString(const_cast<const char *>(timeStamp.local_clock_id.begin()), stringLength(timeStamp.local_clock_id));
-    int64_t local_receive_time = 0;   //ToUniversal(timeStamp.local_receive_time);
-    int64_t corrected_local_time = 0; //ToUniversal(timeStamp.corrected_local_time);
-    int64_t clock_skew = 0;           //cartographer::common::ToSeconds(timeStamp.clock_skew);
-    int64_t min_transport_delay = 0;  //cartographer::common::ToSeconds(timeStamp.min_transport_delay);
+    int64_t local_receive_time = cartographer::common::ToUniversal(timeStamp.local_receive_time);
+    int64_t corrected_local_time = cartographer::common::ToUniversal(timeStamp.corrected_local_time);
+    int64_t clock_skew = cartographer::common::ToSeconds(timeStamp.clock_skew);
+    int64_t min_transport_delay = cartographer::common::ToSeconds(timeStamp.min_transport_delay);
     return grl::flatbuffer::CreateTimeEvent(
         fbb,
         event_name,
