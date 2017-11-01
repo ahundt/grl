@@ -248,9 +248,7 @@ class FusionTrack
             if (error == FTK_OK && m_deviceSerialNumbers.size() != 0)
             {
                 break;
-            }
-            else
-            {
+            } else {
                 ftkClose(&m_ftkLibrary);
                 m_ftkLibrary = nullptr;
             }
@@ -258,16 +256,14 @@ class FusionTrack
 
         if (error != FTK_OK)
         {
-            if (m_ftkLibrary != nullptr)
-                ftkClose(&m_ftkLibrary);
+            if (m_ftkLibrary != nullptr) ftkClose(&m_ftkLibrary);
             BOOST_THROW_EXCEPTION(std::system_error(
                 std::make_error_code(std::errc::no_such_device),
                 std::string("FusionTrack: unable to enumerate devices (FusionTrack)")));
         }
         if (m_deviceSerialNumbers.size() == 0 || m_deviceSerialNumbers[0] == 0)
         {
-            if (m_ftkLibrary != nullptr)
-                ftkClose(&m_ftkLibrary);
+            if (m_ftkLibrary != nullptr) ftkClose(&m_ftkLibrary);
             BOOST_THROW_EXCEPTION(std::system_error(
                 std::make_error_code(std::errc::no_such_device),
                 std::string("FusionTrack: no device connected (FusionTrack)")));
@@ -354,8 +350,7 @@ class FusionTrack
                                                 TimeStamp()
         {
 
-            if (FrameQueryP == nullptr)
-                throw std::bad_alloc();
+            if (FrameQueryP == nullptr) throw std::bad_alloc();
 
             // image header
             FrameQueryP->imageHeader = &imageHeader;
@@ -369,24 +364,19 @@ class FusionTrack
                 FrameQueryP->imageLeftPixels = CameraImageLeftP->begin();
                 FrameQueryP->imageLeftVersionSize.Version = Version;
                 FrameQueryP->imageLeftVersionSize.ReservedSize = sizeof(ftkMarker) * Markers.size();
-            }
-            else
-            {
+            } else {
                 FrameQueryP->imageLeftPixels = nullptr;
                 FrameQueryP->imageLeftVersionSize.Version = Version;
                 FrameQueryP->imageLeftVersionSize.ReservedSize = 0;
             }
 
             // actual right camera image
-            if (retrieveRightPixels)
-            {
+            if (retrieveRightPixels) {
                 CameraImageRightP = std::make_shared<CameraImage>();
                 FrameQueryP->imageRightPixels = CameraImageRightP->begin();
                 FrameQueryP->imageRightVersionSize.Version = Version;
                 FrameQueryP->imageRightVersionSize.ReservedSize = sizeof(ftkMarker) * Markers.size();
-            }
-            else
-            {
+            } else {
                 FrameQueryP->imageRightPixels = nullptr;
                 FrameQueryP->imageRightVersionSize.Version = Version;
                 FrameQueryP->imageRightVersionSize.ReservedSize = 0;
