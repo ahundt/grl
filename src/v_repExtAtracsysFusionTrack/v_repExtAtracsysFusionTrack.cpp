@@ -19,6 +19,7 @@
 #include "luaFunctionData.h"
 #include "v_repExtAtracsysFusionTrack.h"
 #include "grl/vrep/AtracsysFusionTrackVrepPlugin.hpp"
+#include "grl/time.hpp"
 
 #include "v_repLib.h"
 
@@ -70,13 +71,13 @@ void removeGeometryID(std::string geometryID_lua_param, grl::AtracsysFusionTrack
 #define LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_ADD_GEOMETRY_COMMAND "simExtAtracsysFusionTrackAddGeometry"
 
 /*
-inputArgumentTypes: array indicating the desired input arguments. 
-This is important so that the simulator knows how to convert between Lua types (e.g. Lua value"4.2" can be converted to int 4, to float 4.2, to string "4.2" or to Boolean 1). 
-Can be NULL, in that case no input argument is forwarded to the callback address. 
-inputArgumentTypes[0] represents the number of input arguments we wish to be forwarded, 
-inputArgumentTypes[1] is the type of the first argument, 
-inputArgumentTypes[2] is the type of the second argument, etc. 
-An input argument type can be sim_lua_arg_bool, sim_lua_arg_int, sim_lua_arg_float, sim_lua_arg_string or sim_lua_arg_charbuff, that can be combined (|) with sim_lua_arg_table if table values are desired. 
+inputArgumentTypes: array indicating the desired input arguments.
+This is important so that the simulator knows how to convert between Lua types (e.g. Lua value"4.2" can be converted to int 4, to float 4.2, to string "4.2" or to Boolean 1).
+Can be NULL, in that case no input argument is forwarded to the callback address.
+inputArgumentTypes[0] represents the number of input arguments we wish to be forwarded,
+inputArgumentTypes[1] is the type of the first argument,
+inputArgumentTypes[2] is the type of the second argument, etc.
+An input argument type can be sim_lua_arg_bool, sim_lua_arg_int, sim_lua_arg_float, sim_lua_arg_string or sim_lua_arg_charbuff, that can be combined (|) with sim_lua_arg_table if table values are desired.
 And exception to this is sim_lua_arg_charbuff, which cannot be combined with sim_lua_arg_table.
 */
 const int inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_ADD_GEOMETRY[] = {
@@ -520,7 +521,7 @@ VREP_DLLEXPORT void v_repEnd()
 // This is the plugin messaging routine (i.e. V-REP calls this function very often, with various messages):
 // This is called quite often. Just watch out for messages/events you want to handle
 VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customData, int *replyData)
-{ 
+{
 	// Keep following 5 lines at the beginning and unchanged:
 	static bool refreshDlgFlag = true;
 	int errorModeSaved;
@@ -633,7 +634,10 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
 		// close out as necessary
 		////////////////////
 		if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
-			fusionTrackPG->save_recording("test.flik");
+			std::string timestamp = current_date_and_time_string();
+			std::stringstream filename;
+			filename << timestamp << "_recording.flik";
+			fusionTrackPG->save_recording(filename.str());
 			fusionTrackPG->stop_recording();
 		}
 	}
