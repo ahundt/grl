@@ -350,7 +350,8 @@ class FusionTrack
             uint32_t max3DFiducialInstances = 128,
             uint32_t maxMarkerInstances = 32) : SerialNumber(serialNumber),
                                                 FrameQueryP(ftkCreateFrame()),
-                                                Error(FTK_OK)
+                                                Error(FTK_OK),
+                                                TimeStamp()
         {
 
             if (FrameQueryP == nullptr)
