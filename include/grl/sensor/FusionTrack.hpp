@@ -220,7 +220,7 @@ class FusionTrack
     Params::MarkerModelGeometry ftkGeometryToMarkerModelGeometry(::ftkGeometry &ftkg)
     {
         Params::MarkerModelGeometry geom;
-        for (int i = 0; i < ftkg.pointsCount; ++i)
+        for(int i = 0; i < ftkg.pointsCount; ++i)
         {
             geom.push_back(ftkg.positions[i]);
         }
@@ -230,7 +230,7 @@ class FusionTrack
     FusionTrack(Params params = defaultParams()) : m_params(params)
     {
 #ifdef HAVE_SPDLOG
-        if (!params.loggerName.empty())
+        if(!params.loggerName.empty())
         {
             m_logger = spdlog::get(params.loggerName);
         }
@@ -238,14 +238,14 @@ class FusionTrack
 #endif // HAVE_SPDLOG
         ftkError error;
         // search for devices
-        for (std::size_t i = 0; i < m_params.maximumConnectionAttempts; i++)
+        for(std::size_t i = 0; i < m_params.maximumConnectionAttempts; i++)
         {
             m_ftkLibrary = ftkInit();
             // try a number of times before giving up
             error = ftkEnumerateDevices(m_ftkLibrary,
                                         detail::updateDeviceSerialNumber,
                                         this);
-            if (error == FTK_OK && m_deviceSerialNumbers.size() != 0)
+            if(error == FTK_OK && m_deviceSerialNumbers.size() != 0)
             {
                 break;
             }
@@ -256,17 +256,16 @@ class FusionTrack
             }
         }
 
-        if (error != FTK_OK)
+        if(error != FTK_OK)
         {
-            if (m_ftkLibrary != nullptr) ftkClose(&m_ftkLibrary);
+            if(m_ftkLibrary != nullptr) ftkClose(&m_ftkLibrary);
             BOOST_THROW_EXCEPTION(std::system_error(
                 std::make_error_code(std::errc::no_such_device),
                 std::string("FusionTrack: unable to enumerate devices (FusionTrack)")));
         }
-        if (m_deviceSerialNumbers.size() == 0 || m_deviceSerialNumbers[0] == 0)
+        if(m_deviceSerialNumbers.size() == 0 || m_deviceSerialNumbers[0] == 0)
         {
-            if (m_ftkLibrary != nullptr)
-                ftkClose(&m_ftkLibrary);
+            if(m_ftkLibrary != nullptr) ftkClose(&m_ftkLibrary);
             BOOST_THROW_EXCEPTION(std::system_error(
                 std::make_error_code(std::errc::no_such_device),
                 std::string("FusionTrack: no device connected (FusionTrack)")));
@@ -276,7 +275,7 @@ class FusionTrack
 
         // make sure we can find and load this tool ini file
         // data loaded from the ini file is also placed back in params
-        for (auto fileName : m_params.geometryFilenames)
+        for(auto fileName : m_params.geometryFilenames)
         {
             ftkGeometry geometry;
             switch (loadGeometry(m_ftkLibrary, m_deviceSerialNumbers[0], fileName, geometry))
@@ -284,10 +283,10 @@ class FusionTrack
             case 1:
                 BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: loaded ") + fileName + " from installation directory"));
             case 0:
-                for (auto serialNumber : m_deviceSerialNumbers)
+                for(auto serialNumber : m_deviceSerialNumbers)
                 {
                     error = ftkSetGeometry(m_ftkLibrary, serialNumber, &geometry);
-                    if (error != FTK_OK)
+                    if(error != FTK_OK)
                     {
                         BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: unable to set geometry for tool ") + fileName + " (FusionTrack)"));
                     }
@@ -353,8 +352,7 @@ class FusionTrack
                                                 TimeStamp()
         {
 
-            if (FrameQueryP == nullptr)
-                throw std::bad_alloc();
+            if(FrameQueryP == nullptr) throw std::bad_alloc();
 
             // image header
             FrameQueryP->imageHeader = &imageHeader;
@@ -362,7 +360,7 @@ class FusionTrack
             FrameQueryP->imageHeaderVersionSize.ReservedSize = sizeof(ftkImageHeader);
 
             // actual left camera image
-            if (retrieveLeftPixels)
+            if(retrieveLeftPixels)
             {
                 CameraImageLeftP = std::make_shared<CameraImage>();
                 FrameQueryP->imageLeftPixels = CameraImageLeftP->begin();
@@ -377,7 +375,7 @@ class FusionTrack
             }
 
             // actual right camera image
-            if (retrieveRightPixels)
+            if(retrieveRightPixels)
             {
                 CameraImageRightP = std::make_shared<CameraImage>();
                 FrameQueryP->imageRightPixels = CameraImageRightP->begin();
@@ -515,10 +513,10 @@ class FusionTrack
     /// another device specify the serial number.
     void receive(Frame &rs)
     {
-        if (m_deviceSerialNumbers.size() == 0) throw std::runtime_error("FusionTrack::receive() called but no trackers are connected.");
+        if(m_deviceSerialNumbers.size() == 0) throw std::runtime_error("FusionTrack::receive() called but no trackers are connected.");
 
         // default to the first device if none is specified
-        if (rs.SerialNumber == 0) rs.SerialNumber = m_deviceSerialNumbers[0];
+        if(rs.SerialNumber == 0) rs.SerialNumber = m_deviceSerialNumbers[0];
 
         // resize frame contents to the user specified capacity
         prepareFrameToReceiveData(rs);
@@ -535,25 +533,25 @@ class FusionTrack
         ftkErrorExt errors(rs.Error);
 
         rs.Error = error;
-        if (error != FTK_OK)
+        if(error != FTK_OK)
         {
             // provide clean and useful errors
             ftkGetLastError(m_ftkLibrary, &errors);
 
 #ifdef HAVE_SPDLOG
-            if (m_logger && errors.isWarning() && errors.isError())
+            if(m_logger && errors.isWarning() && errors.isError())
             {
                 std::string error;
                 errors.messageStack(error);
                 m_logger->error(std::string("FusionTrack::receive() encountered both warnings and errors:\n") + error);
             }
-            else if (m_logger && errors.isWarning())
+            else if(m_logger && errors.isWarning())
             {
                 std::string warning;
                 errors.warningString(warning);
                 m_logger->warn(std::string("FusionTrack::receive():") + warning);
             }
-            else if (m_logger && errors.isError())
+            else if(m_logger && errors.isError())
             {
                 std::string error;
                 errors.errorString(error);
@@ -561,7 +559,7 @@ class FusionTrack
             }
 #endif // HAVE_SPDLOG
 
-            if (errors.isError())
+            if(errors.isError())
             {
                 // don't do any additional processing upon errors
                 return;
@@ -577,17 +575,17 @@ class FusionTrack
         {
         case QS_WAR_SKIPPED:
 #ifdef HAVE_SPDLOG
-            if (m_logger) m_logger->error("FusionTrack::receive: marker fields in the frame are not set correctly");
+            if(m_logger) m_logger->error("FusionTrack::receive: marker fields in the frame are not set correctly");
 #endif // HAVE_SPDLOG
         case QS_ERR_INVALID_RESERVED_SIZE:
 #ifdef HAVE_SPDLOG
-            if (m_logger) m_logger->error("FusionTrack::receive: FrameQueryP->markersVersionSize is invalid");
+            if(m_logger) m_logger->error("FusionTrack::receive: FrameQueryP->markersVersionSize is invalid");
 #endif // HAVE_SPDLOG
         case QS_OK:
             break;
         default:
 #ifdef HAVE_SPDLOG
-            if (m_logger) m_logger->error("FusionTrack::receive: invalid status of value: ", rs.FrameQueryP->markersStat);
+            if(m_logger) m_logger->error("FusionTrack::receive: invalid status of value: ", rs.FrameQueryP->markersStat);
 #endif // HAVE_SPDLOG
             break;
         }
@@ -597,10 +595,10 @@ class FusionTrack
 
         // make sure we're not getting more markers than allocated
         auto count = rs.FrameQueryP->markersCount;
-        if (count > rs.Markers.capacity())
+        if(count > rs.Markers.capacity())
         {
 #ifdef HAVE_SPDLOG
-            if (m_logger) m_logger->warn("FusionTrack::receive: marker overflow, please increase number of markers.  Only the first ", rs.Markers.size(), " marker(s) will processed.");
+            if(m_logger) m_logger->warn("FusionTrack::receive: marker overflow, please increase number of markers.  Only the first ", rs.Markers.size(), " marker(s) will processed.");
 #endif // HAVE_SPDLOG
         }
     }

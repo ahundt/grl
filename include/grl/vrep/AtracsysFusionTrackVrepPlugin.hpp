@@ -142,7 +142,7 @@ public:
       m_driverThread->join();
     }
 
-    for (auto &saveThreadP : m_saveRecordingThreads)
+    for(auto &saveThreadP : m_saveRecordingThreads)
     {
       m_driverThread->join();
     }
@@ -214,7 +214,7 @@ public:
 
     Eigen::Affine3f cameraToMarkerTransform; /// Relative distance between camera and marker?
 
-    for (auto &marker : m_receivedFrame->Markers)
+    for(auto &marker : m_receivedFrame->Markers)
     {
 
       cameraToMarkerTransform = sensor::ftkMarkerToAffine3f(marker);
@@ -419,7 +419,7 @@ private:
   MotionConfigParamsToVrepHandleConfigMap(const InputIterator &configurations)
   {
     GeometryIDToVrepMotionConfigMap IDToHandleConfig;
-    for (auto &&motionConfig : configurations)
+    for(auto &&motionConfig : configurations)
     {
       MotionConfigParamsAddConfig(motionConfig, IDToHandleConfig);
     }

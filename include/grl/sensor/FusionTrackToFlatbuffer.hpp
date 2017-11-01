@@ -50,7 +50,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::string name = "")
 {
     std::array<grl::flatbuffer::Vector3d, FTK_MAX_FIDUCIALS> fiducials;
-    for (int i = 0; i < geometry.pointsCount; i++)
+    for(int i = 0; i < geometry.pointsCount; i++)
     {
         fiducials[i] = toFlatBuffer(geometry.positions[i]);
     }
@@ -73,10 +73,10 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     std::vector<grl::flatbuffer::Vector3d> fiducials;
     std::vector<ftk3DPoint> MarkerModelGeometry;
 
-    for (int i = 0; i < geometry_size; i++)
+    for(int i = 0; i < geometry_size; i++)
     {
         MarkerModelGeometry = params.markerModelGeometries[i];
-        for (int j = 0; j < MarkerModelGeometry.size(); j++)
+        for(int j = 0; j < MarkerModelGeometry.size(); j++)
         {
             fiducials.push_back(toFlatBuffer(MarkerModelGeometry[j]));
         }
@@ -99,7 +99,7 @@ std::vector<uint32> bitMaskToVector(uint32 x)
     std::vector<uint32> ret;
     while (x)
     {
-        if (x & 1)
+        if(x & 1)
         {
             ret.push_back(1);
         }
@@ -141,7 +141,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 {
     std::vector<flatbuffers::Offset<grl::flatbuffer::ftkMarker>> fbMarkers;
     int markersize = ftkMarkers.size();
-    for (int i = 0; i < markersize; i++)
+    for(int i = 0; i < markersize; i++)
     {
         fbMarkers.push_back(toFlatBuffer(fbb, ftkMarkers[i], markername[i]));
     }
@@ -181,7 +181,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     int fiducialsize = fiducials.size();
     int marker_name_size = markername.size();
 
-    for (int i = 0; i < fiducialsize; i++)
+    for(int i = 0; i < fiducialsize; i++)
     {
         fbfiducials.push_back(toFlatBuffer(fbb, fiducials[i], markername[i]));
     }
@@ -225,7 +225,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     std::vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>> ftkRegionOfInterests;
     int ftkRegionOfInterest_size = ftkRawDatas.size();
 
-    for (int i = 0; i < ftkRegionOfInterest_size; i++)
+    for(int i = 0; i < ftkRegionOfInterest_size; i++)
     {
         ftkRegionOfInterests.push_back(toFlatBuffer(fbb, ftkRawDatas[i]));
     }
@@ -241,7 +241,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     /// @todo TODO(ahundt) IN PROGRESS
     /// Here we should get the markers'name
     std::vector<std::string> markerNames;
-    for (auto &fiducial : frame.Fiducials)
+    for(auto &fiducial : frame.Fiducials)
     {
         /// @todo TODO(ahundt) look up actual marker names and set with "id_geometryID" here, or "" if no marker.
         markerNames.push_back("");
@@ -324,7 +324,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     int geometryFiles_size = _params.geometryFilenames.size();
     std::vector<flatbuffers::Offset<flatbuffers::String>> geometryFilenames;
     std::vector<flatbuffers::Offset<flatbuffers::String>> markerNames;
-    for (int i = 0; i < geometryFiles_size; i++)
+    for(int i = 0; i < geometryFiles_size; i++)
     {
         geometryFilenames.push_back(fbb.CreateString(_params.geometryFilenames[i]));
         markerNames.push_back(fbb.CreateString(_params.markerNames[i]));
