@@ -71,13 +71,29 @@ int main(int argc, char **argv)
 
   flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
   flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
+
+  ///////////////////////////////
+  /// Saving BINARY version of file
+
   /// Finish a buffer with given object
   /// Call `Finish()` to instruct the builder fbb that this frame is complete.
-  fbb.Finish(oneKUKAiiwaFusionTrackMessage);
-  fbb.Finish(fbLogKUKAiiwaFusionTrack);
+  const char *  	file_identifier = grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier();
+  // fbb.Finish(oneKUKAiiwaFusionTrackMessage, file_identifier);
+  fbb.Finish(fbLogKUKAiiwaFusionTrack, file_identifier);
 
-  std::string filename = "test.flik";
+  auto verifier = flatbuffers::Verifier(fbb.GetBufferPointer(), fbb.GetSize());
+  bool success = grl::flatbuffer::VerifyLogKUKAiiwaFusionTrackBuffer(verifier);
+
+  std::string filename_prefix = "test";
+  std::string filename_binary_suffix = "_binary.flik";
+  std::string filename_binary = filename_prefix + filename_binary_suffix;
+  std::cout << "filename_binary: " << filename_binary << " verifier success: " << success << std::endl;
   uint8_t *buf = fbb.GetBufferPointer();
+
+  flatbuffers::SaveFile(filename_binary.c_str(), reinterpret_cast<const char *>(buf), fbb.GetSize(), true);
+
+  ///////////////////////////////
+  /// Saving JSON version of file
 
   /// This part is to get the relative path of the fbs file, then load and parse it, with the parsed format,
   /// write the data from flatbuffer to json file on disc.
@@ -102,12 +118,15 @@ int main(int argc, char **argv)
   ok = parser.Parse(schemafile.c_str(), include_directories);
   /// now generate text from the flatbuffer binary
   GenerateText(parser, buf, &jsongen);
+
+  std::string filename_json_suffix = "_text.json";
+  std::string filename_json = filename_prefix + filename_json_suffix;
   /// Write the data get from flatbuffer binary to json file on disc.
-  std::ofstream out("LogKUKAiiwaFusionTrack.json");
+  std::ofstream out(filename_json);
+
   out << jsongen.c_str();
   out.close();
 
-  flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char *>(buf), fbb.GetSize(), true);
   std::cout << " fbb.GetSize(): " << fbb.GetSize() << std::endl;
 
   std::cout << "End of the program" << std::endl;

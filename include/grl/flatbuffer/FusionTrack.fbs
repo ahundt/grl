@@ -5,7 +5,7 @@ include "Time.fbs";
 include "Geometry.fbs";
 
 namespace grl.flatbuffer;
-// All these enums and tables have their associated class (or structure) in ftkInterface.h 
+// All these enums and tables have their associated class (or structure) in ftkInterface.h
 enum ftkQueryStatus : int {
   QS_WAR_SKIPPED = -1,
   QS_OK = 0,
@@ -31,14 +31,14 @@ table ftkGeometry {
 
 table ftkMarker {
   name:string;
-  id:uint;
+  ID:uint;
   geometryID:uint;
   geometryPresenceMask:[uint];
   transform:Pose;
 }
 
 table ftk3DFiducial {
-  markerName:string;
+  markerID:uint;
   leftIndex:uint;
   rightIndex:uint;
   position:Vector3d;
@@ -144,7 +144,7 @@ table FusionTrackMessage {
   timestamp:double;
   // The configuration data of FusionTrack, which is seldom changed.
   parameters:FusionTrackParameters;
-  // TimeEvent is defined in Time.fbs and TimeEvent.hpp 
+  // TimeEvent is defined in Time.fbs and TimeEvent.hpp
   timeEvent:TimeEvent;
   frame:FusionTrackFrame;
 }
