@@ -23,7 +23,8 @@ namespace grl {
 //                  std::cout << ++num_periods << "timesteps have passed\n"
 //          });
 //          // do other stuff here, this example will work
-//          // but spins at 100% CPU without the sleep
+//          // but spins at 100% CPU without the sleep,
+//          // remove the next line in your real application
 //          std::this_thread::sleep_for(std::chrono::milliseconds(1));
 //     }
 //

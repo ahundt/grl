@@ -1,3 +1,4 @@
+/// MacOS scheduler functions
 #ifndef _GRL_REALTIME_HPP_
 #define _GRL_REALTIME_HPP_
 
@@ -57,25 +58,25 @@ inline int set_realtime(int period, int computation, int constraint, bool preemp
 	kern_return_t kret;
 
 	kret = mach_timebase_info(&mti);
-    
+
 	if (kret != KERN_SUCCESS) {
 		warnx("Could not get timebase info %d", kret);
 		return 0;
 	}
-    
+
     thread_port_t threadport = pthread_mach_thread_np(pthread_self());
- 
+
     ttcpolicy.period      = nanos_to_abs(period, mti.numer, mti.denom);
     ttcpolicy.computation = nanos_to_abs(computation, mti.numer, mti.denom); // HZ/3300;
     ttcpolicy.constraint  = nanos_to_abs(constraint, mti.numer, mti.denom); // HZ/2200;
     ttcpolicy.preemptible = preemptible;
- 
+
     if ((kret=thread_policy_set(threadport,
         THREAD_TIME_CONSTRAINT_POLICY, (thread_policy_t)&ttcpolicy,
         THREAD_TIME_CONSTRAINT_POLICY_COUNT)) != KERN_SUCCESS) {
             fprintf(stderr, "set_realtime() failed.\n");
 		    warnx("Failed to set_realtime %d", kret);
-            
+
             return 0;
     }
     return 1;

@@ -1,3 +1,4 @@
+/// This file simply wraps some includes provided by KUKA's FRI driver libraries, in the zip file KUKA should provide you.
 #ifndef GRL_KUKA_FRI
 #define GRL_KUKA_FRI
 

@@ -1,15 +1,16 @@
 /// @file KukaNanopb.hpp
 ///
-/// Enable boost::range to be used for nanopb repeated int and repeated double types
+/// Utility functions to enable boost::range to be used for nanopb repeated int and repeated double types
 ///
 /// @see http://www.boost.org/doc/libs/1_57_0/libs/range/doc/html/range/reference/extending/method_2.html
 
-#ifndef _NANOPB_HPP_
-#define _NANOPB_HPP_
+#ifndef _KUKA_NANOPB_HPP_
+#define _KUKA_NANOPB_HPP_
 
 #include <iterator>         // for std::iterator_traits, std::distance()
 #include <boost/range.hpp>
 #include <boost/type_traits.hpp>
+/// The pb_frimessages_callbacks.h file is defined in the kuka FRI library zip see GRL documentation for details.
 #include "pb_frimessages_callbacks.h"
 
 #ifdef BOOST_LIB_STD_CXX
@@ -148,4 +149,4 @@ namespace boost
 	}
 
 
-#endif
+#endif // _KUKA_NANOPB_HPP_
