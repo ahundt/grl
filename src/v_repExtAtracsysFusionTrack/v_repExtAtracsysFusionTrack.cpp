@@ -687,7 +687,7 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
 		if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
 			std::string timestamp = current_date_and_time_string();
 			std::stringstream filename;
-			filename << timestamp << "_recording.flik";
+			filename << timestamp << "_flatbuffer.flik";
 			fusionTrackPG->save_recording(filename.str());
 			fusionTrackPG->stop_recording();
 		}
