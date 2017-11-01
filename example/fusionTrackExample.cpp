@@ -16,8 +16,7 @@
 int main(int argc, char **argv)
 {
   bool debug = true;
-  if (debug)
-    std::cout << "starting fusiontrack" << std::endl;
+  if (debug) std::cout << "starting fusiontrack" << std::endl;
   grl::sensor::FusionTrack::Params ftp = grl::sensor::FusionTrack::emptyDefaultParams();
   // ftp.retrieveLeftPixels = false;
   // ftp.retrieveRightPixels = false;
@@ -26,15 +25,13 @@ int main(int argc, char **argv)
   grl::sensor::FusionTrack ft(ftp);
   auto serialNumbers = ft.getDeviceSerialNumbers();
 
-  if (debug)
-    std::cout << "allocating frame" << std::endl;
+  if (debug) std::cout << "allocating frame" << std::endl;
   // allocating frame object
   grl::sensor::FusionTrack::Frame frame(ft.makeFrame());
   std::cout << "makeframe imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
   // get a fixed total number of updates from each device
   int num_updates = 3;
-  if (debug)
-    std::cout << "entering data receive loop" << std::endl;
+  if (debug) std::cout << "entering data receive loop" << std::endl;
 
   flatbuffers::FlatBufferBuilder fbb;
   std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>> KUKAiiwaFusionTrackMessage_vector;
@@ -52,16 +49,13 @@ int main(int argc, char **argv)
       ft.receive(frame);
       if (frame.Error == FTK_OK)
       {
-        if (debug)
-          std::cout << "time_us_member: " << frame.imageHeader.timestampUS
+        if (debug) std::cout << "time_us_member: " << frame.imageHeader.timestampUS
                     << " time_us_ftkQuery: " << frame.FrameQueryP->imageHeader->timestampUS << "\n";
-        if (debug)
-          std::cout << " imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
+        if (debug) std::cout << " imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
         for (const ftkMarker &marker : frame.Markers)
         {
           Eigen::Affine3f fusionTrackToMarker = grl::sensor::ftkMarkerToAffine3f(marker);
-          if (debug)
-            std::cout << " matrix: " << fusionTrackToMarker.matrix();
+          if (debug) std::cout << " matrix: " << fusionTrackToMarker.matrix();
         }
       }
       else

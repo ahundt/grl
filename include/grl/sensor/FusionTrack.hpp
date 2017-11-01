@@ -258,8 +258,7 @@ class FusionTrack
 
         if (error != FTK_OK)
         {
-            if (m_ftkLibrary != nullptr)
-                ftkClose(&m_ftkLibrary);
+            if (m_ftkLibrary != nullptr) ftkClose(&m_ftkLibrary);
             BOOST_THROW_EXCEPTION(std::system_error(
                 std::make_error_code(std::errc::no_such_device),
                 std::string("FusionTrack: unable to enumerate devices (FusionTrack)")));
@@ -516,12 +515,10 @@ class FusionTrack
     /// another device specify the serial number.
     void receive(Frame &rs)
     {
-        if (m_deviceSerialNumbers.size() == 0)
-            throw std::runtime_error("FusionTrack::receive() called but no trackers are connected.");
+        if (m_deviceSerialNumbers.size() == 0) throw std::runtime_error("FusionTrack::receive() called but no trackers are connected.");
 
         // default to the first device if none is specified
-        if (rs.SerialNumber == 0)
-            rs.SerialNumber = m_deviceSerialNumbers[0];
+        if (rs.SerialNumber == 0) rs.SerialNumber = m_deviceSerialNumbers[0];
 
         // resize frame contents to the user specified capacity
         prepareFrameToReceiveData(rs);
