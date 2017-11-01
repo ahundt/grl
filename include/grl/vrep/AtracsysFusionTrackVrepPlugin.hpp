@@ -191,7 +191,7 @@ public:
   {
     return is_active() && m_isRecording;
   }
- 
+
   void run_one()
   {
 
@@ -302,6 +302,7 @@ public:
     m_KUKAiiwaFusionTrackMessageBufferP.reset();
   }
 
+
 private:
   /// @todo support boost::asio
   /// Reads data off of the real optical tracker device in a separate thread
@@ -402,7 +403,7 @@ private:
   /// Adds a configuration to to a config map
   static void MotionConfigParamsAddConfig(const MotionConfigParams &motionConfig, GeometryIDToVrepMotionConfigMap &IDToHandleConfig)
   {
-   /// boost::lexical_cast, that can convert numbers from strings to numeric types like int or double and vice versa. 
+   /// boost::lexical_cast, that can convert numbers from strings to numeric types like int or double and vice versa.
     IDToHandleConfig[boost::lexical_cast<int>(std::get<GeometryID>(motionConfig))] =
         /// Creates a tuple object, deducing the target type from the types of arguments.
         std::make_tuple(
