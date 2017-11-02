@@ -50,7 +50,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::string name = "")
 {
     std::array<grl::flatbuffer::Vector3d, FTK_MAX_FIDUCIALS> fiducials;
-    for (int i = 0; i < geometry.pointsCount; i++)
+    for(int i = 0; i < geometry.pointsCount; i++)
     {
         fiducials[i] = toFlatBuffer(geometry.positions[i]);
     }
@@ -73,10 +73,10 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     std::vector<grl::flatbuffer::Vector3d> fiducials;
     std::vector<ftk3DPoint> MarkerModelGeometry;
 
-    for (int i = 0; i < geometry_size; i++)
+    for(int i = 0; i < geometry_size; i++)
     {
         MarkerModelGeometry = params.markerModelGeometries[i];
-        for (int j = 0; j < MarkerModelGeometry.size(); j++)
+        for(int j = 0; j < MarkerModelGeometry.size(); j++)
         {
             fiducials.push_back(toFlatBuffer(MarkerModelGeometry[j]));
         }
@@ -99,7 +99,7 @@ std::vector<uint32> bitMaskToVector(uint32 x)
     std::vector<uint32> ret;
     while (x)
     {
-        if (x & 1)
+        if(x & 1)
         {
             ret.push_back(1);
         }
@@ -141,7 +141,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 {
     std::vector<flatbuffers::Offset<grl::flatbuffer::ftkMarker>> fbMarkers;
     int markersize = ftkMarkers.size();
-    for (int i = 0; i < markersize; i++)
+    for(int i = 0; i < markersize; i++)
     {
         fbMarkers.push_back(toFlatBuffer(fbb, ftkMarkers[i], markername[i]));
     }
@@ -154,13 +154,13 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const ::ftk3DFiducial &Fiducial,
-             const std::string markername = "")
+             const uint64_t markerID = 0)
 {
     /// The type of Fiducial.positionMM is ftk3DPoint.
     auto positiont3Dpoint = toFlatBuffer(Fiducial.positionMM);
     return grl::flatbuffer::Createftk3DFiducial(
         fbb,
-        fbb.CreateString(markername),
+        markerID,
         Fiducial.leftIndex,
         Fiducial.rightIndex,
         &positiont3Dpoint,
@@ -175,15 +175,15 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const std::vector<::ftk3DFiducial> &fiducials,
-             const std::vector<std::string> &markername)
+             const std::vector<uint64_t> &markerID)
 {
     std::vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>> fbfiducials;
     int fiducialsize = fiducials.size();
-    int marker_name_size = markername.size();
+    int marker_name_size = markerID.size();
 
-    for (int i = 0; i < fiducialsize; i++)
+    for(int i = 0; i < fiducialsize; i++)
     {
-        fbfiducials.push_back(toFlatBuffer(fbb, fiducials[i], markername[i]));
+        fbfiducials.push_back(toFlatBuffer(fbb, fiducials[i], markerID[i]));
     }
     auto fbfiducialvector = fbb.CreateVector(&fbfiducials[0], fiducialsize);
     return fbfiducialvector;
@@ -220,14 +220,14 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 /// @see FusionTrack.hpp for details
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
-             const std::vector<::ftkRawData> &ftkRawDatas)
+             const std::vector<::ftkRawData> &ftkRawData)
 {
     std::vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>> ftkRegionOfInterests;
-    int ftkRegionOfInterest_size = ftkRawDatas.size();
+    int ftkRegionOfInterest_size = ftkRawData.size();
 
-    for (int i = 0; i < ftkRegionOfInterest_size; i++)
+    for(int i = 0; i < ftkRegionOfInterest_size; i++)
     {
-        ftkRegionOfInterests.push_back(toFlatBuffer(fbb, ftkRawDatas[i]));
+        ftkRegionOfInterests.push_back(toFlatBuffer(fbb, ftkRawData[i]));
     }
     return fbb.CreateVector(ftkRegionOfInterests);
 }
@@ -238,13 +238,24 @@ flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::sensor::FusionTrack::Frame &frame)
 {
-    /// @todo TODO(ahundt) IN PROGRESS
-    /// Here we should get the markers'name
-    std::vector<std::string> markerNames;
-    for (auto &fiducial : frame.Fiducials)
+    /// @todo TODO(ahundt) IN PROGRESS Here we should get the markers'name
+    std::vector<std::string> fiducialIndexToMarkerNames;
+    std::vector<uint64_t>    fiducialIndexToMarkerIDs;
+    for(auto &fiducial : frame.Fiducials)
     {
         /// @todo TODO(ahundt) look up actual marker names and set with "id_geometryID" here, or "" if no marker.
-        markerNames.push_back("");
+        fiducialIndexToMarkerNames.push_back("");
+        fiducialIndexToMarkerIDs.push_back(0);
+    }
+
+    std::vector<std::string> markerIndexToMarkerNames;
+    std::vector<uint64_t>    markerIndexToMarkerIDs;
+    for(auto & marker : frame.Markers)
+    {
+        /// @todo TODO(ahundt) look up actual marker names and set with "id_geometryID" here, or "" if no marker.
+        markerIndexToMarkerNames.push_back("");
+        markerIndexToMarkerIDs.push_back(0);
+
     }
 
     static const double microsecToSec = 1 / 1000000;
@@ -272,10 +283,10 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> regionsOfInterestRight = toFlatBuffer(fbb, frame.ImageRegionOfInterestBoxesRight);
     uint32_t regionsOfInterestRightVersion = frame.FrameQueryP->rawDataRightVersionSize.Version;
     int32_t regionsOfInterestRightStatus = frame.FrameQueryP->rawDataRightStat;
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>> threeDFiducials = toFlatBuffer(fbb, frame.Fiducials, markerNames);
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>> threeDFiducials = toFlatBuffer(fbb, frame.Fiducials, fiducialIndexToMarkerIDs);
     uint32_t threeDFiducialsVersion = frame.FrameQueryP->threeDFiducialsVersionSize.Version;
     int32_t threeDFiducialsStatus = frame.FrameQueryP->threeDFiducialsStat;
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkMarker>>> markers = toFlatBuffer(fbb, frame.Markers, markerNames);
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkMarker>>> markers = toFlatBuffer(fbb, frame.Markers, markerIndexToMarkerNames);
     uint32_t markersVersion = frame.FrameQueryP->markersVersionSize.Version;
     int32_t markersStatus = frame.FrameQueryP->markersStat;
     int32_t deviceType = frame.DeviceType;
@@ -324,7 +335,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     int geometryFiles_size = _params.geometryFilenames.size();
     std::vector<flatbuffers::Offset<flatbuffers::String>> geometryFilenames;
     std::vector<flatbuffers::Offset<flatbuffers::String>> markerNames;
-    for (int i = 0; i < geometryFiles_size; i++)
+    for(int i = 0; i < geometryFiles_size; i++)
     {
         geometryFilenames.push_back(fbb.CreateString(_params.geometryFilenames[i]));
         markerNames.push_back(fbb.CreateString(_params.markerNames[i]));

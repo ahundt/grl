@@ -37,7 +37,7 @@ robone.cutBoneScript=function()
 	--end
 
 	threadFunction=function()
-		-- Retrieves current simulation state. 
+		-- Retrieves current simulation state.
 		-- http://www.coppeliarobotics.com/helpFiles/en/regularApi/simGetSimulationState.htm
 		while simGetSimulationState()~=sim_simulation_advancing_abouttostop do
 			--Path1P,Path1O=grl.getTransformToPathPointInWorldFrame(BoneMovePath,1)
@@ -58,8 +58,8 @@ robone.cutBoneScript=function()
 
 		while true do
 			if runFollowPathMode then
-				-- Moves an object to the position/orientation of another moving object (target object) 
-				-- by performing interpolations (i.e. the object will effectiviely follow the target object). 
+				-- Moves an object to the position/orientation of another moving object (target object)
+				-- by performing interpolations (i.e. the object will effectiviely follow the target object).
 				simMoveToObject(target,CreatedPathHandle,3,0,0.5,0.02)
 				-- http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simFollowPath
 				simFollowPath(target,CreatedPathHandle,3,0,0.01,0.01)
@@ -499,6 +499,8 @@ robone.configureOpticalTracker=function()
 
 			-- Start collecting data from the optical tracker
 			simExtAtracsysFusionTrackStart()
+			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(false)
+
 		end
 
 		-- By default we disable customization script execution during simulation, in order

@@ -47,7 +47,7 @@ std::shared_ptr<grl::AtracsysFusionTrackVrepPlugin> fusionTrackPG;
 /// spdlog is a header only library. Just copy the files under include to your build tree and use a C++11 compiler.
 std::shared_ptr<spdlog::logger> loggerPG;
 /// By default once the simulation starts, we start the recording procedure.
-bool recordWhileSimulationIsRunningG = true;
+bool recordWhileSimulationIsRunningG = false;
 
 
 void removeGeometryID(std::string geometryID_lua_param, grl::AtracsysFusionTrackVrepPlugin::Params &params)
@@ -384,6 +384,50 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING(SLuaCallBack *p)
 		D.writeDataToLua(p);
 	}
 }
+
+
+/////////////////////////////////////////////////////////////////////////////
+//   Set recordWhileSimulationIsRunningG
+/////////////////////////////////////////////////////////////////////////////
+
+#define LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_COMMAND "simExtAtracsysFusionTrackRecordWhileSimulationIsRunning"
+
+const int inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING[] = {
+	1,
+	sim_lua_arg_bool, 1 // string file name
+};
+
+std::string LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_CALL_TIP("number result=simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(bool recording)");
+
+void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCallBack *p)
+{
+
+	CLuaFunctionData D;
+	bool success = false;
+	if (D.readDataFromLua(p,
+		inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING,
+		inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING[0],
+		LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_COMMAND))
+	{
+		std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
+		recordWhileSimulationIsRunningG = inData->at(0).boolData[0];
+		if (fusionTrackPG)
+		{
+			if (recordWhileSimulationIsRunningG)
+			{
+				std::string log_message("Start the recording procedure, once the simulation starts.\n");
+				simAddStatusbarMessage(log_message.c_str());
+				loggerPG->info(log_message);
+			}
+			success = recordWhileSimulationIsRunningG;
+		}
+		D.pushOutData(CLuaFunctionDataItem(success));
+		D.writeDataToLua(p);
+	}
+}
+
+
+
 /// v-rep plugin: http://www.coppeliarobotics.com/helpFiles/en/plugins.htm
 /// This is the plugin start routine (called just once, just after the plugin was loaded):
 VREP_DLLEXPORT unsigned char v_repStart(void *reservedPointer, int reservedInt)
@@ -494,6 +538,13 @@ VREP_DLLEXPORT unsigned char v_repStart(void *reservedPointer, int reservedInt)
 								 LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING_CALL_TIP.c_str(),
 								 &inArgs[0],
 								 LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING);
+
+
+	CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING, inArgs);
+	simRegisterCustomLuaFunction(LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_COMMAND,
+		LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_CALL_TIP.c_str(),
+							  &inArgs[0],
+							  LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING);
 
 	// ******************************************
 	/// Print to terminal
@@ -636,7 +687,7 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
 		if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
 			std::string timestamp = current_date_and_time_string();
 			std::stringstream filename;
-			filename << timestamp << "_recording.flik";
+			filename << timestamp << "_flatbuffer.flik";
 			fusionTrackPG->save_recording(filename.str());
 			fusionTrackPG->stop_recording();
 		}
