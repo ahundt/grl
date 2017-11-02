@@ -507,6 +507,19 @@ class FusionTrack
             m_params.maxMarkerInstances);
     }
 
+    std::unique_ptr<Frame> makeFramePtr(uint64_t serialNumber = 0)
+    {
+        std::unique_ptr<Frame> ptr(new Frame(
+            serialNumber,
+            m_params.retrieveLeftPixels,
+            m_params.retrieveRightPixels,
+            m_params.maxLeftImageRegionOfInterestBoxes,
+            m_params.maxRightImageRegionOfInterestBoxes,
+            m_params.max3DFiducialInstances,
+            m_params.maxMarkerInstances));
+        return std::move(ptr);
+    }
+
     /// Load Frame with data from the device specified in the
     /// Frame.SerialNumber field. If Frame.SerialNumber is 0 it
     /// Defaults to the first connected device. For data from
