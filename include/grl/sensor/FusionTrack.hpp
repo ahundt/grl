@@ -248,9 +248,7 @@ class FusionTrack
             if(error == FTK_OK && m_deviceSerialNumbers.size() != 0)
             {
                 break;
-            }
-            else
-            {
+            } else {
                 ftkClose(&m_ftkLibrary);
                 m_ftkLibrary = nullptr;
             }
@@ -366,9 +364,7 @@ class FusionTrack
                 FrameQueryP->imageLeftPixels = CameraImageLeftP->begin();
                 FrameQueryP->imageLeftVersionSize.Version = Version;
                 FrameQueryP->imageLeftVersionSize.ReservedSize = sizeof(ftkMarker) * Markers.size();
-            }
-            else
-            {
+            } else {
                 FrameQueryP->imageLeftPixels = nullptr;
                 FrameQueryP->imageLeftVersionSize.Version = Version;
                 FrameQueryP->imageLeftVersionSize.ReservedSize = 0;
@@ -376,14 +372,11 @@ class FusionTrack
 
             // actual right camera image
             if(retrieveRightPixels)
-            {
                 CameraImageRightP = std::make_shared<CameraImage>();
                 FrameQueryP->imageRightPixels = CameraImageRightP->begin();
                 FrameQueryP->imageRightVersionSize.Version = Version;
                 FrameQueryP->imageRightVersionSize.ReservedSize = sizeof(ftkMarker) * Markers.size();
-            }
-            else
-            {
+            } else {
                 FrameQueryP->imageRightPixels = nullptr;
                 FrameQueryP->imageRightVersionSize.Version = Version;
                 FrameQueryP->imageRightVersionSize.ReservedSize = 0;
