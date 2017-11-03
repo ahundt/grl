@@ -250,7 +250,7 @@ public:
   /// return true on success, false on failure
   bool start_recording()
   {
-    std::cout <<"Start Recording..." << std::endl;
+
     m_isRecording = true;
     return m_isRecording;
   }
@@ -258,7 +258,6 @@ public:
   /// return true on success, false on failure
   bool stop_recording()
   {
-    std::cout <<"Stop Recording..." << std::endl;
     m_isRecording = false;
     return !m_isRecording;
   }

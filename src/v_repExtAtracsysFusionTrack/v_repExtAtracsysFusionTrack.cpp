@@ -46,7 +46,7 @@ grl::AtracsysFusionTrackVrepPlugin::Params fusionTrackParamsG = grl::AtracsysFus
 std::shared_ptr<grl::AtracsysFusionTrackVrepPlugin> fusionTrackPG;
 /// spdlog is a header only library. Just copy the files under include to your build tree and use a C++11 compiler.
 std::shared_ptr<spdlog::logger> loggerPG;
-/// By default once the simulation starts, we start the recording procedure.
+/// Recording will begin when the simulation starts running, and log files will be saved every time it stops running.
 bool recordWhileSimulationIsRunningG = false;
 
 
