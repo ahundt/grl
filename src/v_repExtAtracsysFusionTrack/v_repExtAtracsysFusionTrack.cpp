@@ -55,7 +55,7 @@ void removeGeometryID(std::string geometryID_lua_param, grl::AtracsysFusionTrack
 	auto &currentObjects = params.MotionConfigParamsVector; // get the motion configuration params
 
 	// remove the id from the global params object
-	/// @todo this is redundant when the object is active, should we retain config between resets?
+	// @todo this is redundant when the object is active, should we retain config between resets?
 	boost::range::remove_if(currentObjects,
 							[geometryID_lua_param](grl::AtracsysFusionTrackVrepPlugin::MotionConfigParams &currentObject) {
 								//     remove if this geometry id equals the one passed to lua
