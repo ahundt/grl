@@ -220,7 +220,10 @@ class FusionTrack
     Params::MarkerModelGeometry ftkGeometryToMarkerModelGeometry(::ftkGeometry &ftkg)
     {
         Params::MarkerModelGeometry geom;
-        for(int i = 0; i < ftkg.pointsCount; ++i)
+        static const int max_fiducials = FTK_MAX_FIDUCIALS;
+        int pointscount = ftkg.pointsCount;
+        int max = std::min(max_fiducials, pointscount);
+        for(int i = 0; i < max; ++i)
         {
             geom.push_back(ftkg.positions[i]);
         }
@@ -372,6 +375,7 @@ class FusionTrack
 
             // actual right camera image
             if(retrieveRightPixels)
+            {
                 CameraImageRightP = std::make_shared<CameraImage>();
                 FrameQueryP->imageRightPixels = CameraImageRightP->begin();
                 FrameQueryP->imageRightVersionSize.Version = Version;
