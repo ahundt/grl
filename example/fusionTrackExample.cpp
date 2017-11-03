@@ -21,10 +21,11 @@
 
 
 
-class fusionTrackFlatbuffer{
+class FusionTrackFlatBuffer {
 
 public:
 
+  // FusionTrackFlatBuffer(std::string filename, FusionTrack& ft) {}
 
    /// @see MotionConfigParams
   /// @see VrepMotionConfigTuple
@@ -137,7 +138,7 @@ public:
 
 
 /// @todo allow parameters to be updated
-fusionTrackFlatbuffer(Params params = defaultParams())
+FusionTrackFlatBuffer(Params params = defaultParams())
 : params_(params),
   isConnectionEstablished_(false),
   m_shouldStop(false)
@@ -404,7 +405,7 @@ void saveRecording_main ()
 
 int main(int argc, char **argv)
 {
-  fusionTrackFlatbuffer ftkflatbuffer;
+  FusionTrackFlatBuffer ftkflatbuffer;
   /// ftkflatbuffer->construct();
   bool runMain = false;
   if(runMain) ftkflatbuffer.saveRecording_main();

@@ -17,6 +17,7 @@
 
 #include "grl/vrep/Eigen.hpp"
 #include "grl/vrep/Vrep.hpp"
+#include "grl/time.hpp"
 
 #include "grl/sensor/FusionTrack.hpp"
 #include "grl/sensor/FusionTrackToEigen.hpp"
@@ -204,8 +205,10 @@ public:
 
     // don't try to lock or start sending the tracker data
     // until the device has established a connection
-    if (!isConnectionEstablished_ || !allHandlesSet)
+    if (!isConnectionEstablished_ || !allHandlesSet) {
       return;
+    }
+
 
     std::lock_guard<std::mutex> lock(m_frameAccess);
 
@@ -264,8 +267,11 @@ public:
   bool save_recording(std::string filename)
   {
     std::cout <<"Save Recording..." << filename << std::endl;
+    /// Uncomment the line below to call the save_recording function in update()
     /// lock mutex before accessing file
+
     std::lock_guard<std::mutex> lock(m_frameAccess);
+
     /// std::move std::move is used to indicate that an object (m_logFileBufferBuilderP) may be "moved from",
     /// i.e. allowing the efficient transfer of resources from m_logFileBufferBuilderP to another objec.
     /// then save_fbbP = m_logFileBufferBuilderP, and m_logFileBufferBuilderP is nullptr
@@ -273,6 +279,7 @@ public:
     /// [ = ]: captures all variables used in the lambda by value
     /// Lambda functions are just syntactic sugar for inline and anonymous functors.
     /// https://stackoverflow.com/questions/7627098/what-is-a-lambda-expression-in-c11
+
     auto saveLambdaFunction = [
       save_fbbP = std::move(m_logFileBufferBuilderP),
       save_KUKAiiwaFusionTrackMessageBufferP = std::move(m_KUKAiiwaFusionTrackMessageBufferP),
@@ -283,15 +290,29 @@ public:
       // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
       flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = save_fbbP->CreateVector(*save_KUKAiiwaFusionTrackMessageBufferP);
       flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(*save_fbbP, states);
-      save_fbbP->Finish(states);
+      save_fbbP->Finish(fbLogKUKAiiwaFusionTrack, grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier());
+      auto verifier = flatbuffers::Verifier(save_fbbP->GetBufferPointer(), save_fbbP->GetSize());
+      bool success = grl::flatbuffer::VerifyLogKUKAiiwaFusionTrackBuffer(verifier);
+      std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
       /// Write data to file
       flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char *>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), true);
     };
-    ///std::shared_ptr::reset(), the object becomes empty
-    m_logFileBufferBuilderP.reset();
-    m_KUKAiiwaFusionTrackMessageBufferP.reset();
+          // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
+          // flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = m_logFileBufferBuilderP->CreateVector(*m_KUKAiiwaFusionTrackMessageBufferP);
+          // flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(*m_logFileBufferBuilderP, states);
+          // m_logFileBufferBuilderP->Finish(fbLogKUKAiiwaFusionTrack, grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier());
+          // auto verifier = flatbuffers::Verifier(m_logFileBufferBuilderP->GetBufferPointer(), m_logFileBufferBuilderP->GetSize());
+          // bool success = grl::flatbuffer::VerifyLogKUKAiiwaFusionTrackBuffer(verifier);
+          // std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
+          // /// Write data to file
+          // flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char *>(m_logFileBufferBuilderP->GetBufferPointer()), m_logFileBufferBuilderP->GetSize(), true);
+
     std::shared_ptr<std::thread> saveLogThread(std::make_shared<std::thread>(saveLambdaFunction));
     m_saveRecordingThreads.push_back(saveLogThread);
+    // flatbuffersbuilder does not yet exist
+    m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+    m_KUKAiiwaFusionTrackMessageBufferP =
+        std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
   }
 
   // clear the recording buffer from memory immediately to start fresh
@@ -313,8 +334,10 @@ private:
       // initialize all of the real device states
       std::lock_guard<std::mutex> lock(m_frameAccess);
       opticalTrackerP.reset(new grl::sensor::FusionTrack(params_.FusionTrackParams));
-      m_receivedFrame.reset(new grl::sensor::FusionTrack::Frame());
-      m_nextState.reset(new grl::sensor::FusionTrack::Frame());
+      // std::move is used to indicate that an object t may be "moved from",
+      // i.e. allowing the efficient transfer of resources from t to another object.
+      m_receivedFrame = std::move(opticalTrackerP->makeFramePtr());
+      m_nextState = std::move(opticalTrackerP->makeFramePtr());
       isConnectionEstablished_ = true;
     }
     catch (...)
@@ -325,25 +348,42 @@ private:
     }
 
     // run the primary update loop in a separate thread
+    int counter = 0;
     while (!m_shouldStop)
     {
       opticalTrackerP->receive(*m_nextState);
-      std::lock_guard<std::mutex> lock(m_frameAccess);
-      if (m_isRecording)
       {
-        // convert the buffer into a flatbuffer for recording and add it to the in memory buffer
-        /// @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
-        if (!m_logFileBufferBuilderP)
-        {
-          // flatbuffersbuilder does not yet exist
-          m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
-          m_KUKAiiwaFusionTrackMessageBufferP = std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
-        }
-        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> oneKUKAiiwaFusionTrackMessage = grl::toFlatBuffer(*m_logFileBufferBuilderP, *opticalTrackerP, *m_nextState);
-        m_KUKAiiwaFusionTrackMessageBufferP->push_back(oneKUKAiiwaFusionTrackMessage);
+          std::lock_guard<std::mutex> lock(m_frameAccess);
+          if (m_isRecording)
+          {
+            /// convert the buffer into a flatbuffer for recording and add it to the in memory buffer
+            /// @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
+            if (!m_logFileBufferBuilderP)
+            {
+              // flatbuffersbuilder does not yet exist
+              m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+              m_KUKAiiwaFusionTrackMessageBufferP =
+                  std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
+            }
+            BOOST_VERIFY(m_logFileBufferBuilderP != nullptr);
+            BOOST_VERIFY(opticalTrackerP != nullptr);
+            BOOST_VERIFY(m_nextState != nullptr);
+            flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> oneKUKAiiwaFusionTrackMessage =
+                grl::toFlatBuffer(*m_logFileBufferBuilderP, *opticalTrackerP, *m_nextState);
+            m_KUKAiiwaFusionTrackMessageBufferP->push_back(oneKUKAiiwaFusionTrackMessage);
+          }
+          /// Save the recording data in a file with m_nextState seperately.
+
+          // std::string timestamp = current_date_and_time_string();
+			    // std::stringstream filename;
+			    // filename << timestamp << "_flatbuffer_"<< counter++ <<".flik";
+          // save_recording(filename.str());  ///  comment the lock command in save_recording() function
+
+          /// Swaps the values.
+          std::swap(m_receivedFrame, m_nextState);
+
+
       }
-      /// Swaps the values.
-      std::swap(m_receivedFrame, m_nextState);
     }
   }
 
