@@ -266,7 +266,7 @@ public:
   {
     if(filename.empty())
     {
-      filename = current_date_and_time_string() + "FusionTrack.flik";
+      filename = current_date_and_time_string() + "_FusionTrack.flik";
     }
     std::cout <<"Save Recording..." << filename << std::endl;
     /// Uncomment the line below to call the save_recording function in update()
