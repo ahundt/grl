@@ -17,6 +17,8 @@
 
 #include <boost/exception/all.hpp>
 #include <boost/lexical_cast.hpp>
+/// The command to get the json file from flatbuffer binary file
+/// flatc -I . --json LogKUKAiiwaFusionTrack.fbs -- 2017_11_03_15_12_54_FusionTrack.flik
 
 
 int main(int argc, char **argv)
