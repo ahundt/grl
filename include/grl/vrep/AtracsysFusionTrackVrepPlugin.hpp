@@ -196,15 +196,15 @@ public:
   void run_one()
   {
 
-    /// rethrow an exception if it occured in the other thread.
+    // rethrow an exception if it occured in the other thread.
     if (exceptionPtr)
     {
       /// note: this exception most likely came from the update() call initializing opticalTrackerP
       std::rethrow_exception(exceptionPtr);
     }
 
-    /// don't try to lock or start sending the tracker data
-    /// until the device has established a connection
+    // don't try to lock or start sending the tracker data
+    // until the device has established a connection
     if (!isConnectionEstablished_ || !allHandlesSet) {
       return;
     }
@@ -212,7 +212,7 @@ public:
 
     std::lock_guard<std::mutex> lock(m_frameAccess);
 
-    /// if any of the components haven't finished initializing, halt the program with an error
+    // if any of the components haven't finished initializing, halt the program with an error
     BOOST_VERIFY(m_receivedFrame && m_nextState && opticalTrackerP);
 
     Eigen::Affine3f cameraToMarkerTransform; /// Relative distance between camera and marker?
@@ -274,13 +274,13 @@ public:
 
     std::lock_guard<std::mutex> lock(m_frameAccess);
 
-    /// std::move std::move is used to indicate that an object (m_logFileBufferBuilderP) may be "moved from",
-    /// i.e. allowing the efficient transfer of resources from m_logFileBufferBuilderP to another objec.
-    /// then save_fbbP = m_logFileBufferBuilderP, and m_logFileBufferBuilderP is nullptr
-    /// Lambda function: [capture](parameters)->return-type {body}
-    /// [ = ]: captures all variables used in the lambda by value
-    /// Lambda functions are just syntactic sugar for inline and anonymous functors.
-    /// https://stackoverflow.com/questions/7627098/what-is-a-lambda-expression-in-c11
+    // std::move std::move is used to indicate that an object (m_logFileBufferBuilderP) may be "moved from",
+    // i.e. allowing the efficient transfer of resources from m_logFileBufferBuilderP to another objec.
+    // then save_fbbP = m_logFileBufferBuilderP, and m_logFileBufferBuilderP is nullptr
+    // Lambda function: [capture](parameters)->return-type {body}
+    // [ = ]: captures all variables used in the lambda by value
+    // Lambda functions are just syntactic sugar for inline and anonymous functors.
+    // https://stackoverflow.com/questions/7627098/what-is-a-lambda-expression-in-c11
 
     auto saveLambdaFunction = [
       save_fbbP = std::move(m_logFileBufferBuilderP),
@@ -294,19 +294,19 @@ public:
       auto verifier = flatbuffers::Verifier(save_fbbP->GetBufferPointer(), save_fbbP->GetSize());
       bool success = grl::flatbuffer::VerifyLogKUKAiiwaFusionTrackBuffer(verifier);
       std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
-      /// Write data to file
+      // Write data to file
       flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char *>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), true);
     };
-    /// save the recording to a file in a separate thread, memory will be freed up when file finishes saving
+    // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
     std::shared_ptr<std::thread> saveLogThread(std::make_shared<std::thread>(saveLambdaFunction));
     m_saveRecordingThreads.push_back(saveLogThread);
-    /// flatbuffersbuilder does not yet exist
+    // flatbuffersbuilder does not yet exist
     m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
     m_KUKAiiwaFusionTrackMessageBufferP =
         std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
   }
 
-  /// clear the recording buffer from memory immediately to start fresh
+  // clear the recording buffer from memory immediately to start fresh
   void clear_recording()
   {
     std::lock_guard<std::mutex> lock(m_frameAccess);
@@ -347,11 +347,11 @@ private:
           std::lock_guard<std::mutex> lock(m_frameAccess);
           if (m_isRecording)
           {
-            /// convert the buffer into a flatbuffer for recording and add it to the in memory buffer
-            /// @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
+            // convert the buffer into a flatbuffer for recording and add it to the in memory buffer
+            // @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
             if (!m_logFileBufferBuilderP)
             {
-              /// flatbuffersbuilder does not yet exist
+              // flatbuffersbuilder does not yet exist
               m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
               m_KUKAiiwaFusionTrackMessageBufferP =
                   std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
@@ -363,7 +363,7 @@ private:
                 grl::toFlatBuffer(*m_logFileBufferBuilderP, *opticalTrackerP, *m_nextState);
             m_KUKAiiwaFusionTrackMessageBufferP->push_back(oneKUKAiiwaFusionTrackMessage);
           }
-          /// Swaps the values.
+          // Swaps the values.
           std::swap(m_receivedFrame, m_nextState);
 
 
@@ -373,7 +373,7 @@ private:
 
   void initHandles()
   {
-    /// Retrieves an vrep object handle based on its name.
+    // Retrieves an vrep object handle based on its name.
     m_opticalTrackerBase = grl::vrep::getHandle(params_.OpticalTrackerBase);
     m_geometryIDToVrepMotionConfigMap = MotionConfigParamsToVrepHandleConfigMap(params_.MotionConfigParamsVector);
     allHandlesSet = true;
@@ -390,8 +390,8 @@ private:
   /// @see update() run_one()
   std::atomic<bool> isConnectionEstablished_;
 
-  // mutex that protects access of the main driver thread in update() from the separate vrep plugin messages thread
-  // it also protects the recording buffer when recording is being started, stopped, or cleared
+  /// mutex that protects access of the main driver thread in update() from the separate vrep plugin messages thread
+  /// it also protects the recording buffer when recording is being started, stopped, or cleared
   std::mutex m_frameAccess;
 
   /// the current frame available to the user, always acces after locking m_frameAccess
@@ -404,13 +404,13 @@ private:
   /// this is the current log data stored in memory
   /// @todo TODO(ahundt) once using C++14 use unique_ptr https://stackoverflow.com/questions/8640393/move-capture-in-lambda
   std::shared_ptr<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> m_KUKAiiwaFusionTrackMessageBufferP;
-  // should the driver stop collecting data from the atracsys devices
+  /// should the driver stop collecting data from the atracsys devices
   std::atomic<bool> m_shouldStop;
-  // is data currently being recorded
+  /// is data currently being recorded
   std::atomic<bool> m_isRecording;
   std::exception_ptr exceptionPtr;
 
-  // thread that polls the driver for new data and puts the data into the recording
+  /// thread that polls the driver for new data and puts the data into the recording
   std::unique_ptr<std::thread> m_driverThread;
   /// @todo TODO(ahundt) the threads that saved files will build up forever, figure out how they can clear themselves out
   std::vector<std::shared_ptr<std::thread>> m_saveRecordingThreads;

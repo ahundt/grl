@@ -53,7 +53,6 @@ int main(int argc, char **argv)
       if(debug) std::cout << "SerialNumber: " << frame.SerialNumber << std::endl;
 
       ft.receive(frame);
-       /// std::cout << "frame.Error = " << frame.Error << " FTK_OK = " << FTK_OK <<std::endl;
       if(frame.Error == FTK_OK)
       {
         if(debug) std::cout << "time_us_member: " << frame.imageHeader.timestampUS
@@ -82,8 +81,8 @@ int main(int argc, char **argv)
   /////////////////////////////////////
   /// Saving BINARY version of file ///
   /////////////////////////////////////
-  /// Finish a buffer with given object
-  /// Call `Finish()` to instruct the builder fbb that this frame is complete.
+  // Finish a buffer with given object
+  // Call `Finish()` to instruct the builder fbb that this frame is complete.
   const char *  	file_identifier = grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier();
   // fbb.Finish(oneKUKAiiwaFusionTrackMessage, file_identifier);
   fbb.Finish(fbLogKUKAiiwaFusionTrack, file_identifier);
@@ -102,41 +101,38 @@ int main(int argc, char **argv)
   ///////////////////////////////////
   /// Saving JSON version of file ///
   ///////////////////////////////////
-  /// This part is to get the relative path of the fbs file, then load and parse it, with the parsed format,
-  /// write the data from flatbuffer to json file on disc.
+  // This part is to get the relative path of the fbs file, then load and parse it, with the parsed format,
+  // write the data from flatbuffer to json file on disc.
   std::string schemafile;
   std::string jsongen;
-  /// Get the current working directory
+  // Get the current working directory
   std::string fbs_filename("LogKUKAiiwaFusionTrack.fbs");
   std::string fbs_path = grl::getpathtofbsfile(fbs_filename);
 
-  /// Concatenates a path with a filename, regardless of wether the path
-  /// ends in a separator or not.
-  /// ../src/robonetracker/build/LogKUKAiiwaFusionTrack.fbs
-  std::string fbs_path_name = flatbuffers::ConCatPathFileName(fbs_path, fbs_filename);
-  std::cout << "fbs_path_name: " << fbs_path_name << std::endl;
-  bool binary = false;
-  /// Can't step into this function, since flatbuffer library is release version.
-  bool ok = flatbuffers::LoadFile(fbs_path_name.c_str(), binary, &schemafile);
+  // Concatenates a path with a filename, regardless of wether the path
+  // ends in a separator or not.
+  // ../src/robonetracker/build/LogKUKAiiwaFusionTrack.fbs
+  std::string fbs_fullpath = flatbuffers::ConCatPathFileName(fbs_path, fbs_filename);
+  std::cout << "fbs_fullpath: " << fbs_fullpath << std::endl;
+  // load FlatBuffer schema (.fbs) into a string, returning true if successful, false otherwise.
+  // With debugger, the LoadFIle function can't be stepped into, since flatbuffer library is compiled in release version.
+  bool binary= false;
+  bool loadfbsfile_ok = flatbuffers::LoadFile(fbs_fullpath.c_str(), binary, &schemafile);
   // std::cout << schemafile << std::endl;
-  /// parse fbs schema first, so we can use it to parse the data after
+  // parse fbs schema first, so we can use it to parse the data after
   flatbuffers::Parser parser;
   const char *include_directories[] = {fbs_path.c_str(), nullptr};
-  ok = parser.Parse(schemafile.c_str(), include_directories);
-  /// now generate text from the flatbuffer binary
+  loadfbsfile_ok = parser.Parse(schemafile.c_str(), include_directories);
+  // now generate text from the flatbuffer binary
   GenerateText(parser, buf, &jsongen);
 
   std::string filename_json_suffix = "_text.json";
   std::string filename_json = filename_prefix + filename_json_suffix;
-  /// Write the data get from flatbuffer binary to json file on disc.
+  // Write the data get from flatbuffer binary to json file on disc.
   std::ofstream out(filename_json);
-
   out << jsongen.c_str();
   out.close();
-
   std::cout << " fbb.GetSize(): " << fbb.GetSize() << std::endl;
-
   std::cout << "End of the program" << std::endl;
-
   return 0;
 } // End of main function
