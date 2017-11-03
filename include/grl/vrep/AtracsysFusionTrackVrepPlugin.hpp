@@ -196,15 +196,15 @@ public:
   void run_one()
   {
 
-    // rethrow an exception if it occured in the other thread.
+    /// rethrow an exception if it occured in the other thread.
     if (exceptionPtr)
     {
-      // note: this exception most likely came from the update() call initializing opticalTrackerP
+      /// note: this exception most likely came from the update() call initializing opticalTrackerP
       std::rethrow_exception(exceptionPtr);
     }
 
-    // don't try to lock or start sending the tracker data
-    // until the device has established a connection
+    /// don't try to lock or start sending the tracker data
+    /// until the device has established a connection
     if (!isConnectionEstablished_ || !allHandlesSet) {
       return;
     }
@@ -212,7 +212,7 @@ public:
 
     std::lock_guard<std::mutex> lock(m_frameAccess);
 
-    // if any of the components haven't finished initializing, halt the program with an error
+    /// if any of the components haven't finished initializing, halt the program with an error
     BOOST_VERIFY(m_receivedFrame && m_nextState && opticalTrackerP);
 
     Eigen::Affine3f cameraToMarkerTransform; /// Relative distance between camera and marker?
@@ -222,8 +222,7 @@ public:
 
       cameraToMarkerTransform = sensor::ftkMarkerToAffine3f(marker);
       auto configIterator = m_geometryIDToVrepMotionConfigMap.find(marker.geometryId);
-      if (configIterator == m_geometryIDToVrepMotionConfigMap.end())
-        continue; // no configuration for this item
+      if (configIterator == m_geometryIDToVrepMotionConfigMap.end()) continue; // no configuration for this item
       auto config = configIterator->second;
 
       // invert the transform from the tracker to the object if needed
@@ -262,10 +261,11 @@ public:
     return !m_isRecording;
   }
 
-  // save the currently recorded fusiontrack frame data, this also clears the recording
+  /// save the currently recorded fusiontrack frame data, this also clears the recording
   bool save_recording(std::string filename)
   {
-    if(filename.empty()){
+    if(filename.empty())
+    {
       filename = current_date_and_time_string() + "FusionTrack.flik";
     }
     std::cout <<"Save Recording..." << filename << std::endl;
@@ -288,8 +288,6 @@ public:
       filename
     ]() mutable
     {
-
-      // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
       flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = save_fbbP->CreateVector(*save_KUKAiiwaFusionTrackMessageBufferP);
       flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(*save_fbbP, states);
       save_fbbP->Finish(fbLogKUKAiiwaFusionTrack, grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier());
@@ -299,25 +297,16 @@ public:
       /// Write data to file
       flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char *>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), true);
     };
-          // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
-          // flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> states = m_logFileBufferBuilderP->CreateVector(*m_KUKAiiwaFusionTrackMessageBufferP);
-          // flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(*m_logFileBufferBuilderP, states);
-          // m_logFileBufferBuilderP->Finish(fbLogKUKAiiwaFusionTrack, grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier());
-          // auto verifier = flatbuffers::Verifier(m_logFileBufferBuilderP->GetBufferPointer(), m_logFileBufferBuilderP->GetSize());
-          // bool success = grl::flatbuffer::VerifyLogKUKAiiwaFusionTrackBuffer(verifier);
-          // std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
-          // /// Write data to file
-          // flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char *>(m_logFileBufferBuilderP->GetBufferPointer()), m_logFileBufferBuilderP->GetSize(), true);
-
+    /// save the recording to a file in a separate thread, memory will be freed up when file finishes saving
     std::shared_ptr<std::thread> saveLogThread(std::make_shared<std::thread>(saveLambdaFunction));
     m_saveRecordingThreads.push_back(saveLogThread);
-    // flatbuffersbuilder does not yet exist
+    /// flatbuffersbuilder does not yet exist
     m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
     m_KUKAiiwaFusionTrackMessageBufferP =
         std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
   }
 
-  // clear the recording buffer from memory immediately to start fresh
+  /// clear the recording buffer from memory immediately to start fresh
   void clear_recording()
   {
     std::lock_guard<std::mutex> lock(m_frameAccess);
@@ -362,7 +351,7 @@ private:
             /// @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
             if (!m_logFileBufferBuilderP)
             {
-              // flatbuffersbuilder does not yet exist
+              /// flatbuffersbuilder does not yet exist
               m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
               m_KUKAiiwaFusionTrackMessageBufferP =
                   std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
@@ -374,13 +363,6 @@ private:
                 grl::toFlatBuffer(*m_logFileBufferBuilderP, *opticalTrackerP, *m_nextState);
             m_KUKAiiwaFusionTrackMessageBufferP->push_back(oneKUKAiiwaFusionTrackMessage);
           }
-          /// Save the recording data in a file with m_nextState seperately.
-
-          // std::string timestamp = current_date_and_time_string();
-			    // std::stringstream filename;
-			    // filename << timestamp << "_flatbuffer_"<< counter++ <<".flik";
-          // save_recording(filename.str());  ///  comment the lock command in save_recording() function
-
           /// Swaps the values.
           std::swap(m_receivedFrame, m_nextState);
 

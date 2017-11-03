@@ -129,7 +129,6 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SET_OPTICAL_TRACKER_BASE(SLuaCallBack *p)
 	{
 		std::vector<CLuaFunctionDataItem> *inData = data.getInDataPtr();
 		std::string opticalTrackerBase(inData->at(0).stringData[0]);
-
 		fusionTrackParamsG.OpticalTrackerBase = opticalTrackerBase; // set the optical tracker base
 	}
 }
