@@ -17,7 +17,7 @@
 
 #include <boost/exception/all.hpp>
 #include <boost/lexical_cast.hpp>
-/// The command to get the json file from flatbuffer binary file
+/// The command to get the json file from flatbuffer binary file, these two files should be located in the same folder.
 /// flatc -I . --json LogKUKAiiwaFusionTrack.fbs -- 2017_11_03_15_12_54_FusionTrack.flik
 
 
