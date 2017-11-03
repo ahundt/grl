@@ -14,6 +14,7 @@
 /// based on https://stackoverflow.com/a/17223443/99379
 inline std::string current_date_and_time_string()
 {
+    /// switch to commented version when all users are on GCC > 5.0
 	/// std::get_time and std::put_time manipulators are not implemented on the GCC < 5.0
 	/// https://stackoverflow.com/questions/14136833/stdput-time-implementation-status-in-gcc
 	/*

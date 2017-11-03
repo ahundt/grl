@@ -296,7 +296,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_IS_ACTIVE(SLuaCallBack *p)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-///  LUA function to actually STATE recording the fusiontrack frame date in memory.
+///  LUA function to actually start recording the fusiontrack frame data in memory.
 /////////////////////////////////////////////////////////////////////////////////////////
 
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING(SLuaCallBack *p)
@@ -314,7 +314,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING(SLuaCallBack *p)
 	D.writeDataToLua(p);
 }
 /////////////////////////////////////////////////////////////////////////////////////////
-///  LUA function to actually STOP recording the fusiontrack frame date in memory.
+///  LUA function to actually stop recording the fusiontrack frame data in memory.
 /////////////////////////////////////////////////////////////////////////////////////////
 
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_STOP_RECORDING(SLuaCallBack *p)
@@ -332,7 +332,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_STOP_RECORDING(SLuaCallBack *p)
 	D.writeDataToLua(p);
 }
 /////////////////////////////////////////////////////////////////////////////////////////
-///  LUA function to actually CLEAR recording the fusiontrack frame date in memory.
+///  LUA function to actually clear recording the fusiontrack frame data in memory.
 /////////////////////////////////////////////////////////////////////////////////////////
 
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_CLEAR_RECORDING(SLuaCallBack *p)
@@ -354,14 +354,14 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_CLEAR_RECORDING(SLuaCallBack *p)
 //   Save the currently recorded fusiontrack frame data, this also clears the recording.
 /////////////////////////////////////////////////////////////////////////////
 
-#define LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING_COMMAND "simExtAtracsysFusionTrackSaveFrame"
+#define LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING_COMMAND "simExtAtracsysFusionTrackSaveRecording"
 
 const int inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING[] = {
 	1,
 	sim_lua_arg_string, 0 // string file name
 };
 
-std::string LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING_CALL_TIP("number result=simExtAtracsysFusionTrackSaveFrame(string filename)");
+std::string LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING_CALL_TIP("number result=simExtAtracsysFusionTrackSaveRecording(string filename)");
 
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING(SLuaCallBack *p)
 {
@@ -685,10 +685,7 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
 		// close out as necessary
 		////////////////////
 		if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
-			std::string timestamp = current_date_and_time_string();
-			std::stringstream filename;
-			filename << timestamp << "_flatbuffer.flik";
-			fusionTrackPG->save_recording(filename.str());
+			fusionTrackPG->save_recording("");
 			fusionTrackPG->stop_recording();
 		}
 	}

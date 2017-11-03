@@ -266,6 +266,9 @@ public:
   // save the currently recorded fusiontrack frame data, this also clears the recording
   bool save_recording(std::string filename)
   {
+    if(filename.empty()){
+      filename = current_date_and_time_string() + "FusionTrack.flik";
+    }
     std::cout <<"Save Recording..." << filename << std::endl;
     /// Uncomment the line below to call the save_recording function in update()
     /// lock mutex before accessing file

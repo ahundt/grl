@@ -313,7 +313,6 @@ void saveRecording_main ()
       if(debug) std::cout << "SerialNumber: " << frame.SerialNumber << std::endl;
 
       ft->receive(frame);
-       /// std::cout << "frame.Error = " << frame.Error << " FTK_OK = " << FTK_OK <<std::endl;
       if(frame.Error == FTK_OK)
       {
         if(debug) std::cout << "time_us_member: " << frame.imageHeader.timestampUS
@@ -360,9 +359,9 @@ void saveRecording_main ()
 
   flatbuffers::SaveFile(filename_binary.c_str(), reinterpret_cast<const char *>(buf), fbb.GetSize(), true);
 
-  ///////////////////////////////
-  /// Saving JSON version of file
-
+  /////////////////////////////////////
+  /// Saving JSON version of file   ///
+  /////////////////////////////////////
   /// This part is to get the relative path of the fbs file, then load and parse it, with the parsed format,
   /// write the data from flatbuffer to json file on disc.
   std::string schemafile;
@@ -371,19 +370,22 @@ void saveRecording_main ()
   std::string fbs_filename("LogKUKAiiwaFusionTrack.fbs");
   std::string fbs_path = grl::getpathtofbsfile(fbs_filename);
 
-  /// Concatenates a path with a filename, regardless of wether the path
+  /// Concatenates a path with a filename, regardless of whether the path
   /// ends in a separator or not.
   /// ../src/robonetracker/build/LogKUKAiiwaFusionTrack.fbs
-  std::string fbs_path_name = flatbuffers::ConCatPathFileName(fbs_path, fbs_filename);
-  std::cout << "fbs_path_name: " << fbs_path_name << std::endl;
+  std::string fbs_fullpath = flatbuffers::ConCatPathFileName(fbs_path, fbs_filename);
+  std::cout << "fbs_fullpath: " << fbs_fullpath << std::endl;
+  /// If "binary" is false data is written using ifstream's
+  /// text mode, otherwise data is written with no
+  /// transcoding.
   bool binary = false;
-  /// Can't step into this function, since flatbuffer library is release version.
-  bool ok = flatbuffers::LoadFile(fbs_path_name.c_str(), binary, &schemafile);
-  // std::cout << schemafile << std::endl;
+  /// load FlatBuffer schema (.fbs) into a string, returning true if successful, false otherwise.
+  /// With debugger, the LoadFIle function can't be stepped into, since flatbuffer library is compiled in release version.
+    bool loadfbsfile_ok = flatbuffers::LoadFile(fbs_fullpath.c_str(), binary, &schemafile);
   /// parse fbs schema first, so we can use it to parse the data after
   flatbuffers::Parser parser;
   const char *include_directories[] = {fbs_path.c_str(), nullptr};
-  ok = parser.Parse(schemafile.c_str(), include_directories);
+  loadfbsfile_ok = parser.Parse(schemafile.c_str(), include_directories);
   /// now generate text from the flatbuffer binary
   GenerateText(parser, buf, &jsongen);
 

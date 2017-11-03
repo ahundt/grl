@@ -374,7 +374,6 @@ flatbuffers::Offset<grl::flatbuffer::TimeEvent>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::TimeEvent &timeStamp)
 {
-    /// @todo TODO(ahundt) IN PROGRESS There remains the time issue
     flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(const_cast<const char *>(timeStamp.event_name.begin()), stringLength(timeStamp.event_name));
     /// https://github.com/googlecartographer/cartographer/blob/master/cartographer/common/time.cc
     /// convert time to int64
