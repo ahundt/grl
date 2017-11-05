@@ -48,32 +48,32 @@ int main(int argc, char **argv)
   flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> ftk_loc_LogKUKAiiwaFusionTrack = 0;
   for(int i = 0; i < num_updates; ++i)
   {
-    // loop through all connecteif (frame.Error == FTK_OK)d devices
-    for(auto serialNumber : serialNumbers)
-    {
-      frame.SerialNumber = serialNumber;
-      if(debug) std::cout << "SerialNumber: " << frame.SerialNumber << std::endl;
+     // loop through all connecteif (frame.Error == FTK_OK)d devices
+     for(auto serialNumber : serialNumbers)
+     {
+        frame.SerialNumber = serialNumber;
+        if(debug) std::cout << "SerialNumber: " << frame.SerialNumber << std::endl;
 
-      ft.receive(frame);
-      if(frame.Error == FTK_OK)
-      {
-        if(debug) std::cout << "time_us_member: " << frame.imageHeader.timestampUS
-                    << " time_us_ftkQuery: " << frame.FrameQueryP->imageHeader->timestampUS << "\n";
-        if(debug) std::cout << " imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
-        for(const ftkMarker &marker : frame.Markers)
+        ft.receive(frame);
+        if(frame.Error == FTK_OK)
         {
-          Eigen::Affine3f fusionTrackToMarker = grl::sensor::ftkMarkerToAffine3f(marker);
-          if(debug) std::cout << " matrix: " << fusionTrackToMarker.matrix();
+          if(debug) std::cout << "time_us_member: " << frame.imageHeader.timestampUS
+                          << " time_us_ftkQuery: " << frame.FrameQueryP->imageHeader->timestampUS << "\n";
+          if(debug) std::cout << " imageheader_member_address: " << &frame.imageHeader << " ftkQueryImageHeader address: " << frame.FrameQueryP->imageHeader << "\n";
+          for(const ftkMarker &marker : frame.Markers)
+          {
+             Eigen::Affine3f fusionTrackToMarker = grl::sensor::ftkMarkerToAffine3f(marker);
+             if(debug) std::cout << " matrix: " << fusionTrackToMarker.matrix();
+          }
         }
-      }
-      else
-      {
-        // handle problem
-        std::cout << "Couldn't receive data from the FusionTrack device, something was wrong." << std::endl;
-      }
-      oneKUKAiiwaFusionTrackMessage = grl::toFlatBuffer(fbb, ft, frame);
-      KUKAiiwaFusionTrackMessage_vector.push_back(oneKUKAiiwaFusionTrackMessage);
-    }
+        else
+        {
+          // handle problem
+          std::cout << "Couldn't receive data from the FusionTrack device, something was wrong." << std::endl;
+        }
+        oneKUKAiiwaFusionTrackMessage = grl::toFlatBuffer(fbb, ft, frame);
+        KUKAiiwaFusionTrackMessage_vector.push_back(oneKUKAiiwaFusionTrackMessage);
+     }
 
   } // End of updates loop
 
