@@ -3,20 +3,46 @@
 
 #include "FusionTrackToEigen.hpp"
 #include "FusionTrack.hpp"
-#include "ftkInterface.h"
 #include "grl/flatbuffer/FusionTrack_generated.h"
 #include "grl/flatbuffer/Time_generated.h"
 #include "grl/flatbuffer/LogKUKAiiwaFusionTrack_generated.h"
-#include "flatbuffers/util.h"
-#include "flatbuffers/idl.h"
-#include <typeinfo>
+#include <flatbuffers/util.h>
+#include <flatbuffers/idl.h>
 #include <iostream>
-#include <unistd.h>
-#include <stdio.h>
+#include <cstdio>
 #include <cassert>
+#include <ftkInterface.h>
 
 namespace grl
 {
+
+
+/// Helper function for use when building up messages to save to a log file.
+/// Call this just before SaveFlatBufferFile. See fusionTrackExample for how
+/// and when to use it.
+bool FinishAndVerifyBuffer(
+    flatbuffers::FlatBufferBuilder& fbb,
+    std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>& KUKAiiwaFusionTrackMessage_vector
+)
+{
+
+    auto states = fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
+    auto fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
+
+    /////////////////////////////////////
+    /// Saving BINARY version of file ///
+    /////////////////////////////////////
+    // Finish a buffer with given object
+    // Call `Finish()` to instruct the builder fbb that this frame is complete.
+    const char *file_identifier = grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier();
+    // fbb.Finish(oneKUKAiiwaFusionTrackMessage, file_identifier);
+    fbb.Finish(fbLogKUKAiiwaFusionTrack, file_identifier);
+
+    auto verifier = flatbuffers::Verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    bool success = grl::flatbuffer::VerifyLogKUKAiiwaFusionTrackBuffer(verifier);
+
+    return success;
+}
 
 grl::flatbuffer::Vector3d toFlatBuffer(const ::ftk3DPoint &pt)
 {
@@ -631,7 +657,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     bool success = verifier.VerifyBuffer<grl::flatbuffer::KUKAiiwaFusionTrackMessage>();
     ///assert(success==true && "KUKAiiwaFusionTrackMessage goes wrong/n");
 
-    std::cout <<" verifier success for KUKAiiwaFusionTrackMessage: " << success << std::endl;
+    // std::cout <<" verifier success for KUKAiiwaFusionTrackMessage: " << success << std::endl;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     return grl::flatbuffer::CreateKUKAiiwaFusionTrackMessage(
@@ -672,20 +698,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 
     return grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
 }
-/// Change from the absolute path to relative path.
-std::string getpathtofbsfile(const std::string &filename)
-{
 
-    char buff[512];
-    /// Get the current working directory
-    /// ../src/robonetracker/build/bin
-    getcwd(buff, 512);
-    std::string current_working_dir(buff);
-    /// std::cout << "Current working dir: " << buff << std::endl;
-    /// Strip the last component of the path + separator.
-    /// ../src/robonetracker/build
-    return flatbuffers::StripFileName(buff);
-}
+
 } // End of grl namespace
 
 #endif // GRL_ATRACSYS_FUSION_TRACK_TO_FLATBUFFER
