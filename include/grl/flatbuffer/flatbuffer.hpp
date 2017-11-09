@@ -1,8 +1,10 @@
-#ifndef DISTRIBUTED_FLATBUFFER_HPP
-#define DISTRIBUTED_FLATBUFFER_HPP
+#ifndef GRL_FLATBUFFER_HPP
+#define GRL_FLATBUFFER_HPP
 
 #include <flatbuffers/flatbuffers.h>
 #include <flatbuffers/idl.h>
+
+namespace grl {
 
 // loads a json flatbuffer from a file
 bool LoadJSONFlatbuffer(flatbuffers::Parser& parser, std::string schemaPath, std::string jsonPath, std::string include_directory, bool binary = false)
@@ -161,4 +163,6 @@ bool SaveFlatBufferFile(
     }
     return ok;
 }
-#endif // DISTRIBUTED_FLATBUFFER_HPP
+
+} // namespace grl
+#endif // GRL_FLATBUFFER_HPP

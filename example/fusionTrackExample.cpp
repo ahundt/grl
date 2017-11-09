@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 
   const std::size_t MegaByte = 1024*1024;
   // If we write too large a flatbuffer
-  const std::size_t single_buffer_limit_bytes = 512*MegaByte/1000;
+  const std::size_t single_buffer_limit_bytes = 512*MegaByte;
   // Install a signal handler to catch a signal when CONTROL+C
   std::signal(SIGINT, signal_handler);
   // std::raise(SIGINT);
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
                 "MB, writing binary log:" << binary_file_path << std::endl;
 
             std::string fbs_filename("LogKUKAiiwaFusionTrack.fbs");
-            SaveFlatBufferFile(
+            grl::SaveFlatBufferFile(
                 fbb.GetBufferPointer(),
                 fbb.GetSize(),
                 binary_file_path,
@@ -161,6 +161,14 @@ int main(int argc, char **argv)
             fbb.Reset();
         }
         previous_size = builder_size_bytes;
+
+        // TODO(ahundt) get atracsys to fix this flaw in their library design
+        // the fusionTrack library cannot handle being slammed
+        // with update calls, so yield processor time with the
+        // shortest possible sleep. If you call as fast as is possible
+        // they will write to their .log file, causing all sorts of
+        // slowdowns and writing huge files to disk very fast.
+        std::this_thread::yield();
      }
 
     update_step++;
@@ -184,7 +192,7 @@ int main(int argc, char **argv)
   std::string json_file_path = json_file_prefix + std::to_string(buffer_num) + json_file_suffix;
   std::cout << " fbb.GetSize(): " << fbb.GetSize() << std::endl;
 
-  success = success && SaveFlatBufferFile(
+  success = success && grl::SaveFlatBufferFile(
     fbb.GetBufferPointer(),
     fbb.GetSize(),
     binary_file_path,
