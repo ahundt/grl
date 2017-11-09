@@ -167,28 +167,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     auto fbmask = fbb.CreateVector(&MaskVector[0], vectorsize);
     auto fbPose = toFlatBuffer(grl::sensor::ftkMarkerToAffine3f(marker));
 
-    ////////////////////////////////////////////////////////////////////////////
-    /*** This block is to verify the specific flatbuffer object ***/
-    flatbuffers::FlatBufferBuilder _fbb;
-    auto _fbmask = _fbb.CreateVector(&MaskVector[0], vectorsize);
-    auto _fbPose = toFlatBuffer(grl::sensor::ftkMarkerToAffine3f(marker));
-    flatbuffers::Offset<grl::flatbuffer::ftkMarker> _ftkMarker =
-    grl::flatbuffer::CreateftkMarker(
-        _fbb,
-        _fbb.CreateString(name),
-        marker.id,
-        marker.geometryId,
-        _fbmask,
-        &_fbPose //const Pose *transform = 0;
-    );
-    _fbb.Finish(_ftkMarker);
-    auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-    bool success = verifier.VerifyBuffer<grl::flatbuffer::ftkMarker>();
-    if(!success) {
-        std::cout <<" verifier success for ftkMarker: " << success << std::endl;
-    }
-    ///////////////////////////////////////////////////////////////////////////
-
     return grl::flatbuffer::CreateftkMarker(
         fbb,
         fbb.CreateString(name),
@@ -225,26 +203,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 {
     /// The type of Fiducial.positionMM is ftk3DPoint.
     auto positiont3Dpoint = toFlatBuffer(Fiducial.positionMM);
-    ////////////////////////////////////////////////////////////////////////////
-    /*** This block is to verify the specific flatbuffer object ***/
-    flatbuffers::FlatBufferBuilder _fbb;
-    auto _positiont3Dpoint = toFlatBuffer(Fiducial.positionMM);
-    flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial> _ftk3DFiducial = grl::flatbuffer::Createftk3DFiducial(
-        _fbb,
-        markerID,
-        Fiducial.leftIndex,
-        Fiducial.rightIndex,
-        &_positiont3Dpoint,
-        Fiducial.epipolarErrorPixels,
-        Fiducial.triangulationErrorMM,
-        Fiducial.probability);
-    _fbb.Finish(_ftk3DFiducial);
-    auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-    bool success = verifier.VerifyBuffer<grl::flatbuffer::ftk3DFiducial>();
-    if(!success) {
-        std::cout <<" verifier success for ftk3DFiducial: " << success << std::endl;
-    }
-    ///////////////////////////////////////////////////////////////////////////
 
     return grl::flatbuffer::Createftk3DFiducial(
         fbb,
@@ -291,27 +249,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     uint32_t _TopEdge = ftkRegionOfInterest.status.TopEdge;
     uint32_t _pixelsCount = ftkRegionOfInterest.pixelsCount;
     double _probability = ftkRegionOfInterest.probability;
-    ////////////////////////////////////////////////////////////////////////////
-    /*** This block is to verify the specific flatbuffer object ***/
-    flatbuffers::FlatBufferBuilder _fbb;
-    flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest> _ftkRegionOfInterest =
-    grl::flatbuffer::CreateftkRegionOfInterest(
-        _fbb,
-        _centerXPixels,
-        _centerYPixels,
-        _RightEdge,
-        _BottomEdge,
-        _LeftEdge,
-        _TopEdge,
-        _pixelsCount,
-        _probability);
-    _fbb.Finish(_ftkRegionOfInterest);
-    auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-    bool success = verifier.VerifyBuffer<grl::flatbuffer::ftkRegionOfInterest>();
-    if(!success) {
-        std::cout <<" verifier success for ftkRegionOfInterest: " << success << std::endl;
-    }
-    ///////////////////////////////////////////////////////////////////////////
     return grl::flatbuffer::CreateftkRegionOfInterest(
         fbb,
         _centerXPixels,
@@ -408,59 +345,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     int32_t deviceType = frame.DeviceType;
     int64_t ftkError = frame.Error;
 
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    /*** This block is to verify the specific flatbuffer object ***/
-    flatbuffers::FlatBufferBuilder _fbb;
-    flatbuffers::Offset<flatbuffers::String> _imageLeftPixels = frame.CameraImageLeftP ? _fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageLeftP->begin()), sizeof(frame.CameraImageLeftP)) : 0;
-    flatbuffers::Offset<flatbuffers::String> _imageRightPixels = frame.CameraImageRightP ? _fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageRightP->begin()), sizeof(frame.CameraImageRightP)) : 0;
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> _regionsOfInterestLeft = toFlatBuffer(_fbb, frame.ImageRegionOfInterestBoxesLeft);
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> _regionsOfInterestRight = toFlatBuffer(_fbb, frame.ImageRegionOfInterestBoxesRight);
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>> _threeDFiducials = toFlatBuffer(_fbb, frame.Fiducials, fiducialIndexToMarkerIDs);
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkMarker>>> _markers = toFlatBuffer(_fbb, frame.Markers, markerIndexToMarkerNames);
-
-    flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame> _fusionTrackFrame =
-    grl::flatbuffer::CreateFusionTrackFrame(
-        _fbb,
-        timestamp,
-        serialNumber,
-        hardwareTimestampUS,
-        desynchroUS,
-        counter,
-        format,
-        width,
-        height,
-        imageStrideInBytes,
-        imageHeaderVersion,
-        imageHeaderStatus,
-        _imageLeftPixels,
-        imageLeftPixelsVersion,
-        imageLeftStatus,
-        _imageRightPixels,
-        imageRightPixelsVersion,
-        imageRightStatus,
-        _regionsOfInterestLeft,
-        regionsOfInterestLeftVersion,
-        regionsOfInterestLeftStatus,
-        _regionsOfInterestRight,
-        regionsOfInterestRightVersion,
-        regionsOfInterestRightStatus,
-        _threeDFiducials,
-        threeDFiducialsVersion,
-        threeDFiducialsStatus,
-        _markers,
-        markersVersion,
-        markersStatus,
-        deviceType,
-        ftkError);
-    _fbb.Finish(_fusionTrackFrame);
-    auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-    bool success = verifier.VerifyBuffer<grl::flatbuffer::FusionTrackFrame>();
-    if(!success) {
-        std::cout <<" verifier success for FusionTrackFrame: " << success << std::endl;
-    }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-
     return grl::flatbuffer::CreateFusionTrackFrame(
         fbb,
         timestamp,
@@ -516,44 +400,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     auto markerNames = fbb.CreateVectorOfStrings(_params.markerNames);
     flatbuffers::Offset<flatbuffers::Vector<uint64_t>> fb_m_deviceSerialNumbers = fbb.CreateVector(&m_deviceSerialNumbers[0], m_deviceSerialNumbers.size());
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> fb_m_device_types = fbb.CreateVector(&m_device_types[0], m_device_types.size());
-
-    ////////////////////////////////////////////////////////////////////////////
-    /*** This block is to verify the specific flatbuffer object ***/
-    flatbuffers::FlatBufferBuilder _fbb;
-
-    flatbuffers::Offset<flatbuffers::String> _name = _fbb.CreateString(_params.name);
-    flatbuffers::Offset<flatbuffers::String> _deviceClockID = _fbb.CreateString(_params.deviceClockID);
-    flatbuffers::Offset<flatbuffers::String> _localClockID = _fbb.CreateString(_params.localClockID);
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkGeometry>>> _geometries = toFlatBuffer(_fbb, _params);
-    auto _geometryFilenames = _fbb.CreateVectorOfStrings(_params.geometryFilenames);
-    flatbuffers::Offset<flatbuffers::String> _geometryDir = _fbb.CreateString(_params.geometryDir);
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> _TrackerDeviceIDs = _fbb.CreateVector(&(_params.TrackerDeviceIDs[0]), _params.TrackerDeviceIDs.size());
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> _markerIDs = _fbb.CreateVector(&_params.markerIDs[0], _params.markerIDs.size());
-    auto _markerNames = _fbb.CreateVectorOfStrings(_params.markerNames);
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> _m_deviceSerialNumbers = _fbb.CreateVector(&m_deviceSerialNumbers[0], m_deviceSerialNumbers.size());
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> _m_device_types = _fbb.CreateVector(&m_device_types[0], m_device_types.size());
-    flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters> _FusionTrackParameters=
-    grl::flatbuffer::CreateFusionTrackParameters(
-        _fbb,
-        _name,
-        _deviceClockID,
-        _localClockID,
-        _geometries,
-        _geometryFilenames,
-        _geometryDir,
-        _TrackerDeviceIDs,
-        _markerIDs,
-        _markerNames,
-        _m_deviceSerialNumbers,
-        _m_device_types);
-     _fbb.Finish(_FusionTrackParameters);
-     auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-     bool success = verifier.VerifyBuffer<grl::flatbuffer::FusionTrackParameters>();
-     if(!success){
-        std::cout <<" verifier success for FusionTrackParameters: " << success << std::endl;
-     }
-
-     ///////////////////////////////////////////////////////////////////////////
 
     return grl::flatbuffer::CreateFusionTrackParameters(fbb,
                                                         name,
@@ -630,36 +476,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 
     grl::flatbuffer::DeviceState deviceState_type = grl::flatbuffer::DeviceState::FusionTrackMessage;
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    /*** This block is to verify the specific flatbuffer object ***/
-    flatbuffers::FlatBufferBuilder _fbb;
-    flatbuffers::Offset<grl::flatbuffer::FusionTrackParameters> _parameters = toFlatBuffer(_fbb, fusiontrack);
-    flatbuffers::Offset<grl::flatbuffer::TimeEvent> _timeEvent = toFlatBuffer(_fbb, frame.TimeStamp);
-    flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame> _fbframe = toFlatBuffer(_fbb, frame);
-    flatbuffers::Offset<grl::flatbuffer::FusionTrackMessage> _message = grl::flatbuffer::CreateFusionTrackMessage(
-        _fbb,
-        timestamp,
-        _parameters,
-        _timeEvent,
-        _fbframe);
-
-    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> _oneKUKAiiwaFusionTrackMessage =
-    grl::flatbuffer::CreateKUKAiiwaFusionTrackMessage(
-            _fbb,
-            timestamp,
-            _timeEvent,
-            deviceState_type,
-            _message.Union());
-    const char *file_identifier = grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier();
-    // fbb.Finish(oneKUKAiiwaFusionTrackMessage, file_identifier);
-    _fbb.Finish(_oneKUKAiiwaFusionTrackMessage);
-    auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-    bool success = verifier.VerifyBuffer<grl::flatbuffer::KUKAiiwaFusionTrackMessage>();
-    ///assert(success==true && "KUKAiiwaFusionTrackMessage goes wrong/n");
-
-    // std::cout <<" verifier success for KUKAiiwaFusionTrackMessage: " << success << std::endl;
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
     return grl::flatbuffer::CreateKUKAiiwaFusionTrackMessage(
         fbb,
         timestamp,
@@ -671,15 +487,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, const std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>> &KUKAiiwaFusionTrackMessage_vector) {
-    // flatbuffers::FlatBufferBuilder _fbb;
-    // flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> _KUKAiiwaFusionTrackMessage_vector = _fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
-    // _fbb.Finish(_KUKAiiwaFusionTrackMessage_vector);
-    // auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-    // bool success = verifier.VerifyBuffer<grl::flatbuffer::KUKAiiwaFusionTrackMessage>();
-    // std::cout <<" ------------------verifier success for KUKAiiwaFusionTrackMessage: " << success << std::endl;
-
     return fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
-    }
+}
 
 
 
@@ -687,15 +496,6 @@ flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> &states)
 {
-    // flatbuffers::FlatBufferBuilder _fbb;
-    // flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> _fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(_fbb, states);
-
-    // // fbb.Finish(oneKUKAiiwaFusionTrackMessage, file_identifier);
-    // _fbb.Finish(_fbLogKUKAiiwaFusionTrack);
-    // auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-    // bool success = verifier.VerifyBuffer<grl::flatbuffer::LogKUKAiiwaFusionTrack>();
-    // std::cout <<" ------------------verifier success for LogKUKAiiwaFusionTrack: " << success << std::endl;
-
     return grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
 }
 
