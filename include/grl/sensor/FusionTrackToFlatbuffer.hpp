@@ -29,9 +29,6 @@ bool FinishAndVerifyBuffer(
     auto states = fbb.CreateVector(KUKAiiwaFusionTrackMessage_vector);
     auto fbLogKUKAiiwaFusionTrack = grl::flatbuffer::CreateLogKUKAiiwaFusionTrack(fbb, states);
 
-    /////////////////////////////////////
-    /// Saving BINARY version of file ///
-    /////////////////////////////////////
     // Finish a buffer with given object
     // Call `Finish()` to instruct the builder fbb that this frame is complete.
     const char *file_identifier = grl::flatbuffer::LogKUKAiiwaFusionTrackIdentifier();

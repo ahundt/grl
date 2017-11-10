@@ -42,24 +42,25 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 #define strConCat(x, y, z) CONCAT(x, y, z)
 
 /// @todo consider parameterizing this or placing it in a class so multiple trackers can exist.
-grl::AtracsysFusionTrackVrepPlugin::Params fusionTrackParamsG = grl::AtracsysFusionTrackVrepPlugin::emptyDefaultParams();
-std::shared_ptr<grl::AtracsysFusionTrackVrepPlugin> fusionTrackPG;
+grl::FusionTrackLogAndTrack::Params fusionTrackParamsG = grl::FusionTrackLogAndTrack::emptyDefaultParams();
+std::shared_ptr<grl::FusionTrackLogAndTrack> fusionTrackPG;
 /// spdlog is a header only library. Just copy the files under include to your build tree and use a C++11 compiler.
 std::shared_ptr<spdlog::logger> loggerPG;
 /// Recording will begin when the simulation starts running, and log files will be saved every time it stops running.
 bool recordWhileSimulationIsRunningG = false;
 
 
-void removeGeometryID(std::string geometryID_lua_param, grl::AtracsysFusionTrackVrepPlugin::Params &params)
+void removeGeometryID(std::string geometryID_lua_param, grl::FusionTrackLogAndTrack::Params &params)
 {
     auto &currentObjects = params.MotionConfigParamsVector; // get the motion configuration params
-
+    // convert the handle string to an integer
+    int geometryID = boost::lexical_cast<int>(geometryID_lua_param);
     // remove the id from the global params object
     // @todo this is redundant when the object is active, should we retain config between resets?
     boost::range::remove_if(currentObjects,
-                            [geometryID_lua_param](grl::AtracsysFusionTrackVrepPlugin::MotionConfigParams &currentObject) {
+                            [geometryID](grl::FusionTrackLogAndTrack::MotionConfigParams &currentObject) {
                                 //     remove if this geometry id equals the one passed to lua
-                                return std::get<grl::AtracsysFusionTrackVrepPlugin::GeometryID>(currentObject) == geometryID_lua_param;
+                                return std::get<grl::FusionTrackLogAndTrack::GeometryID>(currentObject) == geometryID;
 
                             });
 }
@@ -104,6 +105,10 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_ADD_GEOMETRY(SLuaCallBack *p)
         std::string markerINIpath(inData->at(0).stringData[0]);
         // insert a new ini file path
         fusionTrackParamsG.FusionTrackParams.geometryFilenames.push_back(markerINIpath);
+
+        std::string log_message = std::string("simExtAtracsysFusionTrackAddGeometry: ") + markerINIpath;
+        simAddStatusbarMessage(log_message.c_str());
+        loggerPG->info(log_message);
     }
 }
 
@@ -118,7 +123,7 @@ const int inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SET_OPTICAL_TRACKER_BASE[] = 
     sim_lua_arg_string, 0 // string identifying the optical tracker base
 };
 
-std::string LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SET_OPTICAL_TRACKER_BASE_CALL_TIP("number result=simExtAtracsysFusionTrackSetOpticalTrackerBase(string filename)");
+std::string LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SET_OPTICAL_TRACKER_BASE_CALL_TIP("number result=simExtAtracsysFusionTrackSetOpticalTrackerBase(string baseObject)");
 
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SET_OPTICAL_TRACKER_BASE(SLuaCallBack *p)
 {
@@ -129,7 +134,15 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SET_OPTICAL_TRACKER_BASE(SLuaCallBack *p)
     {
         std::vector<CLuaFunctionDataItem> *inData = data.getInDataPtr();
         std::string opticalTrackerBase(inData->at(0).stringData[0]);
-        fusionTrackParamsG.OpticalTrackerBase = opticalTrackerBase; // set the optical tracker base
+        int base_handle = grl::vrep::getHandle(opticalTrackerBase);
+        fusionTrackParamsG.OpticalTrackerBase = base_handle; // set the optical tracker base
+        if(fusionTrackPG)
+        {
+            fusionTrackPG->setOpticalTrackerBase(base_handle);
+        }
+        std::string log_message = std::string("simExtAtracsysFusionTrackSetOpticalTrackerBase base object name: ") + opticalTrackerBase + " handle: " + boost::lexical_cast<std::string>(base_handle);
+        simAddStatusbarMessage(log_message.c_str());
+        loggerPG->info(log_message);
     }
 }
 
@@ -160,18 +173,26 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_OBJECT(SLuaCallBack *p)
     {
         std::vector<CLuaFunctionDataItem> *inData = data.getInDataPtr();
 
-        auto newObjectToTrack = std::make_tuple( // insert the new parameters
+        grl::VrepStringMotionConfigParams newObjectToTrack = std::make_tuple( // insert the new parameters
             inData->at(0).stringData[0],		 // ObjectToMove
             inData->at(1).stringData[0],		 // FrameInWhichToMoveObject
             inData->at(2).stringData[0],		 // ObjectBeingMeasured
             inData->at(3).stringData[0]			 // GeometryID
             );
 
-        fusionTrackParamsG.MotionConfigParamsVector.push_back(newObjectToTrack);
+            std::string output = std::string("simExtAtracsysFusionTrackAddObject: ObjectToMove: ") + inData->at(0).stringData[0] +
+            std::string(" FrameInWhichToMoveObject: ") + inData->at(1).stringData[0] +		 // FrameInWhichToMoveObject
+            std::string(" ObjectBeingMeasured: ") + inData->at(2).stringData[0] +		 // ObjectBeingMeasured
+            std::string(" GeometryID: ") + inData->at(3).stringData[0];			 // GeometryID
+            loggerPG->info(output);
+        // convert the tuple of strings to a tuple of ints
+        auto newObjectToTrackIDs = grl::VrepStringToLogAndTrackMotionConfigParams(newObjectToTrack);
+        fusionTrackParamsG.MotionConfigParamsVector.push_back(newObjectToTrackIDs);
 
         if (fusionTrackPG)
         {
-            fusionTrackPG->add_object(newObjectToTrack);
+
+            fusionTrackPG->add_object(newObjectToTrackIDs);
         }
     }
 }
@@ -223,6 +244,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_CLEAR_OBJECTS(SLuaCallBack *p)
 ///  LUA function to actually start the optical tracker running.
 /////////////////////////////////////////////////////////////////////////////////////////
 
+// simExtAtracsysFusionTrackStart
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START(SLuaCallBack *p)
 { // the callback function of the new Lua command ("simExtSkeleton_getSensorData")
     // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
@@ -237,23 +259,19 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START(SLuaCallBack *p)
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
     /// std::vector<std::string> geometryFilenames in FusionTrack::Params
-    bool areMarkerINIpathsEmpty = fusionTrackParamsG.FusionTrackParams.geometryFilenames.empty();
+    // bool areMarkerINIpathsEmpty = fusionTrackParamsG.FusionTrackParams.geometryFilenames.empty();
 
-    bool areMotionConfigParamsEmpty = fusionTrackParamsG.MotionConfigParamsVector.empty();
+    // bool areMotionConfigParamsEmpty = fusionTrackParamsG.MotionConfigParamsVector.empty();
 
-    if (!fusionTrackPG && (areMarkerINIpathsEmpty || areMotionConfigParamsEmpty))
-    {
-        /// Allocates and constructs an object of type grl::AtracsysFusionTrackVrepPlugin passing args (there is no args here) to its constructor,
-        /// and returns an object of type shared_ptr<T> that owns and stores a pointer to it (with a use count of 1).
-        fusionTrackPG = std::make_shared<grl::AtracsysFusionTrackVrepPlugin>();
-        /// construct() function completes initialization of the plugin
-        fusionTrackPG->construct();
-    }
-    else if (!fusionTrackPG)
+    if (!fusionTrackPG)
     {
         /// @todo currently we are using the "empty" defaults for some parameters, such as the allowed timeout for reading data
-        fusionTrackPG = std::make_shared<grl::AtracsysFusionTrackVrepPlugin>(fusionTrackParamsG);
+        fusionTrackPG = std::make_shared<grl::FusionTrackLogAndTrack>(fusionTrackParamsG);
         fusionTrackPG->construct();
+
+        std::string log_message = std::string("simExtAtracsysFusionTrackStart with base object handle: ") + boost::lexical_cast<std::string>(fusionTrackParamsG.OpticalTrackerBase);
+        simAddStatusbarMessage(log_message.c_str());
+        loggerPG->info(log_message);
     }
 }
 
@@ -298,6 +316,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_IS_ACTIVE(SLuaCallBack *p)
 ///  LUA function to actually start recording the fusiontrack frame data in memory.
 /////////////////////////////////////////////////////////////////////////////////////////
 
+// simExtAtracsysFusionTrackStartRecording
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING(SLuaCallBack *p)
 {
     CLuaFunctionData D;
@@ -410,16 +429,11 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCa
     {
         std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         recordWhileSimulationIsRunningG = inData->at(0).boolData[0];
-        if (fusionTrackPG)
-        {
-            if (recordWhileSimulationIsRunningG)
-            {
-                std::string log_message("Start the recording procedure, once the simulation starts.\n");
-                simAddStatusbarMessage(log_message.c_str());
-                loggerPG->info(log_message);
-            }
-            success = recordWhileSimulationIsRunningG;
-        }
+
+        std::string log_message = std::string("simExtAtracsysFusionTrackRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
+        simAddStatusbarMessage(log_message.c_str());
+        loggerPG->info(log_message);
+
         D.pushOutData(CLuaFunctionDataItem(success));
         D.writeDataToLua(p);
     }
@@ -625,13 +639,27 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         // Use handles that were found at the "start" of this simulation running
 
         // next few Lines get the joint angles, torque, etc from the simulation
-        if (fusionTrackPG) // && fusionTrackPG->allHandlesSet == true // allHandlesSet now handled internally
+        if (fusionTrackPG && fusionTrackPG->is_active()) // && fusionTrackPG->allHandlesSet == true // allHandlesSet now handled internally
         {
 
             // run one loop synchronizing the tracker, plugin, and simulation
             try
             {
-                fusionTrackPG->run_one();
+                // run_one
+                std::vector<std::tuple<int, int, Eigen::Affine3f>> transforms = fusionTrackPG->get_poses();
+                // loggerPG->info("Count of poses to update: " + boost::lexical_cast<std::string>(transforms.size()));
+                for(std::tuple<int, int, Eigen::Affine3f>& transform : transforms)
+                {
+                    // 2 is the index in the tuple of the transform between the frames
+                    Eigen::Affine3f pose = std::get<2>(transform);
+                    // grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::ObjectToMove
+                    int objectToMove = std::get<grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::ObjectToMove>(transform);
+                    int frameInWhichToMoveObject = std::get<grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::FrameInWhichToMoveObject>(transform);
+                    // setObjectTransform sets vrep object poses from eigen transformsin grl/vrep/Eigen.hpp
+                    setObjectTransform(objectToMove,
+                                       frameInWhichToMoveObject,
+                                       pose);
+                }
             }
             catch (const boost::exception &e)
             {
@@ -683,7 +711,7 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         // close out as necessary
         ////////////////////
         if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
-            fusionTrackPG->save_recording("");
+            fusionTrackPG->save_recording();
             fusionTrackPG->stop_recording();
         }
     }

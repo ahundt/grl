@@ -139,6 +139,9 @@ bool SaveFlatBufferFile(
     bool write_binary_stream=true)
 {
     bool ok = true;
+    /////////////////////////////////////
+    /// Saving BINARY version of file ///
+    /////////////////////////////////////
     if(!binary_file_path.empty())
     {
       ok = ok && flatbuffers::SaveFile(binary_file_path.c_str(), reinterpret_cast<const char*>(buffer), size, write_binary_stream);
