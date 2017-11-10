@@ -66,39 +66,6 @@ namespace grl
     );
   }
 
-//   /// @brief Convert vrep strings to integer ids that can be used by FusionTrackLogAndTrack
-//   /// Helps control which objects are being moved around by the optical tracker in the vrep simulation.
-//   /// @see FusionTrackLogAndTrack
-//   static void AddMotionConfigUsingVrepStrings(FusionTrackLogAndTrack::GeometryIDToMotionConfigParams &geometryConfigMap, const VrepStringMotionConfigParams &motionConfig)
-//   {
-
-//    auto params_vrep_ints = VrepStringToLogAndTrackMotionConfigParams(motionConfig);
-//    // get the geometry id string
-//    int geometry_id = std::get<FusionTrackLogAndTrack::MotionConfigParamsIndex::GeometryID>(params_vrep_ints);
-//    // update the map accordingly
-//     geometryConfigMap[geometry_id] = params_vrep_ints;
-//   }
-
-//   /// Turn vrep object strings into vrep integer ids and atracsys geometry ids in the format needed by FusionTrackLogAndTrack.
-//   ///
-//   /// Convert vrep strings to a map for the integer ids that can be used by FusionTrackLogAndTrack.
-//   /// Helps control which objects are being moved around by the optical tracker in the vrep simulation.
-//   /// converts the string identifiers for objects to integer handle identifiers
-//   /// for use in updating the position of objects.
-//   /// @see FusionTrackLogAndTrack
-//   ///
-//   template <typename InputIterator>
-//   FusionTrackLogAndTrack::GeometryIDToMotionConfigParams
-//   CreateMotionConfigParamsUsingVrepStrings(const InputIterator &configurations)
-//   {
-//     FusionTrackLogAndTrack::GeometryIDToMotionConfigParams geometryConfigMap;
-//     for(auto &&motionConfig : configurations)
-//     {
-//       AddMotionConfigUsingVrepStrings(geometryConfigMap, motionConfig);
-//     }
-//     return geometryConfigMap;
-//   }
-
 } // namespace grl
 
 #endif // _ATRACSYS_FUSION_TRACK_VREP_PLUGIN_HPP_
