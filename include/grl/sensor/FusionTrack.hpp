@@ -14,10 +14,10 @@
 
 #include "grl/TimeEvent.hpp"
 
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
 /// The spdlog library https://github.com/gabime/spdlog
 #include <spdlog/spdlog.h>
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
 
 #ifndef BOOST_THROW_EXCEPTION
 #define BOOST_THROW_EXCEPTION(x) throw x
@@ -33,7 +33,11 @@ namespace detail
 void updateDeviceSerialNumber(uint64 device, void *user, ftkDeviceType type);
 }
 
-/// @class FusionTrack provides a single threaded driver for
+/// @class FusionTrack provides easy, fast and low level access to data from atracsys optical trackers.
+///
+/// See atracsys.com for details about this device.
+///
+/// Provides a low level single threaded sensor driver for
 /// one or more Atracsys FusionTrack optical tracker devices, which
 /// provides fast updates to the pose of objects in front of it such
 /// as a fiducial or a marker.
@@ -139,7 +143,7 @@ class FusionTrack
         /// logged data for time differences and error.
         std::string localClockID;
 
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
         /// The spdlog logger library https://github.com/gabime/spdlog
         /// is optional but recommended for fast data and error
         /// logging. Enabling spdlog provides useful error messages
@@ -149,7 +153,7 @@ class FusionTrack
         /// otherwise this string should be the name of the logger,
         /// and "console" for the default logger.
         std::string loggerName;
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
     };
 
     /// Create the default parameters needed to initialize
@@ -232,13 +236,13 @@ class FusionTrack
 
     FusionTrack(Params params = defaultParams()) : m_params(params)
     {
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
         if(!params.loggerName.empty())
         {
             m_logger = spdlog::get(params.loggerName);
         }
 
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
         ftkError error;
         // search for devices
         for(std::size_t i = 0; i < m_params.maximumConnectionAttempts; i++)
@@ -281,9 +285,8 @@ class FusionTrack
             ftkGeometry geometry;
             switch (loadGeometry(m_ftkLibrary, m_deviceSerialNumbers[0], fileName, geometry))
             {
-            case 1:
-                BOOST_THROW_EXCEPTION(std::runtime_error(std::string("FusionTrack: loaded ") + fileName + " from installation directory"));
-            case 0:
+            case 1: // 1 if the data was loaded from the system directory (windows only)
+            case 0:// 0 if everything was fine
                 for(auto serialNumber : m_deviceSerialNumbers)
                 {
                     error = ftkSetGeometry(m_ftkLibrary, serialNumber, &geometry);
@@ -548,7 +551,7 @@ class FusionTrack
             // provide clean and useful errors
             ftkGetLastError(m_ftkLibrary, &errors);
 
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
             if(m_logger && errors.isWarning() && errors.isError())
             {
                 std::string error;
@@ -567,7 +570,7 @@ class FusionTrack
                 errors.errorString(error);
                 m_logger->error(std::string("FusionTrack::receive():") + error);
             }
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
 
             if(errors.isError())
             {
@@ -584,19 +587,19 @@ class FusionTrack
         switch (rs.FrameQueryP->markersStat)
         {
         case QS_WAR_SKIPPED:
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
             if(m_logger) m_logger->error("FusionTrack::receive: marker fields in the frame are not set correctly");
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
         case QS_ERR_INVALID_RESERVED_SIZE:
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
             if(m_logger) m_logger->error("FusionTrack::receive: FrameQueryP->markersVersionSize is invalid");
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
         case QS_OK:
             break;
         default:
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
             if(m_logger) m_logger->error("FusionTrack::receive: invalid status of value: ", rs.FrameQueryP->markersStat);
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
             break;
         }
 
@@ -607,9 +610,9 @@ class FusionTrack
         auto count = rs.FrameQueryP->markersCount;
         if(count > rs.Markers.capacity())
         {
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
             if(m_logger) m_logger->warn("FusionTrack::receive: marker overflow, please increase number of markers.  Only the first ", rs.Markers.size(), " marker(s) will processed.");
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
         }
     }
 
@@ -731,9 +734,9 @@ class FusionTrack
         frame.TimeStamp.local_clock_id = m_local_clock_ids[index];
     }
 
-#ifdef HAVE_SPDLOG
+#ifdef HAVE_spdlog
     std::shared_ptr<spdlog::logger> m_logger;
-#endif // HAVE_SPDLOG
+#endif // HAVE_spdlog
     Params m_params;
     ftkLibrary m_ftkLibrary;
     // device serial numbers
