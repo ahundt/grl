@@ -167,7 +167,7 @@ int main(int argc, char **argv)
         // with update calls, so yield processor time with the
         // shortest possible sleep. If you call as fast as is possible
         // they will write to their .log file, causing all sorts of
-        // slowdowns and writing huge files to disk very fast.
+        // slowdowns and other problems.
         std::this_thread::yield();
      }
 
@@ -191,6 +191,7 @@ int main(int argc, char **argv)
   std::string binary_file_path = binary_file_prefix + std::to_string(buffer_num) + binary_file_suffix;
   std::string json_file_path = json_file_prefix + std::to_string(buffer_num) + json_file_suffix;
   std::cout << " fbb.GetSize(): " << fbb.GetSize() << std::endl;
+  std::cout << "FinishAndVerifyBuffer: " << success << std::endl;
 
   success = success && grl::SaveFlatBufferFile(
     fbb.GetBufferPointer(),
