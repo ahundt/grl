@@ -4,27 +4,50 @@
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
+#include "grl/flatbuffer/LinkObject_generated.h"
 namespace grl { namespace robot { namespace arm {
 
 flatbuffers::Offset<grl::flatbuffer::EulerTranslationParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
-    const double x = 0.0,
-    const double y = 0.0,
-    const double z = 0.0)
+    const double x,
+    const double y,
+    const double z)
 {
     return grl::flatbuffer::CreateEulerTranslationParams(fbb, x, y, z);
 }
 
 flatbuffers::Offset<grl::flatbuffer::EulerRotationParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
-    const double r1 = 0.0,
-    const double r2 = 0.0,
-    const double r3 = 0.0,
+    const double r1,
+    const double r2,
+    const double r3,
     grl::flatbuffer::EulerOrder &eulerOrder)
 {
     return grl::flatbuffer::CreateEulerRotationParams(fbb, r1, r2, r3, eulerOrder);
 }
+// Helper function is also defined in FusionTrackToFlatbuffer.hpp
+grl::flatbuffer::Vector3d toFlatBuffer(const Eigen::Vector3d &pt)
+{
+    return grl::flatbuffer::Vector3d(pt.x(), pt.y(), pt.z());
+}
 
+// How to distinguish different eulerOrder?
+grl::flatbuffer::EulerRotation toFlatBuffer(
+    const Eigen::Vector3d &pt,
+    grl::flatbuffer::EulerOrder eulerOrder )
+{
+    return grl::flatbuffer::EulerRotation(pt.x(), pt.y(), pt.z(), eulerOrder);
+}
+
+grl::flatbuffer::EulerPose toFlatBuffer(
+    const grl::flatbuffer::Vector3d &positon,
+    const grl::flatbuffer::EulerRotation &eulerRotation)
+{
+    return grl::flatbuffer::EulerPose(positon, eulerRotation);
+}
+
+// With ::ftk3DPoint, we can get the structure Vector3D, so do we need overwrite this function with input parameter ::ftk3DPoint?
+// table EulerPose and EulerPoseParams are both defined in Euler.fbs.
 flatbuffers::Offset<grl::flatbuffer::EulerPoseParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const grl::flatbuffer::Vector3d &position,
@@ -69,8 +92,9 @@ flatbuffers::Offset<grl::flatbuffer::CreateJointImpedenceControlMode> toFlatBuff
 flatbuffers::Offset<grl::flatbuffer::FRI> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const ::OverlayType &overlayType,
-    const int32_t sendPeriodMillisec,
-    const int32_t setReceiveMultiplier,
+    const ::ConnectionInfo &connectionInfo,
+    // const int32_t sendPeriodMillisec,
+    // const int32_t setReceiveMultiplier,
     const bool updatePortOnRemote,
     const int16_t portOnRemote,
     const bool updatePortOnController,
@@ -79,8 +103,8 @@ flatbuffers::Offset<grl::flatbuffer::FRI> toFlatBuffer(
     return grl::flatbuffer::CreateFRI(
         fbb,
         EOverlayType,
-        sendPeriodMillisec,
-        setReceiveMultiplier,
+        connectionInfo.sendPeriod,
+        connectionInfo.receiveMultiplier,
         updatePortOnRemote,
         portOnRemote,
         updatePortOnController,
