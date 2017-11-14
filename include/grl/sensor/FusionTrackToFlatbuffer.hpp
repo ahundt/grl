@@ -68,6 +68,48 @@ grl::flatbuffer::Pose toFlatBuffer(Eigen::Affine3f tf)
     return toFlatBuffer(tf.cast<double>());
 }
 
+
+///  the second parameter is merely a tag to uniquely identify this function so it compiles
+/// its value is not utilized or modified.
+grl::flatbuffer::ftkQueryStatus toFlatBuffer(const ::ftkQueryStatus queryStatus) {
+
+    switch(queryStatus) {
+
+        case QS_OK:
+            return grl::flatbuffer::ftkQueryStatus::QS_OK;
+        case QS_ERR_OVERFLOW:
+            return grl::flatbuffer::ftkQueryStatus::QS_ERR_OVERFLOW;
+        case QS_ERR_INVALID_RESERVED_SIZE:
+            return grl::flatbuffer::ftkQueryStatus::QS_ERR_INVALID_RESERVED_SIZE;
+        case QS_REPROCESS:
+            return grl::flatbuffer::ftkQueryStatus::QS_REPROCESS;
+        default:
+            break;
+        }
+        return grl::flatbuffer::ftkQueryStatus::QS_WAR_SKIPPED;
+}
+
+/// the second parameter is merely a tag to identify this function so it compiles
+/// its value is not utilized or modified.
+grl::flatbuffer::ftkDeviceType toFlatBuffer(const ::ftkDeviceType deviceType, grl::flatbuffer::ftkDeviceType tag) {
+// grl::flatbuffer::ftkDeviceType toFlatBuffer(const ::ftkDeviceType deviceType) {
+    switch(deviceType) {
+        case DEV_SIMULATOR: /*!< Internal use only */
+              return grl::flatbuffer::ftkDeviceType::DEV_SIMULATOR;
+
+        case DEV_INFINITRACK: /*!< Device is an infiniTrack */
+              return grl::flatbuffer::ftkDeviceType::DEV_INFINITRACK;
+
+        case DEV_FUSIONTRACK_500: /*!< Device is a fusionTrack 500 */
+             return grl::flatbuffer::ftkDeviceType::DEV_FUSIONTRACK_500;
+
+        case DEV_FUSIONTRACK_250: /*!< Device is a fusionTrack 250 */
+             return grl::flatbuffer::ftkDeviceType::DEV_FUSIONTRACK_250;
+        default: /**< Unknown device type. */
+            break;
+        };
+        return grl::flatbuffer::ftkDeviceType::DEV_UNKNOWN_DEVICE;
+}
 flatbuffers::Offset<grl::flatbuffer::ftkGeometry>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const ::ftkGeometry &geometry,
@@ -315,13 +357,17 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     uint32_t height = frame.imageHeader.height;
     int32_t imageStrideInBytes = frame.imageHeader.imageStrideInBytes;
     uint32_t imageHeaderVersion = frame.FrameQueryP->imageHeaderVersionSize.Version;
-    int32_t imageHeaderStatus = frame.FrameQueryP->imageHeaderStat;
+
+    grl::flatbuffer::ftkQueryStatus imageHeaderStatus = toFlatBuffer(frame.FrameQueryP->imageHeaderStat);
     flatbuffers::Offset<flatbuffers::String> imageLeftPixels = frame.CameraImageLeftP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageLeftP->begin()), sizeof(frame.CameraImageLeftP)) : 0;
     uint32_t imageLeftPixelsVersion = frame.FrameQueryP->imageLeftVersionSize.Version;
-    int32_t imageLeftStatus = frame.FrameQueryP->imageLeftStat;
+    // int32_t imageLeftStatus = frame.FrameQueryP->imageLeftStat;
+
+    grl::flatbuffer::ftkQueryStatus imageLeftStatus = toFlatBuffer(frame.FrameQueryP->imageLeftStat);
     flatbuffers::Offset<flatbuffers::String> imageRightPixels = frame.CameraImageRightP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageRightP->begin()), sizeof(frame.CameraImageRightP)) : 0;
     uint32_t imageRightPixelsVersion = frame.FrameQueryP->imageRightVersionSize.Version;
-    int32_t imageRightStatus = frame.FrameQueryP->imageRightStat;
+    // int32_t imageRightStatus = frame.FrameQueryP->imageRightStat;
+    grl::flatbuffer::ftkQueryStatus imageRightStatus = toFlatBuffer(frame.FrameQueryP->imageRightStat);
 
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> regionsOfInterestLeft =
         (writeRegionOfInterest && frame.ImageRegionOfInterestBoxesLeft.size()) ? toFlatBuffer(fbb, frame.ImageRegionOfInterestBoxesLeft): 0;
@@ -331,6 +377,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         (writeRegionOfInterest && frame.ImageRegionOfInterestBoxesRight.size()) ? toFlatBuffer(fbb, frame.ImageRegionOfInterestBoxesRight): 0;
     uint32_t regionsOfInterestRightVersion = frame.FrameQueryP->rawDataRightVersionSize.Version;
     int32_t regionsOfInterestRightStatus = frame.FrameQueryP->rawDataRightStat;
+
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftk3DFiducial>>> threeDFiducials =
         (writeFiducials && frame.Fiducials.size()) ? toFlatBuffer(fbb, frame.Fiducials, fiducialIndexToMarkerIDs) : 0;
     uint32_t threeDFiducialsVersion = frame.FrameQueryP->threeDFiducialsVersionSize.Version;
@@ -339,7 +386,9 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         (writeMarkers && frame.Markers.size()) ? toFlatBuffer(fbb, frame.Markers, markerIndexToMarkerNames) : 0;
     uint32_t markersVersion = frame.FrameQueryP->markersVersionSize.Version;
     int32_t markersStatus = frame.FrameQueryP->markersStat;
-    int32_t deviceType = frame.DeviceType;
+    // int32_t deviceType = frame.DeviceType;
+    auto deviceType = toFlatBuffer(frame.DeviceType, grl::flatbuffer::ftkDeviceType::DEV_UNKNOWN_DEVICE);
+    // auto deviceType = grl::flatbuffer::ftkDeviceType::DEV_SIMULATOR;
     int64_t ftkError = frame.Error;
 
     return grl::flatbuffer::CreateFusionTrackFrame(

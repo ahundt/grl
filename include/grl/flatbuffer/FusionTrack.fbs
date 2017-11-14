@@ -75,13 +75,13 @@ table FusionTrackFrame {
   height:uint;
   imageStrideInBytes:int;
   imageHeaderVersion:uint;
-  imageHeaderStatus:int;
+  imageHeaderStatus:ftkQueryStatus;
   imageLeftPixels:string;
   imageLeftPixelsVersion:uint;
-  imageLeftStatus:int;
+  imageLeftStatus:ftkQueryStatus;
   imageRightPixels:string;
   imageRightPixelsVersion:uint;
-  imageRightStatus:int;
+  imageRightStatus:ftkQueryStatus;
   regionsOfInterestLeft:[ftkRegionOfInterest];
   regionsOfInterestLeftVersion:uint;
   regionsOfInterestLeftStatus:int;
@@ -94,7 +94,7 @@ table FusionTrackFrame {
   markers:[ftkMarker];
   markersVersion:uint;
   markersStatus:int;
-  deviceType:int;
+  deviceType:ftkDeviceType;
   ftkError:long;
 }
 
