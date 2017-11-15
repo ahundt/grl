@@ -5,6 +5,11 @@
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 #include "grl/flatbuffer/LinkObject_generated.h"
+#include "grl/flatbuffer/Euler_generated.h"
+#include <FRIMessages.pb.h>
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 namespace grl { namespace robot { namespace arm {
 
 /// faltbuffer enum objects
@@ -34,7 +39,7 @@ grl::flatbuffer::EConnectionQuality toFlatBuffer(const ::FRIConnectionQuality co
         case FRIConnectionQuality_POOR:
             return grl::flatbuffer::EConnectionQuality::POOR;
         case FRIConnectionQuality_FAIR:
-            return grl::flatbuffer::EConnectionQuality:FAIR;
+            return grl::flatbuffer::EConnectionQuality::FAIR;
         case FRIConnectionQuality_GOOD:
             return grl::flatbuffer::EConnectionQuality::GOOD;
 
@@ -48,25 +53,25 @@ grl::flatbuffer::ESafetyState toFlatBuffer(const ::SafetyState safetyState) {
 
     switch(safetyState) {
         case SafetyState_SAFETY_STOP_LEVEL_0:
-            return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_1;
+            return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_0;
         case SafetyState_SAFETY_STOP_LEVEL_1:
-            return grl::flatbuffer::ESafetyState:SAFETY_STOP_LEVEL_2;
+            return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_1;
         case SafetyState_SAFETY_STOP_LEVEL_2:
-            return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_3;
+            return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_2;
 
         default:
             break;
         }
-        return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_0;
+        return grl::flatbuffer::ESafetyState::NORMAL_OPERATION;
 }
 
 grl::flatbuffer::EOperationMode toFlatBuffer(const ::OperationMode operationMode) {
 
     switch(operationMode) {
         case OperationMode_TEST_MODE_1:
-            return grl::flatbuffer::EOperationMode::OperationMode_TEST_MODE_1;
+            return grl::flatbuffer::EOperationMode::TEST_MODE_1;
         case OperationMode_TEST_MODE_2:
-            return grl::flatbuffer::EOperationMode:OperationMode_TEST_MODE_2;
+            return grl::flatbuffer::EOperationMode::TEST_MODE_2;
 
         default:
             break;
@@ -80,7 +85,7 @@ grl::flatbuffer::EDriveState toFlatBuffer(const ::DriveState driveState) {
         case DriveState_OFF:
             return grl::flatbuffer::EDriveState::OFF;
         case DriveState_TRANSITIONING:
-            return grl::flatbuffer::EDriveState:TRANSITIONING;
+            return grl::flatbuffer::EDriveState::TRANSITIONING;
 
         default: //  DriveState_ACTIVE
             break;
@@ -94,11 +99,9 @@ grl::flatbuffer::EControlMode toFlatBuffer(const ::ControlMode controlMode) {
         case ControlMode_POSITION_CONTROLMODE:
             return grl::flatbuffer::EControlMode::POSITION_CONTROL_MODE;
         case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
-            return grl::flatbuffer::EControlMode:CART_IMP_CONTROL_MODE;
+            return grl::flatbuffer::EControlMode::CART_IMP_CONTROL_MODE;
         case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
-            return grl::flatbuffer::EControlMode:JOINT_IMP_CONTROL_MODE;
-        case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
-
+            return grl::flatbuffer::EControlMode::JOINT_IMP_CONTROL_MODE;
         default: //  ControlMode_NO_CONTROLMODE
             break;
         }
@@ -113,7 +116,7 @@ grl::flatbuffer::EClientCommandMode toFlatBuffer(const ::ClientCommandMode  clie
         case ClientCommandMode_WRENCH:
             return grl::flatbuffer::EClientCommandMode::WRENCH;
          case ClientCommandMode_TORQUE:
-            return grl::flatbuffer::TORQUE;
+            return grl::flatbuffer::EClientCommandMode::TORQUE;
 
         default: //  ClientCommandMode_NO_COMMAND_MODE
             break;
@@ -128,12 +131,12 @@ grl::flatbuffer::EOverlayType toFlatBuffer(const ::OverlayType  overlayType) {
         case OverlayType_JOINT:
             return grl::flatbuffer::EOverlayType::JOINT;
          case OverlayType_CARTESIAN:
-            return grl::flatbuffer::CARTESIAN;
+            return grl::flatbuffer::EOverlayType::CARTESIAN;
 
         default: //  OverlayType_NO_OVERLAY
             break;
         }
-        return grl::flatbuffer::EOverlayType::OverlayType_NO_OVERLAY;
+        return grl::flatbuffer::EOverlayType::NO_OVERLAY;
 }
 
 flatbuffers::Offset<grl::flatbuffer::EulerTranslationParams> toFlatBuffer(
@@ -144,7 +147,8 @@ flatbuffers::Offset<grl::flatbuffer::EulerTranslationParams> toFlatBuffer(
 {
     return grl::flatbuffer::CreateEulerTranslationParams(fbb, x, y, z);
 }
-
+/// Euler.fbs struct EulerRotationParams
+/// enum EulerOrder also defined in Euler.fbs
 flatbuffers::Offset<grl::flatbuffer::EulerRotationParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const double r1,
@@ -154,35 +158,49 @@ flatbuffers::Offset<grl::flatbuffer::EulerRotationParams> toFlatBuffer(
 {
     return grl::flatbuffer::CreateEulerRotationParams(fbb, r1, r2, r3, eulerOrder);
 }
+///////////////////////////////////////////////////////////////////
 // Helper function is also defined in FusionTrackToFlatbuffer.hpp
 grl::flatbuffer::Vector3d toFlatBuffer(const Eigen::Vector3d &pt)
 {
     return grl::flatbuffer::Vector3d(pt.x(), pt.y(), pt.z());
 }
 
-// How to distinguish different eulerOrder?
+//////////////////////////////////////////////////////////////////
+/// Euler.fbs, struct EulerRotation
 grl::flatbuffer::EulerRotation toFlatBuffer(
     const Eigen::Vector3d &pt,
     grl::flatbuffer::EulerOrder eulerOrder )
 {
     return grl::flatbuffer::EulerRotation(pt.x(), pt.y(), pt.z(), eulerOrder);
 }
-
+/// Euler.fbs, struct EulerPose
 grl::flatbuffer::EulerPose toFlatBuffer(
     const grl::flatbuffer::Vector3d &positon,
     const grl::flatbuffer::EulerRotation &eulerRotation)
 {
     return grl::flatbuffer::EulerPose(positon, eulerRotation);
 }
+/// Overload the above function
+/// TODO (@Chunting) Check if ptr has the same physical meaning with pt, if so, discard it.
+grl::flatbuffer::EulerPose toFlatBuffer(
+    const Eigen::Vector3d &pt,
+    const Eigen::Vector3d &ptr,
+    grl::flatbuffer::EulerOrder eulerOrder)
+{
+    auto positon = toFlatBuffer(pt);
+    auto eulerRotation = toFlatBuffer(ptr,eulerOrder);
+    return grl::flatbuffer::EulerPose(positon, eulerRotation);
+}
 
-// With ::ftk3DPoint, we can get the structure Vector3D, so do we need overwrite this function with input parameter ::ftk3DPoint?
-// table EulerPose and EulerPoseParams are both defined in Euler.fbs.
+/// tables EulerPose and EulerPoseParams are both defined in Euler.fbs.
+/// The same thing with EulerPose, this function can be overloaded with Eigen arguments.
+/// Note that the parameters should be passed by pointer, if by reference, it can't be compiled.
 flatbuffers::Offset<grl::flatbuffer::EulerPoseParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const grl::flatbuffer::Vector3d &position,
     const grl::flatbuffer::EulerRotation &rotation)
 {
-    return grl::flatbuffer::CreateEulerPoseParams(fbb, position, rotation);
+    return grl::flatbuffer::CreateEulerPoseParams(fbb, &position, &rotation);
 }
 
 // grl::flatbuffer::Pose toFlatBuffer(Eigen::Affine3d tf)
@@ -199,8 +217,8 @@ flatbuffers::Offset<grl::flatbuffer::EulerPoseParams> toFlatBuffer(
 
 flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
-    const grl::flatbuffer::EulerPose &stiffness,
-    const grl::flatbuffer::EulerPose &damping,
+    const grl::flatbuffer::EulerPose& stiffness,
+    const grl::flatbuffer::EulerPose& damping,
     const double nullspaceStiffness,
     const double nullspaceDamping,
     const grl::flatbuffer::EulerPose &maxPathDeviation,
@@ -210,13 +228,13 @@ flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> toFlatBuffer
 {
     return grl::flatbuffer::CreateCartesianImpedenceControlMode(
         fbb,
-        stiffness,
-        damping,
+        std::addressof(stiffness),
+        std::addressof(damping),
         nullspaceStiffness,
         nullspaceDamping,
-        maxPathDeviation,
-        maxCartesianVelocity,
-        maxControlForce,
+        std::addressof(maxPathDeviation),
+        std::addressof(maxCartesianVelocity),
+        std::addressof(maxControlForce),
         maxControlForceExceededStop);
 }
 
@@ -374,7 +392,48 @@ flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
         torque ? fbb.CreateVector<double>(torque) : 0);
 }
 
+flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::vector<grl::robot::arm::KukaState>& kukaStates,
+    const std::vector<double> &velocity = 0,
+    const std::vector<double> &acceleration = 0)
+{
+    std::vector<double> position;
+    std::vector<double> torque;
+    for(auto kukaState : kukaStates){
+        position.push_back(kukaState.position);
+        torque.push_back(kukaState.torque);
+    }
+    return grl::flatbuffer::CreateJointState(
+        fbb,
+        position ? fbb.CreateVector<double>(position) : 0,
+        velocity ? fbb.CreateVector<double>(velocity) : 0,
+        acceleration ? fbb.CreateVector<double>(acceleration) : 0,
+        torque ? fbb.CreateVector<double>(torque) : 0);
+}
+
 /// KUKAiiwa.fbs
+flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder fbb,
+    flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
+    const grl::flatbuffer::Pose &cartesianFlangePose,
+    flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateReal,
+    flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateInterpolated,
+    flatbuffers::Offset<grl::flatbuffer::JointState> &externalState,
+    const ::OperationMode &operationMode,
+    const grl::flatbuffer::Wrench &CartesianWrench)
+{
+    return grl::flatbuffer::CreateJointState(
+        fbb,
+        measuredState,
+        cartesianFlangePose,
+        jointStateReal,
+        jointStateInterpolated,
+        externalState,
+        operationMode,
+        CartesianWrench);
+}
+
 flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
     flatbuffers::FlatBufferBuilder fbb,
     flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,

@@ -52,7 +52,7 @@ struct KukaState {
   cartesian_state externalForce;
   joint_state commandedPosition;
   cartesian_state commandedCartesianWrenchFeedForward;
-  cartesian_state wrenchJava;
+  cartesian_state wrenchJava;  // Seven elements
   joint_state commandedTorque;
 
   joint_state ipoJointPosition;

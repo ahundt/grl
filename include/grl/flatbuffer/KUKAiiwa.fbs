@@ -241,12 +241,30 @@ table KUKAiiwaMonitorConfiguration {
 
 // Get state data for the arm (things that change often)
 table KUKAiiwaMonitorState {
+   // this is the measured current state of the arm joints
+   // as seen in monitorState and _FRIMonitoringMessage
+   // Several values from KukaState should be copied into here
+   // - KukaState::position
+   // - KukaState::torque
    measuredState:JointState;
-   cartesianFlangePose:Pose; // cartesian pose of the flange relative to the base of the arm
-   jointStateReal:JointState; // this is the real current state of the arm joints
 
-   /// FRI can adjust the java commanded position. "Interpolated" is the original Java commanded position.
+   // cartesian pose of the flange relative to the base of the arm
+   cartesianFlangePose:Pose;
+
+   // This is the real estimated state of the arm joints
+   // after combining data from the arm with sensors
+   // TODO: Not supported for now
+   jointStateReal:JointState;
+
    // TODO: verify this description is correct
+   // FRI can adjust the java commanded position.
+   // "Interpolated" is the original Java commanded position.
+   // "ipo" is an interpolated position. Kuka does this strange
+   // thing where you send a command in Java then use FRI to
+   // modify or "interpolate", drawing some other path different
+   // from what the users originally specified. It seems strange,
+   // confusing, useless.
+   // KukaState::ipoJointPosition goes in here
    jointStateInterpolated:JointState;
 
    /// The state of the arm as calculated by kuka after
@@ -254,10 +272,14 @@ table KUKAiiwaMonitorState {
    /// and any attachments configured to be present.
    ///
    /// Most likely only contains torque.
+   /// KukaState::ExternalTorque goes here
    externalState:JointState;
 
+   /// KUKA::FRI::EOperationMode
    operationMode:EOperationMode;
+   sessionState:ESessionState;
 
+   // This is a received cartesian wrench state
    CartesianWrench:Wrench;
 
 }

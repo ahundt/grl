@@ -90,6 +90,10 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
     basis_add_test(KukaLBRiiwaVrepPluginTest.cpp)
 	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
                     v_repLib KukaFRIClient ${LINUX_ONLY_LIBS} )
+
+	basis_add_executable(kukaiiwaTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
+	basis_target_link_libraries(kukaiiwaTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient)
+
 endif()
 
 

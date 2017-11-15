@@ -637,7 +637,7 @@ namespace grl { namespace robot { namespace arm {
       fd_set mask, temp_mask, dummy_mask;
 
       Params params_;
-      KukaState armState_;
+      KukaState armState_;  // structure defined in Kuka.hpp
         // armControlMode is the current GRL_Driver.java configuration to which the arm is currently set.
         // Options are:
         //  ArmState_NONE = 0,
@@ -651,7 +651,7 @@ namespace grl { namespace robot { namespace arm {
         //  ArmState_MoveArmCartesianServo = 8
       flatbuffer::ArmState                 armControlMode_;
       flatbuffer::KUKAiiwaInterface commandInterface_ = flatbuffer::KUKAiiwaInterface::SmartServo;// KUKAiiwaInterface::SmartServo;
-       flatbuffer::KUKAiiwaInterface monitorInterface_ = flatbuffer::KUKAiiwaInterface::FRI;
+      flatbuffer::KUKAiiwaInterface monitorInterface_ = flatbuffer::KUKAiiwaInterface::FRI;
 //      flatbuffers::FlatBufferBuilder       builder_;
 //
 //      flatbuffer::JointStateBuilder        jointStateServoBuilder_;
