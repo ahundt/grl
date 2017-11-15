@@ -7,6 +7,135 @@
 #include "grl/flatbuffer/LinkObject_generated.h"
 namespace grl { namespace robot { namespace arm {
 
+/// faltbuffer enum objects
+/// 1. Which element in the enum should be selected as the defaut return value?
+/// 2. Is the argument like enum, int, double etc. passed by value or by reference?
+
+grl::flatbuffer::ESessionState toFlatBuffer(const ::FRISessionState sessionState) {
+
+    switch(sessionState) {
+        case FRISessionState_MONITORING_WAIT:
+            return grl::flatbuffer::ESessionState::MONITORING_WAIT;
+        case FRISessionState_MONITORING_READY:
+            return grl::flatbuffer::ESessionState::MONITORING_READY;
+        case FRISessionState_COMMANDING_WAIT:
+            return grl::flatbuffer::ESessionState::COMMANDING_WAIT;
+         case FRISessionState_COMMANDING_ACTIVE:
+            return grl::flatbuffer::ESessionState::COMMANDING_ACTIVE;
+        default:
+            break;
+        }
+        return grl::flatbuffer::ESessionState::IDLE;
+}
+
+grl::flatbuffer::EConnectionQuality toFlatBuffer(const ::FRIConnectionQuality connectionQuality) {
+
+    switch(connectionQuality) {
+        case FRIConnectionQuality_POOR:
+            return grl::flatbuffer::EConnectionQuality::POOR;
+        case FRIConnectionQuality_FAIR:
+            return grl::flatbuffer::EConnectionQuality:FAIR;
+        case FRIConnectionQuality_GOOD:
+            return grl::flatbuffer::EConnectionQuality::GOOD;
+
+        default:
+            break;
+        }
+        return grl::flatbuffer::EConnectionQuality::EXCELLENT;
+}
+
+grl::flatbuffer::ESafetyState toFlatBuffer(const ::SafetyState safetyState) {
+
+    switch(safetyState) {
+        case SafetyState_SAFETY_STOP_LEVEL_0:
+            return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_1;
+        case SafetyState_SAFETY_STOP_LEVEL_1:
+            return grl::flatbuffer::ESafetyState:SAFETY_STOP_LEVEL_2;
+        case SafetyState_SAFETY_STOP_LEVEL_2:
+            return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_3;
+
+        default:
+            break;
+        }
+        return grl::flatbuffer::ESafetyState::SAFETY_STOP_LEVEL_0;
+}
+
+grl::flatbuffer::EOperationMode toFlatBuffer(const ::OperationMode operationMode) {
+
+    switch(operationMode) {
+        case OperationMode_TEST_MODE_1:
+            return grl::flatbuffer::EOperationMode::OperationMode_TEST_MODE_1;
+        case OperationMode_TEST_MODE_2:
+            return grl::flatbuffer::EOperationMode:OperationMode_TEST_MODE_2;
+
+        default:
+            break;
+        }
+        return grl::flatbuffer::EOperationMode::AUTOMATIC_MODE;
+}
+
+grl::flatbuffer::EDriveState toFlatBuffer(const ::DriveState driveState) {
+
+    switch(driveState) {
+        case DriveState_OFF:
+            return grl::flatbuffer::EDriveState::OFF;
+        case DriveState_TRANSITIONING:
+            return grl::flatbuffer::EDriveState:TRANSITIONING;
+
+        default: //  DriveState_ACTIVE
+            break;
+        }
+        return grl::flatbuffer::EDriveState::ACTIVE;
+}
+
+grl::flatbuffer::EControlMode toFlatBuffer(const ::ControlMode controlMode) {
+
+    switch(controlMode) {
+        case ControlMode_POSITION_CONTROLMODE:
+            return grl::flatbuffer::EControlMode::POSITION_CONTROL_MODE;
+        case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
+            return grl::flatbuffer::EControlMode:CART_IMP_CONTROL_MODE;
+        case ControlMode_JOINT_IMPEDANCE_CONTROLMODE:
+            return grl::flatbuffer::EControlMode:JOINT_IMP_CONTROL_MODE;
+        case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
+
+        default: //  ControlMode_NO_CONTROLMODE
+            break;
+        }
+        return grl::flatbuffer::EControlMode::NO_CONTROL;
+}
+
+grl::flatbuffer::EClientCommandMode toFlatBuffer(const ::ClientCommandMode  clientcommandMode) {
+
+    switch(clientcommandMode) {
+        case ClientCommandMode_POSITION:
+            return grl::flatbuffer::EClientCommandMode::POSITION;
+        case ClientCommandMode_WRENCH:
+            return grl::flatbuffer::EClientCommandMode::WRENCH;
+         case ClientCommandMode_TORQUE:
+            return grl::flatbuffer::TORQUE;
+
+        default: //  ClientCommandMode_NO_COMMAND_MODE
+            break;
+        }
+        return grl::flatbuffer::EClientCommandMode::NO_COMMAND_MODE;
+}
+
+grl::flatbuffer::EOverlayType toFlatBuffer(const ::OverlayType  overlayType) {
+
+    switch(overlayType) {
+
+        case OverlayType_JOINT:
+            return grl::flatbuffer::EOverlayType::JOINT;
+         case OverlayType_CARTESIAN:
+            return grl::flatbuffer::CARTESIAN;
+
+        default: //  OverlayType_NO_OVERLAY
+            break;
+        }
+        return grl::flatbuffer::EOverlayType::OverlayType_NO_OVERLAY;
+}
+
 flatbuffers::Offset<grl::flatbuffer::EulerTranslationParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const double x,
@@ -167,7 +296,6 @@ flatbuffers::Offset<grl::flatbuffer::ProcessData> toFlatBuffer(
         fbb.CreateString(max),
         fbb.CreateString(unit),
         fbb.CreateString(value),
-        fbb.CreateString(datatype),
         shouldRemove,
         shouldUpdate
     );
@@ -230,6 +358,7 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> toFlatBuffer(
 }
 
 /// JointState.fbs
+/// JointValues in FRIMessages.pb.h, the same thing?
 flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const std::vector<double> &position,
@@ -278,7 +407,7 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     flatbuffers::Offset<grl::flatbuffer:ArmControlState> &armControlState,
     const bool setArmConfiguration,
     flatbuffers::Offset<grl::flatbuffer:KUKAiiwaArmConfiguration> &armConfiguration,
-    const bool hasMonitorState ,
+    const bool hasMonitorState,  // MessageMonitorData monitorData in FRIMessage.pb.h
     flatbuffers::Offset<grl::flatbuffer:KUKAiiwaMonitorState> &monitorState,
     const bool hasMonitorConfig,
     flatbuffers::Offset<grl::flatbuffer:KUKAiiwaMonitorConfiguration> &monitorConfig)
