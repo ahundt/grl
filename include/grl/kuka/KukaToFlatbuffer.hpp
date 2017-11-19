@@ -1,11 +1,14 @@
 #ifndef GRL_KUKA_TO_FLATBUFFER
 #define GRL_KUKA_TO_FLATBUFFER
 
+#include <boost/range/algorithm/copy.hpp>
+
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 #include "grl/flatbuffer/LinkObject_generated.h"
 #include "grl/flatbuffer/Euler_generated.h"
+#include "grl/kuka/Kuka.hpp"
 #include <FRIMessages.pb.h>
 
 #include <Eigen/Core>
@@ -238,7 +241,7 @@ flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> toFlatBuffer
         maxControlForceExceededStop);
 }
 
-flatbuffers::Offset<grl::flatbuffer::CreateJointImpedenceControlMode> toFlatBuffer(
+flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     std::vector<double> &joint_stiffness,
     std::vector<double> &joint_damping)
@@ -259,9 +262,10 @@ flatbuffers::Offset<grl::flatbuffer::FRI> toFlatBuffer(
     const bool updatePortOnController,
     const int16_t portOnController)
 {
+    // auto _overlayType = toFlatBuffer(overlayType);
     return grl::flatbuffer::CreateFRI(
         fbb,
-        EOverlayType,
+        toFlatBuffer(overlayType),
         connectionInfo.sendPeriod,
         connectionInfo.receiveMultiplier,
         updatePortOnRemote,
@@ -306,7 +310,7 @@ flatbuffers::Offset<grl::flatbuffer::ProcessData> toFlatBuffer(
 {
     return grl::flatbuffer::CreateProcessData(
         fbb,
-        fbb.CreateString(datatype),
+        fbb.CreateString(dataType),
         fbb.CreateString(defaultValue),
         fbb.CreateString(displayName),
         fbb.CreateString(id),
@@ -331,8 +335,8 @@ flatbuffers::Offset<grl::flatbuffer::LinkObject> toFlatBuffer(
             fbb,
             fbb.CreateString(name),
             fbb.CreateString(parent),
-            pose,
-            inertia
+            std::addressof(pose),
+            std::addressof(inertia)
         );
     }
 
@@ -362,9 +366,9 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> toFlatBuffer(
       fbb.CreateString(name),
       commandInterface,
       monitorInterface,
-      clientCommandMode,
-      overlayType,
-      controlMode,
+      toFlatBuffer(clientCommandMode),
+      toFlatBuffer(overlayType),
+      toFlatBuffer(controlMode),
       setCartImpedance,
       setJointImpedance,
       smartServoConfig,
@@ -386,30 +390,32 @@ flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
 {
     return grl::flatbuffer::CreateJointState(
         fbb,
-        position ? fbb.CreateVector<double>(position) : 0,
-        velocity ? fbb.CreateVector<double>(velocity) : 0,
-        acceleration ? fbb.CreateVector<double>(acceleration) : 0,
-        torque ? fbb.CreateVector<double>(torque) : 0);
+        position.empty() ? fbb.CreateVector<double>(position) : 0,
+        velocity.empty() ? fbb.CreateVector<double>(velocity) : 0,
+        acceleration.empty() ? fbb.CreateVector<double>(acceleration) : 0,
+        torque.empty() ? fbb.CreateVector<double>(torque) : 0);
 }
 
 flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const std::vector<grl::robot::arm::KukaState>& kukaStates,
-    const std::vector<double> &velocity = 0,
-    const std::vector<double> &acceleration = 0)
+    const std::vector<double> &velocity,
+    const std::vector<double> &acceleration)
 {
     std::vector<double> position;
     std::vector<double> torque;
-    for(auto kukaState : kukaStates){
-        position.push_back(kukaState.position);
-        torque.push_back(kukaState.torque);
+    std::size_t sizeofStates = kukaStates.size();
+    for(auto &kukaState : kukaStates){
+
+        boost::copy(kukaState.position, &position[0]);
+        boost::copy(kukaState.torque, &torque[0]);
     }
     return grl::flatbuffer::CreateJointState(
         fbb,
-        position ? fbb.CreateVector<double>(position) : 0,
-        velocity ? fbb.CreateVector<double>(velocity) : 0,
-        acceleration ? fbb.CreateVector<double>(acceleration) : 0,
-        torque ? fbb.CreateVector<double>(torque) : 0);
+        position.empty() ? fbb.CreateVector<double>(position) : 0,
+        velocity.empty() ? fbb.CreateVector<double>(velocity) : 0,
+        acceleration.empty() ? fbb.CreateVector<double>(acceleration) : 0,
+        torque.empty() ? fbb.CreateVector<double>(torque) : 0);
 }
 
 /// KUKAiiwa.fbs
@@ -420,56 +426,60 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
     flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateReal,
     flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateInterpolated,
     flatbuffers::Offset<grl::flatbuffer::JointState> &externalState,
+    const ::FRISessionState &sessionState,
     const ::OperationMode &operationMode,
     const grl::flatbuffer::Wrench &CartesianWrench)
 {
-    return grl::flatbuffer::CreateJointState(
+    return grl::flatbuffer::CreateKUKAiiwaMonitorState(
         fbb,
         measuredState,
-        cartesianFlangePose,
+        std::addressof(cartesianFlangePose),
         jointStateReal,
         jointStateInterpolated,
         externalState,
-        operationMode,
-        CartesianWrench);
+
+        toFlatBuffer(operationMode),
+        toFlatBuffer(sessionState),
+        std::addressof(CartesianWrench)
+        );
 }
 
-flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder fbb,
-    flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
-    const grl::flatbuffer::Pose &cartesianFlangePose,
-    flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateReal,
-    flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateInterpolated,
-    flatbuffers::Offset<grl::flatbuffer::JointState> &externalState,
-    const ::OperationMode &operationMode,
-    const grl::flatbuffer::Wrench &CartesianWrench)
-{
-    return grl::flatbuffer::CreateJointState(
-        fbb,
-        measuredState,
-        cartesianFlangePose,
-        jointStateReal,
-        jointStateInterpolated,
-        externalState,
-        operationMode,
-        CartesianWrench);
-}
+// flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
+//     flatbuffers::FlatBufferBuilder fbb,
+//     flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
+//     const grl::flatbuffer::Pose &cartesianFlangePose,
+//     flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateReal,
+//     flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateInterpolated,
+//     flatbuffers::Offset<grl::flatbuffer::JointState> &externalState,
+//     const ::OperationMode &operationMode,
+//     const grl::flatbuffer::Wrench &CartesianWrench)
+// {
+//     return grl::flatbuffer::CreateJointState(
+//         fbb,
+//         measuredState,
+//         cartesianFlangePose,
+//         jointStateReal,
+//         jointStateInterpolated,
+//         externalState,
+//         toFlatBuffer(operationMode),
+//         CartesianWrench);
+// }
 
 /// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const std::string &name,
-    const td::string &destination,
-    const td::string &source
+    const std::string &destination,
+    const std::string &source,
     const double timestamp,
     const bool setArmControlState,
-    flatbuffers::Offset<grl::flatbuffer:ArmControlState> &armControlState,
+    flatbuffers::Offset<grl::flatbuffer::ArmControlState> &armControlState,
     const bool setArmConfiguration,
-    flatbuffers::Offset<grl::flatbuffer:KUKAiiwaArmConfiguration> &armConfiguration,
+    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> &armConfiguration,
     const bool hasMonitorState,  // MessageMonitorData monitorData in FRIMessage.pb.h
-    flatbuffers::Offset<grl::flatbuffer:KUKAiiwaMonitorState> &monitorState,
+    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> &monitorState,
     const bool hasMonitorConfig,
-    flatbuffers::Offset<grl::flatbuffer:KUKAiiwaMonitorConfiguration> &monitorConfig)
+    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> &monitorConfig)
 {
     return grl::flatbuffer::CreateKUKAiiwaState(
       fbb,
@@ -511,16 +521,17 @@ flatbuffers::Offset<grl::flatbuffer::MoveArmJointServo> toFlatBuffer(
 }
 
 /// ArmControlState.fbs
-flatbuffers::Offset<grl::flatbuffer::MoveArmJointServo> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder &fbb,
-    const std::string *parent,
-    const grl::flatbuffer::Pose &goal)
-{
-    return grl::flatbuffer::CreateMoveArmJointServo(
-      fbb,
-      fbb.CreateString(parent),
-      goal);
-}
+// flatbuffers::Offset<grl::flatbuffer::MoveArmJointServo> toFlatBuffer(
+//     flatbuffers::FlatBufferBuilder &fbb,
+//     const std::string &parent,
+//     const grl::flatbuffer::Pose &goal)
+// {
+//     return grl::flatbuffer::CreateMoveArmJointServo(
+//       fbb,
+//       fbb.CreateString(parent),
+//       std::addressof(goal)
+//       );
+// }
 
 
 /// ArmControlState.fbs

@@ -284,6 +284,25 @@ table KUKAiiwaMonitorState {
 
 }
 
+// a table that is used as a record of all communication over FRI
+// it is not for user configuration or anything else, it should
+// simply reflect a history of what was sent and what was received.
+table FRIMessageLog {
+
+    messageIdentifier:int;
+    sequenceCounter:int;
+    reflectedSequenceCounter:int;
+    // hardware timestamps
+    sec:int;
+    nanosec:int;   // one billionth of a second
+    measuredJointPosition:[double];
+    measuredTorque:[double];
+    commandedJointPosition:[double];
+    commandedTorque:[double];
+    externalTorque:[double];
+
+}
+
 
 table KUKAiiwaState {
   name:string; // The name of the robot to update (identifier used when applicable, doesn't ever change or set the name)
@@ -303,7 +322,9 @@ table KUKAiiwaState {
   hasMonitorConfig:bool = false;
   monitorConfig:KUKAiiwaMonitorConfiguration;
 
+  FRIMessage:FRIMessageLog;
 }
+
 
 // Full message that is sent back and forth
 // between KUKA iiwa and driver

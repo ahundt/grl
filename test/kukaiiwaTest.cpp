@@ -7,13 +7,8 @@
 #include <iostream>
 #include <vector>
 
-//// local includes
-//////#include "flatbuffers/util.h"
-///#include "grl/sensor/FusionTrack.hpp"
-///#include "grl/sensor/FusionTrackToEigen.hpp"
 #include "grl/kuka/KukaToFlatbuffer.hpp"
-#include <FRIMessages.pb.h>
-#include "grl/kuka/KukaJAVAdriver.hpp"
+
 
 BOOST_AUTO_TEST_SUITE(KukaTest)
 
