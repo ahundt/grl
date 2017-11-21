@@ -10,7 +10,6 @@
 
 #include <tuple>
 #include <memory>
-#include <thread>
 #include <boost/asio.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/exception/all.hpp>
@@ -47,6 +46,7 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+#include <fbs_tk/fbs_tk.hpp>
 
 namespace grl { namespace robot { namespace arm {
 
@@ -366,45 +366,40 @@ namespace grl { namespace robot { namespace arm {
                       // packets are available, process them
                       if (FD_ISSET(socket_local, &temp_mask))
                       {
-                           static const std::size_t udp_size = 1400;
-                           unsigned char recbuf[udp_size];
+                           // allocate the buffer, should only happen once
+                           if(!java_interface_received_statesP_) {
+                             java_interface_received_statesP_ = std::make_shared<fbs_tk::Root<KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
+                           }
+                           if(!java_interface_next_statesP_) {
+                             java_interface_next_statesP_ = std::make_shared<fbs_tk::Root<KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
+                           }
+
+
                            static const int flags = 0;
+                           // get a reference to the buffer object
+                           fbs_tk::Buffer& internal_buffer = java_interface_received_statesP_->get_data()
 
-                           ret = recvfrom(socket_local, recbuf, sizeof(recbuf), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
-                           if (ret <= 0) logger_->error("C++ KukaJAVAdriver Error: Receive failed with ret = {}", ret);
-
-                           if (ret > 0){
+                           // receive an update from the java driver over UDP
+                           ret = recvfrom(socket_local, reinterpret_cast<void*>(&internal_buffer.get_data()[0]), internal_buffer.size(), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
+                           if (ret <= 0) {
+                             bool java_state_received_successfully = false;
+                             logger_->error("C++ KukaJAVAdriver Error: Receive failed with ret = {}", ret);
+                           } else {
 
                                if(debug_) logger_->info("C++ KukaJAVAdriver received message size: {}",ret);
 
-
-                               auto rbPstart = static_cast<const uint8_t *>(recbuf);
-
-                               auto verifier = flatbuffers::Verifier(rbPstart, ret);
-                               auto bufOK = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
+                               java_interface_received_statesP_->update_root();
 
                                // Flatbuffer has been verified as valid
-                               if (bufOK) {
-                                   // only reading the wrench data currently
-                                   auto bufff = static_cast<const void *>(rbPstart);
-                                   if(debug_) logger_->info("C++ KukaJAVAdriver: flatbuffer verified successfully");
-
-                                   auto fbKUKAiiwaStates = grl::flatbuffer::GetKUKAiiwaStates(bufff);
-                                   auto wrench = fbKUKAiiwaStates->states()->Get(0)->monitorState()->CartesianWrench();
-
-                                   armState_.wrenchJava.clear();
-                                   armState_.wrenchJava.push_back(wrench->force().x());
-                                   armState_.wrenchJava.push_back(wrench->force().y());
-                                   armState_.wrenchJava.push_back(wrench->force().z());
-                                   armState_.wrenchJava.push_back(wrench->torque().x());
-                                   armState_.wrenchJava.push_back(wrench->torque().y());
-                                   armState_.wrenchJava.push_back(wrench->torque().z());
-
-
+                               if (java_interface_received_statesP_->valid()) {
+                                  bool java_state_received_successfully = true;
+                                  std::swap(java_interface_received_statesP_, java_interface_next_statesP_);
+                                  if(debug_) logger_->info("C++ KukaJAVAdriver: flatbuffer verified successfully");
                                } else {
-                                   logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", bufOK);
+                                  // TODO(ahundt) consider specific error codes for verifier failure vs udp receive failure
+                                  bool java_state_received_successfully = false;
+                                  logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", bufOK);
                                }
-
 
                            }
 
@@ -600,12 +595,26 @@ namespace grl { namespace robot { namespace arm {
      state = armState_;
    }
 
-   void getWrench(KukaState & state)
+   /// get 6 element wrench entries
+   /// [force_x, force_y, force_z, torque_x, torque_y, torque_z]
+       template<typename OutputIterator>
+   void getWrench(OutputIterator output)
    {
     boost::lock_guard<boost::mutex> lock(jt_mutex);
 
-       if (!armState_.wrenchJava.empty()) {
-           state.wrenchJava = armState_.wrenchJava;
+       // make sure the object exists and contains data
+       if (java_interface_received_statesP_ && java_interface_received_statesP_->valid()) {
+
+        // get the wrench state out
+        auto wrench = java_interface_received_statesP_->states()->Get(0)->monitorState()->CartesianWrench();
+
+        // insert the values into the output vector
+        *output++ = wrench->force().x();
+        *output++ = wrench->force().y();
+        *output++ = wrench->force().z();
+        *output++ = wrench->torque().x();
+        *output++ = wrench->torque().y();
+        *output++ = wrench->torque().z();
        }
    }
 
@@ -627,6 +636,8 @@ namespace grl { namespace robot { namespace arm {
 
     private:
 
+      /// @TODO(ahundt) don't assume this fixed size, consider a parameter
+      static const std::size_t udp_size_ = 1400;
       std::shared_ptr<spdlog::logger> logger_;
       int socket_local;
       int port;
@@ -638,6 +649,16 @@ namespace grl { namespace robot { namespace arm {
 
       Params params_;
       KukaState armState_;  // structure defined in Kuka.hpp
+      // this is the data that was received from the remote computer
+      // with the data from the java interface that gets sent back and forth
+      // this one will only contain valid received data
+      std::shared_ptr<fbs_tk::Root<KUKAiiwaStates>> java_interface_received_statesP_;
+      /// indicates if the next state was received successfully in java_interface_next_statesP_
+      /// and java_interface_received_statesP_ was updated accordingly.
+      bool java_state_received_successfully = false;
+      /// used for receiving the next buffer over the network.
+      /// if some receive calls fail this one may not contain valid data.
+      std::shared_ptr<fbs_tk::Root<KUKAiiwaStates>> java_interface_next_statesP_;
         // armControlMode is the current GRL_Driver.java configuration to which the arm is currently set.
         // Options are:
         //  ArmState_NONE = 0,

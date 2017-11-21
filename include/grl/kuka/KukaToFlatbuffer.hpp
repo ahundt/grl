@@ -8,7 +8,8 @@
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 #include "grl/flatbuffer/LinkObject_generated.h"
 #include "grl/flatbuffer/Euler_generated.h"
-#include "grl/kuka/Kuka.hpp"
+#include "Kuka.hpp"
+#include "KukaFRIalgorithm.hpp"
 #include <FRIMessages.pb.h>
 
 #include <Eigen/Core>
@@ -496,6 +497,73 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
       hasMonitorConfig,
       monitorConfig);
 }
+
+
+/// KUKAiiwa.fbs
+flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const ::FRISessionState &sessionState,
+    const ::FRIConnectionQuality &connectionQuality,
+    const ::ControlMode &controlMode, // enum
+    const ::MessageHeader &messageHeader,
+    const ::TimeStamp &timeStamp,
+    const ::MessageMonitorData &message,
+    const ::MessageIpoData &ipoData)
+
+{
+    auto _sessionState = toFlatBuffer(sessionState);
+    auto _connectionQuality = toFlatBuffer(connectionQuality);
+    auto _controlMode = toFlatBuffer(controlMode);
+    auto _messageIdentifier = messageHeader.messageIdentifier;
+    auto _sequenceCounter = messageHeader.sequenceCounter;
+    auto _reflectedSequenceCounter = messageHeader.reflectedSequenceCounter;
+    auto _sec = timeStamp.sec;
+    auto _nanosec = timeStamp.nanosec;
+    std::vector<double> data;
+    // get measured joint position
+    grl::robot::arm::copy(message, std::back_inserter(data), grl::revolute_joint_angle_open_chain_state_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _measuredJointPosition = fbb.CreateVector(data);
+    data.clear();
+    // get measured joint torque
+    grl::robot::arm::copy(message, std::back_inserter(data), grl::revolute_joint_torque_open_chain_state_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _measuredTorque = fbb.CreateVector(data);
+    data.clear();
+    // get measured joint torque
+    grl::robot::arm::copy(message, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _commandedJointPosition = fbb.CreateVector(data);
+    data.clear();
+    // get commanded joint torque
+    grl::robot::arm::copy(message, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _commandedTorque = fbb.CreateVector(data);
+    data.clear();
+    // get measured external torque
+    grl::robot::arm::copy(message, std::back_inserter(data), grl::revolute_joint_torque_external_open_chain_state_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _externalTorque = fbb.CreateVector(data);
+    data.clear();
+    // get interpolated joint state
+    grl::robot::arm::copy(message, std::back_inserter(data), grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _jointStateInterpolated = fbb.CreateVector(data);
+    auto _overlayType = toFlatBuffer(ipoData.overlayType);
+     return grl::flatbuffer::CreateFRIMessageLog(
+      fbb,
+      _sessionState,
+      _connectionQuality,
+      _controlMode,
+      _messageIdentifier,
+      _sequenceCounter,
+      _reflectedSequenceCounter,
+      _sec,
+      _nanosec,
+      _measuredJointPosition,
+      _measuredTorque,
+      _commandedJointPosition,
+      _commandedTorque,
+      _externalTorque,
+      _jointStateInterpolated,
+      _overlayType);
+}
+
+
 
 /// ArmControlState.fbs
 flatbuffers::Offset<grl::flatbuffer::MoveArmTrajectory> toFlatBuffer(

@@ -43,20 +43,33 @@ namespace arm {
 /// do not depend on this struct directly.
 /// @todo commandedPosition and commandedPosition_goal are used a bit
 /// ambiguously, figure out the difference and clean it up.
+/// @TODO(ahundt) add support for a vector of Transformation data @see FRIMessages.pb.h,
+/// but store as quaternon + vector, not rotation matrix
 struct KukaState {
   typedef boost::container::static_vector<double, KUKA::LBRState::NUM_DOF>
       joint_state;
+  // cartesian state entries consist of a vector x,y,z and a quaternion [x, y, z, w]
   typedef boost::container::static_vector<double, 7> cartesian_state;
   typedef std::chrono::time_point<std::chrono::high_resolution_clock>
       time_point_type;
 
+  /// measured position, identified by revolute_joint_angle_open_chain_state_tag
+  /// @see grl::revolute_joint_angle_open_chain_state_tag in grl/tags.hpp, which identifies this data
   joint_state position;
+  /// measured torque, identified by revolute_joint_torque_open_chain_state_tag
+  /// @see grl::revolute_joint_torque_open_chain_state_tag in grl/tags.hpp, which identifies this data
   joint_state torque;
+  /// torque applied to the robot from an outside source,
+  /// @see grl::revolute_joint_torque_open_chain_state_tag in grl/tags.hpp, which identifies this data
   joint_state externalTorque;
+  /// measured external force, only available in sunrise OS version 1.9
   cartesian_state externalForce;
+
+  /// commanded joint angles
+  /// @see grl::revolute_joint_angle_open_chain_command_tag in grl/tags.hpp, which identifies this data
   joint_state commandedPosition;
+  /// cartesian_wrench_command_tag
   cartesian_state commandedCartesianWrenchFeedForward;
-  cartesian_state wrenchJava;  // Seven elements
   joint_state commandedTorque;
 
   joint_state ipoJointPosition;
@@ -77,6 +90,8 @@ struct KukaState {
   // The point in time associated with the current measured
   // state of the arm (position, torque, etc.). When commanding
   // the arm use commanded_goal_timestamp.
+  /// TODO(Chunting) remove this and make all code that uses it instead set the time_event_stamp
+  /// most likely the device_time, but double check the correctness of that
   time_point_type timestamp;
 
   /////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,6 +117,12 @@ struct KukaState {
   /// velocity limits the arm stops immediately with an error.
   joint_state velocity_limits;
 
+  /// Time event records the hardware time,
+  /// the local computer time before receiving data
+  /// and the local computer time after receiving data
+  /// This makes it possible to more accurately synchronize
+  /// time between multiple hardware devices.
+  grl::TimeEvent time_event_stamp;
 
   void clear() {
     position.clear();
@@ -125,7 +146,7 @@ struct KukaState {
 };
 
 constexpr auto KUKA_LBR_IIWA_14_R820 = "KUKA_LBR_IIWA_14_R820";
-constexpr auto KUKA_LBR_IIWA_7_R800 = "KUKA_LBR_IIWA_7_R800";
+constexpr auto KUKA_LBR_IIWA_7_R8, identified by00 = "KUKA_LBR_IIWA_7_R800";
 
 /// @brief copy vector of joint velocity limits in radians/s
 ///

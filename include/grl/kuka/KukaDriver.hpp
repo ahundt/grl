@@ -447,12 +447,15 @@ namespace grl { namespace robot { namespace arm {
     }
 
     /// @todo(ahundt) replace with standard get() call with tag dispatch like above
+   /// get 6 element wrench entries
+   /// [force_x, force_y, force_z, torque_x, torque_y, torque_z]
+   /// @param output a C++ OutputIterator which adds the values to your output object,
+   ///        see http://en.cppreference.com/w/cpp/iterator/back_inserter
     template<typename OutputIterator>
     void getWrench(OutputIterator output)
     {
         boost::unique_lock<boost::mutex> lock(jt_mutex);
-        boost::copy(armState_.wrenchJava,output);
-
+        boost::shared_ptr<KukaJAVAdriver> JAVAdriverP_->getWrench(output);
     }
 
       volatile std::size_t m_haveReceivedRealDataCount = 0;

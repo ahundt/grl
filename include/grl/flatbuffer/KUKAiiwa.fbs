@@ -289,19 +289,27 @@ table KUKAiiwaMonitorState {
 // simply reflect a history of what was sent and what was received.
 table FRIMessageLog {
 
+    sessionState:ESessionState;
+    connectionQuality:EConnectionQuality;
+    controlMode:EControlMode;
+    // MessageHeader;
     messageIdentifier:int;
     sequenceCounter:int;
     reflectedSequenceCounter:int;
     // hardware timestamps
     sec:int;
     nanosec:int;   // one billionth of a second
+    // MessageMonitorData
     measuredJointPosition:[double];
     measuredTorque:[double];
     commandedJointPosition:[double];
     commandedTorque:[double];
     externalTorque:[double];
+    // MessageIpoData
+    jointStateInterpolated:[double];
 
-}
+    timeStamp:TimeEvent;
+  }
 
 
 table KUKAiiwaState {

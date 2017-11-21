@@ -26,6 +26,8 @@
 #include "grl/exception.hpp"
 #include "grl/vector_ostream.hpp"
 #include "grl/kuka/KukaFRIalgorithm.hpp"
+// used for time synchronization
+#include "grl/TimeEvent.hpp"
 
 
 /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
@@ -394,14 +396,17 @@ void update_state(boost::asio::ip::udp::socket &socket,
                   std::size_t &receive_bytes_transferred,
                   boost::system::error_code &send_ec,
                   std::size_t &send_bytes_transferred,
-                  boost::asio::ip::udp::endpoint sender_endpoint =
-                      boost::asio::ip::udp::endpoint()) {
+                  grl::TimeEvent& timeEvent,
+                  boost::asio::ip::udp::endpoint sender_endpoint = boost::asio::ip::udp::endpoint()) {
 
   static const int message_flags = 0;
+        // get a local clock timestamp, then the latest frame from the device, then another timestamp
+  timeEvent.local_request_time = cartographer::common::UniversalTimeScaleClock::now();
   receive_bytes_transferred = socket.receive_from(
       boost::asio::buffer(friData.receiveBuffer,
                           KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),
       sender_endpoint, message_flags, receive_ec);
+  timeEvent.local_receive_time = cartographer::common::UniversalTimeScaleClock::now();
   decode(friData, receive_bytes_transferred);
 
   friData.lastSendCounter++;
@@ -565,7 +570,8 @@ public:
                     boost::system::error_code &receive_ec,
                     std::size_t &receive_bytes_transferred,
                     boost::system::error_code &send_ec,
-                    std::size_t &send_bytes_transferred) {
+                    std::size_t &send_bytes_transferred,
+                    grl::TimeEvent& timeEvent) {
 
     if (exceptionPtr) {
       /// @note this exception most likely came from the update() call running
@@ -615,7 +621,7 @@ public:
                      validFriDataLatestState)) {
         // all storage is full, return the spare data to the user
         std::tie(step_alg_params, friData, receive_ec, receive_bytes_transferred, send_ec,
-                 send_bytes_transferred) = validFriDataLatestState;
+                 send_bytes_transferred, timeEvent) = validFriDataLatestState;
       }
     }
 
@@ -688,7 +694,8 @@ private:
             std::get<latest_receive_ec>(nextState),
             std::get<latest_receive_bytes_transferred>(nextState),
             std::get<latest_send_ec>(nextState),
-            std::get<latest_send_bytes_transferred>(nextState));
+            std::get<latest_send_bytes_transferred>(nextState),
+            std::get<latest_time_event_data>(nextState));
 
         /// @todo use atomics to eliminate the global mutex lock for this object
         // lock the mutex to communicate with the user thread
@@ -799,13 +806,18 @@ private:
     latest_receive_ec,
     latest_receive_bytes_transferred,
     latest_send_ec,
-    latest_send_bytes_transferred
+    latest_send_bytes_transferred,
+    latest_time_event_data
   };
 
+  /// this is the object that stores all data for the latest device state
+  /// including the KUKA defined ClientData object, and a grl defined TimeEvent
+  /// which stores the time data needed for synchronization.
   typedef std::tuple<std::shared_ptr<typename LowLevelStepAlgorithmType::Params>,
                      std::shared_ptr<KUKA::FRI::ClientData>,
                      boost::system::error_code, std::size_t,
-                     boost::system::error_code, std::size_t>
+                     boost::system::error_code, std::size_t,
+                     grl::TimeEvent>
       LatestState;
 
   /// Creates a default LatestState Object
@@ -814,7 +826,7 @@ private:
                    std::shared_ptr<KUKA::FRI::ClientData> &clientData) {
     return std::make_tuple(lowLevelAlgorithmParams, clientData, boost::system::error_code(),
                            std::size_t(), boost::system::error_code(),
-                           std::size_t());
+                           std::size_t(), grl::TimEvent());
   }
 
   /// creates a shared_ptr to KUKA::FRI::ClientData with all command message
@@ -823,8 +835,7 @@ private:
   static std::shared_ptr<KUKA::FRI::ClientData> make_shared_valid_ClientData(
     std::shared_ptr<KUKA::FRI::ClientData> &friData) {
     if (friData.get() == nullptr) {
-      friData =
-          std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF);
+      friData = std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF);
       // there is no commandMessage data on a new object
       friData->resetCommandMessage();
     }
@@ -844,8 +855,9 @@ private:
     std::shared_ptr<typename LowLevelStepAlgorithmType::Params> lowLevelAlgorithmParams,
     std::shared_ptr<KUKA::FRI::ClientData> &friData
   ) {
-    if (!friData)
+    if (!friData) {
       friData = make_shared_valid_ClientData();
+  }
 
     return make_LatestState(lowLevelAlgorithmParams,friData);
   }
@@ -1021,17 +1033,17 @@ public:
    *
    */
   bool run_one() {
+    grl::TimeEvent time_event_stamp;
     // note: this one sends *and* receives the joint data!
     BOOST_VERIFY(kukaFRIClientDataDriverP_.get() != nullptr);
     /// @todo use runtime calculation of NUM_JOINTS instead of constant
-    if (!friData_)
-      friData_ =
-          std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF);
+    if (!friData_) {
+      friData_ = std::make_shared<KUKA::FRI::ClientData>(KUKA::LBRState::NUM_DOF);
+    }
 
     bool haveNewData = false;
 
-    static const std::size_t minimumConsecutiveSuccessesBeforeSendingCommands =
-        100;
+    static const std::size_t minimumConsecutiveSuccessesBeforeSendingCommands = 100;
 
     std::shared_ptr<typename LowLevelStepAlgorithmType::Params> lowLevelStepAlgorithmCommandParamsP;
 
@@ -1069,7 +1081,7 @@ public:
     // sync with device over network
     haveNewData = !kukaFRIClientDataDriverP_->update_state(
         lowLevelStepAlgorithmCommandParamsP, friData_, recv_ec, recv_bytes, send_ec,
-        send_bytes);
+        send_bytes, time_event_stamp);
     m_attemptedCommunicationCount++;
 
     if (haveNewData) {
@@ -1128,6 +1140,8 @@ public:
 
       armState.sendPeriod = std::chrono::milliseconds(
           grl::robot::arm::get(friData_->monitoringMsg, grl::time_step_tag()));
+
+      armState.time_event_stamp = time_event_stamp;
 
       //              std::cout << "Measured Torque: ";
       //              std::cout << std::setw(6);
