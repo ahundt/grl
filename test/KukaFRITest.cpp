@@ -47,7 +47,12 @@ int main(int argc, char* argv[])
   std::size_t q_size = 4096; //queue size must be power of 2
   spdlog::set_async_mode(q_size);
   std::shared_ptr<spdlog::logger>                  loggerPG;
-	try 	{ 		 loggerPG = spdlog::stdout_logger_mt("console"); 	} 	catch (spdlog::spdlog_ex ex) 	{ 		loggerPG = spdlog::get("console"); 	}
+  try {
+    loggerPG = spdlog::stdout_logger_mt("console");
+  }
+  catch (spdlog::spdlog_ex ex) 	{
+      loggerPG = spdlog::get("console");
+  }
 
   grl::periodic<> callIfMinPeriodPassed;
   HowToMove howToMove = HowToMove::absolute_position_with_relative_rotation;//HowToMove::absolute_position; HowToMove::relative_position;
@@ -75,7 +80,7 @@ int main(int argc, char* argv[])
     }
 
       std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
-
+    // A single class for an I/O service object.
     boost::asio::io_service io_service;
 
 	std::shared_ptr<KUKA::FRI::ClientData> friData(std::make_shared<KUKA::FRI::ClientData>(7));
@@ -117,7 +122,12 @@ int main(int argc, char* argv[])
       /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
       /// IDEA: PASS A LOW LEVEL STEP ALGORITHM PARAMS OBJECT ON EACH UPDATE AND ONLY ONE INSTANCE OF THE ALGORITHM OBJECT ITSELF
       highLevelDriverClassP = std::make_shared<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>>(io_service,
-        std::make_tuple("KUKA_LBR_IIWA_14_R820",localhost,localport,remotehost,remoteport/*,4 ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically));
+        std::make_tuple("KUKA_LBR_IIWA_14_R820",
+                        localhost,
+                        localport,
+                        remotehost,
+                        remoteport/*,4 ms per tick*/,
+                        grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically));
 
     }
 
@@ -178,21 +188,33 @@ int main(int argc, char* argv[])
         boost::system::error_code send_ec, recv_ec;
         std::size_t send_bytes_transferred = 0, recv_bytes_transferred = 0;
         bool haveNewData = false;
-
+        grl::TimeEvent time_event_stamp;
         if(driverToUse == DriverToUse::low_level_fri_class)
         {
-            auto step_commandP = std::make_shared<grl::robot::arm::LinearInterpolation::Params>(std::make_tuple(jointStateToCommand,goal_position_command_time_duration));
+            auto step_commandP = std::make_shared<grl::robot::arm::LinearInterpolation::Params>(std::make_tuple(jointStateToCommand, goal_position_command_time_duration));
+
             haveNewData = !highLevelDriverClassP->update_state(step_commandP,
                                                                friData,
                                                                recv_ec,
                                                                recv_bytes_transferred,
                                                                send_ec,
-                                                               send_bytes_transferred);
+                                                               send_bytes_transferred,
+                                                               time_event_stamp);
         }
 
         if(driverToUse == DriverToUse::low_level_fri_function)
         {
-            grl::robot::arm::update_state(*socketP,*lowLevelStepAlgorithmP,*friData,send_ec,send_bytes_transferred, recv_ec, recv_bytes_transferred);
+            /// This update_state function is different from the above one.
+            /// They both are defined in KukaFRIdriver.hpp.
+            /// Also should the argument time_event_stam be the same with above one?
+            grl::robot::arm::update_state(*socketP,
+                                          *lowLevelStepAlgorithmP,
+                                          *friData,
+                                          send_ec,
+                                          send_bytes_transferred,
+                                          recv_ec,
+                                          recv_bytes_transferred,
+                                          time_event_stamp);
         }
 
         if(driverToUse == DriverToUse::kuka_driver_high_level_class)

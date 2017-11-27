@@ -824,7 +824,8 @@ private:
   static LatestState
   make_LatestState(std::shared_ptr<typename LowLevelStepAlgorithmType::Params> lowLevelAlgorithmParams,
                    std::shared_ptr<KUKA::FRI::ClientData> &clientData) {
-    return std::make_tuple(lowLevelAlgorithmParams, clientData,
+    return std::make_tuple(lowLevelAlgorithmParams,
+                           clientData,
                            boost::system::error_code(), std::size_t(),
                            boost::system::error_code(), std::size_t(),
                            grl::TimeEvent());

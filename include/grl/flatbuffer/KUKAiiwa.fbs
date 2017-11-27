@@ -284,6 +284,11 @@ table KUKAiiwaMonitorState {
 
 }
 
+table FRITimeStamp {
+  sec: int;
+  nanosec: int;
+}
+
 // a table that is used as a record of all communication over FRI
 // it is not for user configuration or anything else, it should
 // simply reflect a history of what was sent and what was received.
