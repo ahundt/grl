@@ -15,6 +15,8 @@
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 #include "grl/tags.hpp"
 #include "grl/exception.hpp"
+// used for time synchronization
+#include "grl/TimeEvent.hpp"
 
 #include <chrono>
 #include <ctime>
@@ -145,8 +147,10 @@ struct KukaState {
   }
 };
 
+/// constexpr objects are const and are initiallized with values known during compilation
 constexpr auto KUKA_LBR_IIWA_14_R820 = "KUKA_LBR_IIWA_14_R820";
-constexpr auto KUKA_LBR_IIWA_7_R8, identified by00 = "KUKA_LBR_IIWA_7_R800";
+/// constexpr auto KUKA_LBR_IIWA_7_R8, identified by00 = "KUKA_LBR_IIWA_7_R800";
+constexpr auto KUKA_LBR_IIWA_7_R8 = "KUKA_LBR_IIWA_7_R800";
 
 /// @brief copy vector of joint velocity limits in radians/s
 ///
@@ -178,7 +182,8 @@ copy(std::string model, OutputIterator it,
     maxVel.push_back(2.356194490192);
 
     return boost::copy(maxVel, it);
-  } else if (boost::iequals(model, KUKA_LBR_IIWA_7_R800)) {
+    /// KUKA_LBR_IIWA_7_R800 to KUKA_LBR_IIWA_7_R820
+  } else if (boost::iequals(model, "KUKA_LBR_IIWA_7_R800")) {
 
     /// @RK: updated the right joint velocity information based
     //  on the 800 model from the KUKA manual

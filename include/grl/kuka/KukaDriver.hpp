@@ -235,7 +235,7 @@ namespace grl { namespace robot { namespace arm {
           if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
           {
             FRIdriverP_->get(armState_);
-            JAVAdriverP_->getWrench(armState_);
+            //JAVAdriverP_->getWrench(armState_);
           }
         }
 
@@ -451,12 +451,19 @@ namespace grl { namespace robot { namespace arm {
    /// [force_x, force_y, force_z, torque_x, torque_y, torque_z]
    /// @param output a C++ OutputIterator which adds the values to your output object,
    ///        see http://en.cppreference.com/w/cpp/iterator/back_inserter
-    template<typename OutputIterator>
-    void getWrench(OutputIterator output)
-    {
-        boost::unique_lock<boost::mutex> lock(jt_mutex);
-        boost::shared_ptr<KukaJAVAdriver> JAVAdriverP_->getWrench(output);
-    }
+    // template<typename OutputIterator>
+    // void getWrench(OutputIterator output)
+    // {
+    //     boost::unique_lock<boost::mutex> lock(jt_mutex);
+    //     JAVAdriverP_->getWrench(output);
+    // }
+
+        template<typename Container>
+        void getWrench(Container output)
+       {
+          boost::unique_lock<boost::mutex> lock(jt_mutex);
+          JAVAdriverP_->getWrench(output);
+       }
 
       volatile std::size_t m_haveReceivedRealDataCount = 0;
       volatile std::size_t m_attemptedCommunicationCount = 0;

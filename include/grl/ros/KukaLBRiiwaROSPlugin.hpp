@@ -364,7 +364,9 @@ namespace grl {
          if(haveNewData)
          {
              std::vector<double> wrench_vector;
-             KukaDriverP_->getWrench(std::back_inserter(wrench_vector));
+             // KukaDriverP_->getWrench(std::back_inserter(wrench_vector));
+             // Using Container instead of OutputIterator to write into data
+             KukaDriverP_->getWrench(wrench_vector);
              if (!wrench_vector.empty())
              {
                  current_wrench.force.x = wrench_vector[0];
@@ -403,7 +405,7 @@ namespace grl {
 
       bool debug;
       std::size_t iteration_count_ = 0;
-      
+
       grl::flatbuffer::ArmState interaction_mode;
 
       boost::mutex jt_mutex;

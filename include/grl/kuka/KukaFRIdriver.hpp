@@ -585,7 +585,7 @@ public:
         !std::get<latest_receive_monitor_state>(latestStateForUser_)) {
       // no new data, so immediately return results accordingly
       std::tie(step_alg_params, friData, receive_ec, receive_bytes_transferred, send_ec,
-               send_bytes_transferred) = make_LatestState(step_alg_params,friData);
+               send_bytes_transferred, timeEvent) = make_LatestState(step_alg_params,friData);
       return !haveNewData;
     }
 
@@ -615,7 +615,7 @@ public:
       if (std::get<latest_receive_monitor_state>(latestStateForUser_)) {
         // return the latest state to the caller
         std::tie(step_alg_params,friData, receive_ec, receive_bytes_transferred, send_ec,
-                 send_bytes_transferred) = std::move(latestStateForUser_);
+                 send_bytes_transferred, timeEvent) = std::move(latestStateForUser_);
         haveNewData = true;
       } else if (std::get<latest_receive_monitor_state>(
                      validFriDataLatestState)) {
@@ -824,9 +824,10 @@ private:
   static LatestState
   make_LatestState(std::shared_ptr<typename LowLevelStepAlgorithmType::Params> lowLevelAlgorithmParams,
                    std::shared_ptr<KUKA::FRI::ClientData> &clientData) {
-    return std::make_tuple(lowLevelAlgorithmParams, clientData, boost::system::error_code(),
-                           std::size_t(), boost::system::error_code(),
-                           std::size_t(), grl::TimEvent());
+    return std::make_tuple(lowLevelAlgorithmParams, clientData,
+                           boost::system::error_code(), std::size_t(),
+                           boost::system::error_code(), std::size_t(),
+                           grl::TimeEvent());
   }
 
   /// creates a shared_ptr to KUKA::FRI::ClientData with all command message

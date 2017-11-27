@@ -1,13 +1,13 @@
 #ifndef _FBS_TK_HPP_
 #define _FBS_TK_HPP_
-
-#include <flatbuffers/idl.h>
 #include <flatbuffers/util.h>
+#include <flatbuffers/idl.h>
+
 #include <iostream>
 #include <cstring>
 #include <iterator>
 #include <cassert>
-#include <cstring>
+
 
 /**
  * Add equality to flatbuffers::String
@@ -157,7 +157,7 @@ private:
 		buff.write_data(out);
 		return out;
     }
-};
+}; // Struct Buffer
 
 inline void copy_from(Buffer &buffer, const flatbuffers::FlatBufferBuilder &builder) {
 	buffer.copy_from(builder.GetBufferPointer(), builder.GetSize());
@@ -287,7 +287,7 @@ private:
 
     const T* root;
 	Buffer data;
-};
+};  // namespace Root
 
 namespace root {
 	/**
@@ -333,7 +333,7 @@ Root<T> open_root(std::string filename) {
 	return result;
 }
 
-} // namespace
+} // namespace fbs_tk
 
 // Define hash code for Root objects
 namespace std {
@@ -343,83 +343,85 @@ struct hash<fbs_tk::Root<T>> {
 		return std::hash<T>()(*obj);
 	}
 };
+} // namespace std
 
-#include "fbs_tk/fbs_tk.hpp"
+// #include "thirdparty/fbs_tk/fbs_tk.hpp"
+// #include <cstring>
 
-#include <cstring>
+// using namespace std;
+// using namespace flatbuffers;
 
-using namespace std;
-using namespace flatbuffers;
+// /// This fbs_tk is different from the above on, since this one is located in namestd;
+// namespace fbs_tk {
 
-namespace fbs_tk {
+// bool json_to_bin(flatbuffers::Parser &parser, const char *js, Buffer &bin) {
 
-bool json_to_bin(Parser &parser, const char *js, Buffer &bin) {
-	if (!parser.Parse(js)) {
-		return false;
-	}
-	copy_from(bin, parser.builder_);
-	return true;
-}
+// 	if (!parser.Parse(static_cast<const char*>(js))) {
+// 		return false;
+// 	}
+// 	copy_from(bin, parser.builder_);
+// 	return true;
+// }
 
-bool json_to_fbs(flatbuffers::Parser &parser, std::istream &in, std::ostream &out) {
-	string js;
-	if (!load_buffer(in, &js)) {
-		return false;
-	}
-	Buffer bin;
-	if (!json_to_bin(parser, js.c_str(), bin)) {
-		return false;
-	}
-	bin.write_data(out);
-	return true;
-}
+// bool json_to_fbs(flatbuffers::Parser &parser, std::istream &in, std::ostream &out) {
+// 	string js;
+// 	if (!load_buffer(in, &js)) {
+// 		return false;
+// 	}
+// 	Buffer bin;
+// 	if (!json_to_bin(parser, js.c_str(), bin)) {
+// 		return false;
+// 	}
+// 	bin.write_data(out);
+// 	return true;
+// }
 
-string bin_to_json(Parser &parser, const Buffer &bin) {
-	string buffer;
-	GenerateText(parser, bin.get_data().data(), &buffer);
-	return buffer;
-}
+// string bin_to_json(flatbuffers::Parser &parser, const Buffer &bin) {
+// 	string buffer;
+// 	GenerateText(parser, reinterpret_cast<const uint8_t*>(bin.get_data().data()), &buffer);
+// 	return buffer;
+// }
 
-// converts a binary FBS into a json object
-bool fbs_to_json(flatbuffers::Parser &parser, std::istream &in, std::ostream &out) {
-	Buffer bin;
-	bin.read_all_data(in);
-	if (in.bad()) {
-		return false;
-	}
-	out << bin_to_json(parser, bin);
-	return out.good();
-}
+// // converts a binary FBS into a json object
+// bool fbs_to_json(flatbuffers::Parser &parser, std::istream &in, std::ostream &out) {
+// 	Buffer bin;
+// 	bin.read_all_data(in);
+// 	if (in.bad()) {
+// 		return false;
+// 	}
+// 	out << bin_to_json(parser, bin);
+// 	return out.good();
+// }
 
-bool fbs_stream_to_jsonl(const string &schema, istream &in, ostream &out) {
-	Parser parser;
-	parser.Parse(schema.c_str());
-	for (const auto & buff : range<Buffer>(in)) {
-		out << bin_to_json(parser, buff) << endl;
-	}
-	return in.eof();
-}
+// bool fbs_stream_to_jsonl(const string &schema, istream &in, ostream &out) {
+// 	flatbuffers::Parser parser;
+// 	parser.Parse(schema.c_str());
+// 	for (const auto & buff : range<Buffer>(in)) {
+// 		out << bin_to_json(parser, buff) << endl;
+// 	}
+// 	return in.eof();
+// }
 
-bool jsonl_to_fbs_stream(const string &schema, istream &in, ostream &out) {
-	Parser parser;
-	parser.Parse(schema.c_str());
-	string js;
-	Buffer bin;
-	while(getline(in, js)) {
-		if (!json_to_bin(parser, js.c_str(), bin)) {
-			return false;
-		}
-		out << bin;
-		if (out.bad()) {
-			return false;
-		}
-	}
-	return in.eof();
-}
+// bool jsonl_to_fbs_stream(const string &schema, istream &in, ostream &out) {
+// 	flatbuffers::Parser parser;
+// 	parser.Parse(schema.c_str());
+// 	string js;
+// 	Buffer bin;
+// 	while(getline(in, js)) {
+// 		if (!json_to_bin(parser, js.c_str(), bin)) {
+// 			return false;
+// 		}
+// 		out << bin;
+// 		if (out.bad()) {
+// 			return false;
+// 		}
+// 	}
+// 	return in.eof();
+// }
 
-} // NAMESPACE
-
+// } // NAMESPACE
 
 
-}
+
+//} // namespace std
 #endif // _FBS_TK_HPP_

@@ -7,6 +7,7 @@
 #include <chrono>
 #include <ratio>
 #include <thread>
+#include <algorithm>        // Required
 
 #include <tuple>
 #include <memory>
@@ -29,6 +30,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
+// C++11, use std::false_type and std::true_type
+#include <type_traits>
+#include <vector>
+
+#include <iterator>            // Required
+#include <queue> // Required
 
 //#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #include <boost/thread.hpp>
@@ -46,7 +53,7 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
-#include <fbs_tk/fbs_tk.hpp>
+#include <thirdparty/fbs_tk/fbs_tk.hpp>
 
 namespace grl { namespace robot { namespace arm {
 
@@ -368,19 +375,20 @@ namespace grl { namespace robot { namespace arm {
                       {
                            // allocate the buffer, should only happen once
                            if(!java_interface_received_statesP_) {
-                             java_interface_received_statesP_ = std::make_shared<fbs_tk::Root<KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
+                             java_interface_received_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
                            }
                            if(!java_interface_next_statesP_) {
-                             java_interface_next_statesP_ = std::make_shared<fbs_tk::Root<KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
+                             java_interface_next_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
                            }
 
 
                            static const int flags = 0;
                            // get a reference to the buffer object
-                           fbs_tk::Buffer& internal_buffer = java_interface_received_statesP_->get_data()
+                           const fbs_tk::Buffer& internal_buffer = java_interface_received_statesP_->get_data();
 
                            // receive an update from the java driver over UDP
-                           ret = recvfrom(socket_local, reinterpret_cast<void*>(&internal_buffer.get_data()[0]), internal_buffer.size(), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
+                           std::vector<uint8_t> bufferdata = internal_buffer.get_data();
+                           ret = recvfrom(socket_local, reinterpret_cast<void*>(&bufferdata[0]), internal_buffer.size(), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
                            if (ret <= 0) {
                              bool java_state_received_successfully = false;
                              logger_->error("C++ KukaJAVAdriver Error: Receive failed with ret = {}", ret);
@@ -398,7 +406,7 @@ namespace grl { namespace robot { namespace arm {
                                } else {
                                   // TODO(ahundt) consider specific error codes for verifier failure vs udp receive failure
                                   bool java_state_received_successfully = false;
-                                  logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", bufOK);
+                                  logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", java_state_received_successfully);
                                }
 
                            }
@@ -597,25 +605,57 @@ namespace grl { namespace robot { namespace arm {
 
    /// get 6 element wrench entries
    /// [force_x, force_y, force_z, torque_x, torque_y, torque_z]
-       template<typename OutputIterator>
-   void getWrench(OutputIterator output)
-   {
-    boost::lock_guard<boost::mutex> lock(jt_mutex);
+   /*
+    template<typename OutputIterator>
+    void getWrench(OutputIterator output)
+    {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
 
        // make sure the object exists and contains data
-       if (java_interface_received_statesP_ && java_interface_received_statesP_->valid()) {
+        if (java_interface_received_statesP_ && java_interface_received_statesP_->valid())
+        {
+            std::cout<< "eqTypes Test: " << eqTypes<int, double>() << std::endl;
+            // T* operator->() overload
+            // https://stackoverflow.com/questions/38542766/why-the-t-operator-is-applied-repeatedly-even-if-written-once
+            auto wrench = (*java_interface_received_statesP_)->states()->Get(0)->monitorState()->CartesianWrench();
+            // insert the values into the output vector
+            *output++ = wrench->force().x();  // double
+            *output++ = wrench->force().y();
+            *output++ = wrench->force().z();
+            *output++ = wrench->torque().x();
+            *output++ = wrench->torque().y();
+            *output++ = wrench->torque().z();
+        }
+   }
+   */
+  template<typename OutputIterator>
+void insertValues(OutputIterator result)
+{
+    for (int i = 0; i < 10; i++)
+    {
+        *(result++) = i;
+    }
+}
+  template<typename Container>
+    void getWrench(Container output)
+    {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
 
-        // get the wrench state out
-        auto wrench = java_interface_received_statesP_->states()->Get(0)->monitorState()->CartesianWrench();
-
-        // insert the values into the output vector
-        *output++ = wrench->force().x();
-        *output++ = wrench->force().y();
-        *output++ = wrench->force().z();
-        *output++ = wrench->torque().x();
-        *output++ = wrench->torque().y();
-        *output++ = wrench->torque().z();
-       }
+       // make sure the object exists and contains data
+        if (java_interface_received_statesP_ && java_interface_received_statesP_->valid())
+        {
+            std::cout<< "eqTypes Test: " << eqTypes<int, double>() << std::endl;
+            // T* operator->() overload
+            // https://stackoverflow.com/questions/38542766/why-the-t-operator-is-applied-repeatedly-even-if-written-once
+            auto wrench = (*java_interface_received_statesP_)->states()->Get(0)->monitorState()->CartesianWrench();
+            // insert the values into the output vector
+            output.push_back(wrench->force().x());
+            output.push_back(wrench->force().y());
+            output.push_back(wrench->force().z());
+            output.push_back(wrench->torque().x());
+            output.push_back(wrench->torque().y());
+            output.push_back(wrench->torque().z());
+        }
    }
 
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
@@ -633,6 +673,19 @@ namespace grl { namespace robot { namespace arm {
         boost::lock_guard<boost::mutex> lock(jt_mutex);
         armControlMode = armControlMode_;
    }
+
+   /////////////////////////////////////////////////////////////////////
+   /* Helper function for checking type equality in compile-time. */
+   /// https://stackoverflow.com/questions/16924168/compile-time-function-for-checking-type-equality
+    template<typename T, typename U>
+    struct is_same : std::false_type { };
+
+    template<typename T>
+    struct is_same<T, T> : std::true_type { };
+
+    template<typename T, typename U>
+    constexpr bool eqTypes() { return is_same<T, U>::value; }
+   /////////////////////////////////////////////////////////////////////
 
     private:
 
@@ -652,13 +705,13 @@ namespace grl { namespace robot { namespace arm {
       // this is the data that was received from the remote computer
       // with the data from the java interface that gets sent back and forth
       // this one will only contain valid received data
-      std::shared_ptr<fbs_tk::Root<KUKAiiwaStates>> java_interface_received_statesP_;
+      std::shared_ptr<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>> java_interface_received_statesP_;
       /// indicates if the next state was received successfully in java_interface_next_statesP_
       /// and java_interface_received_statesP_ was updated accordingly.
       bool java_state_received_successfully = false;
       /// used for receiving the next buffer over the network.
       /// if some receive calls fail this one may not contain valid data.
-      std::shared_ptr<fbs_tk::Root<KUKAiiwaStates>> java_interface_next_statesP_;
+      std::shared_ptr<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>> java_interface_next_statesP_;
         // armControlMode is the current GRL_Driver.java configuration to which the arm is currently set.
         // Options are:
         //  ArmState_NONE = 0,

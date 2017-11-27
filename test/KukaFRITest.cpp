@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     std::vector<double> ipoJointPos(7,0);
     std::vector<double> jointOffset(7,0); // length 7, value 0
     boost::container::static_vector<double, 7> jointStateToCommand(7,0);
-  
+
     // Absolute goal position to travel to in some modes of HowToMove
     // Set all 7 joints to go to a position 1 radian from the center
     std::vector<double> absoluteGoalPos(7,0.2);
@@ -103,13 +103,13 @@ int main(int argc, char* argv[])
     /// TODO(ahundt) remove deprecated arm state from here and implementation
     grl::robot::arm::KukaState armState;
     std::unique_ptr<grl::robot::arm::LinearInterpolation> lowLevelStepAlgorithmP;
-    
+
     // Need to tell the system how long in milliseconds it has to reach the goal
     // or it will never move!
     std::size_t goal_position_command_time_duration = 4;
     lowLevelStepAlgorithmP.reset(new grl::robot::arm::LinearInterpolation());
     // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800) see grl::robot::arm::KukaState::KUKA_LBR_IIWA_14_R820
-  
+
     std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>> highLevelDriverClassP;
 
     if(driverToUse == DriverToUse::low_level_fri_class)
@@ -118,14 +118,14 @@ int main(int argc, char* argv[])
       /// IDEA: PASS A LOW LEVEL STEP ALGORITHM PARAMS OBJECT ON EACH UPDATE AND ONLY ONE INSTANCE OF THE ALGORITHM OBJECT ITSELF
       highLevelDriverClassP = std::make_shared<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>>(io_service,
         std::make_tuple("KUKA_LBR_IIWA_14_R820",localhost,localport,remotehost,remoteport/*,4 ms per tick*/,grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically));
-    
+
     }
-  
+
     std::shared_ptr<boost::asio::ip::udp::socket> socketP;
-  
+
     if(driverToUse == DriverToUse::low_level_fri_function)
     {
-    
+
         socketP = std::make_shared<boost::asio::ip::udp::socket>(io_service, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(localhost), boost::lexical_cast<short>(localport)));
 
         boost::asio::ip::udp::resolver resolver(io_service);
@@ -135,9 +135,9 @@ int main(int argc, char* argv[])
         /// @todo maybe there is a more convienient way to set this that is easier for users? perhaps initializeClientDataForiiwa()?
         friData->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
     }
-  
+
     std::shared_ptr<grl::robot::arm::KukaDriver> kukaDriverP;
-  
+
     if(driverToUse == DriverToUse::kuka_driver_high_level_class)
     {
         grl::robot::arm::KukaDriver::Params params = std::make_tuple(
@@ -160,9 +160,9 @@ int main(int argc, char* argv[])
         kukaDriverP->set(grl::flatbuffer::ArmState::MoveArmJointServo);
         kukaDriverP->set(goal_position_command_time_duration,grl::time_duration_command_tag());
         std::cout << "KUKA COMMAND MODE: " << std::get<grl::robot::arm::KukaDriver::KukaCommandMode>(params) << "\n";
-    
+
     }
-  
+
 
     unsigned int num_missed = 0;
 
@@ -178,21 +178,26 @@ int main(int argc, char* argv[])
         boost::system::error_code send_ec, recv_ec;
         std::size_t send_bytes_transferred = 0, recv_bytes_transferred = 0;
         bool haveNewData = false;
-        
+
         if(driverToUse == DriverToUse::low_level_fri_class)
         {
             auto step_commandP = std::make_shared<grl::robot::arm::LinearInterpolation::Params>(std::make_tuple(jointStateToCommand,goal_position_command_time_duration));
-            haveNewData = !highLevelDriverClassP->update_state(step_commandP, friData, recv_ec, recv_bytes_transferred, send_ec, send_bytes_transferred);
+            haveNewData = !highLevelDriverClassP->update_state(step_commandP,
+                                                               friData,
+                                                               recv_ec,
+                                                               recv_bytes_transferred,
+                                                               send_ec,
+                                                               send_bytes_transferred);
         }
-        
+
         if(driverToUse == DriverToUse::low_level_fri_function)
         {
             grl::robot::arm::update_state(*socketP,*lowLevelStepAlgorithmP,*friData,send_ec,send_bytes_transferred, recv_ec, recv_bytes_transferred);
         }
-        
+
         if(driverToUse == DriverToUse::kuka_driver_high_level_class)
         {
-        
+
             kukaDriverP->set( jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
             kukaDriverP->run_one();
         }
@@ -200,7 +205,7 @@ int main(int argc, char* argv[])
         // if data didn't arrive correctly, skip and try again
         if(send_ec || recv_ec )
         {
-        
+
            loggerPG->error("receive error: ", recv_ec, "receive bytes: ", recv_bytes_transferred, " send error: ", send_ec, " send bytes: ", send_bytes_transferred,  " iteration: ", i);
            if(driverToUse == DriverToUse::low_level_fri_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
            continue;
@@ -260,7 +265,7 @@ int main(int argc, char* argv[])
                 boost::copy ( absoluteGoalPos, jointStateToCommand.begin());
             } else if (howToMove == HowToMove::absolute_position_with_relative_rotation) {
                 // go to a position relative to the current position
-                
+
                 boost::transform ( absoluteGoalPos, jointOffset, jointStateToCommand.begin(), std::plus<double>());
             }
         }
