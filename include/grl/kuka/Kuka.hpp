@@ -94,6 +94,9 @@ struct KukaState {
   // the arm use commanded_goal_timestamp.
   /// TODO(Chunting) remove this and make all code that uses it instead set the time_event_stamp
   /// most likely the device_time, but double check the correctness of that
+
+  /// This parameter is replaced by grl::TimeEvent time_event_stamp,
+  /// then how to integrate the TimeStamp in FRIMessage.pb.h?
   /// time_point_type timestamp;
 
   /////////////////////////////////////////////////////////////////////////////////////////////

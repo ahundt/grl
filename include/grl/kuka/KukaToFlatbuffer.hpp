@@ -1,6 +1,10 @@
 #ifndef GRL_KUKA_TO_FLATBUFFER
 #define GRL_KUKA_TO_FLATBUFFER
 
+/// Before including any FlatBuffers related headers, you can add this #define.
+/// You'll get an assert whenever the verifier fails, whose stack-trace can tell you exactly what check failed an on what field etc.
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+
 #include <boost/range/algorithm/copy.hpp>
 
 #include "grl/flatbuffer/JointState_generated.h"
@@ -508,7 +512,7 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
     const ::FRISessionState &sessionState,
     const ::FRIConnectionQuality &connectionQuality,
     const ::ControlMode &controlMode, // enum
-    const ::TimeStamp &timeStamp, // ::TimeStamp is defined in FRIMessages.pb.h
+    /// const ::TimeStamp &timeStamp, // ::TimeStamp is defined in FRIMessages.pb.h
     const ::FRIMonitoringMessage &friMonitoringMessage,
     const grl::TimeEvent &timeEvent)  // There are two times (TimeStamp and TimeEvent) here, which one should be kept? both?
 {
@@ -518,8 +522,8 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
     auto _messageIdentifier = friMonitoringMessage.header.messageIdentifier;
     auto _sequenceCounter = friMonitoringMessage.header.sequenceCounter;
     auto _reflectedSequenceCounter = friMonitoringMessage.header.reflectedSequenceCounter;
-    auto _sec = timeStamp.sec;
-    auto _nanosec = timeStamp.nanosec;
+    // auto _sec = timeStamp.sec;
+    // auto _nanosec = timeStamp.nanosec;
     std::vector<double> data;
     // get measured joint position
     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_open_chain_state_tag());
@@ -554,8 +558,8 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
       _messageIdentifier,
       _sequenceCounter,
       _reflectedSequenceCounter,
-      _sec,
-      _nanosec,
+      // _sec,
+      // _nanosec,
       _measuredJointPosition,
       _measuredTorque,
       _commandedJointPosition,
@@ -566,61 +570,95 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
 }
 
 
+// /// ArmControlState.fbs
+// flatbuffers::Offset<grl::flatbuffer::StartArm> toFlatBuffer(
+//     flatbuffers::FlatBufferBuilder &fbb)
+// {
+//     return grl::flatbuffer::CreateStartArm(fbb);
+// }
+// /// ArmControlState.fbs
+// flatbuffers::Offset<grl::flatbuffer::StopArm> toFlatBuffer(
+//     flatbuffers::FlatBufferBuilder &fbb)
+// {
+//     return grl::flatbuffer::CreateStopArm(fbb);
+// }
+// /// ArmControlState.fbs
+// flatbuffers::Offset<grl::flatbuffer::PauseArm> toFlatBuffer(
+//     flatbuffers::FlatBufferBuilder &fbb)
+// {
+//     return grl::flatbuffer::CreatePauseArm(fbb);
+// }
+// /// ArmControlState.fbs
+// flatbuffers::Offset<grl::flatbuffer::TeachArm> toFlatBuffer(
+//     flatbuffers::FlatBufferBuilder &fbb)
+// {
+//     return grl::flatbuffer::CreateTeachArm(fbb);
+// }
+// /// ArmControlState.fbs
+// flatbuffers::Offset<grl::flatbuffer::ShutdownArm> toFlatBuffer(
+//     flatbuffers::FlatBufferBuilder &fbb)
+// {
+//     return grl::flatbuffer::CreateShutdownArm(fbb);
+// }
 
 /// ArmControlState.fbs
 flatbuffers::Offset<grl::flatbuffer::MoveArmTrajectory> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
-    std::vector<flatbuffers::Offset<grl::flatbuffer::JointState>> &traj
-   )
+    const std::vector<flatbuffers::Offset<grl::flatbuffer::JointState>> &traj)
 {
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::JointState>>> traj_vector = fbb.CreateVector(traj.data(), traj.size());
     return grl::flatbuffer::CreateMoveArmTrajectory(
       fbb,
-      traj_vector);
+      traj.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::JointState>>(traj):0);
 }
 
 /// ArmControlState.fbs
 flatbuffers::Offset<grl::flatbuffer::MoveArmJointServo> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
-    flatbuffers::Offset<grl::flatbuffer::JointState> &goal
-   )
+    flatbuffers::Offset<grl::flatbuffer::JointState> &goal)
 {
-    return grl::flatbuffer::CreateMoveArmJointServo(
+    return grl::flatbuffer::CreateMoveArmJointServo (fbb, goal);
+}
+// /// ArmControlState.fbs
+flatbuffers::Offset<grl::flatbuffer::MoveArmCartesianServo> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::string &parent,
+    const grl::flatbuffer::Pose &goal)
+{
+    return grl::flatbuffer::CreateMoveArmCartesianServo(
       fbb,
-      goal);
+      fbb.CreateString(parent),
+      std::addressof(goal));
+}
+
+
+/// ArmControlState.fbs
+flatbuffers::Offset<grl::flatbuffer::ArmControlState> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::string &name,
+    int64_t sequenceNumber,
+    double timeStamp)
+{
+    // The parameter of ArmState is undetermined.
+    grl::flatbuffer::ArmState armstate_type = grl::flatbuffer::ArmState::StartArm;
+    auto command = grl::flatbuffer::CreateStartArm(fbb);
+    return grl::flatbuffer::CreateArmControlState(
+      fbb,
+      fbb.CreateString(name),
+      sequenceNumber,
+      timeStamp,
+      armstate_type,
+      command.Union());
 }
 
 /// ArmControlState.fbs
-// flatbuffers::Offset<grl::flatbuffer::MoveArmJointServo> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb,
-//     const std::string &parent,
-//     const grl::flatbuffer::Pose &goal)
-// {
-//     return grl::flatbuffer::CreateMoveArmJointServo(
-//       fbb,
-//       fbb.CreateString(parent),
-//       std::addressof(goal)
-//       );
-// }
-
-
-/// ArmControlState.fbs
-// flatbuffers::Offset<grl::flatbuffer::ArmControlState> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb,
-//     const std::string &name,
-//     int64_t sequenceNumber,
-//     double timeStamp)
-// {
-//     // The parameter of ArmState is undetermined.
-//     grl::flatbuffer::ArmState state_type = grl::flatbuffer::ArmStat::StartArm;
-//     return grl::flatbuffer::CreateArmControlState(
-//       fbb,
-//       fbb.CreateString(name),
-//       sequenceNumber,
-//       timeStamp,
-//       _state_type,
-//       _state_type.Union());
-// }
+flatbuffers::Offset<grl::flatbuffer::ArmControlSeries> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::vector<flatbuffers::Offset<grl::flatbuffer::ArmControlState>> &armcontrolstates)
+{
+    return grl::flatbuffer::CreateArmControlSeries(
+      fbb,
+      armcontrolstates.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ArmControlState>>(armcontrolstates):0);
+}
 }  // End of arm namespace
 }  // End of robot namespace
 }  // End of grl namespace

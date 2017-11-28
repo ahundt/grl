@@ -301,9 +301,9 @@ table FRIMessageLog {
     messageIdentifier:int;
     sequenceCounter:int;
     reflectedSequenceCounter:int;
-    // hardware timestamps
-    sec:int;
-    nanosec:int;   // one billionth of a second
+    // hardware timestamps, replaced by the device_time in TimeEvent
+    // sec:int;
+    // nanosec:int;   // one billionth of a second
     // MessageMonitorData
     measuredJointPosition:[double];
     measuredTorque:[double];

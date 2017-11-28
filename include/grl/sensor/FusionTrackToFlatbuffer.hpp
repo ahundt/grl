@@ -1,6 +1,10 @@
 #ifndef GRL_ATRACSYS_FUSION_TRACK_TO_FLATBUFFER
 #define GRL_ATRACSYS_FUSION_TRACK_TO_FLATBUFFER
 
+/// Before including any FlatBuffers related headers, you can add this #define.
+/// You'll get an assert whenever the verifier fails, whose stack-trace can tell you exactly what check failed an on what field etc.
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+
 #include "FusionTrackToEigen.hpp"
 #include "FusionTrack.hpp"
 #include "grl/flatbuffer/FusionTrack_generated.h"
