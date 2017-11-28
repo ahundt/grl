@@ -1252,10 +1252,15 @@ public:
    * grl::revolute_joint_angle_open_chain_command_tag)
    *
    */
-  KukaState::time_point_type get(time_point_tag) {
-    boost::lock_guard<boost::mutex> lock(jt_mutex);
-    return armState.timestamp;
-  }
+  // KukaState::time_point_type get(time_point_tag) {
+  //   boost::lock_guard<boost::mutex> lock(jt_mutex);
+  //   return armState.timestamp;
+  // }
+
+    cartographer::common::Time get(time_point_tag) {
+       boost::lock_guard<boost::mutex> lock(jt_mutex);
+       return armState.time_event_stamp.device_time;
+    }
 
   /**
    * \brief Set the applied joint torques for the current interpolation step.

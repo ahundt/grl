@@ -542,10 +542,15 @@ namespace grl { namespace robot { namespace arm {
      * @see KukaFRIdriver::set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag)
      *
      */
-    KukaState::time_point_type get(time_point_tag) {
+    // KukaState::time_point_type get(time_point_tag) {
+    //    boost::lock_guard<boost::mutex> lock(jt_mutex);
+    //    return armState_.timestamp;
+    // }
+    cartographer::common::Time get(time_point_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       return armState_.timestamp;
+       return armState_.time_event_stamp.device_time;
     }
+
 
 
 

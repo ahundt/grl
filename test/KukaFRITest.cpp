@@ -84,7 +84,8 @@ int main(int argc, char* argv[])
     boost::asio::io_service io_service;
 
 	std::shared_ptr<KUKA::FRI::ClientData> friData(std::make_shared<KUKA::FRI::ClientData>(7));
-	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+	/// std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+    cartographer::common::Time startTime;
 
     BOOST_VERIFY(friData);
 
@@ -299,7 +300,8 @@ int main(int argc, char* argv[])
             loggerPG->info(
                 "position: {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", armState.position,
                 " commanded Position: ", jointStateToCommand,
-                " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(),
+                /// " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.timestamp - startTime).count(),
+                " us: ", std::chrono::duration_cast<std::chrono::microseconds>(armState.time_event_stamp.device_time - startTime).count(),
                 " connectionQuality: ", EnumNameEConnectionQuality(armState.connectionQuality),
                 " operationMode: ", EnumNameEOperationMode(armState.operationMode),
                 " sessionState: ", EnumNameESessionState(armState.sessionState),

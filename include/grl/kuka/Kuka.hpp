@@ -52,8 +52,8 @@ struct KukaState {
       joint_state;
   // cartesian state entries consist of a vector x,y,z and a quaternion [x, y, z, w]
   typedef boost::container::static_vector<double, 7> cartesian_state;
-  typedef std::chrono::time_point<std::chrono::high_resolution_clock>
-      time_point_type;
+  /// Class std::chrono::high_resolution_clock represents the clock with the smallest tick period provided by the implementation.
+  typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_type;
 
   /// measured position, identified by revolute_joint_angle_open_chain_state_tag
   /// @see grl::revolute_joint_angle_open_chain_state_tag in grl/tags.hpp, which identifies this data
@@ -94,7 +94,7 @@ struct KukaState {
   // the arm use commanded_goal_timestamp.
   /// TODO(Chunting) remove this and make all code that uses it instead set the time_event_stamp
   /// most likely the device_time, but double check the correctness of that
-  time_point_type timestamp;
+  /// time_point_type timestamp;
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   // members below here define the driver state and are not part of the FRI arm
