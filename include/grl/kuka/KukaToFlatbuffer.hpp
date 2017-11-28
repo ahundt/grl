@@ -148,7 +148,7 @@ grl::flatbuffer::EOverlayType toFlatBuffer(const ::OverlayType  overlayType) {
         }
         return grl::flatbuffer::EOverlayType::NO_OVERLAY;
 }
-
+/// Euler.fbs
 flatbuffers::Offset<grl::flatbuffer::EulerTranslationParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const double x,
@@ -157,8 +157,7 @@ flatbuffers::Offset<grl::flatbuffer::EulerTranslationParams> toFlatBuffer(
 {
     return grl::flatbuffer::CreateEulerTranslationParams(fbb, x, y, z);
 }
-/// Euler.fbs struct EulerRotationParams
-/// enum EulerOrder also defined in Euler.fbs
+/// Euler.fbs
 flatbuffers::Offset<grl::flatbuffer::EulerRotationParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const double r1,
@@ -168,14 +167,7 @@ flatbuffers::Offset<grl::flatbuffer::EulerRotationParams> toFlatBuffer(
 {
     return grl::flatbuffer::CreateEulerRotationParams(fbb, r1, r2, r3, eulerOrder);
 }
-///////////////////////////////////////////////////////////////////
-// Helper function is also defined in FusionTrackToFlatbuffer.hpp
-grl::flatbuffer::Vector3d toFlatBuffer(const Eigen::Vector3d &pt)
-{
-    return grl::flatbuffer::Vector3d(pt.x(), pt.y(), pt.z());
-}
 
-//////////////////////////////////////////////////////////////////
 /// Euler.fbs, struct EulerRotation
 grl::flatbuffer::EulerRotation toFlatBuffer(
     const Eigen::Vector3d &pt,
@@ -190,6 +182,7 @@ grl::flatbuffer::EulerPose toFlatBuffer(
 {
     return grl::flatbuffer::EulerPose(positon, eulerRotation);
 }
+/// Euler.fbs
 /// Overload the above function
 /// TODO (@Chunting) Check if ptr has the same physical meaning with pt, if so, discard it.
 grl::flatbuffer::EulerPose toFlatBuffer(
@@ -197,14 +190,14 @@ grl::flatbuffer::EulerPose toFlatBuffer(
     const Eigen::Vector3d &ptr,
     grl::flatbuffer::EulerOrder eulerOrder)
 {
-    auto positon = toFlatBuffer(pt);
+    auto positon = grl::toFlatBuffer(pt);
     auto eulerRotation = toFlatBuffer(ptr,eulerOrder);
     return grl::flatbuffer::EulerPose(positon, eulerRotation);
 }
 
+/// Euler.fbs
 /// tables EulerPose and EulerPoseParams are both defined in Euler.fbs.
-/// The same thing with EulerPose, this function can be overloaded with Eigen arguments.
-/// Note that the parameters should be passed by pointer, if by reference, it can't be compiled.
+/// Like EulerPose, this function can be also overloaded with Eigen arguments.
 flatbuffers::Offset<grl::flatbuffer::EulerPoseParams> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const grl::flatbuffer::Vector3d &position,
@@ -213,18 +206,120 @@ flatbuffers::Offset<grl::flatbuffer::EulerPoseParams> toFlatBuffer(
     return grl::flatbuffer::CreateEulerPoseParams(fbb, &position, &rotation);
 }
 
-// grl::flatbuffer::Pose toFlatBuffer(Eigen::Affine3d tf)
-// {
-//     Eigen::Vector3d pos = tf.translation();
-//     Eigen::Quaterniond eigenQuat(tf.rotation());
-//     return grl::flatbuffer::Pose(toFlatBuffer(pos), toFlatBuffer(eigenQuat));
-// }
+/// LinkObject.fbs
+flatbuffers::Offset<grl::flatbuffer::LinkObject> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder fbb,
+    const std::string &name,
+    const std::string &parent,
+    const grl::flatbuffer::Pose &pose,  // Using the helper function toFlatBuffer to get this parameter?
+    const grl::flatbuffer::Inertia &inertia)
+{
+    return grl::flatbuffer::CreateLinkObject(
+        fbb,
+        fbb.CreateString(name),
+        fbb.CreateString(parent),
+        std::addressof(pose),
+        std::addressof(inertia));
+}
 
-// grl::flatbuffer::Pose toFlatBuffer(Eigen::Affine3f tf)
-// {
-//     return toFlatBuffer(tf.cast<double>());
-// }
+/// JointState.fbs
+flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::vector<double> &position,
+    const std::vector<double> &velocity,
+    const std::vector<double> &acceleration,
+    const std::vector<double> &torque)
+{
+    return grl::flatbuffer::CreateJointState(
+        fbb,
+        position.empty() ? fbb.CreateVector<double>(position) : 0,
+        velocity.empty() ? fbb.CreateVector<double>(velocity) : 0,
+        acceleration.empty() ? fbb.CreateVector<double>(acceleration) : 0,
+        torque.empty() ? fbb.CreateVector<double>(torque) : 0);
+}
+/// JointState.fbs
+flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::vector<grl::robot::arm::KukaState>& kukaStates,
+    const std::vector<double> &velocity,
+    const std::vector<double> &acceleration)
+{
+    std::vector<double> position;
+    std::vector<double> torque;
+    std::size_t sizeofStates = kukaStates.size();
+    for(auto &kukaState : kukaStates){
 
+        boost::copy(kukaState.position, &position[0]);
+        boost::copy(kukaState.torque, &torque[0]);
+    }
+    return grl::flatbuffer::CreateJointState(
+        fbb,
+        position.empty() ? fbb.CreateVector<double>(position) : 0,
+        velocity.empty() ? fbb.CreateVector<double>(velocity) : 0,
+        acceleration.empty() ? fbb.CreateVector<double>(acceleration) : 0,
+        torque.empty() ? fbb.CreateVector<double>(torque) : 0);
+}
+
+
+/// ArmControlState.fbs
+flatbuffers::Offset<grl::flatbuffer::MoveArmTrajectory> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::vector<flatbuffers::Offset<grl::flatbuffer::JointState>> &traj)
+{
+    return grl::flatbuffer::CreateMoveArmTrajectory(
+      fbb,
+      traj.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::JointState>>(traj):0);
+}
+
+/// ArmControlState.fbs
+flatbuffers::Offset<grl::flatbuffer::MoveArmJointServo> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    flatbuffers::Offset<grl::flatbuffer::JointState> &goal)
+{
+    return grl::flatbuffer::CreateMoveArmJointServo (fbb, goal);
+}
+// /// ArmControlState.fbs
+flatbuffers::Offset<grl::flatbuffer::MoveArmCartesianServo> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::string &parent,
+    const grl::flatbuffer::Pose &goal)
+{
+    return grl::flatbuffer::CreateMoveArmCartesianServo(
+      fbb,
+      fbb.CreateString(parent),
+      std::addressof(goal));
+}
+
+
+/// ArmControlState.fbs
+flatbuffers::Offset<grl::flatbuffer::ArmControlState> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::string &name,
+    int64_t sequenceNumber,
+    double timeStamp)
+{
+    // The parameter of ArmState is undetermined.
+    grl::flatbuffer::ArmState armstate_type = grl::flatbuffer::ArmState::StartArm;
+    auto command = grl::flatbuffer::CreateStartArm(fbb);
+    return grl::flatbuffer::CreateArmControlState(
+      fbb,
+      fbb.CreateString(name),
+      sequenceNumber,
+      timeStamp,
+      armstate_type,
+      command.Union());
+}
+
+/// ArmControlState.fbs
+flatbuffers::Offset<grl::flatbuffer::ArmControlSeries> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::vector<flatbuffers::Offset<grl::flatbuffer::ArmControlState>> &armcontrolstates)
+{
+    return grl::flatbuffer::CreateArmControlSeries(
+      fbb,
+      armcontrolstates.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ArmControlState>>(armcontrolstates):0);
+}
+/// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const grl::flatbuffer::EulerPose& stiffness,
@@ -247,7 +342,7 @@ flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> toFlatBuffer
         std::addressof(maxControlForce),
         maxControlForceExceededStop);
 }
-
+/// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     std::vector<double> &joint_stiffness,
@@ -257,7 +352,7 @@ flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> toFlatBuffer(
     auto jointDampingBuffer = fbb.CreateVector(joint_damping.data(),joint_damping.size());
     return grl::flatbuffer::CreateJointImpedenceControlMode(fbb, jointStiffnessBuffer, jointDampingBuffer);
 }
-
+/// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::FRI> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const ::OverlayType &overlayType,
@@ -326,28 +421,8 @@ flatbuffers::Offset<grl::flatbuffer::ProcessData> toFlatBuffer(
         fbb.CreateString(unit),
         fbb.CreateString(value),
         shouldRemove,
-        shouldUpdate
-    );
+        shouldUpdate);
 }
-
-/// LinkObject.fbs
-flatbuffers::Offset<grl::flatbuffer::LinkObject> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder fbb,
-    const std::string &name,
-    const std::string &parent,
-    const grl::flatbuffer::Pose &pose,  // Using the helper function toFlatBuffer to get this parameter?
-    const grl::flatbuffer::Inertia &inertia)
-    {
-        return grl::flatbuffer::CreateLinkObject(
-            fbb,
-            fbb.CreateString(name),
-            fbb.CreateString(parent),
-            std::addressof(pose),
-            std::addressof(inertia)
-        );
-    }
-
-
 
 /// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> toFlatBuffer(
@@ -386,44 +461,7 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> toFlatBuffer(
       requestMonitorProcessData);
 }
 
-/// JointState.fbs
-/// JointValues in FRIMessages.pb.h, the same thing?
-flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder &fbb,
-    const std::vector<double> &position,
-    const std::vector<double> &velocity,
-    const std::vector<double> &acceleration,
-    const std::vector<double> &torque)
-{
-    return grl::flatbuffer::CreateJointState(
-        fbb,
-        position.empty() ? fbb.CreateVector<double>(position) : 0,
-        velocity.empty() ? fbb.CreateVector<double>(velocity) : 0,
-        acceleration.empty() ? fbb.CreateVector<double>(acceleration) : 0,
-        torque.empty() ? fbb.CreateVector<double>(torque) : 0);
-}
 
-flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder &fbb,
-    const std::vector<grl::robot::arm::KukaState>& kukaStates,
-    const std::vector<double> &velocity,
-    const std::vector<double> &acceleration)
-{
-    std::vector<double> position;
-    std::vector<double> torque;
-    std::size_t sizeofStates = kukaStates.size();
-    for(auto &kukaState : kukaStates){
-
-        boost::copy(kukaState.position, &position[0]);
-        boost::copy(kukaState.torque, &torque[0]);
-    }
-    return grl::flatbuffer::CreateJointState(
-        fbb,
-        position.empty() ? fbb.CreateVector<double>(position) : 0,
-        velocity.empty() ? fbb.CreateVector<double>(velocity) : 0,
-        acceleration.empty() ? fbb.CreateVector<double>(acceleration) : 0,
-        torque.empty() ? fbb.CreateVector<double>(torque) : 0);
-}
 
 /// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
@@ -450,27 +488,6 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
         std::addressof(CartesianWrench)
         );
 }
-
-// flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder fbb,
-//     flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
-//     const grl::flatbuffer::Pose &cartesianFlangePose,
-//     flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateReal,
-//     flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateInterpolated,
-//     flatbuffers::Offset<grl::flatbuffer::JointState> &externalState,
-//     const ::OperationMode &operationMode,
-//     const grl::flatbuffer::Wrench &CartesianWrench)
-// {
-//     return grl::flatbuffer::CreateJointState(
-//         fbb,
-//         measuredState,
-//         cartesianFlangePose,
-//         jointStateReal,
-//         jointStateInterpolated,
-//         externalState,
-//         toFlatBuffer(operationMode),
-//         CartesianWrench);
-// }
 
 /// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
@@ -568,96 +585,47 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
       _jointStateInterpolated,
       _timeEvent);
 }
-
-
-// /// ArmControlState.fbs
-// flatbuffers::Offset<grl::flatbuffer::StartArm> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb)
-// {
-//     return grl::flatbuffer::CreateStartArm(fbb);
-// }
-// /// ArmControlState.fbs
-// flatbuffers::Offset<grl::flatbuffer::StopArm> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb)
-// {
-//     return grl::flatbuffer::CreateStopArm(fbb);
-// }
-// /// ArmControlState.fbs
-// flatbuffers::Offset<grl::flatbuffer::PauseArm> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb)
-// {
-//     return grl::flatbuffer::CreatePauseArm(fbb);
-// }
-// /// ArmControlState.fbs
-// flatbuffers::Offset<grl::flatbuffer::TeachArm> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb)
-// {
-//     return grl::flatbuffer::CreateTeachArm(fbb);
-// }
-// /// ArmControlState.fbs
-// flatbuffers::Offset<grl::flatbuffer::ShutdownArm> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb)
-// {
-//     return grl::flatbuffer::CreateShutdownArm(fbb);
-// }
-
-/// ArmControlState.fbs
-flatbuffers::Offset<grl::flatbuffer::MoveArmTrajectory> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder &fbb,
-    const std::vector<flatbuffers::Offset<grl::flatbuffer::JointState>> &traj)
-{
-    return grl::flatbuffer::CreateMoveArmTrajectory(
-      fbb,
-      traj.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::JointState>>(traj):0);
-}
-
-/// ArmControlState.fbs
-flatbuffers::Offset<grl::flatbuffer::MoveArmJointServo> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder &fbb,
-    flatbuffers::Offset<grl::flatbuffer::JointState> &goal)
-{
-    return grl::flatbuffer::CreateMoveArmJointServo (fbb, goal);
-}
-// /// ArmControlState.fbs
-flatbuffers::Offset<grl::flatbuffer::MoveArmCartesianServo> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder &fbb,
-    const std::string &parent,
-    const grl::flatbuffer::Pose &goal)
-{
-    return grl::flatbuffer::CreateMoveArmCartesianServo(
-      fbb,
-      fbb.CreateString(parent),
-      std::addressof(goal));
-}
-
-
-/// ArmControlState.fbs
-flatbuffers::Offset<grl::flatbuffer::ArmControlState> toFlatBuffer(
+/// KUKAiiwa.fbs
+flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const std::string &name,
-    int64_t sequenceNumber,
-    double timeStamp)
+    const std::string &destination,
+    const std::string &source,
+    const double timestamp,
+    const bool setArmControlState,
+    const flatbuffers::Offset<grl::flatbuffer::ArmControlState> &armControlState,
+    const bool setArmConfiguration,
+    const flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> &armConfiguration,
+    const bool hasMonitorState,
+    const flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> &monitorState,
+    const bool hasMonitorConfig,
+    const flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> &monitorConfig,
+    const flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> &FRIMessage)
 {
-    // The parameter of ArmState is undetermined.
-    grl::flatbuffer::ArmState armstate_type = grl::flatbuffer::ArmState::StartArm;
-    auto command = grl::flatbuffer::CreateStartArm(fbb);
-    return grl::flatbuffer::CreateArmControlState(
-      fbb,
-      fbb.CreateString(name),
-      sequenceNumber,
-      timeStamp,
-      armstate_type,
-      command.Union());
+    return grl::flatbuffer::CreateKUKAiiwaState(
+        fbb,
+        fbb.CreateString(name),
+        fbb.CreateString(destination),
+        fbb.CreateString(source),
+        timestamp,
+        setArmControlState,
+        armControlState,
+        setArmConfiguration,
+        armConfiguration,
+        hasMonitorState,
+        monitorState,
+        hasMonitorConfig,
+        monitorConfig,
+        FRIMessage);
 }
-
-/// ArmControlState.fbs
-flatbuffers::Offset<grl::flatbuffer::ArmControlSeries> toFlatBuffer(
+/// KUKAiiwa.fbs
+flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
-    const std::vector<flatbuffers::Offset<grl::flatbuffer::ArmControlState>> &armcontrolstates)
+    const std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>> &kukaiiwastates)
 {
-    return grl::flatbuffer::CreateArmControlSeries(
+    return grl::flatbuffer::CreateKUKAiiwaStates(
       fbb,
-      armcontrolstates.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ArmControlState>>(armcontrolstates):0);
+      kukaiiwastates.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>>(kukaiiwastates):0);
 }
 }  // End of arm namespace
 }  // End of robot namespace
