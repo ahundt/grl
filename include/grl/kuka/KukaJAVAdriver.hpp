@@ -444,8 +444,10 @@ namespace grl { namespace robot { namespace arm {
 
       // TODO: define custom flatbuffer for Cartesion Quantities
       void setCartesianImpedanceMode(
-          const grl::flatbuffer::EulerPose cart_stiffness, const grl::flatbuffer::EulerPose cart_damping,
-          const double nullspace_stiffness, const double nullspace_damping,
+          const grl::flatbuffer::EulerPose cart_stiffness,
+          const grl::flatbuffer::EulerPose cart_damping,
+          const double nullspace_stiffness,
+          const double nullspace_damping,
           const grl::flatbuffer::EulerPose cart_max_path_deviation,
           const grl::flatbuffer::EulerPose cart_max_ctrl_vel,
           const grl::flatbuffer::EulerPose cart_max_ctrl_force,
@@ -633,14 +635,6 @@ namespace grl { namespace robot { namespace arm {
         }
    }
    */
-  template<typename OutputIterator>
-void insertValues(OutputIterator result)
-{
-    for (int i = 0; i < 10; i++)
-    {
-        *(result++) = i;
-    }
-}
   template<typename Container>
     void getWrench(Container output)
     {

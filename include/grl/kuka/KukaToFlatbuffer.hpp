@@ -20,7 +20,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-namespace grl { namespace robot { namespace arm {
+namespace grl {
 
 /// faltbuffer enum objects
 /// 1. Which element in the enum should be selected as the defaut return value?
@@ -296,18 +296,94 @@ flatbuffers::Offset<grl::flatbuffer::ArmControlState> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const std::string &name,
     int64_t sequenceNumber,
-    double timeStamp)
+    double timeStamp,
+    grl::flatbuffer::ArmState &armControlMode)
 {
     // The parameter of ArmState is undetermined.
-    grl::flatbuffer::ArmState armstate_type = grl::flatbuffer::ArmState::StartArm;
-    auto command = grl::flatbuffer::CreateStartArm(fbb);
-    return grl::flatbuffer::CreateArmControlState(
-      fbb,
-      fbb.CreateString(name),
-      sequenceNumber,
-      timeStamp,
-      armstate_type,
-      command.Union());
+    // grl::flatbuffer::ArmState armstate_type = grl::flatbuffer::ArmState::armstate;
+    // auto command = grl::flatbuffer::CreateStartArm(fbb);
+    switch (armControlMode) {
+        case grl::flatbuffer::ArmState::StartArm: {
+            return grl::flatbuffer::CreateArmControlState(
+               fbb,
+               fbb.CreateString(name),
+               sequenceNumber,
+               timeStamp,
+               armControlMode,
+               grl::flatbuffer::CreateStartArm(fbb).Union());
+        }
+        case grl::flatbuffer::ArmState::TeachArm: {
+            return grl::flatbuffer::CreateArmControlState(
+              fbb,
+              fbb.CreateString(name),
+              sequenceNumber,
+              timeStamp,
+              armControlMode,
+              grl::flatbuffer::CreateTeachArm(fbb).Union());
+        }
+        case grl::flatbuffer::ArmState::PauseArm: {
+            return grl::flatbuffer::CreateArmControlState(
+              fbb,
+              fbb.CreateString(name),
+              sequenceNumber,
+              timeStamp,
+              armControlMode,
+              grl::flatbuffer::CreatePauseArm(fbb).Union());
+        }
+        case grl::flatbuffer::ArmState::StopArm: {
+            return grl::flatbuffer::CreateArmControlState(
+              fbb,
+              fbb.CreateString(name),
+              sequenceNumber,
+              timeStamp,
+              armControlMode,
+              grl::flatbuffer::CreateStopArm(fbb).Union());
+        }
+        case grl::flatbuffer::ArmState::ShutdownArm: {
+            return grl::flatbuffer::CreateArmControlState(
+              fbb,
+              fbb.CreateString(name),
+              sequenceNumber,
+              timeStamp,
+              armControlMode,
+              grl::flatbuffer::CreateShutdownArm(fbb).Union());
+        }
+        case grl::flatbuffer::ArmState::NONE: {
+           std::cout << "Waiting for interation mode... (currently NONE)" << std::endl;
+           break;
+        }
+        default:
+           std::cout<< "C++ KukaJAVAdriver: unsupported use case: " << EnumNameArmState(armControlMode) << std::endl;
+    }
+}
+
+/// ArmControlState.fbs
+flatbuffers::Offset<grl::flatbuffer::ArmControlState> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::string &name,
+    int64_t sequenceNumber,
+    double timeStamp,
+    grl::robot::arm::KukaState &armState,
+    grl::flatbuffer::ArmState &armControlMode)
+{
+    switch (armControlMode) {
+        std::cout<< "C++ KukaJAVAdriver: sending armposition command: " << armState.commandedPosition_goal << std::endl;
+        case grl::flatbuffer::ArmState::MoveArmJointServo: {
+            auto armPositionBuffer = fbb.CreateVector(armState.commandedPosition_goal.data(), armState.commandedPosition_goal.size());
+            auto commandedTorque = fbb.CreateVector(armState.commandedTorque.data(), armState.commandedTorque.size());
+            auto goalJointState = grl::flatbuffer::CreateJointState(fbb,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
+            auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(fbb,goalJointState);
+            return grl::flatbuffer::CreateArmControlState(
+             fbb,
+             fbb.CreateString(name),
+             sequenceNumber,
+             timeStamp,
+             armControlMode,
+             moveArmJointServo.Union());
+        }
+        default:
+            toFlatBuffer(fbb, name, sequenceNumber, timeStamp, armControlMode);
+    }
 }
 
 /// ArmControlState.fbs
@@ -627,8 +703,8 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> toFlatBuffer(
       fbb,
       kukaiiwastates.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>>(kukaiiwastates):0);
 }
-}  // End of arm namespace
-}  // End of robot namespace
+// }  // End of arm namespace
+// }  // End of robot namespace
 }  // End of grl namespace
 
 
