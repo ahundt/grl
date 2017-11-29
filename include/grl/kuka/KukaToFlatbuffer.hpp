@@ -208,7 +208,7 @@ flatbuffers::Offset<grl::flatbuffer::EulerPoseParams> toFlatBuffer(
 
 /// LinkObject.fbs
 flatbuffers::Offset<grl::flatbuffer::LinkObject> toFlatBuffer(
-    flatbuffers::FlatBufferBuilder fbb,
+    flatbuffers::FlatBufferBuilder &fbb,
     const std::string &name,
     const std::string &parent,
     const grl::flatbuffer::Pose &pose,  // Using the helper function toFlatBuffer to get this parameter?
@@ -514,10 +514,10 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> toFlatBuffer(
     flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> &setJointImpedance,
     flatbuffers::Offset<grl::flatbuffer::SmartServo> &smartServoConfig,
     flatbuffers::Offset<grl::flatbuffer::FRI> &FRIConfig,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::LinkObject>>> &tools,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ProcessData>>> &processData,
+    const std::vector<flatbuffers::Offset<grl::flatbuffer::LinkObject>> &tools,
+    const std::vector<flatbuffers::Offset<grl::flatbuffer::ProcessData>> &processData,
     const std::string &currentMotionCenter,
-    const bool requestMonitorProcessData)
+    bool requestMonitorProcessData = false)
 {
     return  grl::flatbuffer::CreateKUKAiiwaArmConfiguration(
       fbb,
@@ -531,9 +531,9 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> toFlatBuffer(
       setJointImpedance,
       smartServoConfig,
       FRIConfig,
-      tools,
-      processData,
-      fbb.CreateString(currentMotionCenter),
+      tools.empty() ? fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::LinkObject>>(tools):0,
+      processData.empty() ? fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ProcessData>>(processData) : 0,
+      currentMotionCenter.empty() ? fbb.CreateString(currentMotionCenter) : 0,
       requestMonitorProcessData);
 }
 
@@ -605,7 +605,6 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
     const ::FRISessionState &sessionState,
     const ::FRIConnectionQuality &connectionQuality,
     const ::ControlMode &controlMode, // enum
-    /// const ::TimeStamp &timeStamp, // ::TimeStamp is defined in FRIMessages.pb.h
     const ::FRIMonitoringMessage &friMonitoringMessage,
     const grl::TimeEvent &timeEvent)  // There are two times (TimeStamp and TimeEvent) here, which one should be kept? both?
 {
