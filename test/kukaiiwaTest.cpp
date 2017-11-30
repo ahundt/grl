@@ -12,6 +12,26 @@
 #include "grl/kuka/Kuka.hpp"
 #include "grl/kuka/KukaDriver.hpp"
 
+/// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
+pb_callback_t makeupJointValues(std::vector<double> &jointvalue) {
+     /// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
+    pb_callback_t *values = new pb_callback_t;
+    int numDOF = 7;
+    values->funcs.encode =  &encode_repeatedDouble;
+    values->funcs.decode = &decode_repeatedDouble;
+    tRepeatedDoubleArguments *arg = new tRepeatedDoubleArguments;
+    // map the local container data to the message data fields
+    arg->max_size = numDOF;
+    arg->size = 0;
+    arg->value = (double*) malloc(numDOF * sizeof(double));
+
+    for(int i=0; i<numDOF; i++) {
+        arg->value[i] = jointvalue[i];
+    }
+    values->arg = arg;
+    return *values;
+
+}
 
 BOOST_AUTO_TEST_SUITE(KukaTest)
 
@@ -43,16 +63,16 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
     bool max_control_force_stop_ = false;
     double nullspace_stiffness_ = 2.0;
     double nullspace_damping_ = 0.5;
-    flatbuffers::Offset<grl::flatbuffer::ArmControlState> controlState;
+
     grl::flatbuffer::ArmState armControlMode_(grl::flatbuffer::ArmState::StartArm);
     grl::flatbuffer::KUKAiiwaInterface commandInterface_ = grl::flatbuffer::KUKAiiwaInterface::SmartServo;// KUKAiiwaInterface::SmartServo;
     grl::flatbuffer::KUKAiiwaInterface monitorInterface_ = grl::flatbuffer::KUKAiiwaInterface::FRI;
-    ::ControlMode controlMode_ = ::ControlMode::ControlMode_POSITION_CONTROLMODE;
+    ::ControlMode controlMode = ::ControlMode::ControlMode_POSITION_CONTROLMODE;
     ::ClientCommandMode clientCommandMode = ::ClientCommandMode::ClientCommandMode_POSITION;
     ::OverlayType overlayType = ::OverlayType::OverlayType_NO_OVERLAY;
     ::ConnectionInfo connectionInfo{::FRISessionState::FRISessionState_IDLE,
                                     ::FRIConnectionQuality::FRIConnectionQuality_POOR,
-                                    true, (uint32_t)4, false, (uint32_t)0};
+                                    true, 4, false, 0};
     grl::robot::arm::KukaState armState;
     std::shared_ptr<KUKA::FRI::ClientData> friData(std::make_shared<KUKA::FRI::ClientData>(7));
     cartographer::common::Time startTime;
@@ -75,7 +95,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
     kukaDriverP->set(goal_position_command_time_duration,grl::time_duration_command_tag());
     std::cout << "KUKA COMMAND MODE: " << std::get<grl::robot::arm::KukaDriver::KukaCommandMode>(params) << "\n";
     int64_t sequenceNumber = 0;
-    controlState = grl::toFlatBuffer(*fbbP, basename, sequenceNumber++, duration, armState, armControlMode_);
+    auto controlState = grl::toFlatBuffer(*fbbP, basename, sequenceNumber++, duration, armState, armControlMode_);
 
     //Cartesian Impedance Values
     grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(500,500,500);
@@ -125,7 +145,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
         monitorInterface_,
         clientCommandMode,
         overlayType,
-        controlMode_,
+        controlMode,
         setCartesianImpedance,
         setJointImpedance,
         setSmartServo,
@@ -135,23 +155,67 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
         "currentMotionCenter",
         true);
     bool setArmControlState = true; // only actually change the arm state when this is true.
-    // ::MessageHeader messageHeader = ::MessageHeader(1,2,3);
-    // ::RobotInfo robotInfo = ::RobotInfo(true, 7, true, ::SafetyState::SafetyState_NORMAL_OPERATION)
-    // ::FRIMonitoringMessage friMonitoringMessage = ::FRIMonitoringMessage
+    ::MessageHeader messageHeader{1,2,3};
+    ::RobotInfo robotInfo{true, 7, true, ::SafetyState::SafetyState_NORMAL_OPERATION};
+    ::JointValues strjointValues;
+    std::vector<double> jointValues(7, 0.1);
 
 
-    // auto friMessageLog = grl::toFlatBuffer(
-    //     *fbbP,
-    //     connectionInfo.sessionState,
-    //     connectionInfo.quality,
-    //     controlMode_,
-    // );
 
-    // auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP, RobotName, destination, source, duration, controlState, setArmConfiguration_,kukaiiwaArmConfiguration);
-    // auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
-    // auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
-    // grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
+    strjointValues.value = makeupJointValues(jointValues);
+    ::MessageMonitorData messageMonitorData{
+        true, strjointValues,
+        true, strjointValues,
+        true, strjointValues,
+        true, strjointValues,
+        true, strjointValues,
+        true, ::TimeStamp{1,2}
+    };
+    ::MessageIpoData ipoData{
+        true, strjointValues,
+        true, clientCommandMode,
+        true, overlayType,
+        true, 4.0
+    };
+    ::Transformation transformation{ "Transformation", 12, {1,2,3,4,5,6,7,8,9,10,11,12}, true, ::TimeStamp{3,4}};
+    /// Transformation requestedTransformations[5] = { transformation, transformation, transformation, transformation, transformation };
+    ::MessageEndOf endOfMessageData{true, 32, true, ::Checksum{true, 32}};
+    ::FRIMonitoringMessage friMonitoringMessage {messageHeader,
+        true, robotInfo,
+        true, messageMonitorData,
+        true, connectionInfo,
+        true, ipoData,
+        5,
+        { transformation, transformation, transformation, transformation, transformation },
+        true, endOfMessageData};
+    grl::TimeEvent time_event_stamp;
+    auto friMessageLog = grl::toFlatBuffer(
+        *fbbP,
+        ::FRISessionState::FRISessionState_IDLE,
+        ::FRIConnectionQuality::FRIConnectionQuality_POOR,
+        controlMode,
+        friMonitoringMessage,
+        time_event_stamp);
+    auto kukaiiwaState = grl::toFlatBuffer(
+        *fbbP,
+        RobotName,
+        destination,
+        source,
+        duration,
+        true, controlState,
+        true, kukaiiwaArmConfiguration,
+        false, 0,
+        false, 0,
+        friMessageLog);
+    std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>> kukaiiwaStateVec;
+    kukaiiwaStateVec.push_back(kukaiiwaState);
+    auto states = grl::toFlatBuffer(*fbbP, kukaiiwaStateVec);
+    grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
+    flatbuffers::Verifier verifier(fbbP->GetBufferPointer(),fbbP->GetSize());
+    std::cout<< "VerifyKUKAiiwaStatesBuffer: " << grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier) << std::endl;
 
 }
+
+
 
 BOOST_AUTO_TEST_SUITE_END()

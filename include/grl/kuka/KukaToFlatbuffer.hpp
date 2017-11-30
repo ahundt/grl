@@ -433,14 +433,11 @@ flatbuffers::Offset<grl::flatbuffer::FRI> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const ::OverlayType &overlayType,
     const ::ConnectionInfo &connectionInfo,
-    // const int32_t sendPeriodMillisec,
-    // const int32_t setReceiveMultiplier,
     const bool updatePortOnRemote,
     const int16_t portOnRemote,
     const bool updatePortOnController,
     const int16_t portOnController)
 {
-    // auto _overlayType = toFlatBuffer(overlayType);
     return grl::flatbuffer::CreateFRI(
         fbb,
         toFlatBuffer(overlayType),
@@ -506,7 +503,6 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> toFlatBuffer(
     const std::string &name,
     const grl::flatbuffer::KUKAiiwaInterface &commandInterface, // enum defined in KUKAiiwa.fbs
     const grl::flatbuffer::KUKAiiwaInterface &monitorInterface,
-    // const grl::flatbuffer::ClientCommandMode clientCommandMode,
     const ::ClientCommandMode &clientCommandMode, // enum
     const ::OverlayType &overlayType, // enum
     const ::ControlMode &controlMode, // enum
