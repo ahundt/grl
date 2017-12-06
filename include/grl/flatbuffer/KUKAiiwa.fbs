@@ -293,7 +293,7 @@ table FRITimeStamp {
 // a table that is used as a record of all communication over FRI
 // it is not for user configuration or anything else, it should
 // simply reflect a history of what was sent and what was received.
-/*
+
 table FRIMessageLog {
 
     sessionState:ESessionState;
@@ -317,7 +317,7 @@ table FRIMessageLog {
 
     timeStamp:TimeEvent;
   }
-*/
+
 
 table KUKAiiwaState {
   name:string; // The name of the robot to update (identifier used when applicable, doesn't ever change or set the name)
@@ -337,7 +337,7 @@ table KUKAiiwaState {
   hasMonitorConfig:bool = false;
   monitorConfig:KUKAiiwaMonitorConfiguration;
 
-  // FRIMessage:FRIMessageLog;
+  FRIMessage:FRIMessageLog;
 }
 
 

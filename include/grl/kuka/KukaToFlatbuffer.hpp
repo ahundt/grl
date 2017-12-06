@@ -6,7 +6,7 @@
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 
 #include <boost/range/algorithm/copy.hpp>
-#include "flatbuffers/flatbuffers.h"
+
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
@@ -577,142 +577,106 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> toFlatBuffer(
 }
 
 /// KUKAiiwa.fbs
-// flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb,
-//     const std::string &name,
-//     const std::string &destination,
-//     const std::string &source,
-//     const double timestamp,
-//     const bool setArmControlState,
-//     flatbuffers::Offset<grl::flatbuffer::ArmControlState> &armControlState,
-//     const bool setArmConfiguration,
-//     flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> &armConfiguration,
-//     const bool hasMonitorState,  // MessageMonitorData monitorData in FRIMessage.pb.h
-//     flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> &monitorState,
-//     const bool hasMonitorConfig,
-//     flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> &monitorConfig)
-// {
-//     return grl::flatbuffer::CreateKUKAiiwaState(
-//       fbb,
-//       fbb.CreateString(name),
-//       fbb.CreateString(destination),
-//       fbb.CreateString(source),
-//       timestamp,
-//       setArmControlState,
-//       armControlState,
-//       setArmConfiguration,
-//       armConfiguration,
-//       hasMonitorState,
-//       monitorState,
-//       hasMonitorConfig,
-//       monitorConfig);
-// }
+flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const std::string &name,
+    const std::string &destination,
+    const std::string &source,
+    const double timestamp,
+    const bool setArmControlState,
+    flatbuffers::Offset<grl::flatbuffer::ArmControlState> &armControlState,
+    const bool setArmConfiguration,
+    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> &armConfiguration,
+    const bool hasMonitorState,  // MessageMonitorData monitorData in FRIMessage.pb.h
+    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> &monitorState,
+    const bool hasMonitorConfig,
+    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> &monitorConfig)
+{
+    return grl::flatbuffer::CreateKUKAiiwaState(
+      fbb,
+      fbb.CreateString(name),
+      fbb.CreateString(destination),
+      fbb.CreateString(source),
+      timestamp,
+      setArmControlState,
+      armControlState,
+      setArmConfiguration,
+      armConfiguration,
+      hasMonitorState,
+      monitorState,
+      hasMonitorConfig,
+      monitorConfig);
+}
 
 
 
-/// KUKAiiwa.fbs
-// flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
-//     flatbuffers::FlatBufferBuilder &fbb,
-//     const ::FRISessionState &sessionState,
-//     const ::FRIConnectionQuality &connectionQuality,
-//     const ::ControlMode &controlMode, // enum
-//     const ::FRIMonitoringMessage &friMonitoringMessage,
-//     const grl::TimeEvent &timeEvent)  // There are two times (TimeStamp and TimeEvent) here, which one should be kept? both?
-// {
-//     auto _sessionState = toFlatBuffer(sessionState);
-//     auto _connectionQuality = toFlatBuffer(connectionQuality);
-//     auto _controlMode = toFlatBuffer(controlMode);
-//     auto _messageIdentifier = friMonitoringMessage.header.messageIdentifier;
-//     auto _sequenceCounter = friMonitoringMessage.header.sequenceCounter;
-//     auto _reflectedSequenceCounter = friMonitoringMessage.header.reflectedSequenceCounter;
-//     // auto _sec = timeStamp.sec;
-//     // auto _nanosec = timeStamp.nanosec;
-//     std::vector<double> data;
-//     // get measured joint position
-//     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_open_chain_state_tag());
-//     flatbuffers::Offset<flatbuffers::Vector<double>> _measuredJointPosition = fbb.CreateVector(data);
+// KUKAiiwa.fbs
+flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    const ::FRISessionState &sessionState,
+    const ::FRIConnectionQuality &connectionQuality,
+    const ::ControlMode &controlMode, // enum
+    const ::FRIMonitoringMessage &friMonitoringMessage,
+    const grl::TimeEvent &timeEvent)  // There are two times (TimeStamp and TimeEvent) here, which one should be kept? both?
+{
+    auto _sessionState = toFlatBuffer(sessionState);
+    auto _connectionQuality = toFlatBuffer(connectionQuality);
+    auto _controlMode = toFlatBuffer(controlMode);
+    auto _messageIdentifier = friMonitoringMessage.header.messageIdentifier;
+    auto _sequenceCounter = friMonitoringMessage.header.sequenceCounter;
+    auto _reflectedSequenceCounter = friMonitoringMessage.header.reflectedSequenceCounter;
+    std::vector<double> data;
+    // get measured joint position
+    grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_open_chain_state_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _measuredJointPosition = fbb.CreateVector(data);
 
-//     data.clear();
-//     // get measured joint torque
-//     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_state_tag());
-//     flatbuffers::Offset<flatbuffers::Vector<double>> _measuredTorque = fbb.CreateVector(data);
+    data.clear();
+    // get measured joint torque
+    grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_state_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _measuredTorque = fbb.CreateVector(data);
 
-//     data.clear();
-//     // get measured joint torque
-//     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
-//     flatbuffers::Offset<flatbuffers::Vector<double>> _commandedJointPosition = fbb.CreateVector(data);
+    data.clear();
+    // get measured joint torque
+    grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _commandedJointPosition = fbb.CreateVector(data);
 
-//     data.clear();
-//     // get commanded joint torque
-//     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
-//     flatbuffers::Offset<flatbuffers::Vector<double>> _commandedTorque = fbb.CreateVector(data);
+    data.clear();
+    // get commanded joint torque
+    grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _commandedTorque = fbb.CreateVector(data);
 
-//     data.clear();
-//     // get measured external torque
-//     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_external_open_chain_state_tag());
-//     flatbuffers::Offset<flatbuffers::Vector<double>> _externalTorque = fbb.CreateVector(data);
+    data.clear();
+    // get measured external torque
+    grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_external_open_chain_state_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _externalTorque = fbb.CreateVector(data);
 
-//     data.clear();
-//     // get interpolated joint state
-//     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_interpolated_open_chain_state_tag());
-//     flatbuffers::Offset<flatbuffers::Vector<double>> _jointStateInterpolated = fbb.CreateVector(data);
+    data.clear();
+    // get interpolated joint state
+    grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+    flatbuffers::Offset<flatbuffers::Vector<double>> _jointStateInterpolated = fbb.CreateVector(data);
 
-//     flatbuffers::Offset<grl::flatbuffer::TimeEvent> _timeEvent = grl::toFlatBuffer(fbb, timeEvent);
+    flatbuffers::Offset<grl::flatbuffer::TimeEvent> _timeEvent = grl::toFlatBuffer(fbb, timeEvent);
 
-//     auto _overlayType = toFlatBuffer(friMonitoringMessage.ipoData.overlayType);
+    auto _overlayType = toFlatBuffer(friMonitoringMessage.ipoData.overlayType);
 
-//     ////////////////////////////////////////////////////////////////////////////
-//     /*** This block is to verify the specific flatbuffer object ***/
-//     flatbuffers::FlatBufferBuilder _fbb;
-//     flatbuffers::Offset<flatbuffers::Vector<double>> test_measuredJointPosition = _fbb.CreateVector(data);
-//     flatbuffers::Offset<flatbuffers::Vector<double>> test_measuredTorque = _fbb.CreateVector(data);
-//     flatbuffers::Offset<flatbuffers::Vector<double>> test_commandedJointPosition = _fbb.CreateVector(data);
-//     flatbuffers::Offset<flatbuffers::Vector<double>> test_commandedTorque = _fbb.CreateVector(data);
-//     flatbuffers::Offset<flatbuffers::Vector<double>> test_externalTorque = _fbb.CreateVector(data);
-//     flatbuffers::Offset<flatbuffers::Vector<double>> test_jointStateInterpolated = _fbb.CreateVector(data);
-//     flatbuffers::Offset<grl::flatbuffer::TimeEvent> test_timeEvent = grl::toFlatBuffer(_fbb, timeEvent);
-//     auto _friMessageLog = grl::flatbuffer::CreateFRIMessageLog(
-//       _fbb,
-//       _sessionState,
-//       _connectionQuality,
-//       _controlMode,
-//       _messageIdentifier,
-//       _sequenceCounter,
-//       _reflectedSequenceCounter,
-//       // _sec,
-//       // _nanosec,
-//       test_measuredJointPosition,
-//       test_measuredTorque,
-//       test_commandedJointPosition,
-//       test_commandedTorque,
-//       test_externalTorque,
-//       test_jointStateInterpolated,
-//       test_timeEvent);
-//     _fbb.Finish(_friMessageLog);
-//     auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
-//     bool success = verifier.VerifyBuffer<grl::flatbuffer::FRIMessageLog>();
-//     std::cout <<" verifier success for grl::flatbuffer::FRIMessageLog: " << success << std::endl;
-//     ///////////////////////////////////////////////////////////////////////////
-
-
-//      return grl::flatbuffer::CreateFRIMessageLog(
-//       fbb,
-//       _sessionState,
-//       _connectionQuality,
-//       _controlMode,
-//       _messageIdentifier,
-//       _sequenceCounter,
-//       _reflectedSequenceCounter,
-//       // _sec,
-//       // _nanosec,
-//       _measuredJointPosition,
-//       _measuredTorque,
-//       _commandedJointPosition,
-//       _commandedTorque,
-//       _externalTorque,
-//       _jointStateInterpolated,
-//       _timeEvent);
-// }
+     return grl::flatbuffer::CreateFRIMessageLog(
+      fbb,
+      _sessionState,
+      _connectionQuality,
+      _controlMode,
+      _messageIdentifier,
+      _sequenceCounter,
+      _reflectedSequenceCounter,
+      // _sec,
+      // _nanosec,
+      _measuredJointPosition,
+      _measuredTorque,
+      _commandedJointPosition,
+      _commandedTorque,
+      _externalTorque,
+      _jointStateInterpolated,
+      _timeEvent);
+}
 /// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
@@ -727,8 +691,8 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     const bool hasMonitorState,
     const flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> &monitorState,
     const bool hasMonitorConfig,
-    const flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> &monitorConfig)
-    //const flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> &FRIMessage
+    const flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> &monitorConfig,
+    const flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> &FRIMessage)
 
 {
     return grl::flatbuffer::CreateKUKAiiwaState(
@@ -753,14 +717,10 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> toFlatBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     const std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>> &kukaiiwastates)
 {
-    auto states = fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>>(kukaiiwastates);
-    // std::cout<< "states (flatbuffer vector):" << states.size() << std::endl;
     return grl::flatbuffer::CreateKUKAiiwaStates(
       fbb,
-      states);
+      fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>>(kukaiiwastates));
 }
-// }  // End of arm namespace
-// }  // End of robot namespace
 }  // End of grl namespace
 
 

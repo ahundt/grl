@@ -1,6 +1,7 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE grlTest
 
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILUR
 // system includes
 #include <boost/test/unit_test.hpp>
 #include <exception>
@@ -55,8 +56,10 @@ BOOST_AUTO_TEST_SUITE(KukaTest)
 BOOST_AUTO_TEST_CASE(runRepeatedly)
 {
     const std::size_t MegaByte = 1024*1024;
-    // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 3*MegaByte;
+    // The maximum size of a single flatbuffer is 2GB - 1, but actually single_buffer_limit_bytes can't be set beyond 2045 MB, otherwise assert might be launched.
+    // In 32bits, this evaluates to 2GB - 1, defined in base.h.
+    // #define FLATBUFFERS_MAX_BUFFER_SIZE ((1ULL << (sizeof(soffset_t) * 8 - 1)) - 1)
+    const std::size_t single_buffer_limit_bytes = 2045*MegaByte;
     // Install a signal handler to catch a signal when CONTROL+C
     std::signal(SIGINT, signal_handler);
     bool OK = true;
@@ -135,26 +138,10 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
         jointstate.push_back(jointValues[i]);
     }
       /// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
-    std::shared_ptr<pb_callback_t> values(std::make_shared<pb_callback_t>());
-    // pb_callback_t *values = new pb_callback_t;
-    int numDOF = 7;
-    values->funcs.encode = &encode_repeatedDouble;
-    values->funcs.decode = &decode_repeatedDouble;
-    tRepeatedDoubleArguments *arg = new tRepeatedDoubleArguments;
-    // map the local container data to the message data fields
-    arg->max_size = numDOF;
-    arg->size = 0;
-    arg->value = (double*) malloc(numDOF * sizeof(double));
-
-    for(int i=0; i<numDOF; i++) {
-        arg->value[i] =  jointstate[i];
-    }
-    values->arg = arg;
-    strjointValues.value = *values;
-    // strjointValues.value = *makeupJointValues(jointValues);
+    strjointValues.value = *makeupJointValues(jointValues);
     grl::robot::arm::KukaState::joint_state kukajointstate(jointstate);
 
-     ////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////
     // Double check the initialization of this parameter //////
     //////////////////////////////////////////////////////////
     grl::robot::arm::KukaState armState;
@@ -190,15 +177,15 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
     ::Transformation transformation{ "Transformation", 12, {1,2,3,4,5,6,7,8,9,10,11,12}, true, ::TimeStamp{3,4}};
     /// Transformation requestedTransformations[5] = { transformation, transformation, transformation, transformation, transformation };
     ::MessageEndOf endOfMessageData{true, 32, true, ::Checksum{true, 32}};
-    // ::FRIMonitoringMessage friMonitoringMessage {
-    //     messageHeader,
-    //     true, robotInfo,
-    //     true, messageMonitorData,
-    //     true, connectionInfo,
-    //     true, ipoData,
-    //     5,
-    //     { transformation, transformation, transformation, transformation, transformation },
-    //     true, endOfMessageData};
+    ::FRIMonitoringMessage friMonitoringMessage {
+        messageHeader,
+        true, robotInfo,
+        true, messageMonitorData,
+        true, connectionInfo,
+        true, ipoData,
+        5,
+        { transformation, transformation, transformation, transformation, transformation },
+        true, endOfMessageData};
     grl::TimeEvent time_event_stamp;
     std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>> kukaiiwaStateVec;
     std::size_t builder_size_bytes = 0;
@@ -207,12 +194,8 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
 
     while(!signalStatusG && OK && builder_size_bytes < single_buffer_limit_bytes )
     {
-        std::cout <<"Step into loop..." << std::endl;
         // grl::robot::arm::copy(friMonitoringMessage, armState);
         flatbuffers::Offset<grl::flatbuffer::ArmControlState> controlState = grl::toFlatBuffer(fbb, basename, sequenceNumber++, duration, armState, armControlMode);
-        // if(controlState == 0) {
-        //     assert(("controlState is empty?", controlState == 0));
-        // }
         flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> setCartesianImpedance = grl::toFlatBuffer(fbb, cart_stiffness_, cart_damping_,
                 nullspace_stiffness_, nullspace_damping_, cart_max_path_deviation_, cart_max_ctrl_vel_, cart_max_ctrl_force_, max_control_force_stop_);
         flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> setJointImpedance = grl::toFlatBuffer(fbb, joint_stiffness_, joint_damping_);
@@ -262,13 +245,13 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
             "currentMotionCenter",
             true);
 
-        // flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> friMessageLog = grl::toFlatBuffer(
-        //     fbb,
-        //     ::FRISessionState::FRISessionState_IDLE,
-        //     ::FRIConnectionQuality::FRIConnectionQuality_POOR,
-        //     controlMode,
-        //     friMonitoringMessage,
-        //     time_event_stamp);
+        flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> friMessageLog = grl::toFlatBuffer(
+            fbb,
+            ::FRISessionState::FRISessionState_IDLE,
+            ::FRIConnectionQuality::FRIConnectionQuality_POOR,
+            controlMode,
+            friMonitoringMessage,
+            time_event_stamp);
         grl::flatbuffer::Wrench cartesianWrench{grl::flatbuffer::Vector3d(1,1,1),grl::flatbuffer::Vector3d(1,1,1),grl::flatbuffer::Vector3d(1,1,1)};
 
 
@@ -301,9 +284,8 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
             true, controlState,
             true, kukaiiwaArmConfiguration,
             true, kukaiiwaMonitorState,
-            false, monitorConfig
-            // , friMessageLog
-        );
+            false, monitorConfig,
+            friMessageLog);
 
         kukaiiwaStateVec.push_back(kukaiiwaState);
 
@@ -317,84 +299,32 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
 
     flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> kukaStates = grl::toFlatBuffer(fbb, kukaiiwaStateVec);
 
-
     grl::flatbuffer::FinishKUKAiiwaStatesBuffer(fbb, kukaStates);
 
     uint8_t *buf = fbb.GetBufferPointer();
     std::size_t bufsize = fbb.GetSize();
 
-    auto KUKAiiwaStatesP= grl::flatbuffer::GetKUKAiiwaStates(buf);
-    auto states = KUKAiiwaStatesP->states();
-    assert(states);
-    //  for (flatbuffers::uoffset_t i = 0; i < bufsize; i++) {
-    //      printf("%d ", buf[i]);
-    //  }
-
     flatbuffers::Verifier verifier(buf, bufsize);
-    std::cout<< "VerifyKUKAiiwaStatesBuffer: " << grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier) << std::endl;
-    std::cout << " bufsize: " << bufsize << std::endl;
+    OK = OK && grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
+    //assert(OK && "VerifyKUKAiiwaStatesBuffer");
+
+    std::cout << "Buffer size: " << bufsize << std::endl;
 
     std::string binary_file_path = "Kuka_test_binary.iiwa";
     std::string json_file_path = "kuka_test_text.json";
 
-
-    OK = flatbuffers::SaveFile(binary_file_path.c_str(), reinterpret_cast<const char *>(buf), bufsize, true);
-
     // Get the current working directory
     std::string fbs_filename("KUKAiiwa.fbs");
 
-    std::cout << "fbs exist? " <<  flatbuffers::FileExists(fbs_filename.c_str()) << std::endl;
-    flatbuffers::Parser parser;
-    std::vector<std::string> includePaths = std::vector<std::string >();
-
-
-    std::string current_working_dir;
-    char buff[2048];
-    /// Get the current working directory
-    getcwd(buff, 2048);
-    current_working_dir = std::string(buff);
-    std::cout << "The current working dir: " << current_working_dir << std::endl;
-    includePaths.push_back(current_working_dir);
-    std::string schemafile;
-    flatbuffers::LoadFile(fbs_filename.c_str(), false, &schemafile);
-    // std::cout<<"Schema File: " << std::endl << schemafile << std::endl;
-    // parse fbs schema, so we can use it to parse the data after
-    // create a list of char* pointers so we can call Parse
-    std::vector<const char *> include_directories;
-    for(int i = 0; i < includePaths.size(); i++){
-      include_directories.push_back(includePaths[i].c_str());
-    }
-    include_directories.push_back(nullptr);
-
-    OK = OK && parser.Parse(schemafile.c_str(), &include_directories[0]);
-
-    // OK = OK && grl::ParseSchemaFile(parser, fbs_filename, includePaths, false);
-    std::string jsongen;
-    // now generate text from the flatbuffer binary
-
-    OK = OK && flatbuffers::GenerateText(parser, buf, &jsongen);
-    std::cout << "json string :" << jsongen.size() << std::endl;
-    std::cout << jsongen.c_str() << std::endl;
-      // Write the data get from flatbuffer binary to json file on disk.
-    std::cout << "buffer :" << charP_size(reinterpret_cast<const char *>(buf)) << std::endl;
-    std::ofstream out(json_file_path);
-    out << jsongen.c_str();
-    out.close();
-
-    // OK = OK && grl::SaveFlatBufferFile(
-    //     buf,
-    //     fbb.GetSize(),
-    //     binary_file_path,
-    //     fbs_filename,
-    //     json_file_path);
-    std::cout << "Save json file correctly? " << OK << "  Buffer size saved to binary file: " << bufsize << std::endl;
+    OK = OK && grl::SaveFlatBufferFile(
+        buf,
+        fbb.GetSize(),
+        binary_file_path,
+        fbs_filename,
+        json_file_path);
+    assert(OK && "SaveFlatBufferFile");
     std::cout << "End of the program" << std::endl;
 
-
-
 }
-
-
-
 
 BOOST_AUTO_TEST_SUITE_END()
