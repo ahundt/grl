@@ -15,11 +15,12 @@
 #include "grl/kuka/KukaDriver.hpp"
 
 /// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
-pb_callback_t makeupJointValues(std::vector<double> &jointvalue) {
+std::shared_ptr<pb_callback_t> makeupJointValues(std::vector<double> &jointvalue) {
      /// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
-    pb_callback_t *values = new pb_callback_t;
+    std::shared_ptr<pb_callback_t> values(std::make_shared<pb_callback_t>());
+    // pb_callback_t *values = new pb_callback_t;
     int numDOF = 7;
-    values->funcs.encode =  &encode_repeatedDouble;
+    values->funcs.encode = &encode_repeatedDouble;
     values->funcs.decode = &decode_repeatedDouble;
     tRepeatedDoubleArguments *arg = new tRepeatedDoubleArguments;
     // map the local container data to the message data fields
@@ -31,7 +32,7 @@ pb_callback_t makeupJointValues(std::vector<double> &jointvalue) {
         arg->value[i] = jointvalue[i];
     }
     values->arg = arg;
-    return *values;
+    return values;
 }
 
 volatile std::sig_atomic_t signalStatusG = 0;
@@ -42,21 +43,33 @@ void signal_handler(int signal)
   signalStatusG = signal;
 }
 
+int charP_size(const char* buf)
+{
+    int Size = 0;
+    while (buf[Size] != '\0') Size++;
+    return Size;
+}
+
 BOOST_AUTO_TEST_SUITE(KukaTest)
 
 BOOST_AUTO_TEST_CASE(runRepeatedly)
 {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 2047*MegaByte;
+    const std::size_t single_buffer_limit_bytes = 3*MegaByte;
     // Install a signal handler to catch a signal when CONTROL+C
     std::signal(SIGINT, signal_handler);
-    bool OK = false;
+    bool OK = true;
     bool debug = true;
     if (debug) std::cout << "starting KukaTest" << std::endl;
-    std::shared_ptr<flatbuffers::FlatBufferBuilder> fbbP;
-    fbbP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+    // std::shared_ptr<flatbuffers::FlatBufferBuilder> fbbP;
+    flatbuffers::FlatBufferBuilder fbb;
+    // fbbP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+    // std::shared_ptr<KUKA::FRI::ClientData> friData(std::make_shared<KUKA::FRI::ClientData>(7));
+    // std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>> highLevelDriverClassP;
     double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+
+
     if (debug) std::cout << "duration: " << duration << std::endl;
     grl::robot::arm::KukaDriver::Params params = std::make_tuple(
             "Robotiiwa"               , // RobotName,
@@ -78,7 +91,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
     bool setArmConfiguration_ = true; // set the arm config first time
     bool max_control_force_stop_ = false;
 
-    grl::flatbuffer::ArmState armControlMode(grl::flatbuffer::ArmState::StartArm);
+    grl::flatbuffer::ArmState armControlMode = grl::flatbuffer::ArmState::StartArm;
     grl::flatbuffer::KUKAiiwaInterface commandInterface = grl::flatbuffer::KUKAiiwaInterface::SmartServo;// KUKAiiwaInterface::SmartServo;
     grl::flatbuffer::KUKAiiwaInterface monitorInterface = grl::flatbuffer::KUKAiiwaInterface::FRI;
     ::ControlMode controlMode = ::ControlMode::ControlMode_POSITION_CONTROLMODE;
@@ -87,23 +100,18 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
     ::ConnectionInfo connectionInfo{::FRISessionState::FRISessionState_IDLE,
                                     ::FRIConnectionQuality::FRIConnectionQuality_POOR,
                                     true, 4, false, 0};
-    grl::robot::arm::KukaState armState;
-    std::shared_ptr<KUKA::FRI::ClientData> friData(std::make_shared<KUKA::FRI::ClientData>(7));
-    cartographer::common::Time startTime;
 
-    std::vector<double> joint_stiffness_ = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7};
-    std::vector<double> joint_damping_ = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
-    std::vector<double> joint_AccelerationRel_(7,0.5);
-    std::vector<double> joint_VelocityRel_(7,1.0);
+
+    std::vector<double> joint_stiffness_(7, 0.2);
+    std::vector<double> joint_damping_(7, 0.3);
+    std::vector<double> joint_AccelerationRel_(7, 0.5);
+    std::vector<double> joint_VelocityRel_(7, 1.0);
     bool updateMinimumTrajectoryExecutionTime = false;
     double minimumTrajectoryExecutionTime = 4;
-
     std::size_t goal_position_command_time_duration = 4;
-    std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>> highLevelDriverClassP;
 
     std::cout << "KUKA COMMAND MODE: " << std::get<grl::robot::arm::KukaDriver::KukaCommandMode>(params) << "\n";
     int64_t sequenceNumber = 0;
-
     //Cartesian Impedance Values
     grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(500,500,500);
     grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder::xyz);
@@ -122,7 +130,49 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
     ::RobotInfo robotInfo{true, 7, true, ::SafetyState::SafetyState_NORMAL_OPERATION};
     ::JointValues strjointValues;
     std::vector<double> jointValues(7, 0.1);
-    strjointValues.value = makeupJointValues(jointValues);
+    boost::container::static_vector<double, 7> jointstate;
+    for(int i = 0; i<7; i++) {
+        jointstate.push_back(jointValues[i]);
+    }
+      /// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
+    std::shared_ptr<pb_callback_t> values(std::make_shared<pb_callback_t>());
+    // pb_callback_t *values = new pb_callback_t;
+    int numDOF = 7;
+    values->funcs.encode = &encode_repeatedDouble;
+    values->funcs.decode = &decode_repeatedDouble;
+    tRepeatedDoubleArguments *arg = new tRepeatedDoubleArguments;
+    // map the local container data to the message data fields
+    arg->max_size = numDOF;
+    arg->size = 0;
+    arg->value = (double*) malloc(numDOF * sizeof(double));
+
+    for(int i=0; i<numDOF; i++) {
+        arg->value[i] =  jointstate[i];
+    }
+    values->arg = arg;
+    strjointValues.value = *values;
+    // strjointValues.value = *makeupJointValues(jointValues);
+    grl::robot::arm::KukaState::joint_state kukajointstate(jointstate);
+
+     ////////////////////////////////////////////////////////////
+    // Double check the initialization of this parameter //////
+    //////////////////////////////////////////////////////////
+    grl::robot::arm::KukaState armState;
+    armState.position = kukajointstate;
+    armState.torque = kukajointstate;
+    armState.externalTorque = kukajointstate;
+    armState.commandedPosition = kukajointstate;
+    armState.commandedTorque = kukajointstate;
+    armState.ipoJointPosition = kukajointstate;
+    armState.ipoJointPositionOffsets = kukajointstate;
+    armState.commandedCartesianWrenchFeedForward = kukajointstate;
+    armState.externalForce = kukajointstate;
+    armState.sessionState = grl::toFlatBuffer(connectionInfo.sessionState);
+    armState.connectionQuality = grl::toFlatBuffer(connectionInfo.quality);
+    armState.safetyState = grl::toFlatBuffer(::SafetyState::SafetyState_NORMAL_OPERATION);
+    armState.operationMode = grl::toFlatBuffer(OperationMode::OperationMode_TEST_MODE_1);
+    armState.driveState = grl::toFlatBuffer(::DriveState::DriveState_OFF);
+
     ::MessageMonitorData messageMonitorData{
         true, strjointValues,
         true, strjointValues,
@@ -140,40 +190,47 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
     ::Transformation transformation{ "Transformation", 12, {1,2,3,4,5,6,7,8,9,10,11,12}, true, ::TimeStamp{3,4}};
     /// Transformation requestedTransformations[5] = { transformation, transformation, transformation, transformation, transformation };
     ::MessageEndOf endOfMessageData{true, 32, true, ::Checksum{true, 32}};
-    ::FRIMonitoringMessage friMonitoringMessage {messageHeader,
-        true, robotInfo,
-        true, messageMonitorData,
-        true, connectionInfo,
-        true, ipoData,
-        5,
-        { transformation, transformation, transformation, transformation, transformation },
-        true, endOfMessageData};
+    // ::FRIMonitoringMessage friMonitoringMessage {
+    //     messageHeader,
+    //     true, robotInfo,
+    //     true, messageMonitorData,
+    //     true, connectionInfo,
+    //     true, ipoData,
+    //     5,
+    //     { transformation, transformation, transformation, transformation, transformation },
+    //     true, endOfMessageData};
     grl::TimeEvent time_event_stamp;
     std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>> kukaiiwaStateVec;
     std::size_t builder_size_bytes = 0;
     std::size_t previous_size = 0;
 
 
-    // while(!signalStatusG && OK && builder_size_bytes < single_buffer_limit_bytes )
-    // {
-        auto controlState = grl::toFlatBuffer(*fbbP, basename, sequenceNumber++, duration, armState, armControlMode);
-
-        auto setCartesianImpedance = grl::toFlatBuffer(*fbbP, cart_stiffness_, cart_damping_,
+    while(!signalStatusG && OK && builder_size_bytes < single_buffer_limit_bytes )
+    {
+        std::cout <<"Step into loop..." << std::endl;
+        // grl::robot::arm::copy(friMonitoringMessage, armState);
+        flatbuffers::Offset<grl::flatbuffer::ArmControlState> controlState = grl::toFlatBuffer(fbb, basename, sequenceNumber++, duration, armState, armControlMode);
+        // if(controlState == 0) {
+        //     assert(("controlState is empty?", controlState == 0));
+        // }
+        flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> setCartesianImpedance = grl::toFlatBuffer(fbb, cart_stiffness_, cart_damping_,
                 nullspace_stiffness_, nullspace_damping_, cart_max_path_deviation_, cart_max_ctrl_vel_, cart_max_ctrl_force_, max_control_force_stop_);
-        auto setJointImpedance = grl::toFlatBuffer(*fbbP, joint_stiffness_, joint_damping_);
-        auto setSmartServo = grl::toFlatBuffer(*fbbP, joint_AccelerationRel_, joint_VelocityRel_, updateMinimumTrajectoryExecutionTime, minimumTrajectoryExecutionTime);
-        auto FRIConfig = grl::toFlatBuffer(*fbbP, overlayType, connectionInfo, false, 3501, false, 3502);
+        flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> setJointImpedance = grl::toFlatBuffer(fbb, joint_stiffness_, joint_damping_);
+        flatbuffers::Offset<grl::flatbuffer::SmartServo> setSmartServo = grl::toFlatBuffer(fbb, joint_AccelerationRel_, joint_VelocityRel_, updateMinimumTrajectoryExecutionTime, minimumTrajectoryExecutionTime);
+        flatbuffers::Offset<grl::flatbuffer::FRI> FRIConfig = grl::toFlatBuffer(fbb, overlayType, connectionInfo, false, 3501, false, 3502);
+
         std::vector<flatbuffers::Offset<grl::flatbuffer::LinkObject>> tools;
         std::vector<flatbuffers::Offset<grl::flatbuffer::ProcessData>> processData;
+
         for(int i=0; i<7; i++) {
             std::string linkname = "Link" + std::to_string(i);
             std::string parent = i==0?"Base":("Link" + std::to_string(i-1));
             grl::flatbuffer::Pose pose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(i,i,i), grl::flatbuffer::Quaternion(i,i,i,i));
             grl::flatbuffer::Inertia inertia = grl::flatbuffer::Inertia(1, pose, 1, 2, 3, 4, 5, 6);
-            flatbuffers::Offset<grl::flatbuffer::LinkObject> linkObject = grl::toFlatBuffer(*fbbP, linkname, parent, pose, inertia);
+            flatbuffers::Offset<grl::flatbuffer::LinkObject> linkObject = grl::toFlatBuffer(fbb, linkname, parent, pose, inertia);
             tools.push_back(linkObject);
             processData.push_back(
-                grl::toFlatBuffer(*fbbP,
+                grl::toFlatBuffer(fbb,
                 "dataType"+ std::to_string(i),
                 "defaultValue"+ std::to_string(i),
                 "displayName"+ std::to_string(i),
@@ -182,11 +239,14 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
                 "max"+ std::to_string(i),
                 "unit"+ std::to_string(i),
                 "value"+ std::to_string(i)));
-
         }
 
-        auto kukaiiwaArmConfiguration = grl::toFlatBuffer(
-            *fbbP,
+
+        // copy the state data into a more accessible object
+        /// TODO(ahundt) switch from this copy to a non-deprecated call
+
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> kukaiiwaArmConfiguration = grl::toFlatBuffer(
+            fbb,
             RobotName,
             commandInterface,
             monitorInterface,
@@ -202,45 +262,78 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
             "currentMotionCenter",
             true);
 
-        auto friMessageLog = grl::toFlatBuffer(
-            *fbbP,
-            ::FRISessionState::FRISessionState_IDLE,
-            ::FRIConnectionQuality::FRIConnectionQuality_POOR,
-            controlMode,
-            friMonitoringMessage,
-            time_event_stamp);
+        // flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> friMessageLog = grl::toFlatBuffer(
+        //     fbb,
+        //     ::FRISessionState::FRISessionState_IDLE,
+        //     ::FRIConnectionQuality::FRIConnectionQuality_POOR,
+        //     controlMode,
+        //     friMonitoringMessage,
+        //     time_event_stamp);
+        grl::flatbuffer::Wrench cartesianWrench{grl::flatbuffer::Vector3d(1,1,1),grl::flatbuffer::Vector3d(1,1,1),grl::flatbuffer::Vector3d(1,1,1)};
 
-        auto kukaiiwaState = grl::toFlatBuffer(
-            *fbbP,
+
+        flatbuffers::Offset<grl::flatbuffer::JointState> jointStatetab = grl::toFlatBuffer(fbb, jointValues, jointValues, jointValues, jointValues);
+        grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(1,1,1), grl::flatbuffer::Quaternion(2,3,4,5));
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> kukaiiwaMonitorState = grl::toFlatBuffer(
+            fbb,
+            jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
+            cartesianFlangePose,
+            jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateReal,
+            jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateInterpolated,
+            jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &externalState,
+            ::FRISessionState::FRISessionState_IDLE,
+            ::OperationMode::OperationMode_TEST_MODE_1,
+            cartesianWrench);
+            std::vector<double> torqueSensorLimits(7,0.5);
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> monitorConfig = grl::toFlatBuffer(
+            fbb,
+            "hardvareVersion",
+            torqueSensorLimits,
+            true,
+            false,
+            processData);
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> kukaiiwaState = grl::toFlatBuffer(
+            fbb,
             RobotName,
             destination,
             source,
             duration,
             true, controlState,
             true, kukaiiwaArmConfiguration,
-            false, 0,
-            false, 0,
-            friMessageLog);
+            true, kukaiiwaMonitorState,
+            false, monitorConfig
+            // , friMessageLog
+        );
 
         kukaiiwaStateVec.push_back(kukaiiwaState);
 
-        builder_size_bytes = fbbP->GetSize();
+        builder_size_bytes = fbb.GetSize();
         std::size_t newData = builder_size_bytes - previous_size;
         previous_size = builder_size_bytes;
         std::cout<< "single message data size (bytes): " << newData << "  Buffer size: " << builder_size_bytes/MegaByte <<" MB" << std::endl;
-    // }
+    }
 
     std::cout<< "kukaiiwaStateVec:" << kukaiiwaStateVec.size() << std::endl;
 
-    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> kukaStates = grl::toFlatBuffer(*fbbP, kukaiiwaStateVec);
+    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> kukaStates = grl::toFlatBuffer(fbb, kukaiiwaStateVec);
 
 
-    grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, kukaStates);
+    grl::flatbuffer::FinishKUKAiiwaStatesBuffer(fbb, kukaStates);
 
-    uint8_t *buf = fbbP->GetBufferPointer();
-    std::size_t bufsize = fbbP->GetSize();
-    flatbuffers::Verifier verifier(buf,fbbP->GetSize());
+    uint8_t *buf = fbb.GetBufferPointer();
+    std::size_t bufsize = fbb.GetSize();
+
+    auto KUKAiiwaStatesP= grl::flatbuffer::GetKUKAiiwaStates(buf);
+    auto states = KUKAiiwaStatesP->states();
+    assert(states);
+    //  for (flatbuffers::uoffset_t i = 0; i < bufsize; i++) {
+    //      printf("%d ", buf[i]);
+    //  }
+
+    flatbuffers::Verifier verifier(buf, bufsize);
     std::cout<< "VerifyKUKAiiwaStatesBuffer: " << grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier) << std::endl;
+    std::cout << " bufsize: " << bufsize << std::endl;
+
     std::string binary_file_path = "Kuka_test_binary.iiwa";
     std::string json_file_path = "kuka_test_text.json";
 
@@ -249,24 +342,48 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
 
     // Get the current working directory
     std::string fbs_filename("KUKAiiwa.fbs");
+
+    std::cout << "fbs exist? " <<  flatbuffers::FileExists(fbs_filename.c_str()) << std::endl;
     flatbuffers::Parser parser;
-    std::vector<std::string> includePaths;
+    std::vector<std::string> includePaths = std::vector<std::string >();
 
-    OK = OK && grl::ParseSchemaFile(parser, fbs_filename, includePaths, false);
+
+    std::string current_working_dir;
+    char buff[2048];
+    /// Get the current working directory
+    getcwd(buff, 2048);
+    current_working_dir = std::string(buff);
+    std::cout << "The current working dir: " << current_working_dir << std::endl;
+    includePaths.push_back(current_working_dir);
+    std::string schemafile;
+    flatbuffers::LoadFile(fbs_filename.c_str(), false, &schemafile);
+    // std::cout<<"Schema File: " << std::endl << schemafile << std::endl;
+    // parse fbs schema, so we can use it to parse the data after
+    // create a list of char* pointers so we can call Parse
+    std::vector<const char *> include_directories;
+    for(int i = 0; i < includePaths.size(); i++){
+      include_directories.push_back(includePaths[i].c_str());
+    }
+    include_directories.push_back(nullptr);
+
+    OK = OK && parser.Parse(schemafile.c_str(), &include_directories[0]);
+
+    // OK = OK && grl::ParseSchemaFile(parser, fbs_filename, includePaths, false);
     std::string jsongen;
-      // now generate text from the flatbuffer binary
+    // now generate text from the flatbuffer binary
 
-    OK = OK && GenerateText(parser, buf, &jsongen);
+    OK = OK && flatbuffers::GenerateText(parser, buf, &jsongen);
+    std::cout << "json string :" << jsongen.size() << std::endl;
+    std::cout << jsongen.c_str() << std::endl;
       // Write the data get from flatbuffer binary to json file on disk.
-    std::cout << "buffer :" << (unsigned)strlen(reinterpret_cast<const char *>(buf)) << std::endl;
-      std::ofstream out(json_file_path);
-      out << jsongen.c_str();
-      out.close();
+    std::cout << "buffer :" << charP_size(reinterpret_cast<const char *>(buf)) << std::endl;
+    std::ofstream out(json_file_path);
+    out << jsongen.c_str();
+    out.close();
 
-      std::cout << jsongen.c_str() << std::endl;
     // OK = OK && grl::SaveFlatBufferFile(
     //     buf,
-    //     fbbP->GetSize(),
+    //     fbb.GetSize(),
     //     binary_file_path,
     //     fbs_filename,
     //     json_file_path);
@@ -276,6 +393,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
 
 
 }
+
 
 
 

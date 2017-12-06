@@ -240,6 +240,7 @@ table KUKAiiwaMonitorConfiguration {
 }
 
 // Get state data for the arm (things that change often)
+// This table isn't used any more, since the main information of this table is the same with
 table KUKAiiwaMonitorState {
    // this is the measured current state of the arm joints
    // as seen in monitorState and _FRIMonitoringMessage
@@ -292,6 +293,7 @@ table FRITimeStamp {
 // a table that is used as a record of all communication over FRI
 // it is not for user configuration or anything else, it should
 // simply reflect a history of what was sent and what was received.
+/*
 table FRIMessageLog {
 
     sessionState:ESessionState;
@@ -315,7 +317,7 @@ table FRIMessageLog {
 
     timeStamp:TimeEvent;
   }
-
+*/
 
 table KUKAiiwaState {
   name:string; // The name of the robot to update (identifier used when applicable, doesn't ever change or set the name)
@@ -335,7 +337,7 @@ table KUKAiiwaState {
   hasMonitorConfig:bool = false;
   monitorConfig:KUKAiiwaMonitorConfiguration;
 
-  FRIMessage:FRIMessageLog;
+  // FRIMessage:FRIMessageLog;
 }
 
 
@@ -344,6 +346,7 @@ table KUKAiiwaState {
 // This is used because they can also be
 // accumulated and saved to disk as a log
 // very easily!
+
 table KUKAiiwaStates {
   states:[KUKAiiwaState];
 }

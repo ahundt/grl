@@ -2,32 +2,35 @@
 #define GRL_FLATBUFFER_HPP
 
 #include <flatbuffers/flatbuffers.h>
+
 #include <flatbuffers/idl.h>
+
+
 
 namespace grl {
 
 // loads a json flatbuffer from a file
-bool LoadJSONFlatbuffer(flatbuffers::Parser& parser, std::string schemaPath, std::string jsonPath, std::string include_directory, bool binary = false)
-{
-    // source: https://github.com/google/flatbuffers/blob/master/samples/sample_text.cpp
+// bool LoadJSONFlatbuffer(flatbuffers::Parser& parser, std::string schemaPath, std::string jsonPath, std::string include_directory, bool binary = false)
+// {
+//     // source: https://github.com/google/flatbuffers/blob/master/samples/sample_text.cpp
 
-    // load FlatBuffer schema (.fbs) and JSON from disk
-    std::string schemafile;
-    std::string jsonfile;
-    bool ok = flatbuffers::LoadFile(schemaPath.c_str(), binary, &schemafile) &&
-            flatbuffers::LoadFile(jsonPath.c_str(), binary, &jsonfile);
-    if (!ok) {
-    printf("couldn't load files!\n");
-    return nullptr;
-    }
+//     // load FlatBuffer schema (.fbs) and JSON from disk
+//     std::string schemafile;
+//     std::string jsonfile;
+//     bool ok = flatbuffers::LoadFile(schemaPath.c_str(), binary, &schemafile) &&
+//             flatbuffers::LoadFile(jsonPath.c_str(), binary, &jsonfile);
+//     if (!ok) {
+//     printf("couldn't load files!\n");
+//     return nullptr;
+//     }
 
-    // parse schema first, so we can use it to parse the data after
-    const char *include_directories[] = { include_directory.c_str(), "flatbuffer", nullptr };
-    ok = parser.Parse(schemafile.c_str(), include_directories) &&
-        parser.Parse(jsonfile.c_str(), include_directories);
-    assert(ok);
-    return ok;
-}
+//     // parse schema first, so we can use it to parse the data after
+//     const char *include_directories[] = { include_directory.c_str(), "flatbuffer", nullptr };
+//     ok = parser.Parse(schemafile.c_str(), include_directories) &&
+//         parser.Parse(jsonfile.c_str(), include_directories);
+//     assert(ok);
+//     return ok;
+// }
 
 /// @brief Loads a flatbuffers schema file from disk into a flatbuffers parser.
 ///
@@ -54,12 +57,13 @@ bool ParseSchemaFile(
     if(includePaths.empty())
     {
 
-      std::string current_working_dir;
-      char buff[2048];
-      /// Get the current working directory
-      getcwd(buff, 2048);
-      current_working_dir = std::string(buff);
-      includePaths.push_back(current_working_dir);
+        std::string current_working_dir;
+        char buff[2048];
+        /// Get the current working directory
+        getcwd(buff, 2048);
+        current_working_dir = std::string(buff);
+        std::cout << "The current working dir: " << current_working_dir << std::endl;
+        includePaths.push_back(current_working_dir);
     }
 
     std::string fbs_fullpath;
@@ -69,7 +73,7 @@ bool ParseSchemaFile(
     }
     else
     {
-        // a full path wasn't passed, so check all the include paths
+        std::cout << "a full path wasn't passed, so check all the include paths" << std::endl;
         for(auto includePath : includePaths)
         {
           std::string fbs_trypath = flatbuffers::ConCatPathFileName(includePath, fbs_filename);
@@ -158,11 +162,15 @@ bool SaveFlatBufferFile(
       ok = ok && ParseSchemaFile(parser, fbs_filename, includePaths, read_binary_schema);
       std::string jsongen;
       // now generate text from the flatbuffer binary
+
       ok = ok && GenerateText(parser, buffer, &jsongen);
       // Write the data get from flatbuffer binary to json file on disk.
+
       std::ofstream out(json_file_path);
       out << jsongen.c_str();
       out.close();
+      std::cout << "json string :" << jsongen.size() << std::endl;
+      std::cout << jsongen.c_str() << std::endl;
     }
     return ok;
 }
