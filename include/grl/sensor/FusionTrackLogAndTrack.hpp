@@ -179,9 +179,9 @@ public:
       m_driverThread->join();
     }
 
-    for(auto &saveThreadP : m_saveRecordingThreads)
+    for(auto saveThreadP : m_saveRecordingThreads)
     {
-      m_driverThread->join();
+      saveThreadP->join();
     }
   }
 
