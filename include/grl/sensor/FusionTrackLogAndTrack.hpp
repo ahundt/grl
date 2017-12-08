@@ -399,6 +399,7 @@ private:
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
     const std::size_t single_buffer_limit_bytes = 512*MegaByte;
+    std::vector<uint64_t> deviceSerialNumbers;
     try
     {
     //   std::cout << "<<<<<<< geometry filenames: " << params_.FusionTrackParams.geometryFilenames << std::endl;
@@ -410,6 +411,7 @@ private:
       m_receivedFrame = std::move(opticalTrackerP->makeFramePtr());
       m_nextState = std::move(opticalTrackerP->makeFramePtr());
       isConnectionEstablished_ = true;
+      deviceSerialNumbers = opticalTrackerP->getDeviceSerialNumbers();
     }
     catch (...)
     {
@@ -417,18 +419,14 @@ private:
       exceptionPtr = std::current_exception();
       m_shouldStop = true;
     }
-
-    auto serialNumbers = opticalTrackerP->getDeviceSerialNumbers();
-    // std::cout << "<<<<<<<<<<<<<<<<<  serialNumbers: " << serialNumbers << std::endl;
-
+  
     // run the primary update loop in a separate thread
-    int counter = 0;
     bool saveFileNow = false;
     while (!m_shouldStop)
     {
 
      // loop through all connected devices
-     for(auto serialNumber : serialNumbers)
+     for(auto serialNumber : deviceSerialNumbers)
      {
         m_nextState->SerialNumber = serialNumber;
         opticalTrackerP->receive(*m_nextState);
