@@ -10,7 +10,10 @@
 #include <atomic>
 #include <ctime>
 
+#ifdef HAVE_spdlog
+/// The spdlog library https://github.com/gabime/spdlog
 #include <spdlog/spdlog.h>
+#endif // HAVE_spdlog
 
 #include <boost/exception/all.hpp>
 #include <boost/lexical_cast.hpp>
@@ -154,6 +157,7 @@ public:
         add_object(motionParam);
     }
 
+#ifdef HAVE_spdlog
     // set up the logger
     try
     {
@@ -163,6 +167,7 @@ public:
     {
         loggerP = spdlog::get(params_.FusionTrackParams.loggerName);
     }
+#endif // HAVE_spdlog
 
     allHandlesSet = true;
     m_driverThread.reset(new std::thread(&FusionTrackLogAndTrack::update, this));
@@ -325,6 +330,7 @@ public:
   }
 
   /// save the currently recorded fusiontrack frame data, this also clears the recording
+  /// TODO(ahundt) Saving the file twice in one second with the default file name will overwrite!!!!
   bool save_recording(std::string filename = std::string())
   {
     if(filename.empty())
@@ -332,7 +338,11 @@ public:
       /// TODO(ahundt) Saving the file twice in one second will overwrite!!!!
       filename = current_date_and_time_string() + "_FusionTrack.flik";
     }
+#ifdef HAVE_spdlog
     loggerP->info("Save Recording as: ", filename);
+#else // HAVE_spdlog
+    std::cout << "Save Recording as: " << filename << std::endl;
+#endif // HAVE_spdlog
 
     /// lock mutex before accessing file
     std::lock_guard<std::mutex> lock(m_frameAccess);
@@ -346,17 +356,23 @@ public:
     // https://stackoverflow.com/questions/7627098/what-is-a-lambda-expression-in-c11
 
     auto saveLambdaFunction = [
-      save_fbbP = std::move(m_logFileBufferBuilderP),
-      save_KUKAiiwaFusionTrackMessageBufferP = std::move(m_KUKAiiwaFusionTrackMessageBufferP),
-      filename,
-      lambdaLoggerP = loggerP
+      save_fbbP = std::move(m_logFileBufferBuilderP)
+      ,save_KUKAiiwaFusionTrackMessageBufferP = std::move(m_KUKAiiwaFusionTrackMessageBufferP)
+      ,filename
+#ifdef HAVE_spdlog
+      ,lambdaLoggerP = loggerP
+#endif // HAVE_spdlog
     ]() mutable
     {
       bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaFusionTrackMessageBufferP);
       bool write_binary_stream = true;
       success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
       /// TODO(ahundt) replace cout with proper spdlog and vrep banner notification
+#ifdef HAVE_spdlog
       lambdaLoggerP->info("filename: ", filename, " verifier success: ", success);
+#else // HAVE_spdlog
+      std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
+#endif // HAVE_spdlog
     };
     // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
     std::shared_ptr<std::thread> saveLogThread(std::make_shared<std::thread>(saveLambdaFunction));
@@ -365,6 +381,7 @@ public:
     m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
     m_KUKAiiwaFusionTrackMessageBufferP =
         std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
+    return true;
   }
 
   // clear the recording buffer from memory immediately to start fresh
@@ -532,7 +549,9 @@ private:
   //
   // this is because sometimes you want to move the optical tracker itself.
   GeometryIDToMotionConfigParams m_geometryIDToMotionConfigParams;
+#ifdef HAVE_spdlog
   std::shared_ptr<spdlog::logger> loggerP;
+#endif // HAVE_spdlog
 };  /// End of class FusionTrackLogAndTrack
 
 } // namespace grl
