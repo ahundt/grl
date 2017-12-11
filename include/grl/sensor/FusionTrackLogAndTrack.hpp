@@ -193,6 +193,12 @@ public:
   /// adds an object to active tracking, replacing existing objects with the same GeometryID
   void add_object(const MotionConfigParams mcp)
   {
+    // rethrow an exception if it occured in the other thread.
+    if (exceptionPtr)
+    {
+      /// note: this exception most likely came from the update() call initializing opticalTrackerP
+      std::rethrow_exception(exceptionPtr);
+    }
     std::lock_guard<std::mutex> lock(m_frameAccess);
     int geometry_id =std::get<GeometryID>(mcp);
     // std::cout << "added geometry_id:" <<geometry_id;
@@ -237,6 +243,24 @@ public:
   bool is_active()
   {
     return allHandlesSet && !exceptionPtr && opticalTrackerP && isConnectionEstablished_;
+  }
+  
+  /// Returns false if there is no exception that occurred in the driver
+  /// if there is an exception it will be thrown!
+  /// @throws boost::exception exception detailing the error state of the driver
+  bool is_exception()
+  {
+    // rethrow an exception if it occured in the other thread.
+    if (exceptionPtr)
+    {
+      /// note: this exception most likely came from the update() call initializing opticalTrackerP
+      std::rethrow_exception(exceptionPtr);
+    }
+    else
+    {
+      return false;
+    }
+    return true;
   }
 
   /// Is the optical tracker plugin currently recording log data?

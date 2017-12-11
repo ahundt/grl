@@ -247,8 +247,12 @@ class FusionTrack
         // search for devices
         for(std::size_t i = 0; i < m_params.maximumConnectionAttempts; i++)
         {
+            // If you get a crash in the next couple lines it is due
+            // to a bug in the atracsys code, read the long comment block further
+            // down in this for loop.
             m_ftkLibrary = ftkInit();
             // try a number of times before giving up
+            // because the connection does not initialize reliably
             error = ftkEnumerateDevices(m_ftkLibrary,
                                         detail::updateDeviceSerialNumber,
                                         this);
@@ -256,6 +260,26 @@ class FusionTrack
             {
                 break;
             } else {
+                // If you get a crash here, you will need to
+                // work around bugs in the fusion track libraries made by atracsys.
+                // Specifically, there will be a crash in linThread.cpp
+                // at the following "User processing" line:
+                // pThread->thread.onProcess();
+                // This line will call a pure virtual function because ThreadImpl
+                // defines a pure virtual member function onProcess() which is never
+                // instantiated in a child class.
+                // In practice, this means a crash will occur if ftkClose
+                // is called to shortly after ftkEnumerateDevices.
+                // Bugs were fixed in linThread.cpp thread destructor call, caused by
+                // the PacketReader destructor in devPacketReader.cpp + hpp.
+                // You must make sure that internal threads have completely launched
+                // and ThreadFunction has been called before allowing the ~Thread()
+                // class destructor to proceed. Do in ThreadImpl::threadFunction()
+                // by adding an is_starting flag that is not set until OnProcessing is ready to call,
+                // do not call OnProcessing the first time, set the flag instead, and go around again.
+                // Once is_starting is false in ~Thread(), then proceed to destroy the object.
+                // There are also mutex variables that need to be locked, look for places that say
+                // a mutex is not required because this was a mistake, it is actually required.
                 ftkClose(&m_ftkLibrary);
                 m_ftkLibrary = nullptr;
             }

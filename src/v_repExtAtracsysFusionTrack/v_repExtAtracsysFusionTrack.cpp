@@ -638,36 +638,41 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         ////////////////////////////////////////////////////
         // Use handles that were found at the "start" of this simulation running
 
-        // next few Lines get the joint angles, torque, etc from the simulation
-        if (fusionTrackPG && fusionTrackPG->is_active()) // && fusionTrackPG->allHandlesSet == true // allHandlesSet now handled internally
+        // run one loop synchronizing the tracker, plugin, and simulation
+        try
         {
+            // next few Lines get the joint angles, torque, etc from the simulation
+            if (fusionTrackPG && fusionTrackPG->is_active()) // && fusionTrackPG->allHandlesSet == true // allHandlesSet now handled internally
+            {
 
-            // run one loop synchronizing the tracker, plugin, and simulation
-            try
-            {
-                // run_one
-                std::vector<std::tuple<int, int, Eigen::Affine3f>> transforms = fusionTrackPG->get_poses();
-                // loggerPG->info("Count of poses to update: " + boost::lexical_cast<std::string>(transforms.size()));
-                for(std::tuple<int, int, Eigen::Affine3f>& transform : transforms)
-                {
-                    // 2 is the index in the tuple of the transform between the frames
-                    Eigen::Affine3f pose = std::get<2>(transform);
-                    // grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::ObjectToMove
-                    int objectToMove = std::get<grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::ObjectToMove>(transform);
-                    int frameInWhichToMoveObject = std::get<grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::FrameInWhichToMoveObject>(transform);
-                    // setObjectTransform sets vrep object poses from eigen transformsin grl/vrep/Eigen.hpp
-                    setObjectTransform(objectToMove,
-                                       frameInWhichToMoveObject,
-                                       pose);
-                }
+                    // run_one
+                    std::vector<std::tuple<int, int, Eigen::Affine3f>> transforms = fusionTrackPG->get_poses();
+                    // loggerPG->info("Count of poses to update: " + boost::lexical_cast<std::string>(transforms.size()));
+                    for(std::tuple<int, int, Eigen::Affine3f>& transform : transforms)
+                    {
+                        // 2 is the index in the tuple of the transform between the frames
+                        Eigen::Affine3f pose = std::get<2>(transform);
+                        // grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::ObjectToMove
+                        int objectToMove = std::get<grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::ObjectToMove>(transform);
+                        int frameInWhichToMoveObject = std::get<grl::FusionTrackLogAndTrack::MotionConfigParamsIndex::FrameInWhichToMoveObject>(transform);
+                        // setObjectTransform sets vrep object poses from eigen transformsin grl/vrep/Eigen.hpp
+                        setObjectTransform(objectToMove,
+                                           frameInWhichToMoveObject,
+                                           pose);
+                    }
             }
-            catch (const boost::exception &e)
+            else if(fusionTrackPG && !fusionTrackPG->is_active())
             {
-                std::string initerr("v_repExtAtracsysFusionTrack plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
-                simAddStatusbarMessage(initerr.c_str());
-                loggerPG->error(initerr);
-                fusionTrackPG.reset();
+                // check if there is an exception, and let it throw
+                fusionTrackPG->is_exception();
             }
+        }
+        catch (const boost::exception &e)
+        {
+            std::string initerr("v_repExtAtracsysFusionTrack plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
+            simAddStatusbarMessage(initerr.c_str());
+            loggerPG->error(initerr);
+            fusionTrackPG.reset();
         }
     }
 
