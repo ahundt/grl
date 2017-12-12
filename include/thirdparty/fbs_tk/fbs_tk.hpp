@@ -251,6 +251,10 @@ struct Root {
 	}
 
 	const Buffer & get_data() const {
+		return data;
+	}
+
+	const Buffer & get_data_safe() const {
 		assert(valid());
 		return data;
 	}

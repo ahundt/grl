@@ -48,6 +48,7 @@ std::shared_ptr<grl::FusionTrackLogAndTrack> fusionTrackPG;
 std::shared_ptr<spdlog::logger> loggerPG;
 /// Recording will begin when the simulation starts running, and log files will be saved every time it stops running.
 bool recordWhileSimulationIsRunningG = false;
+bool shouldPrintConnectionSuccess = true;
 
 
 void removeGeometryID(std::string geometryID_lua_param, grl::FusionTrackLogAndTrack::Params &params)
@@ -283,6 +284,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_STOP(SLuaCallBack *p)
 {
     loggerPG->info("Ending Atracsys Fusion Track Plugin connection to Optical Tracker\n");
     fusionTrackPG.reset();
+    shouldPrintConnectionSuccess = true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -293,6 +295,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RESET(SLuaCallBack *p)
 {
     fusionTrackPG.reset();
     LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START(p);
+    shouldPrintConnectionSuccess = true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -659,6 +662,15 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
                         setObjectTransform(objectToMove,
                                            frameInWhichToMoveObject,
                                            pose);
+                    }
+
+                    // Let the user know when the connection starts successfully and sees a marker :-)
+                    if(shouldPrintConnectionSuccess && transforms.size() > 0)
+                    {
+                        std::string msg("v_repExtAtracsysFusionTrack plugin connected successfully and detected " + std::to_string(transforms.size()) +" markers!");
+                        simAddStatusbarMessage(msg.c_str());
+                        loggerPG->info(msg);
+                        shouldPrintConnectionSuccess = false;
                     }
             }
             else if(fusionTrackPG && !fusionTrackPG->is_active())
