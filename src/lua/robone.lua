@@ -351,7 +351,8 @@ robone.handEyeCalibScript=function()
 	startP,startO=grl.getTransformBetweenHandles(target,targetBase)
 
 	-- Enable/Disable custom IK
-	useGrlInverseKinematics=false
+	useGrlInverseKinematics=true
+	simExtHandEyeCalibStart('Robotiiwa' , 'RobotMillTipTarget', 'OpticalTrackerBase', 'Fiducial#22')
 
 	if (grl.isModuleLoaded('GrlInverseKinematics') and useGrlInverseKinematics) then
 		simExtGrlInverseKinematicsStart()
