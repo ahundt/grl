@@ -17,9 +17,8 @@
 
 /// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
 std::shared_ptr<pb_callback_t> makeupJointValues(std::vector<double> &jointvalue) {
-     /// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
+    /// Make reference to void map_repeatedDouble() in pb_frimessages_callback.c and pb_frimessages_callbacks.h
     std::shared_ptr<pb_callback_t> values(std::make_shared<pb_callback_t>());
-    // pb_callback_t *values = new pb_callback_t;
     int numDOF = 7;
     values->funcs.encode = &encode_repeatedDouble;
     values->funcs.decode = &decode_repeatedDouble;
@@ -56,9 +55,7 @@ BOOST_AUTO_TEST_SUITE(KukaTest)
 BOOST_AUTO_TEST_CASE(runRepeatedly)
 {
     const std::size_t MegaByte = 1024*1024;
-    // The maximum size of a single flatbuffer is 2GB - 1, but actually single_buffer_limit_bytes can't be set beyond 2045 MB, otherwise assert might be launched.
-    // In 32bits, this evaluates to 2GB - 1, defined in base.h.
-    // #define FLATBUFFERS_MAX_BUFFER_SIZE ((1ULL << (sizeof(soffset_t) * 8 - 1)) - 1)
+    // In 32bits, the maximum size of a single flatbuffer is 2GB - 1 (defined in base.h), but actually single_buffer_limit_bytes can't be set beyond 2045 MB, otherwise assert might be launched.
     const std::size_t single_buffer_limit_bytes = 2045*MegaByte;
     // Install a signal handler to catch a signal when CONTROL+C
     std::signal(SIGINT, signal_handler);
@@ -304,9 +301,12 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
     uint8_t *buf = fbb.GetBufferPointer();
     std::size_t bufsize = fbb.GetSize();
 
-    flatbuffers::Verifier verifier(buf, bufsize);
+    /// To expand the capacity of a single buffer, _max_tables is set to 10000000
+    flatbuffers::uoffset_t _max_depth = 64;
+    flatbuffers::uoffset_t _max_tables = 10000000;
+    flatbuffers::Verifier verifier(buf, bufsize, _max_depth, _max_tables);
     OK = OK && grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
-    //assert(OK && "VerifyKUKAiiwaStatesBuffer");
+    assert(OK && "VerifyKUKAiiwaStatesBuffer");
 
     std::cout << "Buffer size: " << bufsize << std::endl;
 

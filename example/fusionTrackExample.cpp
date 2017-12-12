@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 
   const std::size_t MegaByte = 1024*1024;
   // If we write too large a flatbuffer
-  const std::size_t single_buffer_limit_bytes = 512*MegaByte;
+  const std::size_t single_buffer_limit_bytes = 1024*MegaByte;
   // Install a signal handler to catch a signal when CONTROL+C
   std::signal(SIGINT, signal_handler);
   // std::raise(SIGINT);
@@ -89,9 +89,10 @@ int main(int argc, char **argv)
   std::string fbs_filename("LogKUKAiiwaFusionTrack.fbs");
   // std::string includePath = grl::getpathtofbsfile(fbs_filename);
   std::string includePath = "/home/chunting/src/robonetracker/build/";
+  std::size_t builder_size_bytes = 0;
 
 
-  while(!signalStatusG && test)
+  while(!signalStatusG && test && builder_size_bytes < single_buffer_limit_bytes)
   {
      // loop through all connected devices
      for(auto serialNumber : serialNumbers)
@@ -124,12 +125,9 @@ int main(int argc, char **argv)
           // also log all other data *except* when there is no new frame available
           oneKUKAiiwaFusionTrackMessage = grl::toFlatBuffer(fbb, ft, frame, writeParameters);
           KUKAiiwaFusionTrackMessage_vector.push_back(oneKUKAiiwaFusionTrackMessage);
-
-          // test_oneKUKAiiwaFusionTrackMessage = grl::toFlatBuffer(test_fbb, ft, frame);
-          // test_KUKAiiwaFusionTrackMessage_vector.push_back(test_oneKUKAiiwaFusionTrackMessage);
         }
 
-        std::size_t builder_size_bytes = fbb.GetSize();
+        builder_size_bytes = fbb.GetSize();
         if(debug || update_step % print_status_period == 0)
         {
             std::size_t newData = builder_size_bytes - previous_size;
@@ -201,16 +199,7 @@ int main(int argc, char **argv)
     json_file_path);
 
 
-    std::cout << "Saved binary_file_path: " << binary_file_path << " json_file_path: " << json_file_path << " saved with success result: " << success << std::endl;
-
-  // flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>> test_states = grl::toFlatBuffer(test_fbb, test_KUKAiiwaFusionTrackMessage_vector);
-  // flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> test_fbLogKUKAiiwaFusionTrack = grl::toFlatBuffer(test_fbb, test_states);
-
-  // test_fbb.Finish(test_fbLogKUKAiiwaFusionTrack);
-  // auto test_verifier = flatbuffers::Verifier(test_fbb.GetBufferPointer(), test_fbb.GetSize());
-  // bool test_success = test_verifier.VerifyBuffer<grl::flatbuffer::LogKUKAiiwaFusionTrack>();
-  // std::cout <<" verifier test_success for LogKUKAiiwaFusionTrack: " << test_success << std::endl;
-
+  std::cout << "Saved binary_file_path: " << binary_file_path << " json_file_path: " << json_file_path << " saved with success result: " << success << std::endl;
   std::cout << "End of the program" << std::endl;
   return success;
 } // End of main function

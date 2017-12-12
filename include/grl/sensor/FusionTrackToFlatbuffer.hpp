@@ -40,8 +40,11 @@ bool FinishAndVerifyBuffer(
     // fbb.Finish(oneKUKAiiwaFusionTrackMessage, file_identifier);
     fbb.Finish(fbLogKUKAiiwaFusionTrack, file_identifier);
 
-    auto verifier = flatbuffers::Verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    flatbuffers::uoffset_t _max_depth = 64;
+    flatbuffers::uoffset_t _max_tables = 1000000000;
+    auto verifier = flatbuffers::Verifier(fbb.GetBufferPointer(), fbb.GetSize(), _max_depth, _max_tables);
     bool success = grl::flatbuffer::VerifyLogKUKAiiwaFusionTrackBuffer(verifier);
+    assert(success && "VerifyLogKUKAiiwaFusionTrackBuffer");
 
     return success;
 }
