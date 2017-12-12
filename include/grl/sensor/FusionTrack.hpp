@@ -282,6 +282,7 @@ class FusionTrack
                 // a mutex is not required because this was a mistake, it is actually required.
                 ftkClose(&m_ftkLibrary);
                 m_ftkLibrary = nullptr;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
         }
 
