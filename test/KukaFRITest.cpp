@@ -19,6 +19,13 @@
 #include <boost/asio.hpp>
 
 
+volatile std::sig_atomic_t signalStatusG = 0;
+
+// called when the user presses ctrl+c
+void signal_handler(int signal)
+{
+  signalStatusG = signal;
+}
 
 using boost::asio::ip::udp;
 
@@ -55,7 +62,23 @@ int main(int argc, char* argv[])
   }
 
   grl::periodic<> callIfMinPeriodPassed;
+  // defines how the robot will move when this test is executed
   HowToMove howToMove = HowToMove::absolute_position_with_relative_rotation;//HowToMove::absolute_position; HowToMove::relative_position;
+
+  // change which part of the driver is being tested.
+  // It is divided into several levels of functionality
+  // and the java program you need to execute varies based on
+  // which selection you make.
+  //
+  // Run GRL_Driver on the Kuka teach pendant with:
+  //
+  //     DriverToUse::kuka_driver_high_level_class
+  //
+  // Run FRI_HoldsPosition_command on the KUKA teach pendant with:
+  //
+  // DriverToUse::low_level_fri_function,
+  // DriverToUse::low_level_fri_class,
+  //
   DriverToUse driverToUse = DriverToUse::kuka_driver_high_level_class;
 
   try
@@ -79,12 +102,12 @@ int main(int argc, char* argv[])
       remoteport = std::string(argv[4]);
     }
 
-      std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
+    std::cout << "using: "  << argv[0] << " " <<  localhost << " " << localport << " " <<  remotehost << " " << remoteport << "\n";
     // A single class for an I/O service object.
     boost::asio::io_service io_service;
 
-	std::shared_ptr<KUKA::FRI::ClientData> friData(std::make_shared<KUKA::FRI::ClientData>(7));
-	/// std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+	  std::shared_ptr<KUKA::FRI::ClientData> friData(std::make_shared<KUKA::FRI::ClientData>(7));
+	  /// std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
     cartographer::common::Time startTime;
 
     BOOST_VERIFY(friData);
@@ -93,7 +116,9 @@ int main(int argc, char* argv[])
     double delta_sum = 0;
     /// consider moving joint angles based on time
     int joint_to_move = 6;
-    loggerPG->warn("WARNING: YOU COULD DAMAGE OR DESTROY YOUR KUKA ROBOT {}{}{}{}{}{}",
+    loggerPG->warn("WARNING: THIS PROGRAM WILL ACTUALLY MOVE YOUR KUKA ROBOT!!!",
+                      "YOU COULD INJURE YOURSELF, THE OTHERS AROUND YOU, ",
+                      "AND DAMAGE OR DESTROY YOUR KUKA ROBOT. TAKE APPROPRIATE PRECAUTIONS. YOU ARE RESPONSIBLE. {}{}{}{}{}{}",
                       "if joint angle delta variable is too large with respect to ",
                       "the time it takes to go around the loop and change it. ",
                       "Current delta (radians/update): ", delta, " Joint to move: ", joint_to_move);
@@ -129,7 +154,6 @@ int main(int argc, char* argv[])
                         remotehost,
                         remoteport/*,4 ms per tick*/,
                         grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>::run_automatically));
-
     }
 
     std::shared_ptr<boost::asio::ip::udp::socket> socketP;
@@ -171,13 +195,14 @@ int main(int argc, char* argv[])
         kukaDriverP->set(grl::flatbuffer::ArmState::MoveArmJointServo);
         kukaDriverP->set(goal_position_command_time_duration,grl::time_duration_command_tag());
         std::cout << "KUKA COMMAND MODE: " << std::get<grl::robot::arm::KukaDriver::KukaCommandMode>(params) << "\n";
+        /// kukaDriverP->start_recording();
 
     }
-
-
-    unsigned int num_missed = 0;
-
-	for (std::size_t i = 0;;++i) {
+    std::size_t num_missed = 0;
+    std::size_t maximum_consecutive_missed_updates_before_warning = 100000;
+    std::size_t maximum_consecutive_missed_updates_before_exit = 100000000;
+    // run until the user kills the program with ctrl+c
+	for (std::size_t i = 0; !signalStatusG; ++i) {
 
         /// Save the interpolated joint position from the previous update as the base for some motions
         /// The interpolated position is where the JAVA side is commanding,
@@ -238,10 +263,17 @@ int main(int argc, char* argv[])
         // but we can't process the new data so try updating again immediately.
         if(!haveNewData && !recv_bytes_transferred)
         {
-          if(driverToUse == DriverToUse::low_level_fri_class) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          if(driverToUse == DriverToUse::low_level_fri_class ||
+             driverToUse == DriverToUse::kuka_driver_high_level_class)
+             {
+                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
+             }
           ++num_missed;
-          if(num_missed>10000) {
+          if(num_missed > maximum_consecutive_missed_updates_before_warning) {
             loggerPG->warn("No new data for ", num_missed, " milliseconds.");
+            continue;
+          } else if(num_missed > maximum_consecutive_missed_updates_before_exit) {
+            loggerPG->warn("No new data for ", num_missed, " milliseconds. Max time limit hit, Exiting...");
             break;
           } else {
             continue;
@@ -323,5 +355,6 @@ int main(int argc, char* argv[])
 
   // Release and close all loggers
   spdlog::drop_all();
+  std::cout << "End of the program" << std::endl;
   return 0;
 }

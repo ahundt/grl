@@ -940,16 +940,20 @@ private:
 /// so that the low level update algorithm can change.
 /// @todo add getter for number of milliseconds between fri updates (1-5) aka
 /// sync_period aka send_period aka ms per tick
+
+/// std::enable_shared_from_this allows an object t that is currently managed by
+/// a std::shared_ptr named pt to safely generate additional std::shared_ptr instances pt1, pt2, ...
+/// that all share ownership of t with pt.
 template <typename LowLevelStepAlgorithmType = LinearInterpolation>
 class KukaFRIdriver : public std::enable_shared_from_this<
                           KukaFRIdriver<LowLevelStepAlgorithmType>>,
                       public KukaUDP {
 
 public:
-  using KukaUDP::ParamIndex;
+  using KukaUDP::ParamIndex;  // enum, define some connection parameters, such as ip, port...
   using KukaUDP::ThreadingRunMode;
-  using KukaUDP::Params;
-  using KukaUDP::defaultParams;
+  using KukaUDP::Params;      // std::tuple, contains the information needed to connect to the robot.
+  using KukaUDP::defaultParams;  // A method to assign Params with defaut values.
 
   KukaFRIdriver(Params params = defaultParams()) : params_(params) {}
 
@@ -971,6 +975,7 @@ public:
     params_ = params;
     // keep driver threads from exiting immediately after creation, because they
     // have work to do!
+    // boost::asio::io_service::work: Constructor notifies the io_service that work is starting.
     device_driver_workP_.reset(
         new boost::asio::io_service::work(device_driver_io_service));
 
@@ -1176,6 +1181,7 @@ public:
                 << "\n Consecutive Successes: "
                 << m_attemptedCommunicationConsecutiveSuccessCount << "\n";
       m_attemptedCommunicationConsecutiveSuccessCount = 0;
+      /// @todo TODO(ahundt) Add time information from update_state call here for debugging purposes
       /// @todo TODO(ahundt) should the results of getlatest state even be possible to call
       /// without receiving real data? should the library change?
       /// @todo TODO(ahundt) use spdlog library instead of cerr?
@@ -1337,6 +1343,7 @@ public:
   volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
 
   boost::asio::io_service device_driver_io_service;
+  // The work class is used to inform the io_service when work starts and finishes.
   std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
   std::unique_ptr<std::thread> driver_threadP;
   std::shared_ptr<

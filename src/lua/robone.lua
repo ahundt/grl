@@ -429,7 +429,7 @@ robone.startRealArmDriverScript=function()
 			'30200'                   , -- LocalHostKukaKoniUDPPort,
 			'192.170.10.2'            , -- RemoteHostKukaKoniUDPAddress,
 			'30200'                   , -- RemoteHostKukaKoniUDPPort
-			'JAVA'                    , -- KukaCommandMode (options are FRI, JAVA)
+			'FRI'                    , -- KukaCommandMode (options are FRI, JAVA)
 			'FRI'                     , -- KukaMonitorMode (options are FRI, JAVA)
 			"IK_Group1_iiwa"            -- IKGroupName
 		)

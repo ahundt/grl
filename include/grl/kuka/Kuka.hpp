@@ -236,7 +236,7 @@ public:
   };
 
   enum ThreadingRunMode { run_manually = 0, run_automatically = 1 };
-
+  /// a fixed-size collection of heterogeneous values.
   typedef std::tuple<std::string, std::string, std::string, std::string,
                      std::string, ThreadingRunMode>
       Params;

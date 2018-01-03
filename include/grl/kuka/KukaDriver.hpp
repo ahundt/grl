@@ -321,8 +321,7 @@ namespace grl { namespace robot { namespace arm {
        armState_.clearCommands();
        boost::copy(range, std::back_inserter(armState_.commandedPosition));
        boost::copy(range, std::back_inserter(armState_.commandedPosition_goal));
-
-          std::cout << "set commandedpos:" << armState_.commandedPosition;
+       // std::cout << "set commandedpos:" << armState_.commandedPosition;
     }
 
      /**

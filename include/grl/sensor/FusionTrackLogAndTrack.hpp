@@ -244,7 +244,7 @@ public:
   {
     return allHandlesSet && !exceptionPtr && opticalTrackerP && isConnectionEstablished_;
   }
-  
+
   /// Returns false if there is no exception that occurred in the driver
   /// if there is an exception it will be thrown!
   /// @throws boost::exception exception detailing the error state of the driver
@@ -391,7 +391,7 @@ public:
       bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaFusionTrackMessageBufferP);
       bool write_binary_stream = true;
       success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
-      /// TODO(ahundt) replace cout with proper spdlog and vrep banner notification
+      /// TODO(ahFusionTrackLogAndTrackundt) replace cout with proper spdlog and vrep banner notification
 #ifdef HAVE_spdlog
       lambdaLoggerP->info("filename: ", filename, " verifier success: ", success);
 #else // HAVE_spdlog
@@ -460,7 +460,7 @@ private:
       exceptionPtr = std::current_exception();
       m_shouldStop = true;
     }
-  
+
     // run the primary update loop in a separate thread
     bool saveFileNow = false;
     while (!m_shouldStop)
