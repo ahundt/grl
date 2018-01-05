@@ -83,8 +83,7 @@ struct KukaState {
   //  which needed to be reimplemented due to licensing restrictions
   //  in the corresponding C++ code
   flatbuffer::ESessionState sessionState; // KUKA::FRI::ESessionState
-  flatbuffer::EConnectionQuality
-      connectionQuality;                    // KUKA::FRI::EConnectionQuality
+  flatbuffer::EConnectionQuality connectionQuality;  // KUKA::FRI::EConnectionQuality
   flatbuffer::ESafetyState safetyState;     // KUKA::FRI::ESafetyState
   flatbuffer::EOperationMode operationMode; // KUKA::FRI::EOperationMode
   flatbuffer::EDriveState driveState;       // KUKA::FRI::EDriveState

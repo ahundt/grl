@@ -3,6 +3,10 @@
 #ifndef _KUKA_FRI_DRIVER
 #define _KUKA_FRI_DRIVER
 
+// To call flatbuffer and toflatbuffer functions
+
+#include "grl/kuka/KukaToFlatbuffer.hpp"
+
 #include <boost/asio.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/config.hpp>
@@ -33,6 +37,9 @@
 /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+
+
+
 
 struct KukaState;
 
@@ -81,6 +88,8 @@ struct LinearInterpolation {
     TimeDurationToDestMS
   };
 
+  // A variable-size array container with fixed capacity.
+  // A static_vector is a sequence that supports random access to elements, constant time insertion and removal of elements at the end, and linear time insertion and removal of elements at the beginning or in the middle.
   typedef std::tuple<boost::container::static_vector<double,7>,std::size_t> Params;
 
   // extremely conservative default timeframe to reach destination plus no goal position
@@ -584,6 +593,8 @@ public:
     if (!isConnectionEstablished_ ||
         !std::get<latest_receive_monitor_state>(latestStateForUser_)) {
       // no new data, so immediately return results accordingly
+      // Constructs a tuple object whose elements are references to the arguments in args std::tie (Types&... args) , in the same order.
+      // This allows a set of objects to act as a tuple, which is especially useful to unpack tuple objects.
       std::tie(step_alg_params, friData, receive_ec, receive_bytes_transferred, send_ec,
                send_bytes_transferred, timeEvent) = make_LatestState(step_alg_params,friData);
       return !haveNewData;
@@ -616,6 +627,12 @@ public:
         // return the latest state to the caller
         std::tie(step_alg_params,friData, receive_ec, receive_bytes_transferred, send_ec,
                  send_bytes_transferred, timeEvent) = std::move(latestStateForUser_);
+        // TODO(chunting) consider adding to log buffer here, data is in latestStateForUser_, alternate might be latestClientData
+
+
+
+
+
         haveNewData = true;
       } else if (std::get<latest_receive_monitor_state>(
                      validFriDataLatestState)) {
@@ -870,6 +887,7 @@ private:
     return make_valid_LatestState(emptyLowLevelAlgParams,friData);
   }
 
+
   Params params_;
 
   /// @todo replace with unique_ptr
@@ -897,7 +915,7 @@ private:
   boost::mutex ptrMutex_;
 
   typename LowLevelStepAlgorithmType::Params step_alg_params_;
-};
+};  /// End of KukaFRIClientDataDriver
 
 /// @brief Primary Kuka FRI driver, only talks over realtime network FRI KONI
 /// ethernet port
@@ -1170,6 +1188,7 @@ public:
       //              }
       //              std::cout << '\n';
 
+      // TODO(chunting) add data to log here, when full write to disk on a separate thread like FusionTrackLogAndTrack
     } else {
       m_attemptedCommunicationConsecutiveFailureCount++;
       std::cerr << "No new FRI data available, is an FRI application running "
@@ -1326,6 +1345,139 @@ public:
     state = armState;
   }
 
+
+
+  bool startRecordingDataToFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, std::shared_ptr<KUKA::FRI::ClientData> &friData)
+  {
+    FRIMonitoringMessage monitoringMsg = friData->monitoringMsg;
+
+    std::string RobotName("Robotiiwa" );
+    std::string destination("where this message is going (URI)");
+    std::string source("where this message came from (URI)");
+    std::string basename = RobotName; //std::get<0>(params);
+    bool setArmConfiguration_ = true; // set the arm config first time
+    bool max_control_force_stop_ = false;
+
+    grl::flatbuffer::ArmState armControlMode = grl::flatbuffer::ArmState::StartArm;
+    grl::flatbuffer::KUKAiiwaInterface commandInterface = grl::flatbuffer::KUKAiiwaInterface::SmartServo;// KUKAiiwaInterface::SmartServo;
+    grl::flatbuffer::KUKAiiwaInterface monitorInterface = grl::flatbuffer::KUKAiiwaInterface::FRI;
+
+
+    ::ConnectionInfo connectionInfo = monitoringMsg.connectionInfo;
+    ::RobotInfo robotInfo = monitoringMsg.robotInfo;
+    ::MessageIpoData ipoData = monitoringMsg.ipoData;
+    ::ControlMode controlMode = robotInfo.controlMode;
+    ::ClientCommandMode clientCommandMode = ipoData.clientCommandMode;
+    ::OverlayType overlayType = ipoData.overlayType;
+    ::FRISessionState friSessionState = connectionInfo.sessionState;
+    ::FRIConnectionQuality friConnectionQuality = connectionInfo.quality;
+
+    ::MessageHeader messageHeader = monitoringMsg.header;
+
+    ::MessageMonitorData messageMonitorData = monitoringMsg.monitorData;
+
+    ::Transformation *transformation = new ::Transformation[5];
+
+    for (int i=0; i<5; i++) {
+        transformation[i] = monitoringMsg.requestedTransformations[i];
+    }
+    ::MessageEndOf endOfMessageData = monitoringMsg.endOfMessageData;
+    std::size_t builder_size_bytes = 0;
+    std::size_t previous_size = 0;
+
+    auto bns = fbb.CreateString(basename);
+    double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+
+    flatbuffers::Offset<flatbuffer::ArmControlState> controlState;
+
+    int64_t sequenceNumber = 0;
+
+    const std::size_t MegaByte = 1024*1024;
+    // In 32bits, the maximum size of a single flatbuffer is 2GB - 1 (defined in base.h), but actually single_buffer_limit_bytes can't be set beyond 2045 MB, otherwise assert might be launched.
+    const std::size_t single_buffer_limit_bytes = 2045*MegaByte;
+
+    // @TODO(Chunting) Put all these parameters in a configuration file.
+    std::vector<double> joint_stiffness_(7, 0.2);
+    std::vector<double> joint_damping_(7, 0.3);
+    std::vector<double> joint_AccelerationRel_(7, 0.5);
+    std::vector<double> joint_VelocityRel_(7, 1.0);
+    bool updateMinimumTrajectoryExecutionTime = false;
+    double minimumTrajectoryExecutionTime = 4;
+
+
+    //Cartesian Impedance Values
+    grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(500,500,500);
+    grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder::xyz);
+    grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0.3,0.3,0.3);
+    grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder::xyz);
+    grl::flatbuffer::EulerPose cart_stiffness_ = grl::flatbuffer::EulerPose(cart_stiffness_trans_, cart_stifness_rot_);
+    grl::flatbuffer::EulerPose cart_damping_ = grl::flatbuffer::EulerPose(cart_damping_trans_, cart_damping_rot_);
+    grl::flatbuffer::EulerPose cart_max_path_deviation_  = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,100), grl::flatbuffer::EulerRotation(5.,5.,5., grl::flatbuffer::EulerOrder::xyz));
+    grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,1000), grl::flatbuffer::EulerRotation(6.3,6.3,6.3, grl::flatbuffer::EulerOrder::xyz));
+    grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(200,200,200), grl::flatbuffer::EulerRotation(200.,200.,200., grl::flatbuffer::EulerOrder::xyz));
+    double nullspace_stiffness_ = 0.1;
+    double nullspace_damping_ = 0.1;
+    bool updatePortOnRemote = false;
+    int16_t portOnRemote = 3501;
+    bool updatePortOnController = false;
+    int16_t portOnController = 3502;
+
+    while(builder_size_bytes < single_buffer_limit_bytes )
+    {
+        copy(monitoringMsg, armState);
+
+        armState.sessionState = grl::toFlatBuffer(friSessionState);
+        armState.connectionQuality = grl::toFlatBuffer(friConnectionQuality);
+        armState.safetyState = grl::toFlatBuffer(robotInfo.safetyState);
+        armState.operationMode = grl::toFlatBuffer(robotInfo.operationMode);
+        // // // This parameter is never used.
+        armState.driveState = grl::toFlatBuffer(::DriveState::DriveState_OFF);
+        flatbuffers::Offset<grl::flatbuffer::ArmControlState> controlState = grl::toFlatBuffer(fbb, basename, sequenceNumber++, duration, armState, armControlMode);
+        flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> setCartesianImpedance = grl::toFlatBuffer(fbb, cart_stiffness_, cart_damping_,
+                nullspace_stiffness_, nullspace_damping_, cart_max_path_deviation_, cart_max_ctrl_vel_, cart_max_ctrl_force_, max_control_force_stop_);
+        flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> setJointImpedance = grl::toFlatBuffer(fbb, joint_stiffness_, joint_damping_);
+        // flatbuffers::Offset<grl::flatbuffer::SmartServo> setSmartServo = grl::toFlatBuffer(*fbbP, joint_AccelerationRel_, joint_VelocityRel_, updateMinimumTrajectoryExecutionTime, minimumTrajectoryExecutionTime);
+        flatbuffers::Offset<grl::flatbuffer::FRI> FRIConfig = grl::toFlatBuffer(fbb, overlayType, connectionInfo, updatePortOnRemote, portOnRemote, updatePortOnController, portOnController);
+        std::vector<flatbuffers::Offset<grl::flatbuffer::LinkObject>> tools;
+        std::vector<flatbuffers::Offset<grl::flatbuffer::ProcessData>> processData;
+        // @TODO(Chunting) Initialize Pose with 0, we ought to calculate it later with ::Transformation;
+        // Also assign the configuration parameters with random values, we can figure them out later.
+        for(int i=0; i<7; i++) {
+              std::string linkname = "Link" + std::to_string(i);
+              std::string parent = i==0?"Base":("Link" + std::to_string(i-1));
+
+              grl::flatbuffer::Pose pose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::Quaternion(0,0,0,0));
+              grl::flatbuffer::Inertia inertia = grl::flatbuffer::Inertia(1, pose, 1, 2, 3, 4, 5, 6);
+              flatbuffers::Offset<grl::flatbuffer::LinkObject> linkObject = grl::toFlatBuffer(fbb, linkname, parent, pose, inertia);
+              tools.push_back(linkObject);
+              processData.push_back(
+                  grl::toFlatBuffer(fbb,
+                  "dataType"+ std::to_string(i),
+                  "defaultValue"+ std::to_string(i),
+                  "displayName"+ std::to_string(i),
+                  "id"+ std::to_string(i),
+                  "min"+ std::to_string(i),
+                  "max"+ std::to_string(i),
+                  "unit"+ std::to_string(i),
+                  "value"+ std::to_string(i)));
+        }
+
+    }
+
+
+
+    return true;
+  }
+
+
+
+
+
+
+
+
+
+
   // The total number of times the FRI interface has successfully received a UDP
   // packet
   // from the robot since this class was initialized.
@@ -1356,7 +1508,7 @@ private:
 
   Params params_;
   std::shared_ptr<KUKA::FRI::ClientData> friData_;
-};
+};  /// End of KukaFRIdriver.hpp
 
 /// @brief nonmember wrapper function to help integrate KukaFRIdriver objects
 /// with generic programming interface

@@ -13,7 +13,7 @@
 #include "grl/flatbuffer/LinkObject_generated.h"
 #include "grl/flatbuffer/Euler_generated.h"
 #include "grl/flatbuffer/HelperToFlatbuffer.hpp"
-#include "KukaFRIdriver.hpp"
+// #include "KukaFRIdriver.hpp"
 #include "Kuka.hpp"
 #include "KukaFRIalgorithm.hpp"
 #include <FRIMessages.pb.h>
@@ -367,7 +367,7 @@ flatbuffers::Offset<grl::flatbuffer::ArmControlState> toFlatBuffer(
     grl::flatbuffer::ArmState &armControlMode)
 {
     switch (armControlMode) {
-        std::cout<< "C++ KukaJAVAdriver: sending armposition command: " << armState.commandedPosition_goal << std::endl;
+        // std::cout<< "C++ KukaJAVAdriver: sending armposition command: " << armState.commandedPosition_goal << std::endl;
         case grl::flatbuffer::ArmState::MoveArmJointServo: {
             auto armPositionBuffer = fbb.CreateVector(armState.commandedPosition_goal.data(), armState.commandedPosition_goal.size());
             auto commandedTorque = fbb.CreateVector(armState.commandedTorque.data(), armState.commandedTorque.size());
