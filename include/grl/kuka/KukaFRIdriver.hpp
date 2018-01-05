@@ -3,9 +3,7 @@
 #ifndef _KUKA_FRI_DRIVER
 #define _KUKA_FRI_DRIVER
 
-// To call flatbuffer and toflatbuffer functions
 
-#include "grl/kuka/KukaToFlatbuffer.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/circular_buffer.hpp>
@@ -23,7 +21,7 @@
 //#ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #include <boost/thread.hpp>
 //#endif
-
+#include "grl/flatbuffer/flatbuffer.hpp"
 // friClientData is found in the kuka connectivity FRI cpp zip file
 #include "grl/kuka/Kuka.hpp"
 #include "grl/kuka/KukaFRI.hpp"
@@ -33,13 +31,13 @@
 // used for time synchronization
 #include "grl/TimeEvent.hpp"
 
+// To call flatbuffer and toflatbuffer functions
+
+#include "grl/kuka/KukaToFlatbuffer.hpp"
 
 /// @todo TODO(ahundt) REMOVE SPDLOG FROM LOW LEVEL CODE
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
-
-
-
 
 struct KukaState;
 
@@ -834,8 +832,7 @@ private:
                      std::shared_ptr<KUKA::FRI::ClientData>,
                      boost::system::error_code, std::size_t,
                      boost::system::error_code, std::size_t,
-                     grl::TimeEvent>
-      LatestState;
+                     grl::TimeEvent>    LatestState;
 
   /// Creates a default LatestState Object
   static LatestState
@@ -1349,7 +1346,7 @@ public:
 
   bool startRecordingDataToFlatBuffer(flatbuffers::FlatBufferBuilder &fbb, std::shared_ptr<KUKA::FRI::ClientData> &friData)
   {
-    FRIMonitoringMessage monitoringMsg = friData->monitoringMsg;
+
 
     std::string RobotName("Robotiiwa" );
     std::string destination("where this message is going (URI)");
@@ -1357,21 +1354,33 @@ public:
     std::string basename = RobotName; //std::get<0>(params);
     bool setArmConfiguration_ = true; // set the arm config first time
     bool max_control_force_stop_ = false;
-
+    // Resolve the data in FRIMonitoringMessage
+    // Don't match the FRIMessage.pb.h
     grl::flatbuffer::ArmState armControlMode = grl::flatbuffer::ArmState::StartArm;
     grl::flatbuffer::KUKAiiwaInterface commandInterface = grl::flatbuffer::KUKAiiwaInterface::SmartServo;// KUKAiiwaInterface::SmartServo;
     grl::flatbuffer::KUKAiiwaInterface monitorInterface = grl::flatbuffer::KUKAiiwaInterface::FRI;
 
-
-    ::ConnectionInfo connectionInfo = monitoringMsg.connectionInfo;
+    FRIMonitoringMessage monitoringMsg = friData->monitoringMsg;
+    // RobotInfo
+    // how to use pb_callback_t driveState in RobotInfo?
     ::RobotInfo robotInfo = monitoringMsg.robotInfo;
-    ::MessageIpoData ipoData = monitoringMsg.ipoData;
+    int NUM_DOF = robotInfo.has_numberOfJoints?robotInfo.numberOfJoints:7;
     ::ControlMode controlMode = robotInfo.controlMode;
-    ::ClientCommandMode clientCommandMode = ipoData.clientCommandMode;
-    ::OverlayType overlayType = ipoData.overlayType;
+    ::SafetyState safetyState = robotInfo.safetyState;
+    ::OperationMode operationMode = robotInfo.operationMode;
+
+    // ConnectionInfo
+    // how to use uint32_t receiveMultiplier
+    ::ConnectionInfo connectionInfo = monitoringMsg.connectionInfo;
     ::FRISessionState friSessionState = connectionInfo.sessionState;
     ::FRIConnectionQuality friConnectionQuality = connectionInfo.quality;
+    //  MessageIpoData
+    // JointValues jointPosition; double trackingPerformance;
+    ::MessageIpoData ipoData = monitoringMsg.ipoData;
+    ::ClientCommandMode clientCommandMode = ipoData.clientCommandMode;
+    ::OverlayType overlayType = ipoData.overlayType;
 
+    // No MessageHeader in flatbuffer objects
     ::MessageHeader messageHeader = monitoringMsg.header;
 
     ::MessageMonitorData messageMonitorData = monitoringMsg.monitorData;
@@ -1381,21 +1390,17 @@ public:
     for (int i=0; i<5; i++) {
         transformation[i] = monitoringMsg.requestedTransformations[i];
     }
+    // MessageEndOf exists in FRIMessage.pb.h, but it's never used in the FlatBuffer objects
     ::MessageEndOf endOfMessageData = monitoringMsg.endOfMessageData;
+
     std::size_t builder_size_bytes = 0;
     std::size_t previous_size = 0;
-
-    auto bns = fbb.CreateString(basename);
-    double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-
-    flatbuffers::Offset<flatbuffer::ArmControlState> controlState;
-
-    int64_t sequenceNumber = 0;
-
     const std::size_t MegaByte = 1024*1024;
     // In 32bits, the maximum size of a single flatbuffer is 2GB - 1 (defined in base.h), but actually single_buffer_limit_bytes can't be set beyond 2045 MB, otherwise assert might be launched.
     const std::size_t single_buffer_limit_bytes = 2045*MegaByte;
-
+    auto bns = fbb.CreateString(basename);
+    double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+    flatbuffers::Offset<flatbuffer::ArmControlState> controlState;
     // @TODO(Chunting) Put all these parameters in a configuration file.
     std::vector<double> joint_stiffness_(7, 0.2);
     std::vector<double> joint_damping_(7, 0.3);
@@ -1421,22 +1426,27 @@ public:
     int16_t portOnRemote = 3501;
     bool updatePortOnController = false;
     int16_t portOnController = 3502;
-
-    while(builder_size_bytes < single_buffer_limit_bytes )
+    bool OK = true;
+    std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>> kukaiiwaStateVec;
+    int64_t sequenceNumber = 0;
+    while(OK && builder_size_bytes < single_buffer_limit_bytes )
     {
         copy(monitoringMsg, armState);
 
         armState.sessionState = grl::toFlatBuffer(friSessionState);
         armState.connectionQuality = grl::toFlatBuffer(friConnectionQuality);
-        armState.safetyState = grl::toFlatBuffer(robotInfo.safetyState);
-        armState.operationMode = grl::toFlatBuffer(robotInfo.operationMode);
-        // // // This parameter is never used.
+        armState.safetyState = grl::toFlatBuffer(safetyState);
+        armState.operationMode = grl::toFlatBuffer(operationMode);
+        // This parameter is never used.
         armState.driveState = grl::toFlatBuffer(::DriveState::DriveState_OFF);
         flatbuffers::Offset<grl::flatbuffer::ArmControlState> controlState = grl::toFlatBuffer(fbb, basename, sequenceNumber++, duration, armState, armControlMode);
         flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> setCartesianImpedance = grl::toFlatBuffer(fbb, cart_stiffness_, cart_damping_,
                 nullspace_stiffness_, nullspace_damping_, cart_max_path_deviation_, cart_max_ctrl_vel_, cart_max_ctrl_force_, max_control_force_stop_);
         flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> setJointImpedance = grl::toFlatBuffer(fbb, joint_stiffness_, joint_damping_);
-        // flatbuffers::Offset<grl::flatbuffer::SmartServo> setSmartServo = grl::toFlatBuffer(*fbbP, joint_AccelerationRel_, joint_VelocityRel_, updateMinimumTrajectoryExecutionTime, minimumTrajectoryExecutionTime);
+        // normalized joint accelerations/velocities from 0 to 1 relative to system capabilities
+        // how to get the acceleration of the robot? There is no acceleration information in KukaState (armState).
+        flatbuffers::Offset<grl::flatbuffer::SmartServo> setSmartServo = grl::toFlatBuffer(fbb, joint_AccelerationRel_, joint_VelocityRel_, updateMinimumTrajectoryExecutionTime, minimumTrajectoryExecutionTime);
+        // FRI configuration parameters
         flatbuffers::Offset<grl::flatbuffer::FRI> FRIConfig = grl::toFlatBuffer(fbb, overlayType, connectionInfo, updatePortOnRemote, portOnRemote, updatePortOnController, portOnController);
         std::vector<flatbuffers::Offset<grl::flatbuffer::LinkObject>> tools;
         std::vector<flatbuffers::Offset<grl::flatbuffer::ProcessData>> processData;
@@ -1445,7 +1455,7 @@ public:
         for(int i=0; i<7; i++) {
               std::string linkname = "Link" + std::to_string(i);
               std::string parent = i==0?"Base":("Link" + std::to_string(i-1));
-
+              // Compute pose later with transformation matrix
               grl::flatbuffer::Pose pose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::Quaternion(0,0,0,0));
               grl::flatbuffer::Inertia inertia = grl::flatbuffer::Inertia(1, pose, 1, 2, 3, 4, 5, 6);
               flatbuffers::Offset<grl::flatbuffer::LinkObject> linkObject = grl::toFlatBuffer(fbb, linkname, parent, pose, inertia);
@@ -1461,8 +1471,113 @@ public:
                   "unit"+ std::to_string(i),
                   "value"+ std::to_string(i)));
         }
+        // Set the configuration of the Kuka iiwa
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> kukaiiwaArmConfiguration = grl::toFlatBuffer(
+              fbb,
+              RobotName,
+              commandInterface,
+              monitorInterface,
+              clientCommandMode,
+              overlayType,
+              controlMode,
+              setCartesianImpedance,
+              setJointImpedance,
+              setSmartServo,
+              FRIConfig,
+              tools,
+              processData,
+              "currentMotionCenter",
+              true);
+        grl::TimeEvent time_event_stamp;
+        flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> friMessageLog = grl::toFlatBuffer(
+             fbb,
+             friSessionState,
+             friConnectionQuality,
+             controlMode,
+             monitoringMsg,
+             time_event_stamp);
+        // getWrench() is availble in KukaJAVAdriver, so maybe it's better to log data in KukaDriver where user can access both KukaFRIDriver and KukaJAVADriver?
+        grl::flatbuffer::Wrench cartesianWrench{grl::flatbuffer::Vector3d(1,1,1),grl::flatbuffer::Vector3d(1,1,1),grl::flatbuffer::Vector3d(1,1,1)};
 
+        // In armState there is neither joint velocity nor acceleration
+        std::vector<double> position(7,0);
+        std::vector<double> velocity(7,0);
+        std::vector<double> acceleration(7,0);
+        std::vector<double> torque(7,0);
+        for(int i = 0; i<7; i++) {
+            position.push_back(armState.position[i]);
+            torque.push_back(armState.torque[i]);
+        }
+        flatbuffers::Offset<grl::flatbuffer::JointState> jointStatetab = grl::toFlatBuffer(fbb, position, velocity, acceleration, torque);
+        // Calculate the data later.
+        // Cartesian pose of the flange relative to the base of the arm
+        grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(1,1,1), grl::flatbuffer::Quaternion(2,3,4,5));
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> kukaiiwaMonitorState = grl::toFlatBuffer(
+            fbb,
+            jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
+            cartesianFlangePose,
+            jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateReal,
+            jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateInterpolated,
+            jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &externalState,
+            friSessionState,
+            robotInfo.operationMode,
+            cartesianWrench);
+
+         // Set it up in the configuration file
+        std::vector<double> torqueSensorLimits(7,0.5);
+        std::string hardwareVersion( "hardvareVersion");
+        bool isReadyToMove = true;
+        bool isMastered = true;
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> monitorConfig = grl::toFlatBuffer(
+            fbb,
+            hardwareVersion,
+            torqueSensorLimits,
+            isReadyToMove,
+            isMastered,
+            processData);
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> kukaiiwaState = grl::toFlatBuffer(
+            fbb,
+            RobotName,
+            destination,
+            source,
+            duration,
+            true, controlState,
+            true, kukaiiwaArmConfiguration,
+            true, kukaiiwaMonitorState,
+            false, monitorConfig,
+            friMessageLog);
+
+        kukaiiwaStateVec.push_back(kukaiiwaState);
     }
+
+    std::cout<< "kukaiiwaStateVec:" << kukaiiwaStateVec.size() << std::endl;
+
+    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> kukaStates = grl::toFlatBuffer(fbb, kukaiiwaStateVec);
+    grl::flatbuffer::FinishKUKAiiwaStatesBuffer(fbb, kukaStates);
+    uint8_t *buf = fbb.GetBufferPointer();
+    std::size_t bufsize = fbb.GetSize();
+    /// To expand the capacity of a single buffer, _max_tables is set to 10000000
+    flatbuffers::uoffset_t _max_depth = 64;
+    flatbuffers::uoffset_t _max_tables = 10000000;
+    flatbuffers::Verifier verifier(buf, bufsize, _max_depth, _max_tables);
+    OK = OK && grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
+    assert(OK && "VerifyKUKAiiwaStatesBuffer");
+    std::cout << "Buffer size: " << bufsize << std::endl;
+    std::string binary_file_path = "Kuka_test_binary.iiwa";
+    std::string json_file_path = "kuka_test_text.json";
+    // Get the current working directory
+    std::string fbs_filename("KUKAiiwa.fbs");
+    // OK = OK && grl::SaveFlatBufferFile(
+    //     buf,
+    //     fbb.GetSize(),
+    //     binary_file_path,
+    //     fbs_filename,
+    //     json_file_path);
+    assert(OK && "SaveFlatBufferFile");
+
+    std::cout << "End of the program" << std::endl;
+
+
 
 
 
@@ -1498,9 +1613,7 @@ public:
   // The work class is used to inform the io_service when work starts and finishes.
   std::unique_ptr<boost::asio::io_service::work> device_driver_workP_;
   std::unique_ptr<std::thread> driver_threadP;
-  std::shared_ptr<
-      grl::robot::arm::KukaFRIClientDataDriver<LowLevelStepAlgorithmType>>
-      kukaFRIClientDataDriverP_;
+  std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver<LowLevelStepAlgorithmType>> kukaFRIClientDataDriverP_;
 
 private:
   KukaState armState;

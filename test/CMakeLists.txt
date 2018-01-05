@@ -82,7 +82,7 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
                               ${FLATBUFFERS_INCLUDE_DIRS} ${FUSIONTRACK_INCLUDE_DIRS})
 
 	basis_add_executable(KukaFRITest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-	basis_target_link_libraries(KukaFRITest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient )
+	basis_target_link_libraries(KukaFRITest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${FLATBUFFERS_STATIC_LIB} KukaFRIClient )
 
     if(UNIX AND NOT APPLE)
       set(LINUX_ONLY_LIBS ${LIBDL_LIBRARIES})
@@ -90,7 +90,7 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
 
     basis_add_test(KukaLBRiiwaVrepPluginTest.cpp)
 	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-                    v_repLib KukaFRIClient ${LINUX_ONLY_LIBS} )
+        ${FLATBUFFERS_STATIC_LIB} v_repLib KukaFRIClient ${LINUX_ONLY_LIBS} )
 
 	basis_add_executable(kukaiiwaTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
 	basis_target_link_libraries(kukaiiwaTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB})

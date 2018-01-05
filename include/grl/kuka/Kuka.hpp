@@ -48,8 +48,7 @@ namespace arm {
 /// @TODO(ahundt) add support for a vector of Transformation data @see FRIMessages.pb.h,
 /// but store as quaternon + vector, not rotation matrix
 struct KukaState {
-  typedef boost::container::static_vector<double, KUKA::LBRState::NUM_DOF>
-      joint_state;
+  typedef boost::container::static_vector<double, KUKA::LBRState::NUM_DOF> joint_state;
   // cartesian state entries consist of a vector x,y,z and a quaternion [x, y, z, w]
   typedef boost::container::static_vector<double, 7> cartesian_state;
   /// Class std::chrono::high_resolution_clock represents the clock with the smallest tick period provided by the implementation.
