@@ -721,6 +721,34 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> toFlatBuffer(
       fbb,
       fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>>(kukaiiwastates));
 }
+
+
+/// Helper function for use when building up messages to save to a log file.
+/// Call this just before SaveFlatBufferFile. See fusionTrackExample for how
+/// and when to use it.
+bool FinishAndVerifyBuffer(
+    flatbuffers::FlatBufferBuilder& fbb,
+    std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>>& KUKAiiwaState_vector
+)
+{
+
+    auto states = fbb.CreateVector(KUKAiiwaState_vector);
+    auto fbLogKUKAiiwaStates = grl::flatbuffer::CreateKUKAiiwaStates(fbb, states);
+
+    // Finish a buffer with given object
+    // Call `Finish()` to instruct the builder fbb that this frame is complete.
+    const char *file_identifier = grl::flatbuffer::KUKAiiwaStatesIdentifier();
+    // fbb.Finish(oneKUKAiiwaFusionTrackMessage, file_identifier);
+    fbb.Finish(fbLogKUKAiiwaStates, file_identifier);
+
+    flatbuffers::uoffset_t _max_depth = 64;
+    flatbuffers::uoffset_t _max_tables = 1000000000;
+    auto verifier = flatbuffers::Verifier(fbb.GetBufferPointer(), fbb.GetSize(), _max_depth, _max_tables);
+    bool success = grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
+    assert(success && "VerifyKUKAiiwaStatesBuffer");
+
+    return success;
+}
 }  // End of grl namespace
 
 
