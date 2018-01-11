@@ -232,10 +232,10 @@ flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
 {
     return grl::flatbuffer::CreateJointState(
         fbb,
-        position.empty() ? fbb.CreateVector<double>(position) : 0,
-        velocity.empty() ? fbb.CreateVector<double>(velocity) : 0,
-        acceleration.empty() ? fbb.CreateVector<double>(acceleration) : 0,
-        torque.empty() ? fbb.CreateVector<double>(torque) : 0);
+        fbb.CreateVector<double>(position),
+        fbb.CreateVector<double>(velocity),
+        fbb.CreateVector<double>(acceleration),
+        fbb.CreateVector<double>(torque));
 }
 /// JointState.fbs
 flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
@@ -254,10 +254,10 @@ flatbuffers::Offset<grl::flatbuffer::JointState> toFlatBuffer(
     }
     return grl::flatbuffer::CreateJointState(
         fbb,
-        position.empty() ? fbb.CreateVector<double>(position) : 0,
-        velocity.empty() ? fbb.CreateVector<double>(velocity) : 0,
-        acceleration.empty() ? fbb.CreateVector<double>(acceleration) : 0,
-        torque.empty() ? fbb.CreateVector<double>(torque) : 0);
+        fbb.CreateVector<double>(position),
+        fbb.CreateVector<double>(velocity),
+        fbb.CreateVector<double>(acceleration),
+        fbb.CreateVector<double>(torque));
 }
 
 
@@ -268,7 +268,7 @@ flatbuffers::Offset<grl::flatbuffer::MoveArmTrajectory> toFlatBuffer(
 {
     return grl::flatbuffer::CreateMoveArmTrajectory(
       fbb,
-      traj.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::JointState>>(traj):0);
+      fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::JointState>>(traj));
 }
 
 /// ArmControlState.fbs

@@ -474,26 +474,26 @@ public:
         bool setArmConfiguration_ = true; // set the arm config first time
         bool max_control_force_stop_ = false;
           // @TODO(Chunting) Put all these parameters in a configuration file.
-        std::vector<double> joint_stiffness_(7, 0.2);
-        std::vector<double> joint_damping_(7, 0.3);
-        std::vector<double> joint_AccelerationRel_(7, 0.5);
-        std::vector<double> joint_VelocityRel_(7, 1.0);
+        std::vector<double> joint_stiffness_(7, 0);
+        std::vector<double> joint_damping_(7, 0);
+        std::vector<double> joint_AccelerationRel_(7, 0);
+        std::vector<double> joint_VelocityRel_(7, 0);
         bool updateMinimumTrajectoryExecutionTime = false;
         double minimumTrajectoryExecutionTime = 4;
 
 
         //Cartesian Impedance Values
-        grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(500,500,500);
-        grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(200,200,200,grl::flatbuffer::EulerOrder::xyz);
-        grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0.3,0.3,0.3);
-        grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0.3,0.3,0.3,grl::flatbuffer::EulerOrder::xyz);
+        grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(0,0,0);
+        grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(0,0,0,grl::flatbuffer::EulerOrder::xyz);
+        grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0,0,0);
+        grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0,0,0,grl::flatbuffer::EulerOrder::xyz);
         grl::flatbuffer::EulerPose cart_stiffness_ = grl::flatbuffer::EulerPose(cart_stiffness_trans_, cart_stifness_rot_);
         grl::flatbuffer::EulerPose cart_damping_ = grl::flatbuffer::EulerPose(cart_damping_trans_, cart_damping_rot_);
-        grl::flatbuffer::EulerPose cart_max_path_deviation_  = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,100), grl::flatbuffer::EulerRotation(5.,5.,5., grl::flatbuffer::EulerOrder::xyz));
-        grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(1000,1000,1000), grl::flatbuffer::EulerRotation(6.3,6.3,6.3, grl::flatbuffer::EulerOrder::xyz));
-        grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(200,200,200), grl::flatbuffer::EulerRotation(200.,200.,200., grl::flatbuffer::EulerOrder::xyz));
-        double nullspace_stiffness_ = 0.1;
-        double nullspace_damping_ = 0.1;
+        grl::flatbuffer::EulerPose cart_max_path_deviation_  = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0,0,0, grl::flatbuffer::EulerOrder::xyz));
+        grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0,0,0, grl::flatbuffer::EulerOrder::xyz));
+        grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0.,0.,0., grl::flatbuffer::EulerOrder::xyz));
+        double nullspace_stiffness_ = 0;
+        double nullspace_damping_ = 0;
         bool updatePortOnRemote = false;
         int16_t portOnRemote = 3501;
         bool updatePortOnController = false;
@@ -570,7 +570,7 @@ public:
               std::string parent = i==0?"Base":("Link" + std::to_string(i-1));
               // Compute pose later with transformation matrix
               grl::flatbuffer::Pose pose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::Quaternion(0,0,0,0));
-              grl::flatbuffer::Inertia inertia = grl::flatbuffer::Inertia(1, pose, 1, 2, 3, 4, 5, 6);
+              grl::flatbuffer::Inertia inertia = grl::flatbuffer::Inertia(1, pose, 0, 0, 0, 0, 0, 0);
               flatbuffers::Offset<grl::flatbuffer::LinkObject> linkObject = grl::toFlatBuffer(*m_logFileBufferBuilderP, linkname, parent, pose, inertia);
               tools.push_back(linkObject);
               processData.push_back(
@@ -610,12 +610,12 @@ public:
              monitoringMsg,
              time_event_stamp);
         // getWrench() is availble in KukaJAVAdriver, so maybe it's better to log data in KukaDriver where user can access both KukaFRIDriver and KukaJAVADriver?
-        grl::flatbuffer::Wrench cartesianWrench{grl::flatbuffer::Vector3d(1,1,1),grl::flatbuffer::Vector3d(1,1,1),grl::flatbuffer::Vector3d(1,1,1)};
+        grl::flatbuffer::Wrench cartesianWrench{grl::flatbuffer::Vector3d(0, 0, 0),grl::flatbuffer::Vector3d(0, 0, 0),grl::flatbuffer::Vector3d(0, 0, 0)};
         // In armState there is neither joint velocity nor acceleration
-        std::vector<double> position(7,0);
+        std::vector<double> position;
         std::vector<double> velocity(7,0);
         std::vector<double> acceleration(7,0);
-        std::vector<double> torque(7,0);
+        std::vector<double> torque;
         for(int i = 0; i<7; i++) {
             position.push_back(armState.position[i]);
             torque.push_back(armState.torque[i]);
@@ -623,7 +623,7 @@ public:
         flatbuffers::Offset<grl::flatbuffer::JointState> jointStatetab = grl::toFlatBuffer(*m_logFileBufferBuilderP, position, velocity, acceleration, torque);
         // Calculate the data later.
         // Cartesian pose of the flange relative to the base of the arm
-        grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(1,1,1), grl::flatbuffer::Quaternion(2,3,4,5));
+        grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0, 0, 0), grl::flatbuffer::Quaternion(0,0,0,0));
         flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> kukaiiwaMonitorState = grl::toFlatBuffer(
             *m_logFileBufferBuilderP,
             jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
@@ -635,7 +635,7 @@ public:
             robotInfo.operationMode,
             cartesianWrench);
          // Set it up in the configuration file
-        std::vector<double> torqueSensorLimits(7,0.5);
+        std::vector<double> torqueSensorLimits(7,0);
         std::string hardwareVersion( "hardvareVersion");
         bool isReadyToMove = true;
         bool isMastered = true;
