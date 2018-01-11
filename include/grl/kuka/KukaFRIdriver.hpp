@@ -103,7 +103,12 @@ public:
                                     LowLevelStepAlgorithmType>::run_automatically))
 
                 );
-        m_driverThread.reset(new std::thread(&KukaFRIdriver::update, this));
+        // flatbuffersbuilder does not yet exist
+        m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+        m_KUKAiiwaStateBufferP = std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>>>();
+        #ifdef HAVE_spdlog
+            loggerP = spdlog::stdout_logger_mt("logs/kukaiiwa_logger.txt");
+        #endif // HAVE_spdlog
     }
 
     const Params &getParams() { return params_; }
@@ -282,6 +287,7 @@ public:
 
             // TODO(chunting) add data to log here, when full write to disk on a separate thread like FusionTrackLogAndTrack
             save_oneKUKAiiwaStateBuffer();
+            update();
             // m_driverThread.reset(new std::thread(&KukaFRIdriver::save_recording));
         } else {
             m_attemptedCommunicationConsecutiveFailureCount++;
@@ -530,6 +536,7 @@ public:
         }
         // MessageEndOf exists in FRIMessage.pb.h, but it's never used in the FlatBuffer objects
         ::MessageEndOf endOfMessageData = monitoringMsg.endOfMessageData;
+
         auto bns = m_logFileBufferBuilderP->CreateString(basename);
         double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
 
@@ -660,6 +667,7 @@ public:
     bool save_recording(std::string filename = std::string())
     {
 
+         loggerP->info("Here is in save_recording/n ");
         if(filename.empty())
         {
           /// TODO(ahundt) Saving the file twice in one second will overwrite!!!!
@@ -671,7 +679,7 @@ public:
             std::cout << "Save Recording as: " << filename << std::endl;
         #endif // HAVE_spdlog
         /// lock mutex before accessing file
-        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        // boost::lock_guard<boost::mutex> lock(jt_mutex);
 
         auto saveLambdaFunction = [
           save_fbbP = std::move(m_logFileBufferBuilderP)
@@ -740,34 +748,32 @@ void update()
   {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 2*MegaByte;
+    const std::size_t single_buffer_limit_bytes = 0.1*MegaByte;
 
     // run the primary update loop in a separate thread
     bool saveFileNow = false;
-    while (!m_shouldStop)
-    {
-        boost::lock_guard<boost::mutex> lock(jt_mutex);
-        /// Temporarily set m_isRecording true.
-        m_isRecording = true;
-        if (m_isRecording)
-        {
-            run_one();
-            // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB
-            if(m_logFileBufferBuilderP->GetSize() > single_buffer_limit_bytes)
-            {
-                // save the file if we are over the limit
-                saveFileNow = true;
-            }
-        } // end recording steps
 
-        /// TODO(ahundt) Let the user specify the filenames, or provide a way to check the flatbuffer size and know single_buffer_limit_bytes.
-        if(saveFileNow)
+    // boost::lock_guard<boost::mutex> lock(jt_mutex);
+    /// Temporarily set m_isRecording true.
+    m_isRecording = true;
+    if (m_isRecording)
+    {
+        // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB
+        int buffsize = m_logFileBufferBuilderP->GetSize();
+        std::cout << "Buffersize:" << buffsize << std::endl;
+        if( buffsize > single_buffer_limit_bytes)
         {
-          save_recording();
-          saveFileNow = false;
+            // save the file if we are over the limit
+            saveFileNow = true;
         }
-        std::this_thread::yield();
-    } // end while loop that keeps driver alive
+    } // end recording steps
+    /// TODO(ahundt) Let the user specify the filenames, or provide a way to check the flatbuffer size and know single_buffer_limit_bytes.
+    if(saveFileNow)
+    {
+      save_recording();
+      saveFileNow = false;
+    }
+
   }
 private:
     KukaState armState;

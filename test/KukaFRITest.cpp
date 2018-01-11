@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
   int print_every_n = 100;
   std::size_t q_size = 4096; //queue size must be power of 2
   spdlog::set_async_mode(q_size);
-  std::shared_ptr<spdlog::logger>                  loggerPG;
+  std::shared_ptr<spdlog::logger>   loggerPG;
   try {
     loggerPG = spdlog::stdout_logger_mt("console");
   }
