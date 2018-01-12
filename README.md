@@ -7,8 +7,9 @@ The Generic Robotics Library (GRL) has a long term goal of implementing robotics
 
 Currently GRL implements C++11 drivers for the new Kuka LBR iiwa arm and hardware integration with [ROS](ros.org) and the [V-REP](http://http://www.coppeliarobotics.com/index.html) robotics simulation software.
 
-Here is a video of the KUKA iiwa robot following a path consisting of tiny, nearly concentric circles relative to an object. What appears to be a "wobbling" motion is actually a highly precise pre-planned path:
 [![grl kuka control from linux over Java API demo](https://img.youtube.com/vi/pvs-lG2_K3g/0.jpg)](https://youtu.be/pvs-lG2_K3g)
+
+This demo video is of the KUKA iiwa robot following a path using GRL consisting of tiny, nearly concentric circles relative to an object. What appears to be a "wobbling" motion is actually a highly precise pre-planned path.
 
 If you use GRL in research please consider providing a citation:
 [![DOI](https://zenodo.org/badge/33050653.svg)](https://zenodo.org/badge/latestdoi/33050653)
