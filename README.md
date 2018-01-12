@@ -9,7 +9,7 @@ Currently GRL implements C++11 drivers for the new Kuka LBR iiwa arm and hardwar
 
 [![grl kuka control from linux over Java API demo](https://img.youtube.com/vi/pvs-lG2_K3g/0.jpg)](https://youtu.be/pvs-lG2_K3g)
 
-This demo video is of the KUKA iiwa robot following a path using GRL consisting of tiny, nearly concentric circles relative to an object. What appears to be a "wobbling" motion is actually a highly precise pre-planned path.
+This demo video is of the KUKA iiwa robot following a path using GRL. What appears to be a "wobbling" motion is actually a highly precise pre-planned path consisting of tiny, nearly concentric circles relative to an object.
 
 If you use GRL in research please consider providing a citation:
 [![DOI](https://zenodo.org/badge/33050653.svg)](https://zenodo.org/badge/latestdoi/33050653)
