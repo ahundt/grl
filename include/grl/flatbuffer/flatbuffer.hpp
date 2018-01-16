@@ -2,7 +2,6 @@
 #define GRL_FLATBUFFER_HPP
 
 #include <flatbuffers/flatbuffers.h>
-
 #include <flatbuffers/idl.h>
 
 

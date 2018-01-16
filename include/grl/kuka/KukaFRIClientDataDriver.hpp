@@ -411,7 +411,8 @@ void update_state(boost::asio::ip::udp::socket &socket,
                   boost::asio::ip::udp::endpoint sender_endpoint = boost::asio::ip::udp::endpoint()) {
 
   static const int message_flags = 0;
-        // get a local clock timestamp, then the latest frame from the device, then another timestamp
+
+  // get a local clock timestamp, then the latest frame from the device, then another timestamp
   timeEvent.local_request_time = cartographer::common::UniversalTimeScaleClock::now();
   receive_bytes_transferred = socket.receive_from(
       boost::asio::buffer(friData.receiveBuffer,
@@ -629,11 +630,6 @@ public:
         // return the latest state to the caller
         std::tie(step_alg_params,friData, receive_ec, receive_bytes_transferred, send_ec,
                  send_bytes_transferred, timeEvent) = std::move(latestStateForUser_);
-        // TODO(chunting) consider adding to log buffer here, data is in latestStateForUser_, alternate might be latestClientData
-
-
-
-
 
         haveNewData = true;
       } else if (std::get<latest_receive_monitor_state>(
@@ -766,6 +762,7 @@ private:
           // nextState: may be null right now, and it should be valid
           // newCommandForDriver_: needs to be cleared with 100% certainty
           BOOST_VERIFY(spareStates_.size() > 0);
+
 
           if (!std::get<latest_receive_monitor_state>(nextState) &&
               spareStates_.size()) {

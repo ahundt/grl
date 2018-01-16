@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
                 );
         /// @todo TODO(ahundt) Currently assumes ip address
         kukaDriverP=std::make_shared<grl::robot::arm::KukaDriver>(params);
-        kukaDriverP->construct();
+        // kukaDriverP->construct();
         // Default to joint servo mode for commanding motion
         kukaDriverP->set(grl::flatbuffer::ArmState::MoveArmJointServo);
         kukaDriverP->set(goal_position_command_time_duration,grl::time_duration_command_tag());
@@ -368,7 +368,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
                 RobotName,
                 destination,
                 source,
-                duration,
+                time_event_stamp,
                 true, controlState,
                 true, kukaiiwaArmConfiguration,
                 true, kukaiiwaMonitorState,

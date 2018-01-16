@@ -393,7 +393,7 @@ flatbuffers::Offset<grl::flatbuffer::ArmControlSeries> toFlatBuffer(
 {
     return grl::flatbuffer::CreateArmControlSeries(
       fbb,
-      armcontrolstates.empty()?fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ArmControlState>>(armcontrolstates):0);
+      fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ArmControlState>>(armcontrolstates));
 }
 /// KUKAiiwa.fbs
 flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> toFlatBuffer(
@@ -527,9 +527,9 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> toFlatBuffer(
       setJointImpedance,
       smartServoConfig,
       FRIConfig,
-      tools.empty() ? fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::LinkObject>>(tools):0,
-      processData.empty() ? fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ProcessData>>(processData) : 0,
-      currentMotionCenter.empty() ? fbb.CreateString(currentMotionCenter) : 0,
+      fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::LinkObject>>(tools),
+      fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ProcessData>>(processData),
+      fbb.CreateString(currentMotionCenter),
       requestMonitorProcessData);
 }
 
@@ -543,11 +543,11 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> toFlatBuffer(
     {
         return grl::flatbuffer::CreateKUKAiiwaMonitorConfiguration(
             fbb,
-            hardwareVersion.empty() ? fbb.CreateString(hardwareVersion) : 0,
-            torqueSensorLimits.empty() ? fbb.CreateVector<double>(torqueSensorLimits) : 0,
+            fbb.CreateString(hardwareVersion),
+            fbb.CreateVector<double>(torqueSensorLimits),
             isReadyToMove,
             isMastered,
-            processData.empty() ? fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ProcessData>>(processData) : 0);
+            fbb.CreateVector<flatbuffers::Offset<grl::flatbuffer::ProcessData>>(processData));
     }
 
 /// KUKAiiwa.fbs
@@ -582,7 +582,8 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     const std::string &name,
     const std::string &destination,
     const std::string &source,
-    const double timestamp,
+    // const double timestamp,
+    const grl::TimeEvent &timeEvent,
     const bool setArmControlState,
     flatbuffers::Offset<grl::flatbuffer::ArmControlState> &armControlState,
     const bool setArmConfiguration,
@@ -592,12 +593,15 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     const bool hasMonitorConfig,
     flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> &monitorConfig)
 {
+
+   flatbuffers::Offset<grl::flatbuffer::TimeEvent> _timeEvent = toFlatBuffer(fbb, timeEvent);
+
     return grl::flatbuffer::CreateKUKAiiwaState(
       fbb,
       fbb.CreateString(name),
       fbb.CreateString(destination),
       fbb.CreateString(source),
-      timestamp,
+      _timeEvent,
       setArmControlState,
       armControlState,
       setArmConfiguration,
@@ -626,7 +630,7 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
     auto _sequenceCounter = friMonitoringMessage.header.sequenceCounter;
     auto _reflectedSequenceCounter = friMonitoringMessage.header.reflectedSequenceCounter;
     std::vector<double> data;
-    // get measured joint position
+    // get measured joint
     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_open_chain_state_tag());
     flatbuffers::Offset<flatbuffers::Vector<double>> _measuredJointPosition = fbb.CreateVector(data);
 
@@ -637,14 +641,23 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
 
     data.clear();
     // get measured joint torque
-    grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
+    grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_open_chain_command_tag());
     flatbuffers::Offset<flatbuffers::Vector<double>> _commandedJointPosition = fbb.CreateVector(data);
-
+    std::cout<<"Command Joint Position:";
+    for (int i=0; i<7; i++) {
+            std::cout<<data[i];
+    }
+    std::cout<<std::endl;
     data.clear();
     // get commanded joint torque
     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
     flatbuffers::Offset<flatbuffers::Vector<double>> _commandedTorque = fbb.CreateVector(data);
-
+    std::cout<<"Command Joint TOrque:";
+    for (int i=0; i<7; i++) {
+            std::cout<<data[i];
+    }
+    std::cout<<std::endl;
+    data.clear();
     data.clear();
     // get measured external torque
     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_external_open_chain_state_tag());
@@ -655,11 +668,10 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_interpolated_open_chain_state_tag());
     flatbuffers::Offset<flatbuffers::Vector<double>> _jointStateInterpolated = fbb.CreateVector(data);
 
-    flatbuffers::Offset<grl::flatbuffer::TimeEvent> _timeEvent = grl::toFlatBuffer(fbb, timeEvent);
-
+    flatbuffers::Offset<grl::flatbuffer::TimeEvent> _timeEvent = toFlatBuffer(fbb, timeEvent);
     auto _overlayType = toFlatBuffer(friMonitoringMessage.ipoData.overlayType);
 
-     return grl::flatbuffer::CreateFRIMessageLog(
+    return grl::flatbuffer::CreateFRIMessageLog(
       fbb,
       _sessionState,
       _connectionQuality,
@@ -683,7 +695,8 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     const std::string &name,
     const std::string &destination,
     const std::string &source,
-    const double timestamp,
+    // const double timestamp,
+    const grl::TimeEvent &timeEvent,
     const bool setArmControlState,
     const flatbuffers::Offset<grl::flatbuffer::ArmControlState> &armControlState,
     const bool setArmConfiguration,
@@ -695,12 +708,14 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     const flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> &FRIMessage)
 
 {
+    std::cout<<"To generate TimeEvent flatbuffer Object:" <<std::endl;
+    flatbuffers::Offset<grl::flatbuffer::TimeEvent> _timeEvent = grl::toFlatBuffer(fbb, timeEvent);
     return grl::flatbuffer::CreateKUKAiiwaState(
         fbb,
         fbb.CreateString(name),
         fbb.CreateString(destination),
         fbb.CreateString(source),
-        timestamp,
+        _timeEvent,
         setArmControlState,
         armControlState,
         setArmConfiguration,
@@ -738,7 +753,7 @@ bool FinishAndVerifyBuffer(
     // Finish a buffer with given object
     // Call `Finish()` to instruct the builder fbb that this frame is complete.
     const char *file_identifier = grl::flatbuffer::KUKAiiwaStatesIdentifier();
-    // fbb.Finish(oneKUKAiiwaFusionTrackMessage, file_identifier);
+
     fbb.Finish(fbLogKUKAiiwaStates, file_identifier);
 
     flatbuffers::uoffset_t _max_depth = 64;

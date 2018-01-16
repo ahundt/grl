@@ -299,7 +299,6 @@ table FRIMessageLog {
     sessionState:ESessionState;
     connectionQuality:EConnectionQuality;
     controlMode:EControlMode;
-    // MessageHeader;
     messageIdentifier:int;
     sequenceCounter:int;
     reflectedSequenceCounter:int;
@@ -323,7 +322,8 @@ table KUKAiiwaState {
   name:string; // The name of the robot to update (identifier used when applicable, doesn't ever change or set the name)
   destination:string; // where this message is going (URI)
   source:string; // where this message came from (URI)
-  timestamp:double; // timestamp in seconds
+  // timestamp:double; // timestamp in seconds
+  timeStamp:TimeEvent;
 
   setArmControlState:bool = false; // only actually change the arm state when this is true.
   armControlState:ArmControlState; // Command state and mode of the arm

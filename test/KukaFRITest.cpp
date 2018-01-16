@@ -147,7 +147,8 @@ int main(int argc, char* argv[])
     {
       /// @todo TODO(ahundt) BUG: Need way to supply time to reach specified goal for position control and eliminate this allocation internally in the kuka driver. See similar comment in KukaFRIDriver.hpp
       /// IDEA: PASS A LOW LEVEL STEP ALGORITHM PARAMS OBJECT ON EACH UPDATE AND ONLY ONE INSTANCE OF THE ALGORITHM OBJECT ITSELF
-      highLevelDriverClassP = std::make_shared<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>>(io_service,
+      highLevelDriverClassP = std::make_shared<grl::robot::arm::KukaFRIClientDataDriver<grl::robot::arm::LinearInterpolation>>(
+        io_service,
         std::make_tuple("KUKA_LBR_IIWA_14_R820",
                         localhost,
                         localport,
@@ -189,7 +190,7 @@ int main(int argc, char* argv[])
                 "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
                 );
         /// @todo TODO(ahundt) Currently assumes ip address
-        kukaDriverP=std::make_shared<grl::robot::arm::KukaDriver>(params);
+        kukaDriverP = std::make_shared<grl::robot::arm::KukaDriver>(params);
         kukaDriverP->construct();
         // Default to joint servo mode for commanding motion
         kukaDriverP->set(grl::flatbuffer::ArmState::MoveArmJointServo);

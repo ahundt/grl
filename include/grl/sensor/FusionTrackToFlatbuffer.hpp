@@ -469,43 +469,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
                                                         fb_m_device_types);
 }
 
-// template <typename T>
-// typename T::value_type stringLength(const T &array)
-// {
-
-//     auto iter = std::find(array.begin(), array.end(), '\0');
-//     auto len = std::distance(array.begin(), iter);
-//     return len;
-// }
-
-// flatbuffers::Offset<grl::flatbuffer::TimeEvent>
-// toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
-//              const grl::TimeEvent &timeStamp)
-// {
-//     flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(const_cast<const char *>(timeStamp.event_name.begin()), stringLength(timeStamp.event_name));
-//     /// https://github.com/googlecartographer/cartographer/blob/master/cartographer/common/time.cc
-//     /// convert time to int64
-//     int64_t local_request_time = cartographer::common::ToUniversal(timeStamp.local_request_time);
-//     flatbuffers::Offset<flatbuffers::String> device_clock_id = fbb.CreateString(const_cast<const char *>(timeStamp.device_clock_id.begin()), stringLength(timeStamp.device_clock_id));
-//     int64_t device_time = cartographer::common::ToUniversal(timeStamp.device_time);
-//     flatbuffers::Offset<flatbuffers::String> local_clock_id = fbb.CreateString(const_cast<const char *>(timeStamp.local_clock_id.begin()), stringLength(timeStamp.local_clock_id));
-//     int64_t local_receive_time = cartographer::common::ToUniversal(timeStamp.local_receive_time);
-//     int64_t corrected_local_time = cartographer::common::ToUniversal(timeStamp.corrected_local_time);
-//     int64_t clock_skew = cartographer::common::ToSeconds(timeStamp.clock_skew);
-//     int64_t min_transport_delay = cartographer::common::ToSeconds(timeStamp.min_transport_delay);
-//     return grl::flatbuffer::CreateTimeEvent(
-//         fbb,
-//         event_name,
-//         local_request_time,
-//         device_clock_id,
-//         device_time,
-//         local_clock_id,
-//         local_receive_time,
-//         corrected_local_time,
-//         clock_skew,
-//         min_transport_delay);
-// }
-
 flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::sensor::FusionTrack &fusiontrack,
