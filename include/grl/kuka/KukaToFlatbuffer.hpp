@@ -707,7 +707,6 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
     const flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> &FRIMessage)
 
 {
-    std::cout<<"To generate TimeEvent flatbuffer Object:" <<std::endl;
     flatbuffers::Offset<grl::flatbuffer::TimeEvent> _timeEvent = grl::toFlatBuffer(fbb, timeEvent);
     return grl::flatbuffer::CreateKUKAiiwaState(
         fbb,
@@ -722,8 +721,8 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
         hasMonitorState,
         monitorState,
         hasMonitorConfig,
-        monitorConfig
-        // FRIMessage
+        monitorConfig,
+        FRIMessage
         );
 }
 /// KUKAiiwa.fbs

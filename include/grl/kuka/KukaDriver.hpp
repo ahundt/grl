@@ -180,69 +180,97 @@ namespace grl { namespace robot { namespace arm {
 
         if(JAVAdriverP_.get() != nullptr)
         {
-          if (debug) {
-            std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
-          }
+            if (debug) {
+              std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
+            }
 
 
-          /////////////////////////////////////////
-          // Do some configuration
-          if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
-          {
-            // configure to send commands over FRI interface
-            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,command_tag());
-          }
+            /////////////////////////////////////////
+            // Do some configuration
+            if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+            {
+              // configure to send commands over FRI interface
+              JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,command_tag());
+            }
 
-          if(boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
-          {
-            // configure to send commands over FRI interface
-            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,state_tag());
-          }
+            if(boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
+            {
+              // configure to send commands over FRI interface
+              JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,state_tag());
+            }
 
 
-          /////////////////////////////////////////
-          // set new destination
+            /////////////////////////////////////////
+            // set new destination
 
-          if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
-          {
-            JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
+            if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
+            {
+              JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
 
-            // configure to send commands over JAVA interface
-            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,command_tag());
+              // configure to send commands over JAVA interface
+              JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,command_tag());
 
-          }
+            }
 
-          // sync JAVA driver with the robot, note client sends to server asynchronously!
-          haveNewData = JAVAdriverP_->run_one();
+            // sync JAVA driver with the robot, note client sends to server asynchronously!
+            haveNewData = JAVAdriverP_->run_one();
 
-          if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("JAVA")))
-          {
-            JAVAdriverP_->get(armState_);
-            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,state_tag());
+            if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("JAVA")))
+            {
+              JAVAdriverP_->get(armState_);
+              JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,state_tag());
 
-          }
+            }
         }
 
         if(FRIdriverP_.get() != nullptr)
         {
-          if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
-          {
-            FRIdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
-          }
+            if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+            {
+              FRIdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
+            }
 
-          haveNewData = FRIdriverP_->run_one();
+            haveNewData = FRIdriverP_->run_one();
 
-          if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
-          {
-            FRIdriverP_->get(armState_);
-            //JAVAdriverP_->getWrench(armState_);
-          }
+            if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
+            {
+              FRIdriverP_->get(armState_);
+              //JAVAdriverP_->getWrench(armState_);
+            }
         }
 
         return haveNewData;
       }
 
+    /// start recording the kuka state data in memory
+    /// return true on success, false on failure
+    bool start_recording()
+    {
+        if(FRIdriverP_.get() != nullptr) {
+            return FRIdriverP_->start_recording();
+        }
+        return false;
+    }
+    /// stop recording the kuka state data in memory
+    /// return true on success, false on failure
+    bool stop_recording()
+    {
+        if(FRIdriverP_.get() != nullptr) {
+            return FRIdriverP_->stop_recording();
+        }
+        return false;
 
+    }
+    bool save_recording(std::string filename = std::string()) {
+        if(FRIdriverP_.get() != nullptr) {
+            return FRIdriverP_->save_recording(filename);
+        }
+        return false;
+    }
+    void clear_recording()
+    {
+      FRIdriverP_->clear_recording();
+    }
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
    /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
    void set(const flatbuffer::ArmState & armControlMode)

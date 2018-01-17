@@ -514,7 +514,7 @@ public:
       state = armState;
     }
 
-    /// start recording the fusiontrack frame data in memory
+    /// start recording the kuka state data in memory
     /// return true on success, false on failure
     bool start_recording()
     {
@@ -522,7 +522,7 @@ public:
       m_isRecording = true;
       return m_isRecording;
     }
-    /// stop recording the fusiontrack frame data in memory
+    /// stop recording the kuka state data in memory
     /// return true on success, false on failure
     bool stop_recording()
     {
@@ -727,7 +727,6 @@ public:
         // Cartesian pose of the flange relative to the base of the arm
         // grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0, 0, 0), grl::flatbuffer::Quaternion(0,0,0,0));
         grl::flatbuffer::Pose cartesianFlangePose{};
-        std::cout <<"Size of an empty struct: " << sizeof(cartesianFlangePose) << std::endl;
         flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> kukaiiwaMonitorState = grl::toFlatBuffer(
             *m_logFileBufferBuilderP,
             jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
@@ -768,8 +767,6 @@ public:
         return true;
     }
 
-
-    // bool startRecordingDataToFlatBuffer(flatbuffers::FlatBufferBuilder &*m_logFileBufferBuilderP, std::shared_ptr<KUKA::FRI::ClientData> &friData)
     bool save_recording(std::string filename = std::string())
     {
 
@@ -784,9 +781,6 @@ public:
         #else // HAVE_spdlog
             std::cout << "Save Recording as: " << filename << std::endl;
         #endif // HAVE_spdlog
-        /// lock mutex before accessing file
-        // boost::lock_guard<boost::mutex> lock(jt_mutex);
-
         auto saveLambdaFunction = [
           save_fbbP = std::move(m_logFileBufferBuilderP)
           ,save_KUKAiiwaBufferP = std::move(m_KUKAiiwaStateBufferP)
@@ -799,6 +793,7 @@ public:
             bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaBufferP);
             bool write_binary_stream = true;
             success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
+            assert(success);
             /// TODO(ahFusionTrackLogAndTrackundt) replace cout with proper spdlog and vrep banner notification
             #ifdef HAVE_spdlog
                 lambdaLoggerP->info("filename: ", filename, " verifier success: ", success);
@@ -860,7 +855,7 @@ void saveToDisk()
     // run the primary update loop in a separate thread
     bool saveFileNow = false;
     /// Temporarily set m_isRecording true.
-    m_isRecording = true;
+    /// m_isRecording = true;
     if (m_isRecording)
     {
         // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB

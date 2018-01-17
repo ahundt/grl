@@ -52,7 +52,7 @@ public:
         KukaMonitorMode,
         IKGroupName
     };
-    
+
     typedef std::tuple<
         std::vector<std::string>,
         std::string,
@@ -71,11 +71,11 @@ public:
         std::string,
         std::string
         > Params;
-    
-    
+
+
     static const Params defaultParams(){
         std::vector<std::string> jointHandles;
-        
+
         jointHandles.push_back("LBR_iiwa_14_R820_joint1"); // Joint1Handle,
         jointHandles.push_back("LBR_iiwa_14_R820_joint2"); // Joint2Handle,
         jointHandles.push_back("LBR_iiwa_14_R820_joint3"); // Joint3Handle,
@@ -102,12 +102,12 @@ public:
                     "IK_Group1_iiwa"            // IKGroupName
                 );
     }
-    
+
     /// @todo measuredArmParams are hardcoded, parameterize them
     // parameters for measured arm
     static const Params measuredArmParams(){
         std::vector<std::string> jointHandles;
-        
+
         jointHandles.push_back("LBR_iiwa_14_R820_joint1#0"); // Joint1Handle,
         jointHandles.push_back("LBR_iiwa_14_R820_joint2#0"); // Joint2Handle,
         jointHandles.push_back("LBR_iiwa_14_R820_joint3#0"); // Joint3Handle,
@@ -167,7 +167,7 @@ void construct(Params params){
   // keep driver threads from exiting immediately after creation, because they have work to do!
   device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
   kukaDriverP_=std::make_shared<robot::arm::KukaDriver>(std::make_tuple(
-      
+
         std::get<RobotTargetBaseName>(params),
         std::get<RobotModel>(params),
         std::get<LocalUDPAddress>(params),
@@ -180,13 +180,43 @@ void construct(Params params){
         std::get<KukaCommandMode>(params),
         std::get<KukaMonitorMode>(params)
 
-        
+
   ));
   kukaDriverP_->construct();
   // Default to joint servo mode for commanding motion
   kukaDriverP_->set(flatbuffer::ArmState::MoveArmJointServo);
     std::cout << "KUKA COMMAND MODE: " << std::get<KukaCommandMode>(params) << "\n";
   initHandles();
+}
+
+/// start recording the kuka state data in memory
+/// return true on success, false on failure
+bool start_recording()
+{
+    if(kukaDriverP_.get() != nullptr) {
+        return kukaDriverP_->start_recording();
+    }
+    return false;
+}
+/// stop recording the kuka state data in memory
+/// return true on success, false on failure
+bool stop_recording()
+{
+    if(kukaDriverP_.get() != nullptr) {
+        return kukaDriverP_->stop_recording();
+    }
+    return false;
+
+}
+bool save_recording(std::string filename = std::string()) {
+    if(kukaDriverP_.get() != nullptr) {
+        return kukaDriverP_->save_recording(filename);
+    }
+    return false;
+}
+void clear_recording()
+{
+  kukaDriverP_->clear_recording();
 }
 
 
@@ -203,7 +233,7 @@ void run_one(){
 
 ~KukaVrepPlugin(){
 	device_driver_workP_.reset();
-    
+
     if(driver_threadP){
       device_driver_io_service.stop();
       driver_threadP->join();
@@ -215,7 +245,7 @@ private:
 
 
 void initHandles() {
-    
+
     vrepRobotArmDriverP_ = std::make_shared<VrepRobotArmDriver>
     (
         std::make_tuple(
@@ -227,10 +257,10 @@ void initHandles() {
             std::get<IKGroupName>            (params_)
         )
     );
-    
-    
+
+
     vrepRobotArmDriverP_->construct();
-    
+
     measuredParams_ = measuredArmParams();
     vrepMeasuredRobotArmDriverP_ = std::make_shared<VrepRobotArmDriver>
     (
@@ -244,8 +274,8 @@ void initHandles() {
         )
     );
     vrepMeasuredRobotArmDriverP_->construct();
-    
-    
+
+
     /// @todo remove this assumption
 	allHandlesSet  = true;
 }
@@ -259,30 +289,30 @@ void getRealKukaAngles() {
 }
 
 void syncVrepAndKuka(){
-    
+
         if(!allHandlesSet || !m_haveReceivedRealData) return;
-    
+
         /// @todo make this handled by template driver implementations/extensions
         kukaDriverP_->set(simulationTimeStep_,time_duration_command_tag());
         kukaDriverP_->set( simJointPosition, grl::revolute_joint_angle_open_chain_command_tag());
         if(0) kukaDriverP_->set( simJointForce   , grl::revolute_joint_torque_open_chain_command_tag());
-    
+
 
         kukaDriverP_->run_one();
         // We have the real kuka state read from the device now
         // update real joint angle data
         realJointPosition.clear();
         kukaDriverP_->get(std::back_inserter(realJointPosition), grl::revolute_joint_angle_open_chain_state_tag());
-        
+
         realJointForce.clear();
         kukaDriverP_->get(std::back_inserter(realJointForce), grl::revolute_joint_torque_open_chain_state_tag());
-    
+
         realExternalJointTorque.clear();
         kukaDriverP_->get(std::back_inserter(realExternalJointTorque), grl::revolute_joint_torque_external_open_chain_state_tag());
-    
+
         realExternalForce.clear();
         kukaDriverP_->get(std::back_inserter(realExternalForce), grl::cartesian_external_force_tag());
-    
+
     if(0){
         // debug output
         std::cout << "Measured Torque: ";
@@ -291,32 +321,32 @@ void syncVrepAndKuka(){
             std::cout << t << " ";
         }
         std::cout << '\n';
-        
+
         std::cout << "External Torque: ";
         std::cout << std::setw(6);
         for (float t:realExternalJointTorque) {
             std::cout << t << " ";
         }
         std::cout << '\n';
-        
+
         std::cout << "Measured Position: ";
         for (float t:realJointPosition) {
             std::cout << t << " ";
         }
         std::cout << '\n';
     }
-    
+
     if(!allHandlesSet || !vrepMeasuredRobotArmDriverP_) return;
-    
+
     if (realJointPosition.size() > 0) { // if there are valid measured states
         VrepRobotArmDriver::State measuredArmState;
         std::get<VrepRobotArmDriver::JointPosition>(measuredArmState) = realJointPosition;
         std::get<VrepRobotArmDriver::JointForce>(measuredArmState) = realJointForce;
         std::get<VrepRobotArmDriver::ExternalTorque>(measuredArmState) = realExternalJointTorque;
-        
+
         vrepMeasuredRobotArmDriverP_->setState(measuredArmState);
     }
-    
+
 }
 
 /// @todo if there aren't real limits set via the kuka model already then implement me
@@ -329,42 +359,42 @@ void setArmLimits(){
 /// @return isError - true if there is an error, false if there is no Error
 bool getStateFromVrep(){
             if(!allHandlesSet || !vrepRobotArmDriverP_) return false;
-			
+
             VrepRobotArmDriver::State armState;
-    
+
             bool isError = vrepRobotArmDriverP_->getState(armState);
-    
+
             if(isError) return isError;
-    
+
             simJointPosition             = std::get<VrepRobotArmDriver::JointPosition>      (armState);
             simJointForce                = std::get<VrepRobotArmDriver::JointForce>         (armState);
             simJointTargetPosition       = std::get<VrepRobotArmDriver::JointTargetPosition>(armState);
             simJointTransformationMatrix = std::get<VrepRobotArmDriver::JointMatrix>        (armState);
-    
-            
+
+
             /// need to provide tick time in double seconds and get from vrep API call
             simulationTimeStep_ = simGetSimulationTimeStep()*1000;
-    
+
 //			for (int i=0 ; i < KUKA::LBRState::NUM_DOF ; i++)
-//			{	
+//			{
 //				simGetJointPosition(jointHandle[i],&simJointPosition[i]);  //retrieves the intrinsic position of a joint (Angle for revolute joint)
-//				simGetJointForce(jointHandle[i],&simJointForce[i]);	//retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled. 
+//				simGetJointForce(jointHandle[i],&simJointForce[i]);	//retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled.
 //				simGetJointTargetPosition(jointHandle[i],&simJointTargetPosition[i]);  //retrieves the target position of a joint
 //				simGetJointMatrix(jointHandle[i],&simJointTransformationMatrix[i]);   //retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
 //
 //			}
-//            
+//
 //			BOOST_LOG_TRIVIAL(info) << "simJointPostition = " << simJointPosition << std::endl;
 //			BOOST_LOG_TRIVIAL(info) << "simJointForce = " << simJointForce << std::endl;
 //			BOOST_LOG_TRIVIAL(info) << "simJointTargetPostition = " << simJointTargetPosition << std::endl;
 //			BOOST_LOG_TRIVIAL(info) << "simJointTransformationMatrix = " << simJointTransformationMatrix << std::endl;
-//			
+//
 //			float simTipPosition[3];
 //			float simTipOrientation[3];
 //
 //			simGetObjectPosition(target, targetBase, simTipPosition);
 //			simGetObjectOrientation(target, targetBase, simTipOrientation);
-//			
+//
 //			for (int i = 0 ; i < 3 ; i++)
 //			{
 //				BOOST_LOG_TRIVIAL(info) << "simTipPosition[" << i << "] = " << simTipPosition[i] << std::endl;
@@ -387,7 +417,7 @@ bool updateVrepFromKuka() {
 			// then use the functions below to set the simulation state
 			// to match
 
-			/////////////////// assuming given real joint position (angles), forces, target position and target velocity 
+			/////////////////// assuming given real joint position (angles), forces, target position and target velocity
 
 
 			// setting the simulation variables to data from real robot (here they have been assumed given)
@@ -395,13 +425,13 @@ bool updateVrepFromKuka() {
 			for (int i=0 ; i < 7 ; i++)
 			{
 				//simSetJointPosition(jointHandle[i],realJointPosition[i]); //Sets the intrinsic position of a joint. May have no effect depending on the joint mode
-            
-            
+
+
 				//simSetJointTargetPosition(jointHandle[i],realJointTargetPosition[i]);  //Sets the target position of a joint if the joint is in torque/force mode (also make sure that the joint's motor and position control are enabled
-            
+
 				//simSetJointForce(jointHandle[i],realJointForce[i]);  //Sets the maximum force or torque that a joint can exert. This function has no effect when the joint is not dynamically enabled
-            
-            
+
+
 				//simSetJointTargetVelocity(jointHandle[i],realJointTargetVelocity[i]);  //Sets the intrinsic target velocity of a non-spherical joint. This command makes only sense when the joint mode is: (a) motion mode: the joint's motion handling feature must be enabled (simHandleJoint must be called (is called by default in the main script), and the joint motion properties must be set in the joint settings dialog), (b) torque/force mode: the dynamics functionality and the joint motor have to be enabled (position control should however be disabled)
 			}
             return false;
@@ -444,7 +474,7 @@ std::shared_ptr<KUKA::FRI::ClientData> friData_;
 std::shared_ptr<spdlog::logger> logger_;
 
 };
-  
+
 }} // grl::vrep
 
 #endif
