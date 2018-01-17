@@ -216,9 +216,17 @@ bool save_recording(std::string filename = std::string()) {
 }
 void clear_recording()
 {
-  kukaDriverP_->clear_recording();
+    if(kukaDriverP_.get() != nullptr) {
+        kukaDriverP_->clear_recording();
+    }
 }
 
+bool is_recording()
+{   if(kukaDriverP_.get() != nullptr) {
+        return kukaDriverP_->is_recording();
+    }
+    return false;
+}
 
 void run_one(){
 

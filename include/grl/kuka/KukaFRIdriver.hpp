@@ -518,7 +518,6 @@ public:
     /// return true on success, false on failure
     bool start_recording()
     {
-
       m_isRecording = true;
       return m_isRecording;
     }
@@ -530,6 +529,10 @@ public:
       return !m_isRecording;
     }
 
+    bool is_recording()
+    {
+        return m_isRecording;
+    }
 
 
     bool oneKUKAiiwaStateBuffer()

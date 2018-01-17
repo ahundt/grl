@@ -433,6 +433,8 @@ robone.startRealArmDriverScript=function()
 			'FRI'                     , -- KukaMonitorMode (options are FRI, JAVA)
 			"IK_Group1_iiwa"            -- IKGroupName
 		)
+
+		simExtKukaLBRiiwaRecordWhileSimulationIsRunning(false)
 	else
 		simDisplayDialog('Error','KukaLBRiiwa plugin was not found. (v_repExtKukaLBRiiwa.dll)&&nSimulation will run without hardware',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
 	end
@@ -470,7 +472,7 @@ robone.configureOpticalTracker=function()
 			--------------------------------------------------
 			-- Move the Tracker
 			-- true enables moving the tracker, false disables it
-			moveTracker = false
+			moveTracker = true
 			if (moveTracker) then
 				simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: Moving Optical tracker position relative to marker on robot end effector.')
 				simExtAtracsysFusionTrackClearObjects()

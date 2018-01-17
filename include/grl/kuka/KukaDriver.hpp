@@ -269,7 +269,15 @@ namespace grl { namespace robot { namespace arm {
     }
     void clear_recording()
     {
-      FRIdriverP_->clear_recording();
+        if(FRIdriverP_.get() != nullptr) {
+            FRIdriverP_->clear_recording();
+        }
+    }
+    bool is_recording()
+    {   if(FRIdriverP_.get() != nullptr) {
+            return FRIdriverP_->is_recording();
+        }
+        return false;
     }
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
    /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
