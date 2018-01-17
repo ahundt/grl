@@ -4,6 +4,7 @@
 #define _KUKA_FRI_DRIVER
 
 #include "grl/kuka/KukaFRIClientDataDriver.hpp"
+//#include "cartographer/common/time.h"
 
 struct KukaState;
 
@@ -148,15 +149,14 @@ public:
         return maxVel;
     }
 
-
-    /// A custom clock for the FusionTrack microsecond time stamps
-    struct MicrosecondClock
+  struct MicrosecondClock
     {
         using rep = int64_t;
         /// 1 microsecond
         using period = std::ratio<1, 1000000>;
         using duration = std::chrono::duration<rep, period>;
         using time_point = std::chrono::time_point<MicrosecondClock>;
+
         static constexpr bool is_steady = true;
 
         /// TODO(ahundt) currently assuming the FusionTrack timestamp is from the unix time epoch
@@ -168,7 +168,6 @@ public:
         }
     };
 
-
      /// TODO(ahundt) currently assuming the FusionTrack timestamp is from the unix time epoch
     cartographer::common::Time KukaTimeToCommonTime(typename MicrosecondClock::time_point Kukatime)
     {
@@ -179,8 +178,14 @@ public:
 
     cartographer::common::Time FRITimeStampToCommonTime(const ::TimeStamp &friTimeStamp)
     {
-        typename MicrosecondClock::time_point fritp(MicrosecondClock::duration(friTimeStamp.nanosec));
+        // Convert the time to microseconds
+        int64_t seconds = friTimeStamp.sec;
+        int64_t nanosecs = friTimeStamp.nanosec;
+        int64_t microseconds = seconds *1000000 + nanosecs/1000;
+        typename MicrosecondClock::time_point fritp = typename MicrosecondClock::time_point(typename MicrosecondClock::duration(microseconds));
+
         return KukaTimeToCommonTime(fritp);
+
     }
 
     /**
@@ -192,9 +197,6 @@ public:
      *
      */
     bool run_one() {
-        grl::TimeEvent time_event_stamp;
-
-
 
         // note: this one sends *and* receives the joint data!
         BOOST_VERIFY(kukaFRIClientDataDriverP_.get() != nullptr);
@@ -220,7 +222,7 @@ public:
             /// @todo TODO(ahundt) Need to eliminate this allocation
             boost::lock_guard<boost::mutex> lock(jt_mutex);
 
-            boost::container::static_vector<double, 7> jointStateToCommand;
+            boost::container::static_vector<double, KUKA::LBRState::NUM_DOF> jointStateToCommand;
             boost::copy(armState.commandedPosition,std::back_inserter(jointStateToCommand));
             // pass time to reach specified goal for position control
             lowLevelStepAlgorithmCommandParamsP = std::make_shared<grl::robot::arm::LinearInterpolation::Params>(std::make_tuple(jointStateToCommand,armState.goal_position_command_time_duration));
@@ -248,31 +250,6 @@ public:
             send_ec,
             send_bytes,
             time_event_stamp);
-
-        std::string s_event_name = "/kukaiiwa/state";
-
-        /// Name for the clock on the kukaiiws
-        /// Useful for timing calculations and debugging.
-        /// This one string you will want to check when analyzing
-        /// logged data for time differences and error.
-        std::string device_clock_id_str =   "/kukaiiwa/state/clock";
-
-        /// Name for the local clock on which this driver runs
-        /// Useful for timing calculations and debugging.
-        /// defaults to "/control_computer/clock/steady"
-        /// This one string you will want to check when analyzing
-        /// logged data for time differences and error.
-        std::string local_clock_id_str = "/control_computer/clock/steady";
-
-        TimeEvent::UnsignedCharArray event_name;
-        s_event_name.copy(event_name.begin(), std::min(s_event_name.size(), event_name.size()));
-        time_event_stamp.event_name = event_name;
-        TimeEvent::UnsignedCharArray device_clock_id;
-        device_clock_id_str.copy(device_clock_id.begin(), std::min(device_clock_id_str.size(), device_clock_id.size()));
-        time_event_stamp.device_clock_id = device_clock_id;
-        TimeEvent::UnsignedCharArray local_clock_name_arr;
-        local_clock_id_str.copy(local_clock_name_arr.begin(), std::min(local_clock_id_str.size(),local_clock_name_arr.size()));
-        time_event_stamp.local_clock_id = local_clock_name_arr;
 
         m_attemptedCommunicationCount++;
 
@@ -326,10 +303,11 @@ public:
             armState.sendPeriod = std::chrono::milliseconds(
                 grl::robot::arm::get(friData_->monitoringMsg, grl::time_step_tag()));
 
+            oneKUKAiiwaStateBuffer();
             armState.time_event_stamp = time_event_stamp;
 
             // std::cout<<" armState.time_event_stamp -------------" << std::endl;
-            // for (int i = 0; i<std::min(s_event_name.size(), event_name.size()); i++){
+            // for (int i = 0; i<stringLength(armState.time_event_stamp.event_name); i++){
             //     std::cout <<armState.time_event_stamp.event_name[i];
             // }
             // std::cout<<std::endl;
@@ -378,8 +356,8 @@ public:
 
 
             // TODO(chunting) add data to log here, when full write to disk on a separate thread like FusionTrackLogAndTrack
-            save_oneKUKAiiwaStateBuffer();
-            update();
+
+            saveToDisk();
             // m_driverThread.reset(new std::thread(&KukaFRIdriver::save_recording));
         } else {
             m_attemptedCommunicationConsecutiveFailureCount++;
@@ -554,42 +532,46 @@ public:
 
 
 
-    bool save_oneKUKAiiwaStateBuffer()
+    bool oneKUKAiiwaStateBuffer()
     {
 
 
-        //boost::lock_guard<boost::mutex> lock(jt_mutex);
-        std::string RobotName("Robotiiwa" );
-        std::string destination("where this message is going (URI)");
-        std::string source("where this message came from (URI)");
+        std::string RobotName = std::string(std::get<RobotModel>(params_));
+
+        std:: string destination = std::string(std::get<remotehost>(params_));
+        std::string source =  std::string(std::get<localhost>(params_));
+        int16_t portOnRemote = std::stoi(std::string(std::get<remoteport>(params_)));
+
+        int16_t portOnController  = std::stoi(std::string(std::get<localport>(params_)));
         std::string basename = RobotName; //std::get<0>(params);
+
         bool setArmConfiguration_ = true; // set the arm config first time
         bool max_control_force_stop_ = false;
-          // @TODO(Chunting) Put all these parameters in a configuration file.
-        std::vector<double> joint_stiffness_(7, 0);
-        std::vector<double> joint_damping_(7, 0);
-        std::vector<double> joint_AccelerationRel_(7, 0);
-        std::vector<double> joint_VelocityRel_(7, 0);
+        std::vector<double> joint_stiffness_(KUKA::LBRState::NUM_DOF, 0);
+        std::vector<double> joint_damping_(KUKA::LBRState::NUM_DOF, 0);
+        std::vector<double> joint_AccelerationRel_(KUKA::LBRState::NUM_DOF, 0);
+        std::vector<double> joint_VelocityRel_(KUKA::LBRState::NUM_DOF, 0);
         bool updateMinimumTrajectoryExecutionTime = false;
         double minimumTrajectoryExecutionTime = 4;
 
 
+
         //Cartesian Impedance Values
-        grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(0,0,0);
-        grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(0,0,0,grl::flatbuffer::EulerOrder::xyz);
-        grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0,0,0);
-        grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0,0,0,grl::flatbuffer::EulerOrder::xyz);
-        grl::flatbuffer::EulerPose cart_stiffness_ = grl::flatbuffer::EulerPose(cart_stiffness_trans_, cart_stifness_rot_);
-        grl::flatbuffer::EulerPose cart_damping_ = grl::flatbuffer::EulerPose(cart_damping_trans_, cart_damping_rot_);
-        grl::flatbuffer::EulerPose cart_max_path_deviation_  = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0,0,0, grl::flatbuffer::EulerOrder::xyz));
-        grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0,0,0, grl::flatbuffer::EulerOrder::xyz));
-        grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0.,0.,0., grl::flatbuffer::EulerOrder::xyz));
-        double nullspace_stiffness_ = 0;
-        double nullspace_damping_ = 0;
+        // grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(0,0,0);
+        // grl::flatbuffer::EulerRotation cart_stifness_rot_ = grl::flatbuffer::EulerRotation(0,0,0,grl::flatbuffer::EulerOrder::xyz);
+        // grl::flatbuffer::Vector3d cart_damping_trans_ = grl::flatbuffer::Vector3d(0,0,0);
+        // grl::flatbuffer::EulerRotation cart_damping_rot_ = grl::flatbuffer::EulerRotation(0,0,0,grl::flatbuffer::EulerOrder::xyz);
+        // grl::flatbuffer::EulerPose cart_stiffness_ = grl::flatbuffer::EulerPose(cart_stiffness_trans_, cart_stifness_rot_);
+        // grl::flatbuffer::EulerPose cart_damping_ = grl::flatbuffer::EulerPose(cart_damping_trans_, cart_damping_rot_);
+        // grl::flatbuffer::EulerPose cart_max_path_deviation_  = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0,0,0, grl::flatbuffer::EulerOrder::xyz));
+        // grl::flatbuffer::EulerPose cart_max_ctrl_vel_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0,0,0, grl::flatbuffer::EulerOrder::xyz));
+        // grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0.,0.,0., grl::flatbuffer::EulerOrder::xyz));
+        // double nullspace_stiffness_ = 0;
+        // double nullspace_damping_ = 0;
         bool updatePortOnRemote = false;
-        int16_t portOnRemote = 3501;
+
         bool updatePortOnController = false;
-        int16_t portOnController = 3502;
+
         // Resolve the data in FRIMonitoringMessage
         // Don't match the FRIMessage.pb.h
         grl::flatbuffer::ArmState armControlMode = grl::flatbuffer::ArmState::StartArm;
@@ -600,7 +582,7 @@ public:
         // RobotInfo
         // how to use pb_callback_t driveState in RobotInfo?
         ::RobotInfo robotInfo = monitoringMsg.robotInfo;
-        int NUM_DOF = robotInfo.has_numberOfJoints?robotInfo.numberOfJoints:7;
+        int NUM_DOF = robotInfo.has_numberOfJoints?robotInfo.numberOfJoints:KUKA::LBRState::NUM_DOF;
         ::ControlMode controlMode = robotInfo.controlMode;
         ::SafetyState safetyState = robotInfo.safetyState;
         ::OperationMode operationMode = robotInfo.operationMode;
@@ -621,6 +603,21 @@ public:
 
         ::MessageMonitorData messageMonitorData = monitoringMsg.monitorData;
 
+        std::string s_event_name = RobotName + "/state";
+        std::string device_clock_id_str = s_event_name + "/device/clock";
+        std::string local_clock_id_str = s_event_name + "/control_computer/clock/steady";
+
+        TimeEvent::UnsignedCharArray event_name;
+        s_event_name.copy(event_name.begin(), std::min(s_event_name.size(), event_name.size()));
+        time_event_stamp.event_name = event_name;
+        TimeEvent::UnsignedCharArray device_clock_id;
+        device_clock_id_str.copy(device_clock_id.begin(), std::min(device_clock_id_str.size(), device_clock_id.size()));
+        time_event_stamp.device_clock_id = device_clock_id;
+        TimeEvent::UnsignedCharArray local_clock_name_arr;
+        local_clock_id_str.copy(local_clock_name_arr.begin(), std::min(local_clock_id_str.size(),local_clock_name_arr.size()));
+        time_event_stamp.local_clock_id = local_clock_name_arr;
+        time_event_stamp.device_time = FRITimeStampToCommonTime(messageMonitorData.timestamp);
+        //std::cout<< time_event_stamp.event_name << std::endl << time_event_stamp.device_clock_id << std::endl << time_event_stamp.local_clock_id <<std::endl;
         ::Transformation *transformation = new ::Transformation[5];
 
         for (int i=0; i<5; i++) {
@@ -645,9 +642,11 @@ public:
         // This parameter is never used.
         armState.driveState = grl::toFlatBuffer(::DriveState::DriveState_OFF);
         flatbuffers::Offset<grl::flatbuffer::ArmControlState> controlState = grl::toFlatBuffer(*m_logFileBufferBuilderP, basename, sequenceNumber++, duration, armState, armControlMode);
-        flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> setCartesianImpedance = grl::toFlatBuffer(*m_logFileBufferBuilderP, cart_stiffness_, cart_damping_,
-                nullspace_stiffness_, nullspace_damping_, cart_max_path_deviation_, cart_max_ctrl_vel_, cart_max_ctrl_force_, max_control_force_stop_);
-        flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> setJointImpedance = grl::toFlatBuffer(*m_logFileBufferBuilderP, joint_stiffness_, joint_damping_);
+        // flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> setCartesianImpedance = grl::toFlatBuffer(*m_logFileBufferBuilderP, cart_stiffness_, cart_damping_,
+        //        nullspace_stiffness_, nullspace_damping_, cart_max_path_deviation_, cart_max_ctrl_vel_, cart_max_ctrl_force_, max_control_force_stop_);
+        flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> setCartesianImpedance = 0;
+        // flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> setJointImpedance = grl::toFlatBuffer(*m_logFileBufferBuilderP, joint_stiffness_, joint_damping_);
+        flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> setJointImpedance = 0;
         // normalized joint accelerations/velocities from 0 to 1 relative to system capabilities
         // how to get the acceleration of the robot? There is no acceleration information in KukaState (armState).
         flatbuffers::Offset<grl::flatbuffer::SmartServo> setSmartServo = grl::toFlatBuffer(*m_logFileBufferBuilderP, joint_AccelerationRel_, joint_VelocityRel_, updateMinimumTrajectoryExecutionTime, minimumTrajectoryExecutionTime);
@@ -657,43 +656,44 @@ public:
         std::vector<flatbuffers::Offset<grl::flatbuffer::ProcessData>> processData_vec;
         // @TODO(Chunting) Initialize Pose with 0, we ought to calculate it later with ::Transformation;
         // Also assign the configuration parameters with random values, we can figure them out later.
-        for(int i=0; i<7; i++) {
-              std::string linkname = "Link" + std::to_string(i);
-              std::string parent = i==0?"Base":("Link" + std::to_string(i-1));
-              // Compute pose later with transformation matrix
-              grl::flatbuffer::Pose pose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::Quaternion(0,0,0,0));
-              grl::flatbuffer::Inertia inertia = grl::flatbuffer::Inertia(1, pose, 0, 0, 0, 0, 0, 0);
-              flatbuffers::Offset<grl::flatbuffer::LinkObject> linkObject = grl::toFlatBuffer(*m_logFileBufferBuilderP, linkname, parent, pose, inertia);
-              auto singleprocessdata =  grl::toFlatBuffer(
-                  *m_logFileBufferBuilderP,
-                  "dataType"+ std::to_string(i),
-                  "defaultValue"+ std::to_string(i),
-                  "displayName"+ std::to_string(i),
-                  "id"+ std::to_string(i),
-                  "min"+ std::to_string(i),
-                  "max"+ std::to_string(i),
-                  "unit"+ std::to_string(i),
-                  "value"+ std::to_string(i));
-              tools.push_back(linkObject);
-              processData_vec.push_back(singleprocessdata);
-        }
+        // for(int i=0; i<KUKA::LBRState::NUM_DOF; i++) {
+        //       std::string linkname = "Link" + std::to_string(i);
+        //       std::string parent = i==0?"Base":("Link" + std::to_string(i-1));
+        //       // Compute pose later with transformation matrix
+        //       grl::flatbuffer::Pose pose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::Quaternion(0,0,0,0));
+        //       grl::flatbuffer::Inertia inertia = grl::flatbuffer::Inertia(1, pose, 0, 0, 0, 0, 0, 0);
+        //       flatbuffers::Offset<grl::flatbuffer::LinkObject> linkObject = grl::toFlatBuffer(*m_logFileBufferBuilderP, linkname, parent, pose, inertia);
+        //       auto singleprocessdata =  grl::toFlatBuffer(
+        //           *m_logFileBufferBuilderP,
+        //           "dataType"+ std::to_string(i),
+        //           "defaultValue"+ std::to_string(i),
+        //           "displayName"+ std::to_string(i),
+        //           "id"+ std::to_string(i),
+        //           "min"+ std::to_string(i),
+        //           "max"+ std::to_string(i),
+        //           "unit"+ std::to_string(i),
+        //           "value"+ std::to_string(i));
+        //       tools.push_back(linkObject);
+        //       processData_vec.push_back(singleprocessdata);
+        // }
         // Set the configuration of the Kuka iiwa
-        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> kukaiiwaArmConfiguration = grl::toFlatBuffer(
-              *m_logFileBufferBuilderP,
-              RobotName,
-              commandInterface,
-              monitorInterface,
-              clientCommandMode,
-              overlayType,
-              controlMode,
-              setCartesianImpedance,
-              setJointImpedance,
-              setSmartServo,
-              FRIConfig,
-              tools,
-              processData_vec,
-              "currentMotionCenter",
-              true);
+        // flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> kukaiiwaArmConfiguration = grl::toFlatBuffer(
+        //       *m_logFileBufferBuilderP,
+        //       RobotName,
+        //       commandInterface,
+        //       monitorInterface,
+        //       clientCommandMode,
+        //       overlayType,
+        //       controlMode,
+        //       setCartesianImpedance,
+        //       setJointImpedance,
+        //       setSmartServo,
+        //       FRIConfig,
+        //       tools,
+        //       processData_vec,
+        //       "currentMotionCenter",
+        //       true);
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> kukaiiwaArmConfiguration = 0;
 
         flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> friMessageLog = grl::toFlatBuffer(
              *m_logFileBufferBuilderP,
@@ -703,20 +703,20 @@ public:
              monitoringMsg,
              armState.time_event_stamp);
         // getWrench() is availble in KukaJAVAdriver, so maybe it's better to log data in KukaDriver where user can access both KukaFRIDriver and KukaJAVADriver?
-        grl::flatbuffer::Wrench cartesianWrench{grl::flatbuffer::Vector3d(0, 0, 0),grl::flatbuffer::Vector3d(0, 0, 0),grl::flatbuffer::Vector3d(0, 0, 0)};
+        // grl::flatbuffer::Wrench cartesianWrench{grl::flatbuffer::Vector3d(0, 0, 0),grl::flatbuffer::Vector3d(0, 0, 0),grl::flatbuffer::Vector3d(0, 0, 0)};
+        grl::flatbuffer::Wrench cartesianWrench;
         // In armState there is neither joint velocity nor acceleration
         std::vector<double> position;
-        std::vector<double> velocity(7,0);
-        std::vector<double> acceleration(7,0);
+        std::vector<double> velocity;
+        std::vector<double> acceleration;
         std::vector<double> torque;
         std::vector<double> jointIpoPostion;
         std::vector<double> externalTorque;
-        for(int i = 0; i<7; i++) {
+        for(int i = 0; i<KUKA::LBRState::NUM_DOF; i++) {
             position.push_back(armState.position[i]);
             torque.push_back(armState.torque[i]);
             jointIpoPostion.push_back(armState.ipoJointPosition[i]);
             externalTorque.push_back(armState.externalTorque[i]);
-
         }
         flatbuffers::Offset<grl::flatbuffer::JointState> jointStatetab = grl::toFlatBuffer(*m_logFileBufferBuilderP, position, velocity, acceleration, torque);
         torque.clear();
@@ -725,7 +725,9 @@ public:
         flatbuffers::Offset<grl::flatbuffer::JointState> externalState = grl::toFlatBuffer(*m_logFileBufferBuilderP, position, velocity, acceleration, externalTorque);
         // Calculate the data later.
         // Cartesian pose of the flange relative to the base of the arm
-        grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0, 0, 0), grl::flatbuffer::Quaternion(0,0,0,0));
+        // grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0, 0, 0), grl::flatbuffer::Quaternion(0,0,0,0));
+        grl::flatbuffer::Pose cartesianFlangePose{};
+        std::cout <<"Size of an empty struct: " << sizeof(cartesianFlangePose) << std::endl;
         flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> kukaiiwaMonitorState = grl::toFlatBuffer(
             *m_logFileBufferBuilderP,
             jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
@@ -737,17 +739,18 @@ public:
             robotInfo.operationMode,
             cartesianWrench);
          // Set it up in the configuration file
-        std::vector<double> torqueSensorLimits(7,0.1);
+        std::vector<double> torqueSensorLimits(KUKA::LBRState::NUM_DOF,0.1);
         std::string hardwareVersion("hardvareVersion");
         bool isReadyToMove = true;
         bool isMastered = true;
-        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> monitorConfig = grl::toFlatBuffer(
-            *m_logFileBufferBuilderP,
-            hardwareVersion,
-            torqueSensorLimits,
-            isReadyToMove,
-            isMastered,
-            processData_vec);
+        // flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> monitorConfig = grl::toFlatBuffer(
+        //     *m_logFileBufferBuilderP,
+        //     hardwareVersion,
+        //     torqueSensorLimits,
+        //     isReadyToMove,
+        //     isMastered,
+        //     processData_vec);
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> monitorConfig = 0;
         flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> KUKAiiwaState = grl::toFlatBuffer(
             *m_logFileBufferBuilderP,
             RobotName,
@@ -847,7 +850,8 @@ public:
     std::unique_ptr<std::thread> driver_threadP;
     std::shared_ptr<grl::robot::arm::KukaFRIClientDataDriver<LowLevelStepAlgorithmType>> kukaFRIClientDataDriverP_;
 private:
-void update()
+/// Check the size of the buffer, when it hit the limit, save it to disk.
+void saveToDisk()
   {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
@@ -855,8 +859,6 @@ void update()
 
     // run the primary update loop in a separate thread
     bool saveFileNow = false;
-
-    // boost::lock_guard<boost::mutex> lock(jt_mutex);
     /// Temporarily set m_isRecording true.
     m_isRecording = true;
     if (m_isRecording)
@@ -897,6 +899,8 @@ private:
     std::unique_ptr<std::thread> m_driverThread;
     /// @todo TODO(ahundt) the threads that saved files will build up forever, figure out how they can clear themselves out
     std::vector<std::shared_ptr<std::thread>> m_saveRecordingThreads;
+
+     grl::TimeEvent time_event_stamp;
 
     #ifdef HAVE_spdlog
         std::shared_ptr<spdlog::logger> loggerP;
