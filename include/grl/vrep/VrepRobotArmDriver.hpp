@@ -39,19 +39,19 @@ namespace grl { namespace vrep {
         linkNames.push_back("LBR_iiwa_14_R820_link8");
         return linkNames;
     }
-    
+
     /// @todo TODO(ahundt) HACK joint to link and joint to respondable only works for v-rep provided scene heirarchy names, modify full class so these workarounds aren't needed.
     /// @see jointToLink
     std::vector<std::string> jointToLinkRespondable(std::vector<std::string> jointNames)
     {
         auto linkNames = jointToLink(jointNames);
-    
+
         std::vector<std::string> linkNames_resp;
-    
+
         int i = 1;
         for(std::string linkName : linkNames)
         {
-            /// @todo TODO(ahundt) link 1 isn't respondable because it is anchored to the ground, but should there be an empty string so the indexes are consistent or skip it entirely? (currently skipping) 
+            /// @todo TODO(ahundt) link 1 isn't respondable because it is anchored to the ground, but should there be an empty string so the indexes are consistent or skip it entirely? (currently skipping)
             if(i!=1)
             {
                 boost::algorithm::replace_last(linkName,"link" + boost::lexical_cast<std::string>(i),"link" + boost::lexical_cast<std::string>(i) + "_resp");
@@ -59,14 +59,14 @@ namespace grl { namespace vrep {
             }
             ++i;
         }
-    
+
         return linkNames_resp;
     }
 
 /// @brief C++ interface for any open chain V-REP robot arm
 ///
-/// VrepRobotArmDriver makes it easy to specify and interact with the 
-/// joints in a V-REP defined robot arm in a consistent manner. 
+/// VrepRobotArmDriver makes it easy to specify and interact with the
+/// joints in a V-REP defined robot arm in a consistent manner.
 ///
 /// @todo add support for links, particularly the respondable aspects, see LBR_iiwa_14_R820_joint1_resp in RoboneSimulation.ttt
 /// @todo write generic getters and setters for this object like in KukaFRIalgorithm.hpp and the member functions of KukaFRIdriver, KukaJAVAdriver
@@ -81,7 +81,7 @@ public:
         RobotTargetBaseName,
         RobotIkGroup
     };
-    
+
     typedef std::tuple<
         std::vector<std::string>,
         std::string,
@@ -90,7 +90,7 @@ public:
         std::string,
         std::string
         > Params;
-    
+
     typedef std::tuple<
         std::vector<int>,
         int,
@@ -99,19 +99,19 @@ public:
         int,
         int
         > VrepHandleParams;
-    
+
     static const Params defaultParams()
     {
         std::vector<std::string> jointNames{
                     "LBR_iiwa_14_R820_joint1" , // Joint1Handle,
-                    "LBR_iiwa_14_R820_joint2" , // Joint2Handle, 
-                    "LBR_iiwa_14_R820_joint3" , // Joint3Handle, 
-                    "LBR_iiwa_14_R820_joint4" , // Joint4Handle, 
-                    "LBR_iiwa_14_R820_joint5" , // Joint5Handle, 
-                    "LBR_iiwa_14_R820_joint6" , // Joint6Handle, 
+                    "LBR_iiwa_14_R820_joint2" , // Joint2Handle,
+                    "LBR_iiwa_14_R820_joint3" , // Joint3Handle,
+                    "LBR_iiwa_14_R820_joint4" , // Joint4Handle,
+                    "LBR_iiwa_14_R820_joint5" , // Joint5Handle,
+                    "LBR_iiwa_14_R820_joint6" , // Joint6Handle,
                     "LBR_iiwa_14_R820_joint7"   // Joint7Handle,
                     };
-        
+
         return std::make_tuple(
                     jointNames                , // JointNames
                     "RobotFlangeTip"          , // RobotFlangeTipName,
@@ -121,7 +121,7 @@ public:
                     "IK_Group1_iiwa"            // RobotIkGroup
                 );
     }
-    
+
     static const Params measuredArmParams()
     {
         std::vector<std::string> jointNames{
@@ -133,7 +133,7 @@ public:
                     "LBR_iiwa_14_R820_joint6#0" , // Joint6Handle,
                     "LBR_iiwa_14_R820_joint7#0"   // Joint7Handle,
                     };
-        
+
         return std::make_tuple(
                     jointNames                , // JointNames
                     "RobotFlangeTip#0"          , // RobotFlangeTipName,
@@ -143,12 +143,11 @@ public:
                     "IK_Group1_iiwa#0"            // RobotIkGroup
                 );
     }
-    
-    
+
     /// unique tag type so State never
     /// conflicts with a similar tuple
     struct JointStateTag{};
-    
+
     enum JointStateIndex {
         JointPosition,
         JointForce,
@@ -159,14 +158,13 @@ public:
         JointStateTagIndex,
         ExternalTorque
     };
-    
-    
+
     typedef std::vector<float>               JointScalar;
-    
+
     /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simGetJointMatrix for data layout information
     typedef std::array<float,12> TransformationMatrix;
     typedef std::vector<TransformationMatrix> TransformationMatrices;
-    
+
     typedef std::tuple<
         JointScalar,            // jointPosition
     //  JointScalar             // JointVelocity  // no velocity yet
@@ -178,19 +176,19 @@ public:
         JointStateTag,          // JointStateTag unique identifying type so tuple doesn't conflict
         JointScalar             // externalTorque
     > State;
-    
-    
+
+
     VrepRobotArmDriver(Params params = defaultParams())
     : params_(params)
     {
     }
-    
+
 /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
 /// @warning getting the ik group is optional, so it does not throw an exception
 void construct() {
     std::vector<int> jointHandle;
     getHandleFromParam<JointNames>(params_,std::back_inserter(jointHandle));
-    handleParams_ = 
+    handleParams_ =
     std::make_tuple(
          std::move(jointHandle)                                 //Obtain Joint Handles
 	    ,getHandleFromParam<RobotTipName>           (params_)	//Obtain RobotTip handle
@@ -199,7 +197,7 @@ void construct() {
 	    ,getHandleFromParam<RobotTargetBaseName>    (params_)
         ,simGetIkGroupHandle(std::get<RobotIkGroup> (params_).c_str())
     );
-    
+
     /// @todo TODO(ahundt) move these functions/member variables into params_ object, take as parameters from lua!
     linkNames = jointToLink(std::get<JointNames>(params_));
     getHandles(linkNames, std::back_inserter(linkHandles));
@@ -217,33 +215,33 @@ void construct() {
 bool getState(State& state){
             if(!allHandlesSet) return false;
             const std::vector<int>& jointHandle = std::get<JointNames>(handleParams_);
-    
+
             std::get<JointPosition>             (state).resize(jointHandle.size());
             std::get<JointForce>                (state).resize(jointHandle.size());
             std::get<JointTargetPosition>       (state).resize(jointHandle.size());
             std::get<JointMatrix>               (state).resize(jointHandle.size());
             std::get<JointLowerPositionLimit>   (state).resize(jointHandle.size());
             std::get<JointUpperPositionLimit>   (state).resize(jointHandle.size());
-    
+
             enum limit {
               lower
               ,upper
               ,numLimits
               };
-              
+
             simBool isCyclic;
             float jointAngleInterval[2]; // min,max
             double inf = std::numeric_limits<double>::infinity();
-			
+
 			for (std::size_t i=0 ; i < jointHandle.size() ; i++)
-			{	
+			{
                 int currentJointHandle = jointHandle[i];
 				simGetJointPosition(currentJointHandle,&std::get<JointPosition>(state)[i]);  //retrieves the intrinsic position of a joint (Angle for revolute joint)
 				simGetJointForce(currentJointHandle,&std::get<JointForce>(state)[i]);	//retrieves the force or torque applied to a joint along/about its active axis. This function retrieves meaningful information only if the joint is prismatic or revolute, and is dynamically enabled.
 				simGetJointTargetPosition(currentJointHandle,&std::get<JointTargetPosition>(state)[i]);  //retrieves the target position of a joint
 				simGetJointMatrix(currentJointHandle,&std::get<JointMatrix>(state)[i][0]);   //retrieves the intrinsic transformation matrix of a joint (the transformation caused by the joint movement)
                 simGetJointInterval(currentJointHandle,&isCyclic,jointAngleInterval);
-                
+
                 /// @todo TODO(ahundt) is always setting infinity if it is cyclic the right thing to do?
                 if(isCyclic)
                 {
@@ -257,18 +255,18 @@ bool getState(State& state){
                 }
 
 			}
-            
+
 //			BOOST_LOG_TRIVIAL(info) << "simJointPostition = " << simJointPosition << std::endl;
 //			BOOST_LOG_TRIVIAL(info) << "simJointForce = " << simJointForce << std::endl;
 //			BOOST_LOG_TRIVIAL(info) << "simJointTargetPostition = " << simJointTargetPosition << std::endl;
 //			BOOST_LOG_TRIVIAL(info) << "simJointTransformationMatrix = " << simJointTransformationMatrix << std::endl;
-//			
+//
 //			float simTipPosition[3];
 //			float simTipOrientation[3];
 //
 //			simGetObjectPosition(target, targetBase, simTipPosition);
 //			simGetObjectOrientation(target, targetBase, simTipOrientation);
-//			
+//
 //			for (int i = 0 ; i < 3 ; i++)
 //			{
 //				BOOST_LOG_TRIVIAL(info) << "simTipPosition[" << i << "] = " << simTipPosition[i] << std::endl;
@@ -305,31 +303,31 @@ bool setState(State& state) {
 			for (int i=0 ; i < 7 ; i++)
 			{
 				simSetJointPosition(jointHandle[i],realJointPosition[i]); //Sets the intrinsic position of a joint. May have no effect depending on the joint mode
-            
-            
+
+
 				//simSetJointTargetPosition(jointHandle[i],realJointTargetPosition[i]);  //Sets the target position of a joint if the joint is in torque/force mode (also make sure that the joint's motor and position control are enabled
-            
+
 				//simSetJointForce(jointHandle[i],realJointForce[i]);  //Sets the maximum force or torque that a joint can exert. This function has no effect when the joint is not dynamically enabled
-            
-            
+
+
 				//simSetJointTargetVelocity(jointHandle[i],realJointTargetVelocity[i]);  //Sets the intrinsic target velocity of a non-spherical joint. This command makes only sense when the joint mode is: (a) motion mode: the joint's motion handling feature must be enabled (simHandleJoint must be called (is called by default in the main script), and the joint motion properties must be set in the joint settings dialog), (b) torque/force mode: the dynamics functionality and the joint motor have to be enabled (position control should however be disabled)
 			}
-    
+
             if (externalHandlesSet) {
-                
+
             }
-    
+
             else {
-                
+
                 for (int i=0 ; i < 7 ; i++) {
                     std::string torqueString = boost::lexical_cast<std::string>(externalJointForce[i]);
                     char * externalTorqueBytes = new char[torqueString.length()+1];
                     std::strcpy(externalTorqueBytes, torqueString.c_str());
-                    
+
                     simAddObjectCustomData(jointHandle[i], externalTorqueHandle, externalTorqueBytes, torqueString.length()+1);
                 }
             }
-    
+
             return true;
 }
 

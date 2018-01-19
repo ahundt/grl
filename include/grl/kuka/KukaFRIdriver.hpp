@@ -84,6 +84,7 @@ public:
     /// @warning getting the ik group is optional, so it does not throw an
     /// exception
     void construct(Params params) {
+        std::cout<< "Start KukaFRIdriver->construct()..." << std::endl;
 
         params_ = params;
         // keep driver threads from exiting immediately after creation, because they
@@ -110,6 +111,7 @@ public:
         #ifdef HAVE_spdlog
             loggerP = spdlog::stdout_logger_mt("logs/kukaiiwa_logger.txt");
         #endif // HAVE_spdlog
+        std::cout<< "End KukaFRIdriver->construct()..." << std::endl;
     }
 
     const Params &getParams() { return params_; }
@@ -118,8 +120,8 @@ public:
         device_driver_workP_.reset();
 
         if (driver_threadP) {
-          device_driver_io_service.stop();
-          driver_threadP->join();
+            device_driver_io_service.stop();
+            driver_threadP->join();
         }
     }
 
@@ -197,7 +199,7 @@ public:
      *
      */
     bool run_one() {
-
+        std::cout<< "Start KukaFRIdriver->run_one()..." << std::endl;
         // note: this one sends *and* receives the joint data!
         BOOST_VERIFY(kukaFRIClientDataDriverP_.get() != nullptr);
         /// @todo use runtime calculation of NUM_JOINTS instead of constant
@@ -305,58 +307,6 @@ public:
 
             oneKUKAiiwaStateBuffer();
             armState.time_event_stamp = time_event_stamp;
-
-            // std::cout<<" armState.time_event_stamp -------------" << std::endl;
-            // for (int i = 0; i<stringLength(armState.time_event_stamp.event_name); i++){
-            //     std::cout <<armState.time_event_stamp.event_name[i];
-            // }
-            // std::cout<<std::endl;
-            // for (int i = 0; i<std::min(device_clock_id_str.size(), device_clock_id.size()); i++){
-            //     std::cout <<armState.time_event_stamp.device_clock_id[i];
-            // }
-            // std::cout<<std::endl;
-            // for (int i = 0; i<std::min(local_clock_id_str.size(),local_clock_name_arr.size()); i++){
-            //     std::cout <<armState.time_event_stamp.local_clock_id[i];
-            // }
-            // std::cout<<std::endl;
-            // std::cout << "local_request_time should be full: " << time_event_stamp.local_request_time <<std::endl;
-
-            // std::cout << "Measured Torque: ";
-            // std::cout << std::setw(6);
-            // for (float t:armState.torque) {
-            //     std::cout << t << " ";
-            // }
-            // std::cout << '\n';
-            // std::cout << "External Torque: ";
-            // std::cout << std::setw(6);
-            // for (float t:armState.externalTorque) {
-            //     std::cout << t << " ";
-            // }
-            // std::cout << '\n';
-            // std::cout << "External Force: ";
-            // for (float t:armState.externalForce) {
-            //     std::cout << t << " ";
-            // }
-            // std::cout << '\n';
-
-            // std::cout << "Command Positon: ";
-            // std::cout << std::setw(6);
-            // for (float t:armState.commandedPosition) {
-            //     std::cout << t << " ";
-            // }
-            // std::cout << '\n';
-
-
-            // std::cout << "Command Torque: ";
-            // std::cout << std::setw(6);
-            // for (float t:armState.commandedTorque) {
-            //     std::cout << t << " ";
-            // }
-            // std::cout << '\n';
-
-
-            // TODO(chunting) add data to log here, when full write to disk on a separate thread like FusionTrackLogAndTrack
-
             saveToDisk();
             // m_driverThread.reset(new std::thread(&KukaFRIdriver::save_recording));
         } else {
@@ -406,10 +356,10 @@ public:
      */
     template <typename Range>
     void set(Range &&range, grl::revolute_joint_angle_open_chain_command_tag) {
-      boost::lock_guard<boost::mutex> lock(jt_mutex);
-      armState.clearCommands();
-      boost::copy(range, std::back_inserter(armState.commandedPosition));
-      boost::copy(range, std::back_inserter(armState.commandedPosition_goal));
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        armState.clearCommands();
+        boost::copy(range, std::back_inserter(armState.commandedPosition));
+        boost::copy(range, std::back_inserter(armState.commandedPosition_goal));
     }
 
     /**
@@ -433,8 +383,8 @@ public:
      *
      */
     void set(double duration_to_goal_command, time_duration_command_tag) {
-      boost::lock_guard<boost::mutex> lock(jt_mutex);
-      armState.goal_position_command_time_duration = duration_to_goal_command;
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        armState.goal_position_command_time_duration = duration_to_goal_command;
     }
 
     /**
@@ -451,10 +401,10 @@ public:
     //   return armState.timestamp;
     // }
 
-      cartographer::common::Time get(time_point_tag) {
-         boost::lock_guard<boost::mutex> lock(jt_mutex);
-         return armState.time_event_stamp.device_time;
-      }
+    cartographer::common::Time get(time_point_tag) {
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        return armState.time_event_stamp.device_time;
+    }
 
     /**
      * \brief Set the applied joint torques for the current interpolation step.
@@ -471,9 +421,9 @@ public:
      */
     template <typename Range>
     void set(Range &&range, grl::revolute_joint_torque_open_chain_command_tag) {
-      boost::lock_guard<boost::mutex> lock(jt_mutex);
-      armState.clearCommands();
-      boost::copy(range, armState.commandedTorque);
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        armState.clearCommands();
+        boost::copy(range, armState.commandedTorque);
     }
 
     /**
@@ -503,30 +453,30 @@ public:
      */
     template <typename Range>
     void set(Range &&range, grl::cartesian_wrench_command_tag) {
-      boost::lock_guard<boost::mutex> lock(jt_mutex);
-      armState.clearCommands();
-      std::copy(range, armState.commandedCartesianWrenchFeedForward);
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        armState.clearCommands();
+        std::copy(range, armState.commandedCartesianWrenchFeedForward);
     }
 
     /// @todo should this exist, is it a good design? is it written correctly?
     void get(KukaState &state) {
-      boost::lock_guard<boost::mutex> lock(jt_mutex);
-      state = armState;
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        state = armState;
     }
 
     /// start recording the kuka state data in memory
     /// return true on success, false on failure
     bool start_recording()
     {
-      m_isRecording = true;
-      return m_isRecording;
+        m_isRecording = true;
+        return m_isRecording;
     }
     /// stop recording the kuka state data in memory
     /// return true on success, false on failure
     bool stop_recording()
     {
-      m_isRecording = false;
-      return !m_isRecording;
+        m_isRecording = false;
+        return !m_isRecording;
     }
 
     bool is_recording()
@@ -537,8 +487,6 @@ public:
 
     bool oneKUKAiiwaStateBuffer()
     {
-
-
         std::string RobotName = std::string(std::get<RobotModel>(params_));
 
         std:: string destination = std::string(std::get<remotehost>(params_));
@@ -556,8 +504,6 @@ public:
         std::vector<double> joint_VelocityRel_(KUKA::LBRState::NUM_DOF, 0);
         bool updateMinimumTrajectoryExecutionTime = false;
         double minimumTrajectoryExecutionTime = 4;
-
-
 
         //Cartesian Impedance Values
         // grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(0,0,0);

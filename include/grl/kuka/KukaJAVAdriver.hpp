@@ -68,408 +68,386 @@ namespace grl { namespace robot { namespace arm {
      * @todo make sure mutex is locked when appropriate
      *
      */
-    class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
+class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
     public:
 
-      enum ParamIndex {
-        RobotName,
-        RobotModel,
-        LocalUDPAddress,
-        LocalUDPPort,
-        RemoteUDPAddress,
-        LocalHostKukaKoniUDPAddress,
-        LocalHostKukaKoniUDPPort,
-        RemoteHostKukaKoniUDPAddress,
-        RemoteHostKukaKoniUDPPort,
-        KukaCommandMode,
-        KukaMonitorMode
-      };
+        enum ParamIndex {
+            RobotName,
+            RobotModel,
+            LocalUDPAddress,
+            LocalUDPPort,
+            RemoteUDPAddress,
+            LocalHostKukaKoniUDPAddress,
+            LocalHostKukaKoniUDPPort,
+            RemoteHostKukaKoniUDPAddress,
+            RemoteHostKukaKoniUDPPort,
+            KukaCommandMode,
+            KukaMonitorMode
+        };
 
-      typedef std::tuple<
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string,
-        std::string
-          > Params;
-
-
-      static const Params defaultParams(){
-        return std::make_tuple(
-            "Robotiiwa"               , // RobotName,
-            "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
-            "0.0.0.0"                 , // LocalUDPAddress
-            "30010"                   , // LocalUDPPort
-            "172.31.1.147"            , // RemoteUDPAddress
-            "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
-            "30200"                   , // LocalHostKukaKoniUDPPort,
-            "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
-            "30200"                   , // RemoteHostKukaKoniUDPPort
-            "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
-            "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
-            );
-      }
+        typedef std::tuple<
+            std::string,
+            std::string,
+            std::string,
+            std::string,
+            std::string,
+            std::string,
+            std::string,
+            std::string,
+            std::string,
+            std::string,
+            std::string
+              > Params;
 
 
-      /// unique tag type so State never
-      /// conflicts with a similar tuple
-      struct JointStateTag{};
-
-      enum JointStateIndex {
-        JointPosition,
-        JointForce,
-        JointTargetPosition,
-        JointLowerPositionLimit,
-        JointUpperPositionLimit,
-        JointMatrix,
-        JointStateTagIndex
-      };
-
-
-      typedef std::vector<double>               JointScalar;
-
-      /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simGetJointMatrix for data layout information
-      typedef std::array<double,12> TransformationMatrix;
-      typedef std::vector<TransformationMatrix> TransformationMatrices;
-
-      typedef std::tuple<
-        JointScalar,            // jointPosition
-        //  JointScalar             // JointVelocity  // no velocity yet
-        JointScalar,            // jointForce
-        JointScalar,            // jointTargetPosition
-        JointScalar,            // JointLowerPositionLimit
-        JointScalar,            // JointUpperPositionLimit
-        TransformationMatrices, // jointTransformation
-        JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
-          > State;
-
-
-      KukaJAVAdriver(Params params = defaultParams())
-        : params_(params), armControlMode_(flatbuffer::ArmState::NONE)
-      {}
-
-      void construct(){ construct(params_); sequenceNumber = 0; }
-
-      /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
-      /// @warning getting the ik group is optional, so it does not throw an exception
-      void construct(Params params) {
-        try { logger_ = spdlog::stdout_logger_mt("console"); } catch (spdlog::spdlog_ex ex) { logger_ = spdlog::get("console"); }
-        params_ = params;
-
-
-        try {
-          logger_->info("KukaLBRiiwaRosPlugin: Connecting UDP Socket from ",
-            std::get<LocalUDPAddress>             (params_), ":", std::get<LocalUDPPort>             (params_), " to ",
-            std::get<RemoteUDPAddress>            (params_));
-
-            /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
-            socket_local = socket(AF_INET, SOCK_DGRAM, 0);
-            if (socket_local < 0) {
-                 BOOST_THROW_EXCEPTION(std::runtime_error("KukaJAVAdriver Error opening socket. Check that the port is available, and that all the cables are connected tightly. If you have no other options try restarting your computer."));
-            }
-
-            port = boost::lexical_cast<int>( std::get<LocalUDPPort>             (params_));
-            // convert the string to network presentation value
-            inet_pton(AF_INET, std::get<LocalUDPAddress>(params_).c_str(), &(local_sockaddr.sin_addr));
-            local_sockaddr.sin_family = AF_INET;
-            local_sockaddr.sin_port = htons(port);
-        //    local_sockaddr.sin_addr.s_addr = INADDR_ANY;
-
-            /// @todo TODO(ahundt) Consider switching to boost::asio synchronous calls (async has high latency)!
-            /// @todo TODO(ahundt) Need to switch back to an appropriate exception rather than exiting so VREP isn't taken down.
-            /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
-            if (bind(socket_local, (struct sockaddr *)&local_sockaddr, sizeof(local_sockaddr)) < 0) {
-                printf("Error binding sr_joint!\n");
-                BOOST_THROW_EXCEPTION(std::runtime_error("KukaJAVAdriver Error opening socket. Check that the port is available, and that all the cables are connected tightly. If you have no other options try restarting your computer."));
-            }
-
-            FD_ZERO(&mask);
-            FD_ZERO(&dummy_mask);
-            FD_SET(socket_local, &mask);
-
-            // set arm to StartArm mode on initalization
-            //set(grl::flatbuffer::ArmState::StartArm);
-            set(grl::flatbuffer::ArmState::MoveArmJointServo);
-
-        } catch( boost::exception &e) {
-          e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from {}{}{}" +
-                           std::get<LocalUDPAddress>             (params_) + " to " +
-                           std::get<RemoteUDPAddress>            (params_));
-          throw;
+        static const Params defaultParams(){
+            return std::make_tuple(
+                "Robotiiwa"               , // RobotName,
+                "KUKA_LBR_IIWA_14_R820"   , // RobotModel (options are KUKA_LBR_IIWA_14_R820, KUKA_LBR_IIWA_7_R800)
+                "0.0.0.0"                 , // LocalUDPAddress
+                "30010"                   , // LocalUDPPort
+                "172.31.1.147"            , // RemoteUDPAddress
+                "192.170.10.100"          , // LocalHostKukaKoniUDPAddress,
+                "30200"                   , // LocalHostKukaKoniUDPPort,
+                "192.170.10.2"            , // RemoteHostKukaKoniUDPAddress,
+                "30200"                   , // RemoteHostKukaKoniUDPPort
+                "JAVA"                    , // KukaCommandMode (options are FRI, JAVA)
+                "FRI"                       // KukaMonitorMode (options are FRI, JAVA)
+                );
         }
-      }
 
 
+        /// unique tag type so State never
+        /// conflicts with a similar tuple
+        struct JointStateTag{};
+
+        enum JointStateIndex {
+          JointPosition,
+          JointForce,
+          JointTargetPosition,
+          JointLowerPositionLimit,
+          JointUpperPositionLimit,
+          JointMatrix,
+          JointStateTagIndex
+        };
+
+        typedef std::vector<double>               JointScalar;
+
+        /// @see http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simGetJointMatrix for data layout information
+        typedef std::array<double,12> TransformationMatrix;
+        typedef std::vector<TransformationMatrix> TransformationMatrices;
+
+        typedef std::tuple<
+          JointScalar,            // jointPosition
+          //  JointScalar             // JointVelocity  // no velocity yet
+          JointScalar,            // jointForce
+          JointScalar,            // jointTargetPosition
+          JointScalar,            // JointLowerPositionLimit
+          JointScalar,            // JointUpperPositionLimit
+          TransformationMatrices, // jointTransformation
+          JointStateTag           // JointStateTag unique identifying type so tuple doesn't conflict
+            > State;
 
 
-      const Params & getParams(){
-        return params_;
-      }
+        KukaJAVAdriver(Params params = defaultParams())
+          : params_(params), armControlMode_(flatbuffer::ArmState::NONE)
+        {}
 
-      /// shuts down the arm
-      bool destruct(){
-          close(socket_local);
-          return true;
-      }
+        void construct(){ construct(params_); sequenceNumber = 0; }
 
-      ~KukaJAVAdriver(){
-         /// @todo TODO(ahundt) switch to asio, remove destruct call from destructor
-         destruct();
-      }
+        /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
+        /// @warning getting the ik group is optional, so it does not throw an exception
+        void construct(Params params) {
+            try { logger_ = spdlog::stdout_logger_mt("console"); } catch (spdlog::spdlog_ex ex) { logger_ = spdlog::get("console"); }
+            params_ = params;
 
+            try {
+                logger_->info("KukaLBRiiwaRosPlugin: Connecting UDP Socket from ",
+                std::get<LocalUDPAddress>             (params_), ":", std::get<LocalUDPPort>             (params_), " to ",
+                std::get<RemoteUDPAddress>            (params_));
 
-      /// @brief SEND COMMAND TO ARM. Call this often
-      /// Performs the main update spin once.
-      /// @todo ADD SUPPORT FOR READING ARM STATE OVER JAVA INTERFACE
-      bool run_one(){
+                /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
+                /// AF_INET (IPv4 protocol) , AF_INET6 (IPv6 protocol)
+                /// communication type: SOCK_STREAM: TCP(reliable, connection oriented), SOCK_DGRAM: UDP(unreliable, connectionless)
+                /// Protocol value for Internet Protocol(IP), which is 0.
+                /// socket_local is the socket descriptor, which is an integer.
+                socket_local = socket(AF_INET, SOCK_DGRAM, 0);
+                if (socket_local < 0) {
+                    BOOST_THROW_EXCEPTION(std::runtime_error("KukaJAVAdriver Error opening socket. Check that the port is available, and that all the cables are connected tightly. If you have no other options try restarting your computer."));
+                }
+                /// convert string to int
+                port = boost::lexical_cast<int>( std::get<LocalUDPPort> (params_));
+                /// convert the string to network presentation value
+                /// inet_pton() returns 1 on success. It returns -1 if there was an error (errno is set), or 0 if the input isn't a valid IP address.
+                inet_pton(AF_INET, std::get<LocalUDPAddress>(params_).c_str(), &(local_sockaddr.sin_addr));
+                local_sockaddr.sin_family = AF_INET;
+                /// htons: host to network short
+                local_sockaddr.sin_port = htons(port);
+                ///  local_sockaddr.sin_addr.s_addr = INADDR_ANY;
 
-        // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
-        //if(!m_haveReceivedRealDataCount) return;
+                /// @todo TODO(ahundt) Consider switching to boost::asio synchronous calls (async has high latency)!
+                /// @todo TODO(ahundt) Need to switch back to an appropriate exception rather than exiting so VREP isn't taken down.
+                /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
+                /// After creation of the socket, bind function binds the socket to the address and port number specified in local_sockaddr(custom data structure).
+                if (bind(socket_local, (struct sockaddr *)&local_sockaddr, sizeof(local_sockaddr)) < 0) {
+                    printf("Error binding sr_joint!\n");
+                    BOOST_THROW_EXCEPTION(std::runtime_error("KukaJAVAdriver Error opening socket. Check that the port is available, and that all the cables are connected tightly. If you have no other options try restarting your computer."));
+                }
+                /// clear the socket set defined by fd_set
+                FD_ZERO(&mask);
+                FD_ZERO(&dummy_mask);
+                /// if valid socket descriptor then add to socket set
+                FD_SET(socket_local, &mask);
+                // set arm to StartArm mode on initalization
+                //set(grl::flatbuffer::ArmState::StartArm);
+                set(grl::flatbuffer::ArmState::MoveArmJointServo);
+            } catch( boost::exception &e) {
+                e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from {}{}{}" +
+                                 std::get<LocalUDPAddress>             (params_) + " to " +
+                                 std::get<RemoteUDPAddress>            (params_));
+                throw;
+            }
+        }
 
-        bool haveNewData = false;
+        const Params & getParams(){
+          return params_;
+        }
 
-        /// @todo make this handled by template driver implementations/extensions
+        /// shuts down the arm
+        bool destruct(){
+            close(socket_local);
+            return true;
+        }
+        ~KukaJAVAdriver(){
+           /// @todo TODO(ahundt) switch to asio, remove destruct call from destructor
+           destruct();
+        }
 
+        /// @brief SEND COMMAND TO ARM. Call this often
+        /// Performs the main update spin once.
+        /// @todo ADD SUPPORT FOR READING ARM STATE OVER JAVA INTERFACE
+        bool run_one(){
 
+            // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
+            //if(!m_haveReceivedRealDataCount) return;
 
+            bool haveNewData = false;
+            /// @todo make this handled by template driver implementations/extensions
 
-
-           std::shared_ptr<flatbuffers::FlatBufferBuilder> fbbP;
-           fbbP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+            std::shared_ptr<flatbuffers::FlatBufferBuilder> fbbP;
+            fbbP = std::make_shared<flatbuffers::FlatBufferBuilder>();
 
             boost::lock_guard<boost::mutex> lock(jt_mutex);
 
-          double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
+            double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
 
-          /// @todo is this the best string to pass for the full arm's name?
-          auto basename = std::get<RobotName>(params_);
+            /// @todo is this the best string to pass for the full arm's name?
+            auto basename = std::get<RobotName>(params_);
 
-          auto bns = fbbP->CreateString(basename);
+            auto bns = fbbP->CreateString(basename);
 
-          flatbuffers::Offset<flatbuffer::ArmControlState> controlState;
+            flatbuffers::Offset<flatbuffer::ArmControlState> controlState;
 
+            switch (armControlMode_) {
 
-          switch (armControlMode_) {
-
-              case flatbuffer::ArmState::StartArm: {
-                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStartArm(*fbbP).Union());
-                 break;
-              }
-              case flatbuffer::ArmState::MoveArmJointServo: {
-
-                /// @todo when new
-                auto armPositionBuffer = fbbP->CreateVector(armState_.commandedPosition_goal.data(),armState_.commandedPosition_goal.size());
-                auto commandedTorque = fbbP->CreateVector(armState_.commandedTorque.data(),armState_.commandedTorque.size());
-                auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
-                auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
-                controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
-                    logger_->info("C++ KukaJAVAdriver: sending armposition command: {}{}", armState_.commandedPosition_goal);
-                 break;
-              }
-              case flatbuffer::ArmState::TeachArm: {
-                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateTeachArm(*fbbP).Union());
-                 break;
-              }
-              case flatbuffer::ArmState::PauseArm: {
-                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreatePauseArm(*fbbP).Union());
-                 break;
-              }
-              case flatbuffer::ArmState::StopArm: {
-                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
-                 break;
-              }
-              case flatbuffer::ArmState::ShutdownArm: {
-                 controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
-                 break;
-              }
-              case flatbuffer::ArmState::NONE: {
-                 //std::cerr << "Waiting for interation mode... (currently NONE)\n";
-                 break;
-              }
-              default:
-                 logger_->error("C++ KukaJAVAdriver: unsupported use case: {}", EnumNameArmState(armControlMode_));
-          }
-
-          auto name = fbbP->CreateString(std::get<RobotName>(params_));
-
-          auto clientCommandMode = grl::flatbuffer::EClientCommandMode::POSITION;
-          auto overlayType =  grl::flatbuffer::EOverlayType::NO_OVERLAY;
-
-          //auto stiffnessPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_stiffness_trans_,&cart_stiffness_rot_);
-          //auto dampingPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_damping_trans_,&cart_damping_rot_);
-
-          auto setCartesianImpedance = grl::flatbuffer::CreateCartesianImpedenceControlMode(*fbbP, &cart_stiffness_, &cart_damping_,
-                nullspace_stiffness_, nullspace_damping_, &cart_max_path_deviation_, &cart_max_ctrl_vel_, &cart_max_ctrl_force_, max_control_force_stop_);
-
-          auto jointStiffnessBuffer = fbbP->CreateVector(joint_stiffness_.data(),joint_stiffness_.size());
-          auto jointDampingBuffer = fbbP->CreateVector(joint_damping_.data(),joint_damping_.size());
-
-          auto setJointImpedance = grl::flatbuffer::CreateJointImpedenceControlMode(*fbbP, jointStiffnessBuffer, jointDampingBuffer);
-
-          auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,name,commandInterface_,monitorInterface_, clientCommandMode, overlayType,
-                      controlMode_, setCartesianImpedance, setJointImpedance);
-
-          bool setArmControlState = true; // only actually change the arm state when this is true.
-
-          // TODO fill the 0s
-          auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,setArmConfiguration_,kukaiiwaArmConfiguration);
-
-          auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
-
-          auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
-
-          grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
-
-          flatbuffers::Verifier verifier(fbbP->GetBufferPointer(),fbbP->GetSize());
-          BOOST_VERIFY(grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier));
-
-
-          if(armControlMode_ == flatbuffer::ArmState::MoveArmJointServo)
-          {
-              auto states2 = flatbuffer::GetKUKAiiwaStates(fbbP->GetBufferPointer());
-              auto movearm = static_cast<const flatbuffer::MoveArmJointServo*>(states2->states()->Get(0)->armControlState()->state());
-              std::vector<double> angles;
-              for(std::size_t i = 0; i <  movearm->goal()->position()->size(); ++i)
-              {
-                angles.push_back(movearm->goal()->position()->Get(i));
-              }
-              logger_->info("re-extracted {}{}{}", movearm->goal()->position()->size(), " joint angles: ",angles);
-          }
-
-          if(debug_) logger_->info("sending packet to KUKA iiwa: len = {}", fbbP->GetSize());
-          int ret;
-          // Send UDP packet to Robot
-          ret = sendto(socket_local, fbbP->GetBufferPointer(), fbbP->GetSize(), 0, (struct sockaddr *)&dst_sockaddr, sizeof(dst_sockaddr));
-
-          if (static_cast<long>(ret) != static_cast<long>(fbbP->GetSize())) logger_->error("Error sending packet to KUKA iiwa: ret = {}, len = {}", ret, fbbP->GetSize());
-
-          setArmConfiguration_ = false;
-
-              // Receiving data from Sunrise
-
-              int num;
-              temp_mask = mask;
-
-              // tv is the time that you wait for a new message to arrive,
-              // since we don't wont to hinder the execution of each cycle, it is set to zero...
-              // (The FRI interface read rate is much higher than the data coming for the controller, so we don't wait for controller data)
-              struct timeval tv;
-              tv.tv_sec = 0;
-              tv.tv_usec = 0;
-
-              // Check to see if any packets are available with waiting time of 0
-              // Please note that with this configuration some packets may be dropped.
-              /// @todo TODO(ahundt) eventually run this in a separate thread so we can receive packets asap and minimize dropping
-              num = select(FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, &tv);
-
-                if (num > 0)
-                {
-                      // packets are available, process them
-                      if (FD_ISSET(socket_local, &temp_mask))
-                      {
-                           // allocate the buffer, should only happen once
-                           if(!java_interface_received_statesP_) {
-                             java_interface_received_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
-                           }
-                           if(!java_interface_next_statesP_) {
-                             java_interface_next_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
-                           }
-
-
-                           static const int flags = 0;
-                           // get a reference to the buffer object
-                           const fbs_tk::Buffer& internal_buffer = java_interface_received_statesP_->get_data();
-
-                           // receive an update from the java driver over UDP
-                           std::vector<uint8_t> bufferdata = internal_buffer.get_data();
-                           ret = recvfrom(socket_local, reinterpret_cast<void*>(&bufferdata[0]), internal_buffer.size(), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
-                           if (ret <= 0) {
-                             bool java_state_received_successfully = false;
-                             logger_->error("C++ KukaJAVAdriver Error: Receive failed with ret = {}", ret);
-                           } else {
-
-                               if(debug_) logger_->info("C++ KukaJAVAdriver received message size: {}",ret);
-
-                               java_interface_received_statesP_->update_root();
-
-                               // Flatbuffer has been verified as valid
-                               if (java_interface_received_statesP_->valid()) {
-                                  bool java_state_received_successfully = true;
-                                  std::swap(java_interface_received_statesP_, java_interface_next_statesP_);
-                                  if(debug_) logger_->info("C++ KukaJAVAdriver: flatbuffer verified successfully");
-                               } else {
-                                  // TODO(ahundt) consider specific error codes for verifier failure vs udp receive failure
-                                  bool java_state_received_successfully = false;
-                                  logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", java_state_received_successfully);
-                               }
-
-                           }
-
-                      }
+                case flatbuffer::ArmState::StartArm: {
+                   controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStartArm(*fbbP).Union());
+                   break;
                 }
+                case flatbuffer::ArmState::MoveArmJointServo: {
+
+                  /// @todo when new
+                  auto armPositionBuffer = fbbP->CreateVector(armState_.commandedPosition_goal.data(),armState_.commandedPosition_goal.size());
+                  auto commandedTorque = fbbP->CreateVector(armState_.commandedTorque.data(),armState_.commandedTorque.size());
+                  auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
+                  auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
+                  controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
+                      logger_->info("C++ KukaJAVAdriver: sending armposition command: {}{}", armState_.commandedPosition_goal);
+                   break;
+                }
+                case flatbuffer::ArmState::TeachArm: {
+                   controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateTeachArm(*fbbP).Union());
+                   break;
+                }
+                case flatbuffer::ArmState::PauseArm: {
+                   controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreatePauseArm(*fbbP).Union());
+                   break;
+                }
+                case flatbuffer::ArmState::StopArm: {
+                   controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
+                   break;
+                }
+                case flatbuffer::ArmState::ShutdownArm: {
+                   controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateStopArm(*fbbP).Union());
+                   break;
+                }
+                case flatbuffer::ArmState::NONE: {
+                   //std::cerr << "Waiting for interation mode... (currently NONE)\n";
+                   break;
+                }
+                default:
+                   logger_->error("C++ KukaJAVAdriver: unsupported use case: {}", EnumNameArmState(armControlMode_));
+            }
+
+            auto name = fbbP->CreateString(std::get<RobotName>(params_));
+
+            auto clientCommandMode = grl::flatbuffer::EClientCommandMode::POSITION;
+            auto overlayType =  grl::flatbuffer::EOverlayType::NO_OVERLAY;
+
+            //auto stiffnessPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_stiffness_trans_,&cart_stiffness_rot_);
+            //auto dampingPose  = flatbuffer::CreateEulerPoseParams(*fbbP,&cart_damping_trans_,&cart_damping_rot_);
+
+            auto setCartesianImpedance = grl::flatbuffer::CreateCartesianImpedenceControlMode(*fbbP, &cart_stiffness_, &cart_damping_,
+                  nullspace_stiffness_, nullspace_damping_, &cart_max_path_deviation_, &cart_max_ctrl_vel_, &cart_max_ctrl_force_, max_control_force_stop_);
+
+            auto jointStiffnessBuffer = fbbP->CreateVector(joint_stiffness_.data(),joint_stiffness_.size());
+            auto jointDampingBuffer = fbbP->CreateVector(joint_damping_.data(),joint_damping_.size());
+
+            auto setJointImpedance = grl::flatbuffer::CreateJointImpedenceControlMode(*fbbP, jointStiffnessBuffer, jointDampingBuffer);
+
+            auto kukaiiwaArmConfiguration = flatbuffer::CreateKUKAiiwaArmConfiguration(*fbbP,name,commandInterface_,monitorInterface_, clientCommandMode, overlayType,
+                        controlMode_, setCartesianImpedance, setJointImpedance);
+
+            bool setArmControlState = true; // only actually change the arm state when this is true.
+
+            // TODO fill the 0s
+            auto kukaiiwastate = flatbuffer::CreateKUKAiiwaState(*fbbP,0,0,0,0,1,controlState,setArmConfiguration_,kukaiiwaArmConfiguration);
+
+            auto kukaiiwaStateVec = fbbP->CreateVector(&kukaiiwastate, 1);
+
+            auto states = flatbuffer::CreateKUKAiiwaStates(*fbbP,kukaiiwaStateVec);
+
+            grl::flatbuffer::FinishKUKAiiwaStatesBuffer(*fbbP, states);
+
+            flatbuffers::Verifier verifier(fbbP->GetBufferPointer(),fbbP->GetSize());
+            BOOST_VERIFY(grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier));
 
 
-         return haveNewData;
-      }
+            if(armControlMode_ == flatbuffer::ArmState::MoveArmJointServo)
+            {
+                auto states2 = flatbuffer::GetKUKAiiwaStates(fbbP->GetBufferPointer());
+                auto movearm = static_cast<const flatbuffer::MoveArmJointServo*>(states2->states()->Get(0)->armControlState()->state());
+                std::vector<double> angles;
+                for(std::size_t i = 0; i <  movearm->goal()->position()->size(); ++i)
+                {
+                  angles.push_back(movearm->goal()->position()->Get(i));
+                }
+                logger_->info("re-extracted {}{}{}", movearm->goal()->position()->size(), " joint angles: ",angles);
+            }
 
-      volatile std::size_t m_haveReceivedRealDataCount = 0;
-      volatile std::size_t m_attemptedCommunicationCount = 0;
-      volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
-      volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
+            if(debug_) logger_->info("sending packet to KUKA iiwa: len = {}", fbbP->GetSize());
+            int ret;
+            // Send UDP packet to Robot
+            ret = sendto(socket_local, fbbP->GetBufferPointer(), fbbP->GetSize(), 0, (struct sockaddr *)&dst_sockaddr, sizeof(dst_sockaddr));
+
+            if (static_cast<long>(ret) != static_cast<long>(fbbP->GetSize())) logger_->error("Error sending packet to KUKA iiwa: ret = {}, len = {}", ret, fbbP->GetSize());
+
+            setArmConfiguration_ = false;
+
+            // Receiving data from Sunrise
+            int num;
+            temp_mask = mask;
+            // tv is the time that you wait for a new message to arrive,
+            // since we don't wont to hinder the execution of each cycle, it is set to zero...
+            // (The FRI interface read rate is much higher than the data coming for the controller, so we don't wait for controller data)
+            struct timeval tv;
+            tv.tv_sec = 0;
+            tv.tv_usec = 0;
+            // Check to see if any packets are available with waiting time of 0
+            // Please note that with this configuration some packets may be dropped.
+            /// @todo TODO(ahundt) eventually run this in a separate thread so we can receive packets asap and minimize dropping
+            num = select(FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, &tv);
+
+            if (num > 0)
+            {
+                  // packets are available, process them
+                  if (FD_ISSET(socket_local, &temp_mask))
+                  {
+                        // allocate the buffer, should only happen once
+                        if(!java_interface_received_statesP_) {
+                          java_interface_received_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
+                        }
+                        if(!java_interface_next_statesP_) {
+                            java_interface_next_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
+                        }
+                        static const int flags = 0;
+                        // get a reference to the buffer object
+                        const fbs_tk::Buffer& internal_buffer = java_interface_received_statesP_->get_data();
+                        // receive an update from the java driver over UDP
+                        std::vector<uint8_t> bufferdata = internal_buffer.get_data();
+                        ret = recvfrom(socket_local, reinterpret_cast<void*>(&bufferdata[0]), internal_buffer.size(), flags, (struct sockaddr *)&dst_sockaddr, &dst_sockaddr_len);
+                        if (ret <= 0) {
+                          bool java_state_received_successfully = false;
+                          logger_->error("C++ KukaJAVAdriver Error: Receive failed with ret = {}", ret);
+                        } else {
+                             if(debug_) logger_->info("C++ KukaJAVAdriver received message size: {}",ret);
+                             java_interface_received_statesP_->update_root();
+                             // Flatbuffer has been verified as valid
+                             if (java_interface_received_statesP_->valid()) {
+                                bool java_state_received_successfully = true;
+                                std::swap(java_interface_received_statesP_, java_interface_next_statesP_);
+                                if(debug_) logger_->info("C++ KukaJAVAdriver: flatbuffer verified successfully");
+                             } else {
+                                // TODO(ahundt) consider specific error codes for verifier failure vs udp receive failure
+                                bool java_state_received_successfully = false;
+                                logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", java_state_received_successfully);
+                             }
+                        }
 
 
-
-      void setPositionControlMode()
-      {
-        boost::lock_guard<boost::mutex> lock(jt_mutex);
-        controlMode_ = grl::flatbuffer::EControlMode::POSITION_CONTROL_MODE;
-        setArmConfiguration_ = true;
-      }
+                  }
+            }
 
 
-      bool setJointImpedanceMode(std::vector<double> joint_stiffnes, std::vector<double>joint_damping) {
-        boost::lock_guard<boost::mutex> lock(jt_mutex);
-        //TODO use tags
-        joint_stiffness_ = joint_stiffnes;
-        joint_damping_ = joint_damping;
-        controlMode_ = grl::flatbuffer::EControlMode::JOINT_IMP_CONTROL_MODE;
-        setArmConfiguration_ = true;
-      }
+           return haveNewData;
+        }
 
-      // TODO: define custom flatbuffer for Cartesion Quantities
-      void setCartesianImpedanceMode(
-          const grl::flatbuffer::EulerPose cart_stiffness,
-          const grl::flatbuffer::EulerPose cart_damping,
-          const double nullspace_stiffness,
-          const double nullspace_damping,
-          const grl::flatbuffer::EulerPose cart_max_path_deviation,
-          const grl::flatbuffer::EulerPose cart_max_ctrl_vel,
-          const grl::flatbuffer::EulerPose cart_max_ctrl_force,
-          const bool max_control_force_stop)
-      {
-        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        volatile std::size_t m_haveReceivedRealDataCount = 0;
+        volatile std::size_t m_attemptedCommunicationCount = 0;
+        volatile std::size_t m_attemptedCommunicationConsecutiveFailureCount = 0;
+        volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
+        void setPositionControlMode()
+        {
+          boost::lock_guard<boost::mutex> lock(jt_mutex);
+          controlMode_ = grl::flatbuffer::EControlMode::POSITION_CONTROL_MODE;
+          setArmConfiguration_ = true;
+        }
+        bool setJointImpedanceMode(std::vector<double> joint_stiffnes, std::vector<double>joint_damping) {
+          boost::lock_guard<boost::mutex> lock(jt_mutex);
+          //TODO use tags
+          joint_stiffness_ = joint_stiffnes;
+          joint_damping_ = joint_damping;
+          controlMode_ = grl::flatbuffer::EControlMode::JOINT_IMP_CONTROL_MODE;
+          setArmConfiguration_ = true;
+        }
+        // TODO: define custom flatbuffer for Cartesion Quantities
+        void setCartesianImpedanceMode(
+            const grl::flatbuffer::EulerPose cart_stiffness,
+            const grl::flatbuffer::EulerPose cart_damping,
+            const double nullspace_stiffness,
+            const double nullspace_damping,
+            const grl::flatbuffer::EulerPose cart_max_path_deviation,
+            const grl::flatbuffer::EulerPose cart_max_ctrl_vel,
+            const grl::flatbuffer::EulerPose cart_max_ctrl_force,
+            const bool max_control_force_stop)
+        {
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
 
-        cart_stiffness_ = cart_stiffness;
-        cart_damping_ = cart_damping;
+            cart_stiffness_ = cart_stiffness;
+            cart_damping_ = cart_damping;
 
-        cart_max_path_deviation_  = cart_max_path_deviation;
-        cart_max_ctrl_vel_ = cart_max_ctrl_vel;
-        cart_max_ctrl_force_  = cart_max_ctrl_force;
+            cart_max_path_deviation_  = cart_max_path_deviation;
+            cart_max_ctrl_vel_ = cart_max_ctrl_vel;
+            cart_max_ctrl_force_  = cart_max_ctrl_force;
 
-        nullspace_stiffness_ = nullspace_stiffness;
-        nullspace_damping_ = nullspace_damping;
+            nullspace_stiffness_ = nullspace_stiffness;
+            nullspace_damping_ = nullspace_damping;
 
-        max_control_force_stop_ = max_control_force_stop;
+            max_control_force_stop_ = max_control_force_stop;
 
-        controlMode_ = grl::flatbuffer::EControlMode::CART_IMP_CONTROL_MODE;
-        setArmConfiguration_ = true;
-      }
+            controlMode_ = grl::flatbuffer::EControlMode::CART_IMP_CONTROL_MODE;
+            setArmConfiguration_ = true;
+        }
 
      /**
       * \brief Set the joint positions for the current interpolation step.
@@ -697,6 +675,7 @@ namespace grl { namespace robot { namespace arm {
       socklen_t  dst_sockaddr_len = sizeof(dst_sockaddr);
       struct sockaddr_in local_sockaddr;
       long dst_ip;
+      /// An fd_set is a set of sockets to "monitor" for some activity (set of socket descriptors).
       fd_set mask, temp_mask, dummy_mask;
 
       Params params_;
@@ -770,7 +749,7 @@ namespace grl { namespace robot { namespace arm {
       std::vector<double> joint_stiffness_;
       std::vector<double> joint_damping_;
 
-    };
+    };  // End of class
 
 }}}// namespace grl::robot::arm
 

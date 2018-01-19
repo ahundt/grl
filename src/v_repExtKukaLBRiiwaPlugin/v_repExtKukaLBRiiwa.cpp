@@ -42,8 +42,8 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 #define LUA_KUKA_LBR_IIWA_START_COMMAND "simExtKukaLBRiiwaStart"
 
 
-
-std::shared_ptr<grl::vrep::KukaVrepPlugin> kukaPluginPG;
+/// PG means pointer global
+std::shared_ptr<grl::vrep::KukaVrepPlugin> kukaVrepPluginPG;
 std::shared_ptr<spdlog::logger>            loggerPG;
 /// Recording will begin when the simulation starts running, and log files will be saved every time it stops running.
 bool recordWhileSimulationIsRunningG = false;
@@ -75,8 +75,9 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
   // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
 
   try {
-      if (!kukaPluginPG) {
-        loggerPG->error("Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
+      if (!kukaVrepPluginPG) {
+        loggerPG->error("simExtKukaLBRiiwaStart: Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
+        std::cout<< "Start simExtKukaLBRiiwaStart()..." << std::endl;
 
     	CLuaFunctionData data;
 
@@ -105,8 +106,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
             std::string KukaMonitorMode                     (inData->at(14).stringData[0]);
             std::string IKGroupName                         (inData->at(15).stringData[0]);
 
-
-            kukaPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>(
+            kukaVrepPluginPG = std::make_shared<grl::vrep::KukaVrepPlugin>(
                 std::make_tuple(
                     JointHandles                  ,
                     RobotFlangeTipHandle          ,
@@ -126,16 +126,13 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
                     IKGroupName
                 )
             );
-            kukaPluginPG->construct();
+            kukaVrepPluginPG->construct();
         } else {
             /// @todo report an error?
             // use default params
-            kukaPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>();
-            kukaPluginPG->construct();
+            kukaVrepPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>();
+            kukaVrepPluginPG->construct();
         }
-
-
-
 
       }
 
@@ -144,19 +141,19 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
       std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
       simAddStatusbarMessage( initerr.c_str());
       loggerPG->error( initerr );
-      kukaPluginPG.reset();
+      kukaVrepPluginPG.reset();
   } catch (const std::exception& e){
       // log the error and print it to the screen, don't release the exception
       std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
       simAddStatusbarMessage( initerr.c_str());
       loggerPG->error( initerr );
-      kukaPluginPG.reset();
+      kukaVrepPluginPG.reset();
   } catch (...){
       // log the error and print it to the screen, don't release the exception
       std::string initerr("v_repExtKukaLBRiiwa plugin encountered an unknown error and will disable itself. Please debug this issue! file and line:" + std::string(__FILE__) + " " + boost::lexical_cast<std::string>(__LINE__) + "\n");
       simAddStatusbarMessage( initerr.c_str());
       loggerPG->error( initerr );
-      kukaPluginPG.reset();
+      kukaVrepPluginPG.reset();
   }
 }
 
@@ -170,12 +167,12 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING(SLuaCallBack *p)
 {
     CLuaFunctionData D;
     bool success = false;
-    if (kukaPluginPG)
+    if (kukaVrepPluginPG)
     {
         std::string log_message("Starting the recording of KUKAiiwa state data in memory.\n");
         simAddStatusbarMessage(log_message.c_str());
         loggerPG->info(log_message);
-        success = kukaPluginPG->start_recording();
+        success = kukaVrepPluginPG->start_recording();
     }
     D.pushOutData(CLuaFunctionDataItem(success));
     D.writeDataToLua(p);
@@ -185,12 +182,12 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_STOP_RECORDING(SLuaCallBack *p)
 {
     CLuaFunctionData D;
     bool success = false;
-    if (kukaPluginPG)
+    if (kukaVrepPluginPG)
     {
         std::string log_message("Stoping the recording of KUKAiiwa state data in memory.\n");
         simAddStatusbarMessage(log_message.c_str());
         loggerPG->info(log_message);
-        success = kukaPluginPG->stop_recording();
+        success = kukaVrepPluginPG->stop_recording();
     }
     D.pushOutData(CLuaFunctionDataItem(success));
     D.writeDataToLua(p);
@@ -217,12 +214,12 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_SAVE_RECORDING(SLuaCallBack *p)
     {
         std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         std::string filename_lua_param(inData->at(0).stringData[0]);
-        if (kukaPluginPG)
+        if (kukaVrepPluginPG)
         {
             std::string log_message("Saving the recording of KUKAiiwa state data in memory.\n");
             simAddStatusbarMessage(log_message.c_str());
             loggerPG->info(log_message);
-            success = kukaPluginPG->save_recording();
+            success = kukaVrepPluginPG->save_recording();
         }
         D.pushOutData(CLuaFunctionDataItem(success));
         D.writeDataToLua(p);
@@ -236,12 +233,12 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_CLEAR_RECORDING(SLuaCallBack *p)
 {
     CLuaFunctionData D;
     bool success = false;
-    if (kukaPluginPG)
+    if (kukaVrepPluginPG)
     {
         std::string log_message("Clearing the recording of KUKAiiwa state data in memory.\n");
         simAddStatusbarMessage(log_message.c_str());
         loggerPG->info(log_message);
-        kukaPluginPG->clear_recording();
+        kukaVrepPluginPG->clear_recording();
 		success = true;
     }
     D.pushOutData(CLuaFunctionDataItem(success));
@@ -382,7 +379,7 @@ VREP_DLLEXPORT void v_repEnd()
 		// close out as necessary
 		////////////////////
 
-    kukaPluginPG.reset();
+    kukaVrepPluginPG.reset();
 
 	unloadVrepLibrary(vrepLib); // release the library
 }
@@ -437,7 +434,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		/////////////
 		if (simGetSimulationState() != sim_simulation_advancing_abouttostop)	//checks if the simulation is still running
 		{
-			//if(kukaPluginPG) loggerPG->error("current simulation time:" << simGetSimulationTime() << std::endl );					// gets simulation time point
+			//if(kukaVrepPluginPG) loggerPG->error("current simulation time:" << simGetSimulationTime() << std::endl );					// gets simulation time point
 		}
 		// make sure it is "right" (what does that mean?)
 
@@ -447,31 +444,31 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// Use handles that were found at the "start" of this simulation running
 
 		// next few Lines get the joint angles, torque, etc from the simulation
-		if (kukaPluginPG)// && kukaPluginPG->allHandlesSet == true // allHandlesSet now handled internally
+		if (kukaVrepPluginPG)// && kukaVrepPluginPG->allHandlesSet == true // allHandlesSet now handled internally
 		{
               try
               {
                   // run one loop synchronizing the arm and plugin
-                  kukaPluginPG->run_one();
+                  kukaVrepPluginPG->run_one();
 
               } catch (const boost::exception& e){
                   // log the error and print it to the screen, don't release the exception
                   std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
                   simAddStatusbarMessage( initerr.c_str());
                   loggerPG->error( initerr );
-                  kukaPluginPG.reset();
+                  kukaVrepPluginPG.reset();
               } catch (const std::exception& e){
                   // log the error and print it to the screen, don't release the exception
                   std::string initerr("v_repExtKukaLBRiiwa plugin encountered the following error and will disable itself:\n" + boost::diagnostic_information(e));
                   simAddStatusbarMessage( initerr.c_str());
                   loggerPG->error( initerr );
-                  kukaPluginPG.reset();
+                  kukaVrepPluginPG.reset();
               } catch (...){
                   // log the error and print it to the screen, don't release the exception
                   std::string initerr("v_repExtKukaLBRiiwa plugin encountered an unknown error and will disable itself. Please debug this issue! file and line:" + std::string(__FILE__) + " " + boost::lexical_cast<std::string>(__LINE__) + "\n");
                   simAddStatusbarMessage( initerr.c_str());
                   loggerPG->error( initerr );
-                  kukaPluginPG.reset();
+                  kukaVrepPluginPG.reset();
               }
 
 		}
@@ -494,18 +491,18 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 
 //        try {
 //            loggerPG->error("Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
-//            kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
-//            kukaPluginPG->construct();
-//            //kukaPluginPG->run_one();  // for debugging purposes only
-//            //kukaPluginPG.reset();     // for debugging purposes only
+//            kukaVrepPluginPG = std::make_shared<grl::KukaVrepPlugin>();
+//            kukaVrepPluginPG->construct();
+//            //kukaVrepPluginPG->run_one();  // for debugging purposes only
+//            //kukaVrepPluginPG.reset();     // for debugging purposes only
 //        } catch (boost::exception& e){
 //            // log the error and print it to the screen, don't release the exception
 //            std::string initerr("v_repExtKukaLBRiiwa plugin initialization error:\n" + boost::diagnostic_information(e));
 //            simAddStatusbarMessage( initerr.c_str());
 //            loggerPG->error( initerr );
 //        }
-        if(kukaPluginPG && recordWhileSimulationIsRunningG) {
-            kukaPluginPG->start_recording();
+        if(kukaVrepPluginPG && recordWhileSimulationIsRunningG) {
+            kukaVrepPluginPG->start_recording();
         }
 	}
 
@@ -517,12 +514,12 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// close out as necessary
 		////////////////////
         loggerPG->error("Ending KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
-		if(kukaPluginPG && recordWhileSimulationIsRunningG && kukaPluginPG->is_recording()) {
-            kukaPluginPG->save_recording();
-            kukaPluginPG->stop_recording();
+		if(kukaVrepPluginPG && recordWhileSimulationIsRunningG && kukaVrepPluginPG->is_recording()) {
+            kukaVrepPluginPG->save_recording();
+            kukaVrepPluginPG->stop_recording();
         }
-		kukaPluginPG->clear_recording();
-		kukaPluginPG.reset();
+		kukaVrepPluginPG->clear_recording();
+		kukaVrepPluginPG.reset();
 
 	}
 

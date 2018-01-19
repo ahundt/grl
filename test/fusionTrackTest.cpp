@@ -35,8 +35,8 @@ BOOST_AUTO_TEST_CASE(initialization)
   //// uncomment to test error output
   //        try {
   //            BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
-  //            auto kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
-  //            kukaPluginPG->construct();
+  //            auto kukaVrepPluginPG = std::make_shared<grl::KukaVrepPlugin>();
+  //            kukaVrepPluginPG->construct();
   //        } catch (boost::exception& e){
   //            // log the error and print it to the screen, don't release the exception
   //            BOOST_LOG_TRIVIAL(error) <<  boost::diagnostic_information(e);
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
   flatbuffers::Offset<grl::flatbuffer::LogKUKAiiwaFusionTrack> LogKUKAiiwaFusionTrack = grl::toFlatBuffer(fbb, states);
   // Finish a buffer with a given root object
   fbb.Finish(LogKUKAiiwaFusionTrack);
-  
+
   // print byte data for debugging:
   //flatbuffers::SaveFile("test.flik", fbb.GetBufferPointer(), fbb.GetSize());
   std::string filename = "test.flik";

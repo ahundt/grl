@@ -20,8 +20,8 @@ auto plugin = std::make_shared<grl::vrep::KukaVrepPlugin>();
 //// uncomment to test error output
 //        try {
 //            BOOST_LOG_TRIVIAL(info) << "Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n";
-//            auto kukaPluginPG = std::make_shared<grl::KukaVrepPlugin>();
-//            kukaPluginPG->construct();
+//            auto kukaVrepPluginPG = std::make_shared<grl::KukaVrepPlugin>();
+//            kukaVrepPluginPG->construct();
 //        } catch (boost::exception& e){
 //            // log the error and print it to the screen, don't release the exception
 //            BOOST_LOG_TRIVIAL(error) <<  boost::diagnostic_information(e);
