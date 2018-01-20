@@ -75,9 +75,9 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
   // return Lua Table or arrays containing position, torque, torque minus motor force, timestamp, FRI state
 
   try {
+      ///
       if (!kukaVrepPluginPG) {
-        loggerPG->error("simExtKukaLBRiiwaStart: Starting KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
-        std::cout<< "Start simExtKukaLBRiiwaStart()..." << std::endl;
+        loggerPG->error("simExtKukaLBRiiwaStart: Starting KUKA LBR iiwa plugin connection to Kuka iiwa...\n kukaVrepPluginPG hasn't been initialized...\n" );
 
     	CLuaFunctionData data;
 
@@ -424,9 +424,6 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		{ // we actualize plugin objects for changes in the scene
 			refreshDlgFlag=true; // always a good idea to trigger a refresh of this plugin's dialog here
 		}
-
-
-
 		//...
 		//////////////
 		// PUT MAIN CODE HERE

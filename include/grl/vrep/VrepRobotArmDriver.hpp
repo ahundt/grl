@@ -319,7 +319,7 @@ bool setState(State& state) {
 
             else {
 
-                for (int i=0 ; i < 7 ; i++) {
+                for (int i=0 ; i <  externalJointForce.size(); i++) {
                     std::string torqueString = boost::lexical_cast<std::string>(externalJointForce[i]);
                     char * externalTorqueBytes = new char[torqueString.length()+1];
                     std::strcpy(externalTorqueBytes, torqueString.c_str());

@@ -90,8 +90,7 @@ public:
         // keep driver threads from exiting immediately after creation, because they
         // have work to do!
         // boost::asio::io_service::work: Constructor notifies the io_service that work is starting.
-        device_driver_workP_.reset(
-            new boost::asio::io_service::work(device_driver_io_service));
+        device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
 
         kukaFRIClientDataDriverP_.reset(
             new grl::robot::arm::KukaFRIClientDataDriver<LowLevelStepAlgorithmType>(

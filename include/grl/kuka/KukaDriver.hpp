@@ -141,6 +141,7 @@ namespace grl { namespace robot { namespace arm {
                     throw;
                 }
             }
+            std::cout<< "End KukaDriver->construct()..." << std::endl;
         }
 
         const Params & getParams(){
