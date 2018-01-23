@@ -1,7 +1,6 @@
 #ifndef GRL_HELPER_TO_FLATBUFFER
 #define GRL_HELPER_TO_FLATBUFFER
 
-
 #include "grl/flatbuffer/Time_generated.h"
 #include "grl/flatbuffer/Geometry_generated.h"
 #include "grl/TimeEvent.hpp"
@@ -13,8 +12,10 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+
 namespace grl
 {
+
 
 /// Helper function for both KUKA and FusionTrack
 grl::flatbuffer::Vector3d toFlatBuffer(const Eigen::Vector3d &pt)
@@ -53,10 +54,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::TimeEvent &timeStamp)
 {
     flatbuffers::Offset<flatbuffers::String> event_name = fbb.CreateString(const_cast<const char *>(timeStamp.event_name.begin()), stringLength(timeStamp.event_name));
-    for(int i = 0; i<stringLength(timeStamp.event_name);++i) {
-        std::cout<<timeStamp.event_name[i];
-    }
-    std::cout<<std::endl;
     /// https://github.com/googlecartographer/cartographer/blob/master/cartographer/common/time.cc
     /// convert time to int64
     int64_t local_request_time = cartographer::common::ToUniversal(timeStamp.local_request_time);
@@ -79,7 +76,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         clock_skew,
         min_transport_delay);
 }
-
 
 } // End of grl namespace
 

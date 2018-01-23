@@ -5,6 +5,9 @@
 ---       require "grl"
 --- 3) call your function! ex: grl.isModuleLoaded('')
 
+--- LRB_iiwa_14_R820#0 represents the real robot;
+--- LRB_iiwa_14_R820 represents the robot for simulation
+
 robone = {}
 
 require "grl"
@@ -434,7 +437,7 @@ robone.startRealArmDriverScript=function()
 			"IK_Group1_iiwa"            -- IKGroupName
 		)
 
-		simExtKukaLBRiiwaRecordWhileSimulationIsRunning(false)
+		simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true)
 	else
 		simDisplayDialog('Error','KukaLBRiiwa plugin was not found. (v_repExtKukaLBRiiwa.dll)&&nSimulation will run without hardware',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
 	end
@@ -472,7 +475,7 @@ robone.configureOpticalTracker=function()
 			--------------------------------------------------
 			-- Move the Tracker
 			-- true enables moving the tracker, false disables it
-			moveTracker = true
+			moveTracker = false
 			if (moveTracker) then
 				simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: Moving Optical tracker position relative to marker on robot end effector.')
 				simExtAtracsysFusionTrackClearObjects()

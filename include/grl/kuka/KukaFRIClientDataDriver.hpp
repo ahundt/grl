@@ -414,7 +414,6 @@ void update_state(boost::asio::ip::udp::socket &socket,
 
   // get a local clock timestamp, then the latest frame from the device, then another timestamp
   timeEvent.local_request_time = cartographer::common::UniversalTimeScaleClock::now();
-  std::cout<< timeEvent.local_request_time << std::endl;
   receive_bytes_transferred = socket.receive_from(
       boost::asio::buffer(friData.receiveBuffer,
                           KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE),

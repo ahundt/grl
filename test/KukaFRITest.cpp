@@ -248,6 +248,7 @@ int main(int argc, char* argv[])
         {
 
             kukaDriverP->set( jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
+            kukaDriverP->start_recording();
             kukaDriverP->run_one();
         }
 

@@ -184,6 +184,7 @@ public:
         if(kukaDriverP_.get() != nullptr) {
             return kukaDriverP_->start_recording();
         }
+        std::cout << "kukaDriverP_ is nullptr..." << std::endl;
         return false;
     }
     /// stop recording the kuka state data in memory
@@ -218,12 +219,12 @@ public:
 
     void run_one(){
 
-      if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates."));
-      getRealKukaAngles();
-      bool isError = getStateFromVrep(); // true if there is an error
-      allHandlesSet = !isError;
-      /// @todo re-enable simulation feedback based on actual kuka state
-      syncVrepAndKuka();
+        if(!allHandlesSet) BOOST_THROW_EXCEPTION(std::runtime_error("KukaVrepPlugin: Handles have not been initialized, cannot run updates."));
+        getRealKukaAngles();
+        bool isError = getStateFromVrep(); // true if there is an error
+        allHandlesSet = !isError;
+        /// @todo re-enable simulation feedback based on actual kuka state
+        syncVrepAndKuka();
     }
 
 
@@ -276,7 +277,7 @@ public:
     }
 
     void syncVrepAndKuka(){
-        bool debug = true;
+        bool debug = false;
 
         if(!allHandlesSet || !m_haveReceivedRealData) return;
         /// @todo make this handled by template driver implementations/extensions

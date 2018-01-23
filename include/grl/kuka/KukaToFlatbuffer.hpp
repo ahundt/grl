@@ -642,20 +642,11 @@ flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> toFlatBuffer(
     // get measured joint torque
     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_angle_open_chain_command_tag());
     flatbuffers::Offset<flatbuffers::Vector<double>> _commandedJointPosition = fbb.CreateVector(data);
-    std::cout<<"Command Joint Position:";
-    for (int i=0; i<7; i++) {
-            std::cout<<data[i];
-    }
-    std::cout<<std::endl;
     data.clear();
     // get commanded joint torque
     grl::robot::arm::copy(friMonitoringMessage, std::back_inserter(data), grl::revolute_joint_torque_open_chain_command_tag());
     flatbuffers::Offset<flatbuffers::Vector<double>> _commandedTorque = fbb.CreateVector(data);
-    std::cout<<"Command Joint TOrque:";
-    for (int i=0; i<7; i++) {
-            std::cout<<data[i];
-    }
-    std::cout<<std::endl;
+
     data.clear();
     data.clear();
     // get measured external torque
@@ -715,11 +706,11 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState> toFlatBuffer(
         fbb.CreateString(source),
         _timeEvent,
         setArmControlState,
-        armControlState,
+        setArmControlState? armControlState:0,
         setArmConfiguration,
-        armConfiguration,
+        setArmConfiguration? armConfiguration:0,
         hasMonitorState,
-        monitorState,
+        hasMonitorState ? monitorState:0,
         hasMonitorConfig,
         monitorConfig,
         FRIMessage

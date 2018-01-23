@@ -84,8 +84,6 @@ public:
     /// @warning getting the ik group is optional, so it does not throw an
     /// exception
     void construct(Params params) {
-        std::cout<< "Start KukaFRIdriver->construct()..." << std::endl;
-
         params_ = params;
         // keep driver threads from exiting immediately after creation, because they
         // have work to do!
@@ -110,7 +108,6 @@ public:
         #ifdef HAVE_spdlog
             loggerP = spdlog::stdout_logger_mt("logs/kukaiiwa_logger.txt");
         #endif // HAVE_spdlog
-        std::cout<< "End KukaFRIdriver->construct()..." << std::endl;
     }
 
     const Params &getParams() { return params_; }
@@ -198,7 +195,7 @@ public:
      *
      */
     bool run_one() {
-        std::cout<< "Start KukaFRIdriver->run_one()..." << std::endl;
+
         // note: this one sends *and* receives the joint data!
         BOOST_VERIFY(kukaFRIClientDataDriverP_.get() != nullptr);
         /// @todo use runtime calculation of NUM_JOINTS instead of constant
@@ -307,17 +304,17 @@ public:
             oneKUKAiiwaStateBuffer();
             armState.time_event_stamp = time_event_stamp;
             saveToDisk();
-            // m_driverThread.reset(new std::thread(&KukaFRIdriver::save_recording));
+
         } else {
             m_attemptedCommunicationConsecutiveFailureCount++;
-            std::cerr << "No new FRI data available, is an FRI application running "
-                         "on the Kuka arm? \n Total sucessful transfers: "
-                      << this->m_haveReceivedRealDataCount
-                      << "\n Total attempts: " << m_attemptedCommunicationCount
-                      << "\n Consecutive Failures: "
-                      << m_attemptedCommunicationConsecutiveFailureCount
-                      << "\n Consecutive Successes: "
-                      << m_attemptedCommunicationConsecutiveSuccessCount << "\n";
+            // std::cerr << "No new FRI data available, is an FRI application running "
+            //              "on the Kuka arm? \n Total sucessful transfers: "
+            //           << this->m_haveReceivedRealDataCount
+            //           << "\n Total attempts: " << m_attemptedCommunicationCount
+            //           << "\n Consecutive Failures: "
+            //           << m_attemptedCommunicationConsecutiveFailureCount
+            //           << "\n Consecutive Successes: "
+            //           << m_attemptedCommunicationConsecutiveSuccessCount << "\n";
             m_attemptedCommunicationConsecutiveSuccessCount = 0;
             /// @todo TODO(ahundt) Add time information from update_state call here for debugging purposes
             /// @todo TODO(ahundt) should the results of getlatest state even be possible to call
@@ -495,7 +492,6 @@ public:
         int16_t portOnController  = std::stoi(std::string(std::get<localport>(params_)));
         std::string basename = RobotName; //std::get<0>(params);
 
-        bool setArmConfiguration_ = true; // set the arm config first time
         bool max_control_force_stop_ = false;
         std::vector<double> joint_stiffness_(KUKA::LBRState::NUM_DOF, 0);
         std::vector<double> joint_damping_(KUKA::LBRState::NUM_DOF, 0);
@@ -556,21 +552,33 @@ public:
         std::string local_clock_id_str = s_event_name + "/control_computer/clock/steady";
 
         TimeEvent::UnsignedCharArray event_name;
-        s_event_name.copy(event_name.begin(), std::min(s_event_name.size(), event_name.size()));
+        std::size_t length = s_event_name.copy(event_name.begin(), std::min(s_event_name.size(), event_name.size()));
+        event_name[length] = '\0';
         time_event_stamp.event_name = event_name;
+
         TimeEvent::UnsignedCharArray device_clock_id;
-        device_clock_id_str.copy(device_clock_id.begin(), std::min(device_clock_id_str.size(), device_clock_id.size()));
+        length = device_clock_id_str.copy(device_clock_id.begin(), std::min(device_clock_id_str.size(), device_clock_id.size()));
+        device_clock_id[length] = '\0';
         time_event_stamp.device_clock_id = device_clock_id;
+
         TimeEvent::UnsignedCharArray local_clock_name_arr;
-        local_clock_id_str.copy(local_clock_name_arr.begin(), std::min(local_clock_id_str.size(),local_clock_name_arr.size()));
+        length = local_clock_id_str.copy(local_clock_name_arr.begin(), std::min(local_clock_id_str.size(),local_clock_name_arr.size()));
+        local_clock_name_arr[length] = '\0';
         time_event_stamp.local_clock_id = local_clock_name_arr;
         time_event_stamp.device_time = FRITimeStampToCommonTime(messageMonitorData.timestamp);
+
+
         //std::cout<< time_event_stamp.event_name << std::endl << time_event_stamp.device_clock_id << std::endl << time_event_stamp.local_clock_id <<std::endl;
         ::Transformation *transformation = new ::Transformation[5];
 
         for (int i=0; i<5; i++) {
             transformation[i] = monitoringMsg.requestedTransformations[i];
+            // for(int j=0; j<12; ++j){
+            //     std::cout<< transformation[i].matrix[j] << " ";
+            // }
+            // std::cout<<std::endl;
         }
+        // std::cout<<std::endl;
         // MessageEndOf exists in FRIMessage.pb.h, but it's never used in the FlatBuffer objects
         ::MessageEndOf endOfMessageData = monitoringMsg.endOfMessageData;
 
@@ -641,7 +649,7 @@ public:
         //       processData_vec,
         //       "currentMotionCenter",
         //       true);
-        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> kukaiiwaArmConfiguration = 0;
+        flatbuffers::Offset<grl::flatbuffer::KUKAiiwaArmConfiguration> kukaiiwaArmConfiguration;
 
         flatbuffers::Offset<grl::flatbuffer::FRIMessageLog> friMessageLog = grl::toFlatBuffer(
              *m_logFileBufferBuilderP,
@@ -674,7 +682,8 @@ public:
         // Calculate the data later.
         // Cartesian pose of the flange relative to the base of the arm
         // grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose(grl::flatbuffer::Vector3d(0, 0, 0), grl::flatbuffer::Quaternion(0,0,0,0));
-        grl::flatbuffer::Pose cartesianFlangePose{};
+        grl::flatbuffer::Pose cartesianFlangePose = grl::flatbuffer::Pose();
+        // flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> kukaiiwaMonitorState = 0;
         flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorState> kukaiiwaMonitorState = grl::toFlatBuffer(
             *m_logFileBufferBuilderP,
             jointStatetab, // flatbuffers::Offset<grl::flatbuffer::JointState> &measuredState,
@@ -705,9 +714,9 @@ public:
             source,
             // duration,
             armState.time_event_stamp,
-            true, controlState,
-            true, kukaiiwaArmConfiguration,
-            true, kukaiiwaMonitorState,
+            false, controlState,  // if false, then don't record the value
+            false, kukaiiwaArmConfiguration,
+            false, kukaiiwaMonitorState,
             false, monitorConfig,
             friMessageLog);
         m_KUKAiiwaStateBufferP->push_back(KUKAiiwaState);
@@ -717,12 +726,11 @@ public:
 
     bool save_recording(std::string filename = std::string())
     {
-
-         loggerP->info("Here is in save_recording/n ");
+        loggerP->info("Here is in save_recording/n ");
         if(filename.empty())
         {
-          /// TODO(ahundt) Saving the file twice in one second will overwrite!!!!
-          filename = current_date_and_time_string() + "_Kukaiiwa.iiwa";
+            /// TODO(ahundt) Saving the file twice in one second will overwrite!!!!
+            filename = current_date_and_time_string() + "_Kukaiiwa.iiwa";
         }
         #ifdef HAVE_spdlog
             loggerP->info("Save Recording as: ", filename);
@@ -730,18 +738,21 @@ public:
             std::cout << "Save Recording as: " << filename << std::endl;
         #endif // HAVE_spdlog
         auto saveLambdaFunction = [
-          save_fbbP = std::move(m_logFileBufferBuilderP)
-          ,save_KUKAiiwaBufferP = std::move(m_KUKAiiwaStateBufferP)
-          ,filename
+            save_fbbP = std::move(m_logFileBufferBuilderP)
+            ,save_KUKAiiwaBufferP = std::move(m_KUKAiiwaStateBufferP)
+            ,filename
         #ifdef HAVE_spdlog
-          ,lambdaLoggerP = loggerP
+            ,lambdaLoggerP = loggerP
         #endif // HAVE_spdlog
         ]() mutable
         {
+            std::cout<< "Save recording data from KukaLBRiiwa to disk..." << std::endl;
+            std::string currentWorkingDir = grl::GetCurrentWorkingDir();
+            std::cout<< currentWorkingDir<<"/"<<filename<<std::endl;
             bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaBufferP);
             bool write_binary_stream = true;
             success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
-            assert(success);
+            // assert(success);
             /// TODO(ahFusionTrackLogAndTrackundt) replace cout with proper spdlog and vrep banner notification
             #ifdef HAVE_spdlog
                 lambdaLoggerP->info("filename: ", filename, " verifier success: ", success);
@@ -750,7 +761,7 @@ public:
             #endif // HAVE_spdlog
         };
 
-          // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
+        // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
         std::shared_ptr<std::thread> saveLogThread(std::make_shared<std::thread>(saveLambdaFunction));
         m_saveRecordingThreads.push_back(saveLogThread);
         // flatbuffersbuilder does not yet exist
@@ -798,7 +809,7 @@ void saveToDisk()
   {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 0.1*MegaByte;
+    const std::size_t single_buffer_limit_bytes = 1*MegaByte;
 
     // run the primary update loop in a separate thread
     bool saveFileNow = false;
@@ -808,11 +819,11 @@ void saveToDisk()
     {
         // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB
         int buffsize = m_logFileBufferBuilderP->GetSize();
-        std::cout << "Buffersize:" << buffsize << std::endl;
         if( buffsize > single_buffer_limit_bytes)
         {
             // save the file if we are over the limit
             saveFileNow = true;
+            std::cout << "Buffersize:" << buffsize << std::endl;
         }
     } // end recording steps
     /// TODO(ahundt) Let the user specify the filenames, or provide a way to check the flatbuffer size and know single_buffer_limit_bytes.

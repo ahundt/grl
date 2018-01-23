@@ -166,7 +166,6 @@ namespace grl { namespace robot { namespace arm {
         // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
         //if(!m_haveReceivedRealDataCount) return;
         bool haveNewData = false;
-        std::cout<< "Start KukaDriver->run_one()..." << std::endl;
         /// @todo make this handled by template driver implementations/extensions
 
         if(JAVAdriverP_.get() != nullptr)
@@ -219,7 +218,6 @@ namespace grl { namespace robot { namespace arm {
             if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
             {
                 FRIdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
-                std::cout << "armState_.commandedPosition in KukaDriver(FRI) run_one():" << armState_.commandedPosition << "\n";
             }
 
             haveNewData = FRIdriverP_->run_one();

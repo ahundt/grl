@@ -84,7 +84,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
     	if (data.readDataFromLua(p,inArgs_KUKA_LBR_IIWA_START,inArgs_KUKA_LBR_IIWA_START[0],LUA_KUKA_LBR_IIWA_START_COMMAND))
         {
 
-    		std::vector<CLuaFunctionDataItem>* inData=data.getInDataPtr();
+    		std::vector<CLuaFunctionDataItem>* inData = data.getInDataPtr();
             std::vector<std::string> JointHandles;
             for (size_t i=0;i<inData->at(0).stringData.size();i++)
             {
@@ -270,10 +270,14 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCallBack *
     {
         std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         recordWhileSimulationIsRunningG = inData->at(0).boolData[0];
-
-        std::string log_message = std::string("simExtKukaLBRiiwaRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
-        simAddStatusbarMessage(log_message.c_str());
-        loggerPG->info(log_message);
+        std::cout << "Start recording while simulation is running..." << recordWhileSimulationIsRunningG << std::endl;
+        if (kukaVrepPluginPG && recordWhileSimulationIsRunningG)
+        {
+            std::string log_message = std::string("simExtKukaLBRiiwaRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
+            simAddStatusbarMessage(log_message.c_str());
+            loggerPG->info(log_message);
+            kukaVrepPluginPG->start_recording();
+        }
 
         D.pushOutData(CLuaFunctionDataItem(success));
         D.writeDataToLua(p);
