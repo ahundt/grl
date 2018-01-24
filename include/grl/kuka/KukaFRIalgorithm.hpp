@@ -28,14 +28,13 @@
 
 namespace grl { namespace robot {
 
-
 	namespace arm {
 
 		namespace kuka {
-				// Following from Kuka example program
-				const int default_port_id = 30200;
-				struct send_period{};
-				struct receive_multiplier{};
+			// Following from Kuka example program
+			const int default_port_id = 30200;
+			struct send_period{};
+			struct receive_multiplier{};
 
 			namespace detail {
 
@@ -78,13 +77,13 @@ namespace grl { namespace robot {
 	/// copy measured joint angle to output iterator
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_angle_open_chain_state_tag){
- 	   kuka::detail::copyJointState(monitoringMsg.monitorData.measuredJointPosition.value.arg,it,monitoringMsg.monitorData.has_measuredJointPosition);
+ 	    kuka::detail::copyJointState(monitoringMsg.monitorData.measuredJointPosition.value.arg,it,monitoringMsg.monitorData.has_measuredJointPosition);
 	}
 
 	/// copy interpolated commanded joint angles
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it,revolute_joint_angle_interpolated_open_chain_state_tag){
-           kuka::detail::copyJointState(monitoringMsg.ipoData.jointPosition.value.arg,it,monitoringMsg.ipoData.has_jointPosition);
+        kuka::detail::copyJointState(monitoringMsg.ipoData.jointPosition.value.arg,it,monitoringMsg.ipoData.has_jointPosition);
 	}
 
 	/// copy commanded joint angle to output iterator
@@ -97,13 +96,13 @@ namespace grl { namespace robot {
 	/// copy measured joint torque to output iterator
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_open_chain_state_tag){
-           kuka::detail::copyJointState(monitoringMsg.monitorData.measuredTorque.value.arg,it, monitoringMsg.monitorData.has_measuredTorque);
+        kuka::detail::copyJointState(monitoringMsg.monitorData.measuredTorque.value.arg,it, monitoringMsg.monitorData.has_measuredTorque);
 	}
 
 	/// copy measured external joint torque to output iterator
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_external_open_chain_state_tag){
-           kuka::detail::copyJointState(monitoringMsg.monitorData.externalTorque.value.arg,it, monitoringMsg.monitorData.has_externalTorque);
+        kuka::detail::copyJointState(monitoringMsg.monitorData.externalTorque.value.arg,it, monitoringMsg.monitorData.has_externalTorque);
 	}
 
 // only supported for kuka sunrise OS 1.9
@@ -120,23 +119,22 @@ namespace grl { namespace robot {
     /// (Euler angles A, B, C) of the currently used motion center.
     template<typename OutputIterator>
     void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, cartesian_external_force_tag){
-            kuka::detail::copyCartesianState(monitoringMsg.monitorData.externalForce,it, monitoringMsg.monitorData.has_externalForce);
-        }
+        kuka::detail::copyCartesianState(monitoringMsg.monitorData.externalForce,it, monitoringMsg.monitorData.has_externalForce);
+    }
 #endif // KUKA_SUNRISE_1_9
 
 	/// copy commanded  joint torque to output iterator
 	template<typename OutputIterator>
 	void copy(const FRIMonitoringMessage& monitoringMsg, OutputIterator it, revolute_joint_torque_open_chain_command_tag){
-           kuka::detail::copyJointState(monitoringMsg.monitorData.commandedTorque.value.arg,it, monitoringMsg.monitorData.has_commandedTorque);
+        kuka::detail::copyJointState(monitoringMsg.monitorData.commandedTorque.value.arg,it, monitoringMsg.monitorData.has_commandedTorque);
 	}
-    
-    
+
 	/// copy commanded joint angle to output iterator
 	template<typename OutputIterator>
 	void copy(const FRICommandMessage& commandMsg, OutputIterator it, revolute_joint_angle_open_chain_command_tag){
         if (commandMsg.has_commandData) kuka::detail::copyJointState(commandMsg.commandData.jointPosition.value.arg,it,commandMsg.commandData.has_jointPosition);
 	}
-
+    /// KUKA::FRI::ESafetyState is defined in #include "friClientIf.h"
 	/// @todo consider using another default value, or perhaps boost::optional<Kuka::FRI::ESafetyState>?
 	KUKA::FRI::ESafetyState get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::ESafetyState) {
 		KUKA::FRI::ESafetyState state = KUKA::FRI::ESafetyState::NORMAL_OPERATION;
@@ -147,7 +145,6 @@ namespace grl { namespace robot {
 		return state;
 	}
 
-
 	KUKA::FRI::EOperationMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EOperationMode) {
 		KUKA::FRI::EOperationMode state = KUKA::FRI::EOperationMode::TEST_MODE_1;
 	    if (monitoringMsg.has_robotInfo) {
@@ -156,7 +153,6 @@ namespace grl { namespace robot {
 	    }
 		return state;
 	}
-
 
 	KUKA::FRI::EControlMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EControlMode) {
 		KUKA::FRI::EControlMode state = KUKA::FRI::EControlMode::NO_CONTROL;
@@ -167,7 +163,6 @@ namespace grl { namespace robot {
 		return state;
 	}
 
-
 	KUKA::FRI::EClientCommandMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EClientCommandMode) {
 		KUKA::FRI::EClientCommandMode state = KUKA::FRI::EClientCommandMode::NO_COMMAND_MODE;
 	    if (monitoringMsg.has_ipoData) {
@@ -177,7 +172,6 @@ namespace grl { namespace robot {
 		return state;
 	}
 
-
 	KUKA::FRI::EOverlayType get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EOverlayType) {
 		KUKA::FRI::EOverlayType state = KUKA::FRI::EOverlayType::NO_OVERLAY;
 	    if (monitoringMsg.has_ipoData) {
@@ -186,7 +180,6 @@ namespace grl { namespace robot {
 	    }
 		return state;
 	}
-
 
 	KUKA::FRI::EDriveState get(const FRIMonitoringMessage& _message, const KUKA::FRI::EDriveState)
 	{
@@ -251,16 +244,14 @@ namespace grl { namespace robot {
         }
 		return timestamp;
 	}
-
-
-      /**
-       * \brief Set the joint positions for the current interpolation step.
-       *
-       * This method is only effective when the client is in a commanding state.
-       * @param state Object which stores the current state of the robot, including the command to send next
-       * @param range Array with the new joint positions (in radians)
-       * @param tag identifier object indicating that revolute joint angle commands should be modified
-       */
+    /**
+     * \brief Set the joint positions for the current interpolation step.
+     *
+     * This method is only effective when the client is in a commanding state.
+     * @param state Object which stores the current state of the robot, including the command to send next
+     * @param range Array with the new joint positions (in radians)
+     * @param tag identifier object indicating that revolute joint angle commands should be modified
+     */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
        if(boost::size(range))
@@ -272,17 +263,17 @@ namespace grl { namespace robot {
        }
      }
 
-      /**
-       * \brief Set the applied joint torques for the current interpolation step.
-       *
-       * This method is only effective when the client is in a commanding state.
-       * The ControlMode of the robot has to be joint impedance control mode. The
-       * Client Command Mode has to be torque.
-       *
-       * @param state Object which stores the current state of the robot, including the command to send next
-       * @param torques Array with the applied torque values (in Nm)
-       * @param tag identifier object indicating that the torqe value command should be modified
-       */
+    /**
+     * \brief Set the applied joint torques for the current interpolation step.
+     *
+     * This method is only effective when the client is in a commanding state.
+     * The ControlMode of the robot has to be joint impedance control mode. The
+     * Client Command Mode has to be torque.
+     *
+     * @param state Object which stores the current state of the robot, including the command to send next
+     * @param torques Array with the applied torque values (in Nm)
+     * @param tag identifier object indicating that the torqe value command should be modified
+     */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
        if(boost::size(range))
@@ -295,73 +286,69 @@ namespace grl { namespace robot {
      }
 
 
-      /**
-       * \brief Set the applied wrench vector of the current interpolation step.
-       *
-       * The wrench vector consists of:
-       * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
-       *
-       * F ... forces (in N) applied along the Cartesian axes of the
-       * currently used motion center.
-       * tau ... torques (in Nm) applied along the orientation angles
-       * (Euler angles A, B, C) of the currently used motion center.
-       *
-       * This method is only effective when the client is in a commanding state.
-       * The ControlMode of the robot has to be Cartesian impedance control mode. The
-       * Client Command Mode has to be wrench.
-       *
-       * @param FRICommandMessage object storing the command data that will be sent to the physical device
-       * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
-       * @param tag identifier object indicating that the wrench value command should be modified
-       *
-       * @todo perhaps support some specific more useful data layouts
-       * @note copies only the elements that will fit
-       */
+    /**
+     * \brief Set the applied wrench vector of the current interpolation step.
+     *
+     * The wrench vector consists of:
+     * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
+     *
+     * F ... forces (in N) applied along the Cartesian axes of the
+     * currently used motion center.
+     * tau ... torques (in Nm) applied along the orientation angles
+     * (Euler angles A, B, C) of the currently used motion center.
+     *
+     * This method is only effective when the client is in a commanding state.
+     * The ControlMode of the robot has to be Cartesian impedance control mode. The
+     * Client Command Mode has to be wrench.
+     *
+     * @param FRICommandMessage object storing the command data that will be sent to the physical device
+     * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
+     * @param tag identifier object indicating that the wrench value command should be modified
+     *
+     * @todo perhaps support some specific more useful data layouts
+     * @note copies only the elements that will fit
+     */
     template<typename Range>
     static inline void set(FRICommandMessage & state, Range&& range, grl::cartesian_wrench_command_tag) {
-       if(boost::size(range))
-       {
-           state.has_commandData = true;
-           state.commandData.has_cartesianWrenchFeedForward = true;
-           std::copy_n(std::begin(range),std::min(boost::size(range),state.commandData.cartesianWrenchFeedForward.element_count), &state.commandData.cartesianWrenchFeedForward.element[0]);
-       }
+        if(boost::size(range))
+        {
+            state.has_commandData = true;
+            state.commandData.has_cartesianWrenchFeedForward = true;
+            std::copy_n(std::begin(range),std::min(boost::size(range),state.commandData.cartesianWrenchFeedForward.element_count), &state.commandData.cartesianWrenchFeedForward.element[0]);
+        }
      }
 
 
     /// set the left destination FRICommandMessage state to be equal to the right source FRICommandMessage state
     static inline void set(FRICommandMessage & state, const FRICommandMessage& sourceState, grl::command_tag) {
-       state.has_commandData = sourceState.has_commandData;
+        state.has_commandData = sourceState.has_commandData;
 
-       // cartesianWrench
-       state.commandData.has_cartesianWrenchFeedForward = state.commandData.has_cartesianWrenchFeedForward;
-       std::copy_n(&state.commandData.cartesianWrenchFeedForward.element[0],std::min(state.commandData.cartesianWrenchFeedForward.element_count,sourceState.commandData.cartesianWrenchFeedForward.element_count), &state.commandData.cartesianWrenchFeedForward.element[0]);
+        // cartesianWrench
+        state.commandData.has_cartesianWrenchFeedForward = state.commandData.has_cartesianWrenchFeedForward;
+        std::copy_n(&state.commandData.cartesianWrenchFeedForward.element[0],std::min(state.commandData.cartesianWrenchFeedForward.element_count,sourceState.commandData.cartesianWrenchFeedForward.element_count), &state.commandData.cartesianWrenchFeedForward.element[0]);
 
-       // for joint copying
-       tRepeatedDoubleArguments *dest;
-       tRepeatedDoubleArguments *source;
+        // for joint copying
+        tRepeatedDoubleArguments *dest;
+        tRepeatedDoubleArguments *source;
 
-
-
-       // jointTorque
-       state.commandData.has_jointTorque = state.commandData.has_jointTorque;
-       dest   =  (tRepeatedDoubleArguments*)state.commandData.jointTorque.value.arg;
-       source =  (tRepeatedDoubleArguments*)sourceState.commandData.jointTorque.value.arg;
-       std::copy_n(source->value,std::min(source->size,dest->size), dest->value);
+        // jointTorque
+        state.commandData.has_jointTorque = state.commandData.has_jointTorque;
+        dest   =  (tRepeatedDoubleArguments*)state.commandData.jointTorque.value.arg;
+        source =  (tRepeatedDoubleArguments*)sourceState.commandData.jointTorque.value.arg;
+        std::copy_n(source->value,std::min(source->size,dest->size), dest->value);
 
 
-       // jointPosition
-       state.commandData.has_jointPosition = state.commandData.has_jointPosition;
-       dest   =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
-       source =  (tRepeatedDoubleArguments*)sourceState.commandData.jointPosition.value.arg;
-       std::copy_n(source->value,std::min(source->size,dest->size), dest->value);
+        // jointPosition
+        state.commandData.has_jointPosition = state.commandData.has_jointPosition;
+        dest   =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
+        source =  (tRepeatedDoubleArguments*)sourceState.commandData.jointPosition.value.arg;
+        std::copy_n(source->value,std::min(source->size,dest->size), dest->value);
 
-     }
-
-
-    static inline void set(FRICommandMessage & state, const FRICommandMessage& sourceState) {
-       set(state,sourceState, grl::command_tag());
     }
 
+    static inline void set(FRICommandMessage & state, const FRICommandMessage& sourceState) {
+        set(state,sourceState, grl::command_tag());
+    }
 
 }}} // namespace grl::robot::arm
 
@@ -405,8 +392,6 @@ namespace traits {
     template<typename Enable> struct tag<FRIMonitoringMessage, Enable > { typedef grl::device_state_tag type; };
     template<typename Enable> struct dimension<FRIMonitoringMessage, Enable > : boost::mpl::int_<KUKA::LBRState::NUM_DOF> {};
     template<typename Enable> struct coordinate_type<FRIMonitoringMessage, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-
-
 
 //    template<typename GeometryTag,typename Enable> struct coordinate_type<FRIMonitoringMessage, GeometryTag, Enable >;
 //    template<typename Enable> struct coordinate_type<FRIMonitoringMessage, revolute_joint_angle_open_chain_state_tag             , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
@@ -457,12 +442,6 @@ namespace traits {
         //static inline void set(nrec::spatial::Coordinate<Dim,T,U> & p, typename nrec::spatial::Coordinate<Dim,T,U>::value_type const& value) { p.operator[](Index) = value; }
 
 
-
-
-
-
-
-
 //	    // angle
 //        const typename coordinate_type<FRIMonitoringMessage,revolute_joint_angle_open_chain_state_tag,Enable>::type
 //		get(FRIMonitoringMessage  const& monitoringMsg,revolute_joint_angle_open_chain_state_tag) {
@@ -502,23 +481,9 @@ namespace traits {
     };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     template<typename Enable> struct tag<FRICommandMessage, Enable > { typedef grl::device_command_tag type; };
     template<typename Enable> struct dimension<FRICommandMessage, Enable > : boost::mpl::int_<1> {}; // each joint is 1 dimensional
     template<typename Enable> struct coordinate_type<FRICommandMessage, Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
-
-
 
     //    template<typename GeometryTag,typename Enable> struct coordinate_type<FRICommandMessage, GeometryTag, Enable >;
     //    template<typename Enable> struct coordinate_type<FRICommandMessage, revolute_joint_angle_open_chain_state_tag             , Enable > { typedef boost::iterator_range<repeatedDoubleArguments> type; };
@@ -536,23 +501,17 @@ namespace traits {
 //        return grl::robot::arm::kuka::detail::get(*static_cast<tRepeatedDoubleArguments*>(monitoringMsg.monitorData.commandedJointPosition.value.arg),monitoringMsg.monitorData.has_measuredJointPosition);
 //    }
 
-    template<typename Range>
-    static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
-       state.has_commandData = true;
-       state.commandData.has_jointPosition = true;
-       tRepeatedDoubleArguments *dest =  (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
-       boost::copy(range, dest->value);
-     }
-
-
+        template<typename Range>
+        static inline void set(FRICommandMessage & state, Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
+            state.has_commandData = true;
+            state.commandData.has_jointPosition = true;
+            tRepeatedDoubleArguments *dest = (tRepeatedDoubleArguments*)state.commandData.jointPosition.value.arg;
+            boost::copy(range, dest->value);
+        }
 
     };
 
-
 }}} // boost::geometry::traits
-
-
-
 
 #endif
 

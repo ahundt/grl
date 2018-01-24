@@ -2,6 +2,7 @@
 /// If you are new to this code base you are most likely looking for KukaDriver.hpp
 #ifndef _KUKA_FRI_DRIVER
 #define _KUKA_FRI_DRIVER
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 
 #include "grl/kuka/KukaFRIClientDataDriver.hpp"
 //#include "cartographer/common/time.h"
@@ -58,10 +59,8 @@ namespace arm {
 /// a std::shared_ptr named pt to safely generate additional std::shared_ptr instances pt1, pt2, ...
 /// that all share ownership of t with pt.
 template <typename LowLevelStepAlgorithmType = LinearInterpolation>
-class KukaFRIdriver : public std::enable_shared_from_this<
-                          KukaFRIdriver<LowLevelStepAlgorithmType>>,
-                      public KukaUDP {
-
+class KukaFRIdriver : public std::enable_shared_from_this<KukaFRIdriver<LowLevelStepAlgorithmType>>, public KukaUDP
+{
 public:
     using KukaUDP::ParamIndex;  // enum, define some connection parameters, such as ip, port...
     using KukaUDP::ThreadingRunMode;
@@ -69,13 +68,6 @@ public:
     using KukaUDP::defaultParams;  // A method to assign Params with defaut values.
 
     KukaFRIdriver(Params params = defaultParams()) : params_(params),  m_shouldStop(false) {}
-
-    //      KukaFRIdriver(boost::asio::io_service&
-    //      device_driver_io_service__,Params params = defaultParams())
-    //        :
-    //        device_driver_io_service(device_driver_io_service__),
-    //        params_(params)
-    //      {}
 
     void construct() { construct(params_); }
 
@@ -85,8 +77,7 @@ public:
     /// exception
     void construct(Params params) {
         params_ = params;
-        // keep driver threads from exiting immediately after creation, because they
-        // have work to do!
+        // keep driver threads from exiting immediately after creation, because they have work to do!
         // boost::asio::io_service::work: Constructor notifies the io_service that work is starting.
         device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
 
@@ -100,7 +91,6 @@ public:
                                 std::string(std::get<remoteport>(params)),
                                 grl::robot::arm::KukaFRIClientDataDriver<
                                     LowLevelStepAlgorithmType>::run_automatically))
-
                 );
         // flatbuffersbuilder does not yet exist
         m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
@@ -114,7 +104,6 @@ public:
 
     ~KukaFRIdriver() {
         device_driver_workP_.reset();
-
         if (driver_threadP) {
             device_driver_io_service.stop();
             driver_threadP->join();
@@ -139,15 +128,13 @@ public:
 
         // scale velocity down to a single timestep. In other words multiply each
         // velocity by the number of seconds in a tick, likely 0.001-0.005
-        boost::transform(
-            maxVel, maxVel.begin(),
-            std::bind2nd(std::multiplies<KukaState::joint_state::value_type>(),
+        boost::transform( maxVel, maxVel.begin(), std::bind2nd(std::multiplies<KukaState::joint_state::value_type>(),
                        getSecondsPerTick()));
 
         return maxVel;
     }
 
-  struct MicrosecondClock
+    struct MicrosecondClock
     {
         using rep = int64_t;
         /// 1 microsecond
@@ -181,9 +168,7 @@ public:
         int64_t nanosecs = friTimeStamp.nanosec;
         int64_t microseconds = seconds *1000000 + nanosecs/1000;
         typename MicrosecondClock::time_point fritp = typename MicrosecondClock::time_point(typename MicrosecondClock::duration(microseconds));
-
         return KukaTimeToCommonTime(fritp);
-
     }
 
     /**
@@ -213,9 +198,9 @@ public:
         armState.velocity_limits.clear();
         armState.velocity_limits = getMaxVel();
 
-        // This is the key point where the arm's motion goal command is updated and
-        // sent to the robot
+        // This is the key point where the arm's motion goal command is updated and sent to the robot
         // Set the FRI to the simulated joint positions
+        // Why set this check?
         if (this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands) {
             /// @todo TODO(ahundt) Need to eliminate this allocation
             boost::lock_guard<boost::mutex> lock(jt_mutex);
@@ -228,9 +213,6 @@ public:
             /// KukaFRIClientDataDriver
             /// this is where we used to setup a new FRI command
 
-            // std::cout << "commandToSend: " << commandToSend << "\n" <<
-            // "currentJointPos: " << currentJointPos << "\n" << "amountToMove: " <<
-            // amountToMove << "\n" << "maxVel: " << maxvel << "\n";
         } else {
             /// @todo TODO(ahundt) BUG: Need way to pass time to reach specified goal for position control and eliminate this allocation
             lowLevelStepAlgorithmCommandParamsP.reset(new typename LowLevelStepAlgorithmType::Params());
@@ -257,49 +239,6 @@ public:
             m_attemptedCommunicationConsecutiveSuccessCount++;
             this->m_attemptedCommunicationConsecutiveFailureCount = 0;
             this->m_haveReceivedRealDataCount++;
-
-            // We have the real kuka state read from the device now
-            // update real joint angle data
-            armState.position.clear();
-            grl::robot::arm::copy(friData_->monitoringMsg,
-                                  std::back_inserter(armState.position),
-                                  grl::revolute_joint_angle_open_chain_state_tag());
-
-            armState.torque.clear();
-            grl::robot::arm::copy(friData_->monitoringMsg,
-                                  std::back_inserter(armState.torque),
-                                  grl::revolute_joint_torque_open_chain_state_tag());
-
-            armState.externalTorque.clear();
-            grl::robot::arm::copy(
-                friData_->monitoringMsg, std::back_inserter(armState.externalTorque),
-                grl::revolute_joint_torque_external_open_chain_state_tag());
-
-            // only supported for kuka sunrise OS 1.9
-            #ifdef KUKA_SUNRISE_1_9
-            armState.externalForce.clear();
-            grl::robot::arm::copy(friData_->monitoringMsg,
-                                  std::back_inserter(armState.externalForce),
-                                  grl::cartesian_external_force_tag());
-            #endif // KUKA_SUNRISE_1_9
-            armState.commandedPosition.clear();
-            grl::robot::arm::copy(
-                friData_->monitoringMsg, std::back_inserter(armState.commandedPosition),
-                grl::revolute_joint_angle_open_chain_command_tag());
-
-            armState.commandedTorque.clear();
-            grl::robot::arm::copy(
-                friData_->monitoringMsg, std::back_inserter(armState.commandedTorque),
-                grl::revolute_joint_torque_open_chain_command_tag());
-
-            armState.ipoJointPosition.clear();
-            grl::robot::arm::copy(
-                friData_->monitoringMsg,
-                std::back_inserter(armState.ipoJointPosition),
-                grl::revolute_joint_angle_interpolated_open_chain_state_tag());
-
-            armState.sendPeriod = std::chrono::milliseconds(
-                grl::robot::arm::get(friData_->monitoringMsg, grl::time_step_tag()));
 
             oneKUKAiiwaStateBuffer();
             armState.time_event_stamp = time_event_stamp;
@@ -483,6 +422,53 @@ public:
 
     bool oneKUKAiiwaStateBuffer()
     {
+        // We have the real kuka state read from the device now
+        // update real joint angle data
+        armState.position.clear();
+        grl::robot::arm::copy(friData_->monitoringMsg,
+                              std::back_inserter(armState.position),
+                              grl::revolute_joint_angle_open_chain_state_tag());
+
+        armState.torque.clear();
+        grl::robot::arm::copy(friData_->monitoringMsg,
+                              std::back_inserter(armState.torque),
+                              grl::revolute_joint_torque_open_chain_state_tag());
+
+        armState.externalTorque.clear();
+        grl::robot::arm::copy(
+            friData_->monitoringMsg, std::back_inserter(armState.externalTorque),
+            grl::revolute_joint_torque_external_open_chain_state_tag());
+
+        // only supported for kuka sunrise OS 1.9
+        #ifdef KUKA_SUNRISE_1_9
+        armState.externalForce.clear();
+        grl::robot::arm::copy(friData_->monitoringMsg,
+                              std::back_inserter(armState.externalForce),
+                              grl::cartesian_external_force_tag());
+        #endif // KUKA_SUNRISE_1_9
+        armState.commandedPosition.clear();
+        grl::robot::arm::copy(
+            friData_->monitoringMsg, std::back_inserter(armState.commandedPosition),
+            grl::revolute_joint_angle_open_chain_command_tag());
+
+        armState.commandedTorque.clear();
+        grl::robot::arm::copy(
+            friData_->monitoringMsg, std::back_inserter(armState.commandedTorque),
+            grl::revolute_joint_torque_open_chain_command_tag());
+
+        armState.ipoJointPosition.clear();
+        grl::robot::arm::copy(
+            friData_->monitoringMsg,
+            std::back_inserter(armState.ipoJointPosition),
+            grl::revolute_joint_angle_interpolated_open_chain_state_tag());
+
+        armState.sendPeriod = std::chrono::milliseconds(
+            grl::robot::arm::get(friData_->monitoringMsg, grl::time_step_tag()));
+
+
+
+
+
         std::string RobotName = std::string(std::get<RobotModel>(params_));
 
         std:: string destination = std::string(std::get<remotehost>(params_));
@@ -490,15 +476,15 @@ public:
         int16_t portOnRemote = std::stoi(std::string(std::get<remoteport>(params_)));
 
         int16_t portOnController  = std::stoi(std::string(std::get<localport>(params_)));
-        std::string basename = RobotName; //std::get<0>(params);
+        std::string basename = RobotName;
 
-        bool max_control_force_stop_ = false;
-        std::vector<double> joint_stiffness_(KUKA::LBRState::NUM_DOF, 0);
-        std::vector<double> joint_damping_(KUKA::LBRState::NUM_DOF, 0);
-        std::vector<double> joint_AccelerationRel_(KUKA::LBRState::NUM_DOF, 0);
-        std::vector<double> joint_VelocityRel_(KUKA::LBRState::NUM_DOF, 0);
-        bool updateMinimumTrajectoryExecutionTime = false;
-        double minimumTrajectoryExecutionTime = 4;
+        // bool max_control_force_stop_ = false;
+        // std::vector<double> joint_stiffness_(KUKA::LBRState::NUM_DOF, 0);
+        // std::vector<double> joint_damping_(KUKA::LBRState::NUM_DOF, 0);
+        // std::vector<double> joint_AccelerationRel_(KUKA::LBRState::NUM_DOF, 0);
+        // std::vector<double> joint_VelocityRel_(KUKA::LBRState::NUM_DOF, 0);
+        // bool updateMinimumTrajectoryExecutionTime = false;
+        // double minimumTrajectoryExecutionTime = 4;
 
         //Cartesian Impedance Values
         // grl::flatbuffer::Vector3d cart_stiffness_trans_ = grl::flatbuffer::Vector3d(0,0,0);
@@ -512,9 +498,9 @@ public:
         // grl::flatbuffer::EulerPose cart_max_ctrl_force_ = grl::flatbuffer::EulerPose(grl::flatbuffer::Vector3d(0,0,0), grl::flatbuffer::EulerRotation(0.,0.,0., grl::flatbuffer::EulerOrder::xyz));
         // double nullspace_stiffness_ = 0;
         // double nullspace_damping_ = 0;
-        bool updatePortOnRemote = false;
+        // bool updatePortOnRemote = false;
 
-        bool updatePortOnController = false;
+        // bool updatePortOnController = false;
 
         // Resolve the data in FRIMonitoringMessage
         // Don't match the FRIMessage.pb.h
@@ -584,10 +570,7 @@ public:
 
         auto bns = m_logFileBufferBuilderP->CreateString(basename);
         double duration = boost::chrono::high_resolution_clock::now().time_since_epoch().count();
-
-
         bool OK = true;
-
         int64_t sequenceNumber = 0;
 
         copy(monitoringMsg, armState);
@@ -605,11 +588,11 @@ public:
         flatbuffers::Offset<grl::flatbuffer::JointImpedenceControlMode> setJointImpedance = 0;
         // normalized joint accelerations/velocities from 0 to 1 relative to system capabilities
         // how to get the acceleration of the robot? There is no acceleration information in KukaState (armState).
-        flatbuffers::Offset<grl::flatbuffer::SmartServo> setSmartServo = grl::toFlatBuffer(*m_logFileBufferBuilderP, joint_AccelerationRel_, joint_VelocityRel_, updateMinimumTrajectoryExecutionTime, minimumTrajectoryExecutionTime);
+        flatbuffers::Offset<grl::flatbuffer::SmartServo> setSmartServo = 0; //grl::toFlatBuffer(*m_logFileBufferBuilderP, joint_AccelerationRel_, joint_VelocityRel_, updateMinimumTrajectoryExecutionTime, minimumTrajectoryExecutionTime);
         // FRI configuration parameters
-        flatbuffers::Offset<grl::flatbuffer::FRI> FRIConfig = grl::toFlatBuffer(*m_logFileBufferBuilderP, overlayType, connectionInfo, updatePortOnRemote, portOnRemote, updatePortOnController, portOnController);
-        std::vector<flatbuffers::Offset<grl::flatbuffer::LinkObject>> tools;
-        std::vector<flatbuffers::Offset<grl::flatbuffer::ProcessData>> processData_vec;
+        flatbuffers::Offset<grl::flatbuffer::FRI> FRIConfig = 0; //grl::toFlatBuffer(*m_logFileBufferBuilderP, overlayType, connectionInfo, updatePortOnRemote, portOnRemote, updatePortOnController, portOnController);
+        // std::vector<flatbuffers::Offset<grl::flatbuffer::LinkObject>> tools;
+        // std::vector<flatbuffers::Offset<grl::flatbuffer::ProcessData>> processData_vec;
         // @TODO(Chunting) Initialize Pose with 0, we ought to calculate it later with ::Transformation;
         // Also assign the configuration parameters with random values, we can figure them out later.
         // for(int i=0; i<KUKA::LBRState::NUM_DOF; i++) {
@@ -694,11 +677,11 @@ public:
             friSessionState,
             robotInfo.operationMode,
             cartesianWrench);
-         // Set it up in the configuration file
-        std::vector<double> torqueSensorLimits(KUKA::LBRState::NUM_DOF,0.1);
-        std::string hardwareVersion("hardvareVersion");
-        bool isReadyToMove = true;
-        bool isMastered = true;
+        // Set it up in the configuration file
+        // std::vector<double> torqueSensorLimits(KUKA::LBRState::NUM_DOF,0.1);
+        // std::string hardwareVersion("hardvareVersion");
+        // bool isReadyToMove = true;
+        // bool isMastered = true;
         // flatbuffers::Offset<grl::flatbuffer::KUKAiiwaMonitorConfiguration> monitorConfig = grl::toFlatBuffer(
         //     *m_logFileBufferBuilderP,
         //     hardwareVersion,
@@ -712,7 +695,6 @@ public:
             RobotName,
             destination,
             source,
-            // duration,
             armState.time_event_stamp,
             false, controlState,  // if false, then don't record the value
             false, kukaiiwaArmConfiguration,
@@ -746,7 +728,7 @@ public:
         #endif // HAVE_spdlog
         ]() mutable
         {
-            std::cout<< "Save recording data from KukaLBRiiwa to disk..." << std::endl;
+
             std::string currentWorkingDir = grl::GetCurrentWorkingDir();
             std::cout<< currentWorkingDir<<"/"<<filename<<std::endl;
             bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaBufferP);
