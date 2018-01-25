@@ -5,6 +5,8 @@
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 
 #include "grl/kuka/KukaFRIClientDataDriver.hpp"
+#include <cstdio>
+#include <cinttypes>
 //#include "cartographer/common/time.h"
 
 struct KukaState;
@@ -130,7 +132,6 @@ public:
         // velocity by the number of seconds in a tick, likely 0.001-0.005
         boost::transform( maxVel, maxVel.begin(), std::bind2nd(std::multiplies<KukaState::joint_state::value_type>(),
                        getSecondsPerTick()));
-
         return maxVel;
     }
 
@@ -157,8 +158,7 @@ public:
     cartographer::common::Time KukaTimeToCommonTime(typename MicrosecondClock::time_point Kukatime)
     {
         return cartographer::common::Time(
-            std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(Kukatime.time_since_epoch()) +
-            std::chrono::seconds(cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds));
+            std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(Kukatime.time_since_epoch()));
     }
 
     cartographer::common::Time FRITimeStampToCommonTime(const ::TimeStamp &friTimeStamp)
@@ -167,6 +167,10 @@ public:
         int64_t seconds = friTimeStamp.sec;
         int64_t nanosecs = friTimeStamp.nanosec;
         int64_t microseconds = seconds *1000000 + nanosecs/1000;
+        if(INT64_MAX - seconds *1000000 < nanosecs/1000) {
+            throw std::runtime_error("signed overflow has occured");
+        }
+        std::cout<<"secondes: "<<seconds <<"\n" << "nanosecs: "<< nanosecs<<"\n" <<"microseconds: "<< microseconds<<std::endl;
         typename MicrosecondClock::time_point fritp = typename MicrosecondClock::time_point(typename MicrosecondClock::duration(microseconds));
         return KukaTimeToCommonTime(fritp);
     }
@@ -189,22 +193,17 @@ public:
         }
 
         bool haveNewData = false;
-
         static const std::size_t minimumConsecutiveSuccessesBeforeSendingCommands = 100;
-
         std::shared_ptr<typename LowLevelStepAlgorithmType::Params> lowLevelStepAlgorithmCommandParamsP;
-
         /// @todo probably only need to set this once
         armState.velocity_limits.clear();
         armState.velocity_limits = getMaxVel();
-
         // This is the key point where the arm's motion goal command is updated and sent to the robot
         // Set the FRI to the simulated joint positions
         // Why set this check?
         if (this->m_haveReceivedRealDataCount > minimumConsecutiveSuccessesBeforeSendingCommands) {
             /// @todo TODO(ahundt) Need to eliminate this allocation
             boost::lock_guard<boost::mutex> lock(jt_mutex);
-
             boost::container::static_vector<double, KUKA::LBRState::NUM_DOF> jointStateToCommand;
             boost::copy(armState.commandedPosition,std::back_inserter(jointStateToCommand));
             // pass time to reach specified goal for position control
@@ -212,7 +211,6 @@ public:
             /// @todo construct new low level command object and pass to
             /// KukaFRIClientDataDriver
             /// this is where we used to setup a new FRI command
-
         } else {
             /// @todo TODO(ahundt) BUG: Need way to pass time to reach specified goal for position control and eliminate this allocation
             lowLevelStepAlgorithmCommandParamsP.reset(new typename LowLevelStepAlgorithmType::Params());
@@ -241,7 +239,7 @@ public:
             this->m_haveReceivedRealDataCount++;
 
             oneKUKAiiwaStateBuffer();
-            armState.time_event_stamp = time_event_stamp;
+
             saveToDisk();
 
         } else {
@@ -424,57 +422,10 @@ public:
     {
         // We have the real kuka state read from the device now
         // update real joint angle data
-        armState.position.clear();
-        grl::robot::arm::copy(friData_->monitoringMsg,
-                              std::back_inserter(armState.position),
-                              grl::revolute_joint_angle_open_chain_state_tag());
-
-        armState.torque.clear();
-        grl::robot::arm::copy(friData_->monitoringMsg,
-                              std::back_inserter(armState.torque),
-                              grl::revolute_joint_torque_open_chain_state_tag());
-
-        armState.externalTorque.clear();
-        grl::robot::arm::copy(
-            friData_->monitoringMsg, std::back_inserter(armState.externalTorque),
-            grl::revolute_joint_torque_external_open_chain_state_tag());
-
-        // only supported for kuka sunrise OS 1.9
-        #ifdef KUKA_SUNRISE_1_9
-        armState.externalForce.clear();
-        grl::robot::arm::copy(friData_->monitoringMsg,
-                              std::back_inserter(armState.externalForce),
-                              grl::cartesian_external_force_tag());
-        #endif // KUKA_SUNRISE_1_9
-        armState.commandedPosition.clear();
-        grl::robot::arm::copy(
-            friData_->monitoringMsg, std::back_inserter(armState.commandedPosition),
-            grl::revolute_joint_angle_open_chain_command_tag());
-
-        armState.commandedTorque.clear();
-        grl::robot::arm::copy(
-            friData_->monitoringMsg, std::back_inserter(armState.commandedTorque),
-            grl::revolute_joint_torque_open_chain_command_tag());
-
-        armState.ipoJointPosition.clear();
-        grl::robot::arm::copy(
-            friData_->monitoringMsg,
-            std::back_inserter(armState.ipoJointPosition),
-            grl::revolute_joint_angle_interpolated_open_chain_state_tag());
-
-        armState.sendPeriod = std::chrono::milliseconds(
-            grl::robot::arm::get(friData_->monitoringMsg, grl::time_step_tag()));
-
-
-
-
-
         std::string RobotName = std::string(std::get<RobotModel>(params_));
-
         std:: string destination = std::string(std::get<remotehost>(params_));
         std::string source =  std::string(std::get<localhost>(params_));
         int16_t portOnRemote = std::stoi(std::string(std::get<remoteport>(params_)));
-
         int16_t portOnController  = std::stoi(std::string(std::get<localport>(params_)));
         std::string basename = RobotName;
 
@@ -509,27 +460,16 @@ public:
         grl::flatbuffer::KUKAiiwaInterface monitorInterface = grl::flatbuffer::KUKAiiwaInterface::FRI;
 
         FRIMonitoringMessage monitoringMsg = friData_->monitoringMsg;
-        // RobotInfo
-        // how to use pb_callback_t driveState in RobotInfo?
-        ::RobotInfo robotInfo = monitoringMsg.robotInfo;
-        int NUM_DOF = robotInfo.has_numberOfJoints?robotInfo.numberOfJoints:KUKA::LBRState::NUM_DOF;
-        ::ControlMode controlMode = robotInfo.controlMode;
-        ::SafetyState safetyState = robotInfo.safetyState;
-        ::OperationMode operationMode = robotInfo.operationMode;
-
-        // ConnectionInfo
-        // how to use uint32_t receiveMultiplier
+        std::size_t NUM_DOF = grl::robot::arm::get(monitoringMsg, KUKA::LBRState::NUM_DOF);;
+        ::ControlMode controlMode = grl::robot::arm::get(monitoringMsg, ::ControlMode());
+        ::SafetyState safetyState = grl::robot::arm::get(monitoringMsg, ::SafetyState());
+        ::OperationMode operationMode = grl::robot::arm::get(monitoringMsg, ::OperationMode());
         ::ConnectionInfo connectionInfo = monitoringMsg.connectionInfo;
-        ::FRISessionState friSessionState = connectionInfo.sessionState;
-        ::FRIConnectionQuality friConnectionQuality = connectionInfo.quality;
-        //  MessageIpoData
-        // JointValues jointPosition; double trackingPerformance;
-        ::MessageIpoData ipoData = monitoringMsg.ipoData;
-        ::ClientCommandMode clientCommandMode = ipoData.clientCommandMode;
-        ::OverlayType overlayType = ipoData.overlayType;
+        ::FRISessionState friSessionState = grl::robot::arm::get(monitoringMsg, ::FRISessionState());
+        ::FRIConnectionQuality friConnectionQuality = grl::robot::arm::get(monitoringMsg, ::FRIConnectionQuality());
+        ::ClientCommandMode clientCommandMode = grl::robot::arm::get(monitoringMsg, ::ClientCommandMode());
 
-        // No MessageHeader in flatbuffer objects
-        ::MessageHeader messageHeader = monitoringMsg.header;
+        ::OverlayType overlayType = grl::robot::arm::get(monitoringMsg, ::OverlayType());
 
         ::MessageMonitorData messageMonitorData = monitoringMsg.monitorData;
 
@@ -552,7 +492,7 @@ public:
         local_clock_name_arr[length] = '\0';
         time_event_stamp.local_clock_id = local_clock_name_arr;
         time_event_stamp.device_time = FRITimeStampToCommonTime(messageMonitorData.timestamp);
-
+        armState.time_event_stamp = time_event_stamp;
 
         //std::cout<< time_event_stamp.event_name << std::endl << time_event_stamp.device_clock_id << std::endl << time_event_stamp.local_clock_id <<std::endl;
         ::Transformation *transformation = new ::Transformation[5];
@@ -574,12 +514,7 @@ public:
         int64_t sequenceNumber = 0;
 
         copy(monitoringMsg, armState);
-        armState.sessionState = grl::toFlatBuffer(friSessionState);
-        armState.connectionQuality = grl::toFlatBuffer(friConnectionQuality);
-        armState.safetyState = grl::toFlatBuffer(safetyState);
-        armState.operationMode = grl::toFlatBuffer(operationMode);
-        // This parameter is never used.
-        armState.driveState = grl::toFlatBuffer(::DriveState::DriveState_OFF);
+
         flatbuffers::Offset<grl::flatbuffer::ArmControlState> controlState = grl::toFlatBuffer(*m_logFileBufferBuilderP, basename, sequenceNumber++, duration, armState, armControlMode);
         // flatbuffers::Offset<grl::flatbuffer::CartesianImpedenceControlMode> setCartesianImpedance = grl::toFlatBuffer(*m_logFileBufferBuilderP, cart_stiffness_, cart_damping_,
         //        nullspace_stiffness_, nullspace_damping_, cart_max_path_deviation_, cart_max_ctrl_vel_, cart_max_ctrl_force_, max_control_force_stop_);
@@ -675,7 +610,7 @@ public:
             jointIpoState, // flatbuffers::Offset<grl::flatbuffer::JointState> &jointStateInterpolated,
             externalState, // flatbuffers::Offset<grl::flatbuffer::JointState> &externalState,
             friSessionState,
-            robotInfo.operationMode,
+            operationMode,
             cartesianWrench);
         // Set it up in the configuration file
         // std::vector<double> torqueSensorLimits(KUKA::LBRState::NUM_DOF,0.1);

@@ -134,54 +134,55 @@ namespace grl { namespace robot {
 	void copy(const FRICommandMessage& commandMsg, OutputIterator it, revolute_joint_angle_open_chain_command_tag){
         if (commandMsg.has_commandData) kuka::detail::copyJointState(commandMsg.commandData.jointPosition.value.arg,it,commandMsg.commandData.has_jointPosition);
 	}
-    /// KUKA::FRI::ESafetyState is defined in #include "friClientIf.h"
-	/// @todo consider using another default value, or perhaps boost::optional<Kuka::FRI::ESafetyState>?
-	KUKA::FRI::ESafetyState get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::ESafetyState) {
-		KUKA::FRI::ESafetyState state = KUKA::FRI::ESafetyState::NORMAL_OPERATION;
+    /// ::SafetyState is defined in #include "friClientIf.h"
+	/// @todo consider using another default value, or perhaps boost::optional<::SafetyState>?
+	::SafetyState get(const FRIMonitoringMessage& monitoringMsg, const ::SafetyState) {
+		::SafetyState state = ::SafetyState::SafetyState_NORMAL_OPERATION;
+
 	    if (monitoringMsg.has_robotInfo) {
 	        if (monitoringMsg.robotInfo.has_safetyState)
-	            return static_cast<KUKA::FRI::ESafetyState>(monitoringMsg.robotInfo.safetyState);
+	            return monitoringMsg.robotInfo.safetyState;
 	    }
 		return state;
 	}
 
-	KUKA::FRI::EOperationMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EOperationMode) {
-		KUKA::FRI::EOperationMode state = KUKA::FRI::EOperationMode::TEST_MODE_1;
+	::OperationMode get(const FRIMonitoringMessage& monitoringMsg, const ::OperationMode) {
+		::OperationMode state = ::OperationMode::OperationMode_TEST_MODE_1;
 	    if (monitoringMsg.has_robotInfo) {
 	        if (monitoringMsg.robotInfo.has_operationMode)
-	            state = static_cast<KUKA::FRI::EOperationMode>(monitoringMsg.robotInfo.operationMode);
+	            state = monitoringMsg.robotInfo.operationMode;
 	    }
 		return state;
 	}
 
-	KUKA::FRI::EControlMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EControlMode) {
-		KUKA::FRI::EControlMode state = KUKA::FRI::EControlMode::NO_CONTROL;
+	::ControlMode get(const FRIMonitoringMessage& monitoringMsg, const ::ControlMode) {
+		::ControlMode state = ::ControlMode::ControlMode_NO_CONTROLMODE;
 	    if (monitoringMsg.has_robotInfo) {
 	        if (monitoringMsg.robotInfo.has_controlMode)
-	            state = static_cast<KUKA::FRI::EControlMode>(monitoringMsg.robotInfo.controlMode);
+	            state = monitoringMsg.robotInfo.controlMode;
 	    }
 		return state;
 	}
 
-	KUKA::FRI::EClientCommandMode get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EClientCommandMode) {
-		KUKA::FRI::EClientCommandMode state = KUKA::FRI::EClientCommandMode::NO_COMMAND_MODE;
+	::ClientCommandMode get(const FRIMonitoringMessage& monitoringMsg, const ::ClientCommandMode) {
+		::ClientCommandMode state = ::ClientCommandMode::ClientCommandMode_NO_COMMAND_MODE;
 	    if (monitoringMsg.has_ipoData) {
 	        if (monitoringMsg.ipoData.has_clientCommandMode)
-	            state = static_cast<KUKA::FRI::EClientCommandMode>(monitoringMsg.ipoData.clientCommandMode);
+	            state = monitoringMsg.ipoData.clientCommandMode;
 	    }
 		return state;
 	}
 
-	KUKA::FRI::EOverlayType get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EOverlayType) {
-		KUKA::FRI::EOverlayType state = KUKA::FRI::EOverlayType::NO_OVERLAY;
+	::OverlayType get(const FRIMonitoringMessage& monitoringMsg, const ::OverlayType) {
+		::OverlayType state = ::OverlayType::OverlayType_NO_OVERLAY;
 	    if (monitoringMsg.has_ipoData) {
 	        if (monitoringMsg.ipoData.has_overlayType)
-	            state = static_cast<KUKA::FRI::EOverlayType>(monitoringMsg.ipoData.overlayType);
+	            state = monitoringMsg.ipoData.overlayType;
 	    }
 		return state;
 	}
 
-	KUKA::FRI::EDriveState get(const FRIMonitoringMessage& _message, const KUKA::FRI::EDriveState)
+	::DriveState get(const FRIMonitoringMessage& _message, const ::DriveState)
 	{
 	   tRepeatedIntArguments *values =
 			 (tRepeatedIntArguments *)_message.robotInfo.driveState.arg;
@@ -191,24 +192,24 @@ namespace grl { namespace robot {
 		  int state = (int)values->value[i];
 		  if (state != firstState)
 		  {
-			 return KUKA::FRI::EDriveState::TRANSITIONING;
+			 return ::DriveState::DriveState_TRANSITIONING;
 		  }
 	   }
-	   return (KUKA::FRI::EDriveState)firstState;
+	   return (::DriveState)firstState;
 	}
 
-	KUKA::FRI::ESessionState get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::ESessionState){
-		KUKA::FRI::ESessionState KukaSessionState = KUKA::FRI::ESessionState::IDLE;
+	::FRISessionState get(const FRIMonitoringMessage& monitoringMsg, const ::FRISessionState){
+		::FRISessionState KukaSessionState = ::FRISessionState::FRISessionState_IDLE;
 	    if (monitoringMsg.has_connectionInfo) {
-	        KukaSessionState = static_cast<KUKA::FRI::ESessionState>(monitoringMsg.connectionInfo.sessionState);
+	        KukaSessionState = monitoringMsg.connectionInfo.sessionState;
 	    }
 		return KukaSessionState;
 	}
 
-	KUKA::FRI::EConnectionQuality get(const FRIMonitoringMessage& monitoringMsg, const KUKA::FRI::EConnectionQuality){
-		KUKA::FRI::EConnectionQuality KukaQuality = KUKA::FRI::EConnectionQuality::POOR;
+	::FRIConnectionQuality get(const FRIMonitoringMessage& monitoringMsg, const ::FRIConnectionQuality){
+		::FRIConnectionQuality KukaQuality = ::FRIConnectionQuality::FRIConnectionQuality_POOR;
 	    if (monitoringMsg.has_connectionInfo) {
-	        KukaQuality = static_cast<KUKA::FRI::EConnectionQuality>(monitoringMsg.connectionInfo.quality);
+	        KukaQuality = monitoringMsg.connectionInfo.quality;
 	    }
 		return KukaQuality;
 	}
@@ -226,7 +227,16 @@ namespace grl { namespace robot {
 		return KukaSendPeriod;
 	}
 
-	std::size_t get(const FRIMonitoringMessage& monitoringMsg,const kuka::receive_multiplier){
+	std::size_t get(const FRIMonitoringMessage& monitoringMsg,const std::size_t NUM_DOF){
+		std::size_t numberofJoints = 7;
+	     if (monitoringMsg.has_robotInfo) {
+	        if (monitoringMsg.robotInfo.has_numberOfJoints)
+	            return monitoringMsg.robotInfo.numberOfJoints;
+	    }
+		return numberofJoints;
+	}
+
+    std::size_t get(const FRIMonitoringMessage& monitoringMsg,const kuka::receive_multiplier){
 		std::size_t KukaReceiveMultiplier = 0;
 	    if (monitoringMsg.has_connectionInfo) {
 	        if (monitoringMsg.connectionInfo.has_receiveMultiplier)

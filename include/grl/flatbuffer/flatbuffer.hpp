@@ -2,6 +2,7 @@
 #define GRL_FLATBUFFER_HPP
 
 #include <stdio.h>  /* defines FILENAME_MAX */
+#include <iostream>
 // #define WINDOWS  /* uncomment this line to use it for windows.*/
 #ifdef WINDOWS
 #include <direct.h>
@@ -36,8 +37,8 @@ namespace grl {
         bool ok = flatbuffers::LoadFile(schemaPath.c_str(), binary, &schemafile) &&
                 flatbuffers::LoadFile(jsonPath.c_str(), binary, &jsonfile);
         if (!ok) {
-        printf("couldn't load files!\n");
-        return nullptr;
+            printf("couldn't load files!\n");
+            return nullptr;
         }
 
         // parse schema first, so we can use it to parse the data after
@@ -74,7 +75,7 @@ namespace grl {
         {
 
             std::string current_working_dir = GetCurrentWorkingDir();
-            std::cout << "The current working dir: " << current_working_dir << std::endl;
+            //std::cout << "The current working dir: " << current_working_dir << std::endl;
             includePaths.push_back(current_working_dir);
         }
 
@@ -85,7 +86,7 @@ namespace grl {
         }
         else
         {
-            std::cout << "a full path wasn't passed, so check all the include paths" << std::endl;
+            //std::cout << "a full path wasn't passed, so check all the include paths" << std::endl;
             for(auto includePath : includePaths)
             {
               std::string fbs_trypath = flatbuffers::ConCatPathFileName(includePath, fbs_filename);
@@ -113,7 +114,6 @@ namespace grl {
           include_directories.push_back(includePaths[i].c_str());
         }
         include_directories.push_back(nullptr);
-
         return parser.Parse(schemafile.c_str(), &include_directories[0]);
     }
 
@@ -160,7 +160,7 @@ namespace grl {
         /////////////////////////////////////
         if(!binary_file_path.empty())
         {
-          ok = ok && flatbuffers::SaveFile(binary_file_path.c_str(), reinterpret_cast<const char*>(buffer), size, write_binary_stream);
+            ok = ok && flatbuffers::SaveFile(binary_file_path.c_str(), reinterpret_cast<const char*>(buffer), size, write_binary_stream);
         }
 
         ////////////////////////////////////////////
@@ -184,6 +184,5 @@ namespace grl {
         }
         return ok;
     }
-
 } // namespace grl
 #endif // GRL_FLATBUFFER_HPP

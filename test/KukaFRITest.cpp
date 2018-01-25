@@ -292,7 +292,7 @@ int main(int argc, char* argv[])
 
         // setting howToMove to HowToMove::remain_stationary block causes the robot to simply sit in place, which seems to work correctly. Enabling it causes the joint to rotate.
         if (howToMove != HowToMove::remain_stationary &&
-            grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState()) == KUKA::FRI::COMMANDING_ACTIVE)
+            grl::robot::arm::get(friData->monitoringMsg,::FRISessionState()) == ::FRISessionState::FRISessionState_COMMANDING_ACTIVE)
         {
             callIfMinPeriodPassed.execution( [&armState,&jointOffset,&delta,&delta_sum,joint_to_move]()
             {
@@ -310,9 +310,9 @@ int main(int argc, char* argv[])
             });
         }
 
-        KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData->monitoringMsg,KUKA::FRI::ESessionState());
+        ::FRISessionState sessionState = grl::robot::arm::get(friData->monitoringMsg,::FRISessionState());
         // copy current joint position to commanded position
-        if (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE)
+        if (sessionState == ::FRISessionState::FRISessionState_COMMANDING_WAIT || sessionState == ::FRISessionState::FRISessionState_COMMANDING_ACTIVE)
         {
             if (howToMove == HowToMove::relative_position) {
                 // go to a position relative to the current position

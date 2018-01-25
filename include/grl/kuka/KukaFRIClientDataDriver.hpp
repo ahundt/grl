@@ -73,8 +73,8 @@ void decode(KUKA::FRI::ClientData &friData, std::size_t msg_size) {
             std::string("\n")));
         return;
     }
-    // KUKA::FRI::ESessionState
-    friData.lastState = grl::robot::arm::get(friData.monitoringMsg, KUKA::FRI::ESessionState());
+    // ::SessionState
+    friData.lastState = static_cast<KUKA::FRI::ESessionState>(grl::robot::arm::get(friData.monitoringMsg, ::FRISessionState()));
 }
 
 /// @brief Default LowLevelStepAlgorithmType
@@ -192,9 +192,9 @@ struct LinearInterpolation {
             // send the command
             grl::robot::arm::set(friData.commandMsg, commandToSend, grl::revolute_joint_angle_open_chain_command_tag());
 
-            std::cout << "commandToSend: " << commandToSend << "\n" <<
-                "currentJointPos: " << currentJointPos << "\n" <<
-                "amountToMove: " << amountToMove << "\n" ;
+            // std::cout << "commandToSend: " << commandToSend << "\n" <<
+            //     "currentJointPos: " << currentJointPos << "\n" <<
+            //     "amountToMove: " << amountToMove << "\n" ;
 
             /// copy value for debugging, makes viewing in a debugger easier
             double ripoJointPos[7];
@@ -291,12 +291,12 @@ std::size_t encode(LowLevelStepAlgorithmType &step_alg,
     friData.commandMsg.header.sequenceCounter = friData.sequenceCounter++;
     friData.commandMsg.header.reflectedSequenceCounter = friData.monitoringMsg.header.sequenceCounter;
 
-    KUKA::FRI::ESessionState sessionState = grl::robot::arm::get(friData.monitoringMsg, KUKA::FRI::ESessionState());
+    ::FRISessionState sessionState = grl::robot::arm::get(friData.monitoringMsg, ::FRISessionState());
 
     if ((step_alg.hasCommandData() &&
-        (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE)))
+        (sessionState == ::FRISessionState::FRISessionState_COMMANDING_WAIT || sessionState == ::FRISessionState::FRISessionState_COMMANDING_ACTIVE)))
     {
-        KUKA::FRI::EClientCommandMode commandMode = grl::robot::arm::get(friData.monitoringMsg, KUKA::FRI::EClientCommandMode());
+        ::ClientCommandMode commandMode = grl::robot::arm::get(friData.monitoringMsg, ::ClientCommandMode());
         switch (commandMode) {
             case ClientCommandMode_POSITION:
                 step_alg.lowLevelTimestep(friData, revolute_joint_angle_open_chain_command_tag());
@@ -319,7 +319,7 @@ std::size_t encode(LowLevelStepAlgorithmType &step_alg,
         }
 
     } else if (!(friData.commandMsg.has_commandData && step_alg.hasCommandData() &&
-                (sessionState == KUKA::FRI::COMMANDING_WAIT || sessionState == KUKA::FRI::COMMANDING_ACTIVE)))
+                (sessionState == ::FRISessionState::FRISessionState_COMMANDING_WAIT || sessionState == ::FRISessionState::FRISessionState_COMMANDING_ACTIVE)))
     {
         // copy current measured joint position to commanded position only if we
         // *don't* have new command data
@@ -392,22 +392,31 @@ void copy(const FRIMonitoringMessage &monitoringMsg, KukaState &state) {
          revolute_joint_angle_open_chain_state_tag());
     copy(monitoringMsg, std::back_inserter(state.torque),
          revolute_joint_torque_open_chain_state_tag());
+    copy(monitoringMsg, std::back_inserter(state.externalTorque),
+            grl::revolute_joint_torque_external_open_chain_state_tag());
+    // only supported for kuka sunrise OS 1.9
+    #ifdef KUKA_SUNRISE_1_9
+        copy(friData_->monitoringMsg, std::back_inserter(state.externalForce),
+            grl::cartesian_external_force_tag());
+    #endif // KUKA_SUNRISE_1_9
     copy(monitoringMsg, std::back_inserter(state.commandedPosition),
          revolute_joint_angle_open_chain_command_tag());
     copy(monitoringMsg, std::back_inserter(state.commandedTorque),
          revolute_joint_torque_open_chain_command_tag());
     copy(monitoringMsg, std::back_inserter(state.ipoJointPosition),
          revolute_joint_angle_interpolated_open_chain_state_tag());
+    state.sendPeriod = std::chrono::milliseconds(
+        get(monitoringMsg, grl::time_step_tag()));
     state.sessionState = static_cast<flatbuffer::ESessionState>(
-        get(monitoringMsg, KUKA::FRI::ESessionState()));
+        get(monitoringMsg, ::FRISessionState()));
     state.connectionQuality = static_cast<flatbuffer::EConnectionQuality>(
-        get(monitoringMsg, KUKA::FRI::EConnectionQuality()));
+        get(monitoringMsg, ::FRISessionState()));
     state.safetyState = static_cast<flatbuffer::ESafetyState>(
-        get(monitoringMsg, KUKA::FRI::ESafetyState()));
+        get(monitoringMsg, ::SafetyState()));
     state.operationMode = static_cast<flatbuffer::EOperationMode>(
-        get(monitoringMsg, KUKA::FRI::EOperationMode()));
+        get(monitoringMsg, ::OperationMode()));
     state.driveState = static_cast<flatbuffer::EDriveState>(
-        get(monitoringMsg, KUKA::FRI::EDriveState()));
+        get(monitoringMsg, ::DriveState()));
 
     /// @todo fill out missing state update steps
 }

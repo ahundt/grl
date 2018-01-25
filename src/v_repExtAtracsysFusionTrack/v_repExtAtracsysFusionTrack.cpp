@@ -432,10 +432,13 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCa
     {
         std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         recordWhileSimulationIsRunningG = inData->at(0).boolData[0];
-
-        std::string log_message = std::string("simExtAtracsysFusionTrackRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
-        simAddStatusbarMessage(log_message.c_str());
-        loggerPG->info(log_message);
+        if (fusionTrackPG && recordWhileSimulationIsRunningG)
+        {
+            std::string log_message = std::string("simExtAtracsysFusionTrackRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
+            simAddStatusbarMessage(log_message.c_str());
+            loggerPG->info(log_message);
+            fusionTrackPG->start_recording();
+        }
 
         D.pushOutData(CLuaFunctionDataItem(success));
         D.writeDataToLua(p);
