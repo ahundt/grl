@@ -1,3 +1,5 @@
+/// KukaFRIDriver.hpp handles communication with the Kuka over FRI.
+/// If you are new to this code base you are most likely looking for KukaDriver.hpp
 #ifndef _KUKA_FRI_DRIVER
 #define _KUKA_FRI_DRIVER
 
@@ -99,7 +101,7 @@ struct LinearInterpolation {
   template <typename ArmData>
   void lowLevelTimestep(ArmData &friData,
                   revolute_joint_angle_open_chain_command_tag) {
-      
+
     // no updates if no goal has been set
     if(goal_position.size() == 0) return;
     // switch (friData_->monitoringMsg.robotInfo.controlMode) {
@@ -141,17 +143,17 @@ struct LinearInterpolation {
     boost::copy(ipoJointPos, &ripoJointPos[0]);
     boost::copy(currentJointPos, &rcurrentJointPos[0]);
     boost::copy(goal_position, &rcommandedGoal[0]);
-    
+
         boost::transform(currentJointPos, ipoJointPos,
                          std::back_inserter(currentMinusIPOJointPos), std::minus<double>());
         boost::transform(goal_position, ipoJointPos,
                          std::back_inserter(goalPlusIPOJointPos), std::plus<double>());
-      
-                         
+
+
     boost::copy(currentMinusIPOJointPos, &rcurrentMinusIPOJointPos[0]);
     boost::copy(goal_position, &rcommandedGoal[0]);
     boost::copy(goalPlusIPOJointPos, &rgoalPlusIPOJointPos[0]);
-    
+
     // only move if there is time left to reach the goal
     if(goal_position_command_time_duration_remaining > 0)
     {
@@ -178,9 +180,9 @@ struct LinearInterpolation {
                                   fractionOfDistanceToTraverse;
                          });
         boost::copy(diffToGoal, &rdiffToGoal[0]);
-    
+
         goal_position_command_time_duration_remaining -= thisTimeStepMS;
-        
+
         /// @todo correctly pass velocity limits from outside, use "copy" fuction in
         /// Kuka.hpp, correctly account for differing robot models. This  *should*
         /// be in KukaFRIdriver at the end of this file.
@@ -222,11 +224,11 @@ struct LinearInterpolation {
 
         boost::copy(currentMinusIPOJointPos, &rcurrentMinusIPOJointPos[0]);
         boost::copy(commandToSend, &rcommandToSend[0]);
-    
-        
+
+
         boost::transform(commandToSend, ipoJointPos,
                          std::back_inserter(commandToSendPlusIPOJointPos), std::plus<double>());
-    
+
 
         boost::copy(commandToSendPlusIPOJointPos, &rcommandToSendPlusIPOJointPos[0]);
         // send the command
@@ -238,12 +240,12 @@ struct LinearInterpolation {
     }
     // break;
   }
-  
+
   void setGoal(const Params& params ) {
       /// @todo TODO(ahundt) support param tag structs for additional control modes
       goal_position_command_time_duration_remaining = std::get<TimeDurationToDestMS>(params);
       goal_position = std::get<JointAngleDest>(params);
-      
+
   }
 
   /// @todo look in FRI_Client_SDK_Cpp.zip to see if position must be set for
@@ -269,7 +271,7 @@ struct LinearInterpolation {
   /// LBRWrenchSineOverlayClient.h, friLBRCommand.cpp, friLBRCommand.h
   template <typename ArmData>
   void lowLevelTimestep(ArmData &friData, cartesian_wrench_command_tag) {
-  
+
     //not yet supported
     BOOST_VERIFY(false);
     // case ControlMode_CARTESIAN_IMPEDANCE_CONTROLMODE:
@@ -672,9 +674,9 @@ private:
         // set the flag that must always be there
         std::get<latest_receive_monitor_state>(nextState)
             ->expectedMonitorMsgID = KUKA::LBRState::LBRMONITORMESSAGEID;
-          
+
         auto lowLevelAlgorithmParamP = std::get<latest_low_level_algorithm_params>(nextState);
-        
+
         // if there is a valid low level algorithm param command set the new goal
         if(lowLevelAlgorithmParamP) step_alg.setGoal(*lowLevelAlgorithmParamP);
 
@@ -1044,7 +1046,7 @@ public:
         minimumConsecutiveSuccessesBeforeSendingCommands) {
       /// @todo TODO(ahundt) Need to eliminate this allocation
       boost::lock_guard<boost::mutex> lock(jt_mutex);
-      
+
       boost::container::static_vector<double, 7> jointStateToCommand;
       boost::copy(armState.commandedPosition,std::back_inserter(jointStateToCommand));
       // pass time to reach specified goal for position control

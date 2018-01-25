@@ -10,7 +10,7 @@ namespace grl {
 class TimeEvent
 {
 public:
-        typedef std::array<uint8_t,512> UnsignedCharArray;
+        typedef std::array<char,512> UnsignedCharArray;
 
         /// Identifying string for this time stamped data topic
         /// something like "/opticaltracker/00000000/frame" where
