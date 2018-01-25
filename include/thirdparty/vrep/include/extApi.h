@@ -1,25 +1,25 @@
 // This file is part of the REMOTE API
-// 
+//
 // Copyright 2006-2016 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
-// 
+//
 // The REMOTE API is licensed under the terms of GNU GPL:
-// 
+//
 // -------------------------------------------------------------------
 // The REMOTE API is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // THE REMOTE API IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
 // WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
 // AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
 // DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
 // MISUSING THIS SOFTWARE.
-// 
+//
 // See the GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with the REMOTE API.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
@@ -40,11 +40,11 @@
 #ifdef NON_MATLAB_PARSING /* when compiling, make sure NON_MATLAB_PARSING is always defined! */
     #include "extApiPlatform.h"
     #include "v_repConst.h"
-#else 
+#else
     typedef char simxChar;
     typedef unsigned char simxUChar;
     typedef short simxShort;
-    typedef unsigned short simxUShort;  
+    typedef unsigned short simxUShort;
     typedef int simxInt;
     typedef unsigned int simxUInt;
     typedef float simxFloat;
@@ -267,4 +267,4 @@ EXTAPI_DLLEXPORT simxInt mtlb_simxCallScriptFunction_a(const simxInt* variousInt
 EXTAPI_DLLEXPORT simxInt mtlb_simxCallScriptFunction_b(simxInt clientID,simxInt* variousIntsOut,simxInt** outInt,simxFloat** outFloat,simxChar** outString,simxUChar** outBuffer);
 
 
-#endif /* _EXTAPI__ */      
+#endif /* _EXTAPI__ */

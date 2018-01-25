@@ -18,7 +18,7 @@ bool LoadJSONFlatbuffer(flatbuffers::Parser& parser, std::string schemaPath, std
             flatbuffers::LoadFile(jsonPath.c_str(), binary, &jsonfile);
     if (!ok) {
     printf("couldn't load files!\n");
-    return nullptr;
+    return ok;
     }
 
     // parse schema first, so we can use it to parse the data after
