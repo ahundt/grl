@@ -153,7 +153,7 @@ robone.cutBoneScript=function()
 	jointHandles={-1,-1,-1,-1,-1,-1,-1}
 	measuredJointHandles={-1,-1,-1,-1,-1,-1,-1}
 	for i=1,7,1 do
-		jointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i)
+		jointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i) --  	Retrieves an object handle based on its name.
 		measuredJointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i..'#0')
 	end
 
@@ -505,7 +505,9 @@ robone.configureOpticalTracker=function()
 
 			-- Start collecting data from the optical tracker
 			simExtAtracsysFusionTrackStart()
-			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(false)
+			-- Test the below one
+			-- Enable the recordDataScript() to call the method below.
+			-- simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true)
 
 		end
 
@@ -515,6 +517,26 @@ robone.configureOpticalTracker=function()
 	end
 end
 
+
+------------------------------------------------
+-- Record flatbuffers Data during simulation  --
+------------------------------------------------
+robone.recordDataScript=function()
+
+	-- Check if the required plugin is there:
+	if (grl.isModuleLoaded('KukaLBRiiwa')) then
+		simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true)
+	else
+	simDisplayDialog('Warning','KukaLBRiiwa plugin was not found so data will not be logged.',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
+	end
+
+
+	if (grl.isModuleLoaded('') then
+	    simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true)
+	else
+		simDisplayDialog('Warning','Atracsys plugin was not found so data will not be logged.',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
+
+	end
 
 --------------------------------------------------------------------------
 -- Get External Joint Torque Data from KUKA iiwa real arm driver plugin --
