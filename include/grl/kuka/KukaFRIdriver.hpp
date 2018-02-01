@@ -160,18 +160,39 @@ public:
             std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(Kukatime.time_since_epoch()));
     }
 
+     /// TODO(ahundt) currently assuming the FusionTrack timestamp is from the unix time epoch
+    cartographer::common::Time KukaTimeToCommonTime( std::chrono::time_point<std::chrono::high_resolution_clock> Kukatime)
+    {
+        return cartographer::common::Time(
+            std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(Kukatime.time_since_epoch()));
+    }
+
     cartographer::common::Time FRITimeStampToCommonTime(const ::TimeStamp &friTimeStamp)
     {
         // Convert the time to microseconds
-        int64_t seconds = friTimeStamp.sec;
-        int64_t nanosecs = friTimeStamp.nanosec;
-        int64_t microseconds = seconds *1000000 + nanosecs/1000;
-        if(INT64_MAX - seconds *1000000 < nanosecs/1000) {
-            throw std::runtime_error("signed overflow has occured");
-        }
-        // std::cout<<"secondes: "<<seconds <<"\n" << "nanosecs: "<< nanosecs<<"\n" <<"microseconds: "<< microseconds<<std::endl;
-        typename MicrosecondClock::time_point fritp = typename MicrosecondClock::time_point(typename MicrosecondClock::duration(microseconds));
-        return KukaTimeToCommonTime(fritp);
+
+        std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+        timestamp += std::chrono::seconds(friTimeStamp.sec) + std::chrono::nanoseconds(friTimeStamp.nanosec);
+
+        // std::chrono::seconds sec(friTimeStamp.sec);
+        // int64_t seconds = std::chrono::seconds(sec).count();
+        // std::chrono::nanoseconds nanosec(friTimeStamp.nanosec);
+        // int64_t nanosecs = friTimeStamp.nanosec;
+        // int64_t microseconds_sec = std::chrono::microseconds(sec).count();
+
+
+        // int64_t microseconds = microseconds + nanosecs/1000;
+        // if(INT64_MAX - microseconds_sec < nanosecs/1000) {
+        //     throw std::runtime_error("signed overflow has occured");
+        // }
+        // std::cout<<"secondes: "<<seconds <<"  "<<friTimeStamp.sec<<"\n"
+        //          <<"secondes in microseconds: "<<microseconds_sec<<"\n"
+        //          << "nanosecs: "<< nanosecs  <<"  "<< friTimeStamp.nanosec <<"\n"
+        //          <<"microseconds: "<< microseconds<<std::endl;
+
+
+        // typename MicrosecondClock::time_point fritp = typename MicrosecondClock::time_point(typename MicrosecondClock::duration(microseconds));
+        return KukaTimeToCommonTime( timestamp);
     }
 
     /**
