@@ -45,7 +45,7 @@ namespace grl {
         const char *include_directories[] = { include_directory.c_str(), "flatbuffer", nullptr };
         ok = parser.Parse(schemafile.c_str(), include_directories) &&
             parser.Parse(jsonfile.c_str(), include_directories);
-        assert(ok);
+        assert(ok &&"LoadJSONFlatbuffer");
         return ok;
     }
 

@@ -157,18 +157,17 @@ public:
         // keep driver threads from exiting immediately after creation, because they have work to do!
         device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
         kukaDriverP_=std::make_shared<robot::arm::KukaDriver>(std::make_tuple(
-
-              std::get<RobotTargetBaseName>(params),
-              std::get<RobotModel>(params),
-              std::get<LocalUDPAddress>(params),
-              std::get<LocalUDPPort>(params),
-              std::get<RemoteUDPAddress>(params),
-              std::get<LocalHostKukaKoniUDPAddress>(params),
-              std::get<LocalHostKukaKoniUDPPort>(params),
-              std::get<RemoteHostKukaKoniUDPAddress>(params),
-              std::get<RemoteHostKukaKoniUDPPort>(params),
-              std::get<KukaCommandMode>(params),
-              std::get<KukaMonitorMode>(params)
+            std::get<RobotTargetBaseName>(params),
+            std::get<RobotModel>(params),
+            std::get<LocalUDPAddress>(params),
+            std::get<LocalUDPPort>(params),
+            std::get<RemoteUDPAddress>(params),
+            std::get<LocalHostKukaKoniUDPAddress>(params),
+            std::get<LocalHostKukaKoniUDPPort>(params),
+            std::get<RemoteHostKukaKoniUDPAddress>(params),
+            std::get<RemoteHostKukaKoniUDPPort>(params),
+            std::get<KukaCommandMode>(params),
+            std::get<KukaMonitorMode>(params)
         ));
         kukaDriverP_->construct();
         // Default to joint servo mode for commanding motion

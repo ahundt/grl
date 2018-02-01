@@ -208,8 +208,7 @@ class FusionTrack
     cartographer::common::Time FusionTrackTimeToCommonTime(typename MicrosecondClock::time_point FTtime)
     {
         return cartographer::common::Time(
-            std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(FTtime.time_since_epoch()) +
-            std::chrono::seconds(cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds));
+            std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(FTtime.time_since_epoch()));
     }
 
     cartographer::common::Time ImageHeaderToCommonTime(const ::ftkImageHeader &tq)

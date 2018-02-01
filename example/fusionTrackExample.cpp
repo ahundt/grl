@@ -141,7 +141,6 @@ int main(int argc, char **argv)
         {
             bool success = grl::FinishAndVerifyBuffer(fbb, KUKAiiwaFusionTrackMessage_vector);
             std::cout << "verifier success " << buffer_num << " : "<< success << std::endl;
-            // test_binary.fltk should now be named test_binary_0.fltk, test_binary_1.fltk, etc...
             std::string binary_file_path = binary_file_prefix + std::to_string(buffer_num) + binary_file_suffix;
             std::string json_file_path = json_file_prefix + std::to_string(buffer_num) + json_file_suffix;
             std::cout << "Reached single buffer capacity limit of " << static_cast<double>(single_buffer_limit_bytes)/MegaByte <<

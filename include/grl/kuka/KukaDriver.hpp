@@ -171,7 +171,7 @@ namespace grl { namespace robot { namespace arm {
         if(JAVAdriverP_.get() != nullptr)
         {
             if (debug) {
-              std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
+                std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
             }
 
 
@@ -179,14 +179,14 @@ namespace grl { namespace robot { namespace arm {
             // Do some configuration
             if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
             {
-              // configure to send commands over FRI interface
-              JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,command_tag());
+                // configure to send commands over FRI interface
+                JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,command_tag());
             }
 
             if(boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
             {
-              // configure to send commands over FRI interface
-              JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,state_tag());
+                // configure to send commands over FRI interface
+                JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,state_tag());
             }
 
 
@@ -195,10 +195,10 @@ namespace grl { namespace robot { namespace arm {
 
             if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
             {
-              JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
+                JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
 
-              // configure to send commands over JAVA interface
-              JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,command_tag());
+                // configure to send commands over JAVA interface
+                JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,command_tag());
 
             }
 
@@ -207,8 +207,8 @@ namespace grl { namespace robot { namespace arm {
 
             if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("JAVA")))
             {
-              JAVAdriverP_->get(armState_);
-              JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,state_tag());
+                JAVAdriverP_->get(armState_);
+                JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,state_tag());
 
             }
         }
@@ -224,11 +224,10 @@ namespace grl { namespace robot { namespace arm {
 
             if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
             {
-              FRIdriverP_->get(armState_);
-              //JAVAdriverP_->getWrench(armState_);
+                FRIdriverP_->get(armState_);
+                //JAVAdriverP_->getWrench(armState_);
             }
         }
-
         return haveNewData;
       }
 

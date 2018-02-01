@@ -149,8 +149,7 @@ public:
         static time_point now() noexcept
         {
             using namespace std::chrono;
-            return time_point(
-                duration_cast<duration>(system_clock::now().time_since_epoch()));
+            return time_point(duration_cast<duration>(system_clock::now().time_since_epoch()));
         }
     };
 
@@ -170,7 +169,7 @@ public:
         if(INT64_MAX - seconds *1000000 < nanosecs/1000) {
             throw std::runtime_error("signed overflow has occured");
         }
-        std::cout<<"secondes: "<<seconds <<"\n" << "nanosecs: "<< nanosecs<<"\n" <<"microseconds: "<< microseconds<<std::endl;
+        // std::cout<<"secondes: "<<seconds <<"\n" << "nanosecs: "<< nanosecs<<"\n" <<"microseconds: "<< microseconds<<std::endl;
         typename MicrosecondClock::time_point fritp = typename MicrosecondClock::time_point(typename MicrosecondClock::duration(microseconds));
         return KukaTimeToCommonTime(fritp);
     }
@@ -650,7 +649,7 @@ public:
             filename = current_date_and_time_string() + "_Kukaiiwa.iiwa";
         }
         #ifdef HAVE_spdlog
-            loggerP->info("Save Recording as: ", filename);
+            loggerP->info("Save Recording as: {}", filename);
         #else // HAVE_spdlog
             std::cout << "Save Recording as: " << filename << std::endl;
         #endif // HAVE_spdlog
@@ -665,14 +664,14 @@ public:
         {
 
             std::string currentWorkingDir = grl::GetCurrentWorkingDir();
-            std::cout<< currentWorkingDir<<"/"<<filename<<std::endl;
+            // std::cout<< currentWorkingDir<<"/"<<filename<<std::endl;
             bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaBufferP);
             bool write_binary_stream = true;
             success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
             // assert(success);
             /// TODO(ahFusionTrackLogAndTrackundt) replace cout with proper spdlog and vrep banner notification
             #ifdef HAVE_spdlog
-                lambdaLoggerP->info("filename: ", filename, " verifier success: ", success);
+                lambdaLoggerP->info("filename: {}, verifier success: {}", filename,  success);
             #else // HAVE_spdlog
                 std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
             #endif // HAVE_spdlog
@@ -684,7 +683,6 @@ public:
         // flatbuffersbuilder does not yet exist
         m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
         m_KUKAiiwaStateBufferP = std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaState>>>();
-        std::cout << "End of the program" << std::endl;
 
         return true;
     }
@@ -726,7 +724,8 @@ void saveToDisk()
   {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 1*MegaByte;
+    const std::size_t single_buffer_limit_bytes = 1024*MegaByte;
+    const std::size_t single_buffer_limit_states = 1000;
 
     // run the primary update loop in a separate thread
     bool saveFileNow = false;
@@ -736,7 +735,8 @@ void saveToDisk()
     {
         // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB
         int buffsize = m_logFileBufferBuilderP->GetSize();
-        if( buffsize > single_buffer_limit_bytes)
+        int statessize = m_KUKAiiwaStateBufferP->size();
+        if( buffsize > single_buffer_limit_bytes || statessize > single_buffer_limit_states)
         {
             // save the file if we are over the limit
             saveFileNow = true;

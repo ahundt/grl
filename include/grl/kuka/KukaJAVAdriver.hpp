@@ -185,7 +185,6 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
                 /// htons: host to network short
                 local_sockaddr.sin_port = htons(port);
                 ///  local_sockaddr.sin_addr.s_addr = INADDR_ANY;
-
                 /// @todo TODO(ahundt) Consider switching to boost::asio synchronous calls (async has high latency)!
                 /// @todo TODO(ahundt) Need to switch back to an appropriate exception rather than exiting so VREP isn't taken down.
                 /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
@@ -199,8 +198,8 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
                 FD_ZERO(&dummy_mask);
                 /// if valid socket descriptor then add to socket set
                 FD_SET(socket_local, &mask);
-                // set arm to StartArm mode on initalization
-                //set(grl::flatbuffer::ArmState::StartArm);
+                /// set arm to StartArm mode on initalization
+                /// set(grl::flatbuffer::ArmState::StartArm);
                 set(grl::flatbuffer::ArmState::MoveArmJointServo);
                 std::cout<< "End KukaJAVAdriver->construct()..." << std::endl;
             } catch( boost::exception &e) {
@@ -258,16 +257,15 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
                 }
                 case flatbuffer::ArmState::MoveArmJointServo: {
 
-                  /// @todo when new
-                  /// armState_ isn't assigned with any values correctly.
-
-                  auto armPositionBuffer = fbbP->CreateVector(armState_.commandedPosition_goal.data(),armState_.commandedPosition_goal.size());
-                  auto commandedTorque = fbbP->CreateVector(armState_.commandedTorque.data(),armState_.commandedTorque.size());
-                  auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
-                  auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
-                  controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
-                      logger_->info("C++ KukaJAVAdriver: sending armposition command: {}{}", armState_.commandedPosition_goal);
-                   break;
+                    /// @todo when new
+                    /// armState_ isn't assigned with any values correctly.
+                    auto armPositionBuffer = fbbP->CreateVector(armState_.commandedPosition_goal.data(),armState_.commandedPosition_goal.size());
+                    auto commandedTorque = fbbP->CreateVector(armState_.commandedTorque.data(),armState_.commandedTorque.size());
+                    auto goalJointState = grl::flatbuffer::CreateJointState(*fbbP,armPositionBuffer,0/*no velocity*/,0/*no acceleration*/,commandedTorque);
+                    auto moveArmJointServo = grl::flatbuffer::CreateMoveArmJointServo(*fbbP,goalJointState);
+                    controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,moveArmJointServo.Union());
+                        logger_->info("C++ KukaJAVAdriver: sending armposition command: {}{}", armState_.commandedPosition_goal);
+                     break;
                 }
                 case flatbuffer::ArmState::TeachArm: {
                    controlState = flatbuffer::CreateArmControlState(*fbbP,bns,sequenceNumber++,duration,armControlMode_,flatbuffer::CreateTeachArm(*fbbP).Union());
@@ -336,7 +334,7 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
                 {
                   angles.push_back(movearm->goal()->position()->Get(i));
                 }
-                logger_->info("re-extracted {}{}{}", movearm->goal()->position()->size(), " joint angles: ",angles);
+                // logger_->info("re-extracted {}{}{}", movearm->goal()->position()->size(), " joint angles: ",angles);
             }
 
             if(debug_) logger_->info("sending packet to KUKA iiwa: len = {}", fbbP->GetSize());
@@ -369,7 +367,7 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
                   {
                         // allocate the buffer, should only happen once
                         if(!java_interface_received_statesP_) {
-                          java_interface_received_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
+                            java_interface_received_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
                         }
                         if(!java_interface_next_statesP_) {
                             java_interface_next_statesP_ = std::make_shared<fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates>>(fbs_tk::Buffer(udp_size_));
@@ -394,15 +392,11 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
                              } else {
                                 // TODO(ahundt) consider specific error codes for verifier failure vs udp receive failure
                                 bool java_state_received_successfully = false;
-                                logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", java_state_received_successfully);
+                                // logger_->error("C++ KukaJAVAdriver Error: flatbuff failed verification. bufOk: {}", java_state_received_successfully);
                              }
                         }
-
-
                   }
             }
-
-
            return haveNewData;
         }
 
@@ -412,17 +406,17 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
         volatile std::size_t m_attemptedCommunicationConsecutiveSuccessCount = 0;
         void setPositionControlMode()
         {
-          boost::lock_guard<boost::mutex> lock(jt_mutex);
-          controlMode_ = grl::flatbuffer::EControlMode::POSITION_CONTROL_MODE;
-          setArmConfiguration_ = true;
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+            controlMode_ = grl::flatbuffer::EControlMode::POSITION_CONTROL_MODE;
+            setArmConfiguration_ = true;
         }
         bool setJointImpedanceMode(std::vector<double> joint_stiffnes, std::vector<double>joint_damping) {
-          boost::lock_guard<boost::mutex> lock(jt_mutex);
-          //TODO use tags
-          joint_stiffness_ = joint_stiffnes;
-          joint_damping_ = joint_damping;
-          controlMode_ = grl::flatbuffer::EControlMode::JOINT_IMP_CONTROL_MODE;
-          setArmConfiguration_ = true;
+            boost::lock_guard<boost::mutex> lock(jt_mutex);
+            //TODO use tags
+            joint_stiffness_ = joint_stiffnes;
+            joint_damping_ = joint_damping;
+            controlMode_ = grl::flatbuffer::EControlMode::JOINT_IMP_CONTROL_MODE;
+            setArmConfiguration_ = true;
         }
         // TODO: define custom flatbuffer for Cartesion Quantities
         void setCartesianImpedanceMode(
@@ -474,10 +468,10 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
       */
    template<typename Range>
    void set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState_.clearCommands();
-       boost::copy(range, std::back_inserter(armState_.commandedPosition));
-       boost::copy(range, std::back_inserter(armState_.commandedPosition_goal));
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        armState_.clearCommands();
+        boost::copy(range, std::back_inserter(armState_.commandedPosition));
+        boost::copy(range, std::back_inserter(armState_.commandedPosition_goal));
     }
 
     /**
@@ -492,8 +486,8 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
      *  @brief set the interface over which state is monitored (FRI interface, alternately SmartServo/DirectServo == JAVA interface, )
      */
     void set(flatbuffer::KUKAiiwaInterface mif, state_tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-       commandInterface_ = mif;
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        commandInterface_ = mif;
     }
 
     /**
@@ -512,8 +506,8 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
      */
     template<typename TimeDuration>
     void set(TimeDuration && duration_to_goal_command, time_duration_command_tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState_.goal_position_command_time_duration = duration_to_goal_command;
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        armState_.goal_position_command_time_duration = duration_to_goal_command;
     }
 
 
@@ -549,40 +543,40 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
       * @param torques Array with the applied torque values (in Nm)
       * @param tag identifier object indicating that the torqe value command should be modified
       */
-   template<typename Range>
-   void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState_.clearCommands();
-      boost::copy(range, armState_.commandedTorque);
+    template<typename Range>
+    void set(Range&& range, grl::revolute_joint_torque_open_chain_command_tag) {
+         boost::lock_guard<boost::mutex> lock(jt_mutex);
+         armState_.clearCommands();
+         boost::copy(range, armState_.commandedTorque);
     }
 
 
-     /**
-      * \brief Set the applied wrench vector of the current interpolation step.
-      *
-      * The wrench vector consists of:
-      * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
-      *
-      * F ... forces (in N) applied along the Cartesian axes of the
-      * currently used motion center.
-      * tau ... torques (in Nm) applied along the orientation angles
-      * (Euler angles A, B, C) of the currently used motion center.
-      *
-      * This method is only effective when the client is in a commanding state.
-      * The ControlMode of the robot has to be Cartesian impedance control mode. The
-      * Client Command Mode has to be wrench.
-      *
-      * @param state object storing the command data that will be sent to the physical device
-      * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
-      * @param tag identifier object indicating that the wrench value command should be modified
-      *
-      * @todo perhaps support some specific more useful data layouts
-      */
+    /**
+     * \brief Set the applied wrench vector of the current interpolation step.
+     *
+     * The wrench vector consists of:
+     * [F_x, F_y, F_z, tau_A, tau_B, tau_C]
+     *
+     * F ... forces (in N) applied along the Cartesian axes of the
+     * currently used motion center.
+     * tau ... torques (in Nm) applied along the orientation angles
+     * (Euler angles A, B, C) of the currently used motion center.
+     *
+     * This method is only effective when the client is in a commanding state.
+     * The ControlMode of the robot has to be Cartesian impedance control mode. The
+     * Client Command Mode has to be wrench.
+     *
+     * @param state object storing the command data that will be sent to the physical device
+     * @param range wrench Applied Cartesian wrench vector, in x, y, z, roll, pitch, yaw force measurments.
+     * @param tag identifier object indicating that the wrench value command should be modified
+     *
+     * @todo perhaps support some specific more useful data layouts
+     */
    template<typename Range>
    void set(Range&& range, grl::cartesian_wrench_command_tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState_.clearCommands();
-      std::copy(range,armState_.commandedCartesianWrenchFeedForward);
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        armState_.clearCommands();
+        std::copy(range,armState_.commandedCartesianWrenchFeedForward);
     }
 
    /// @todo should this exist? is it written correctly?

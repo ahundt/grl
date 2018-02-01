@@ -49,8 +49,7 @@ struct UniversalTimeScaleClock {
         //           << microsecsinceepoch - microsec << '\n';
         return time_point
         (
-          duration_cast<duration>(system_clock::now().time_since_epoch()) -
-          seconds(kUtsEpochOffsetFromUnixEpochInSeconds)
+          duration_cast<duration>(system_clock::now().time_since_epoch())
         );
   }
 };

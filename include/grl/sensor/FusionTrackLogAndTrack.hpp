@@ -362,11 +362,11 @@ public:
       /// TODO(ahundt) Saving the file twice in one second will overwrite!!!!
       filename = current_date_and_time_string() + "_FusionTrack.flik";
     }
-#ifdef HAVE_spdlog
-    loggerP->info("Save Recording as: ", filename);
-#else // HAVE_spdlog
-    std::cout << "Save Recording as: " << filename << std::endl;
-#endif // HAVE_spdlog
+    #ifdef HAVE_spdlog
+        loggerP->info("Save Recording as: {}", filename);
+    #else // HAVE_spdlog
+        std::cout << "Save Recording as: {}" << filename << std::endl;
+    #endif // HAVE_spdlog
 
     /// lock mutex before accessing file
     std::lock_guard<std::mutex> lock(m_frameAccess);
@@ -393,7 +393,7 @@ public:
       success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
       /// TODO(ahFusionTrackLogAndTrackundt) replace cout with proper spdlog and vrep banner notification
 #ifdef HAVE_spdlog
-      lambdaLoggerP->info("filename: ", filename, " verifier success: ", success);
+      lambdaLoggerP->info("filename: {}", filename, " verifier success: {}", success);
 #else // HAVE_spdlog
       std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
 #endif // HAVE_spdlog
@@ -439,7 +439,8 @@ private:
   {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 512*MegaByte;
+    const std::size_t single_buffer_limit_bytes = 1024*MegaByte;
+    const std::size_t single_buffer_limit_messages = 1000;;
     std::vector<uint64_t> deviceSerialNumbers;
     try
     {
@@ -475,33 +476,34 @@ private:
             std::lock_guard<std::mutex> lock(m_frameAccess);
             if (m_isRecording)
             {
-              // convert the buffer into a flatbuffer for recording and add it to the in memory buffer
-              // @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
-              if (!m_logFileBufferBuilderP)
-              {
-                // flatbuffersbuilder does not yet exist
-                m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
-                m_KUKAiiwaFusionTrackMessageBufferP =
-                    std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
-              }
-              BOOST_VERIFY(m_logFileBufferBuilderP != nullptr);
-              BOOST_VERIFY(opticalTrackerP != nullptr);
-              BOOST_VERIFY(m_nextState != nullptr);
+                // convert the buffer into a flatbuffer for recording and add it to the in memory buffer
+                // @todo TODO(ahundt) if there haven't been problems, delete this todo, but if recording in the driver thread is time consuming move the code to another thread
+                if (!m_logFileBufferBuilderP)
+                {
+                  // flatbuffersbuilder does not yet exist
+                  m_logFileBufferBuilderP = std::make_shared<flatbuffers::FlatBufferBuilder>();
+                  m_KUKAiiwaFusionTrackMessageBufferP =
+                      std::make_shared<std::vector<flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>>>();
+                }
+                BOOST_VERIFY(m_logFileBufferBuilderP != nullptr);
+                BOOST_VERIFY(opticalTrackerP != nullptr);
+                BOOST_VERIFY(m_nextState != nullptr);
 
-              if(m_nextState->Error != FTK_WAR_NO_FRAME)
-              {
-                  // only collect frames actually containing new data.
-                  flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> oneKUKAiiwaFusionTrackMessage =
-                      grl::toFlatBuffer(*m_logFileBufferBuilderP, *opticalTrackerP, *m_nextState);
-                  m_KUKAiiwaFusionTrackMessageBufferP->push_back(oneKUKAiiwaFusionTrackMessage);
-              }
+                if(m_nextState->Error != FTK_WAR_NO_FRAME)
+                {
+                    // only collect frames actually containing new data.
+                    flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage> oneKUKAiiwaFusionTrackMessage =
+                        grl::toFlatBuffer(*m_logFileBufferBuilderP, *opticalTrackerP, *m_nextState);
+                    m_KUKAiiwaFusionTrackMessageBufferP->push_back(oneKUKAiiwaFusionTrackMessage);
+                }
 
-              // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB
-              if(m_logFileBufferBuilderP->GetSize() > single_buffer_limit_bytes)
-              {
-                // save the file if we are over the limit
-                saveFileNow = true;
-              }
+                // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB
+                if(m_logFileBufferBuilderP->GetSize() > single_buffer_limit_bytes ||
+                   m_KUKAiiwaFusionTrackMessageBufferP->size() > single_buffer_limit_messages)
+                {
+                  // save the file if we are over the limit
+                  saveFileNow = true;
+                }
           } // end recording steps
 
           if(m_nextState->Error == FTK_OK)
@@ -515,8 +517,8 @@ private:
         /// TODO(ahundt) Let the user specify the filenames, or provide a way to check the flatbuffer size and know single_buffer_limit_bytes.
         if(saveFileNow)
         {
-          save_recording();
-          saveFileNow = false;
+            save_recording();
+            saveFileNow = false;
         }
 
         // TODO(ahundt) get atracsys to fix this flaw in their library design
