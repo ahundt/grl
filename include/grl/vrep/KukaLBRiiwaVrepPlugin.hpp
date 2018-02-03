@@ -152,7 +152,6 @@ public:
     /// construct() function completes initialization of the plugin
     /// @todo move this into the actual constructor, but need to correctly handle or attach vrep shared libraries for unit tests.
     void construct(Params params){
-        std::cout<< "Start KukaVrepPlugin->construct()..." << std::endl;
         params_ = params;
         // keep driver threads from exiting immediately after creation, because they have work to do!
         device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
@@ -211,6 +210,7 @@ public:
 
     bool is_recording()
     {   if(kukaDriverP_.get() != nullptr) {
+            // std::cout<<"is_recording: " <<kukaDriverP_->is_recording() <<std::endl;
             return kukaDriverP_->is_recording();
         }
         return false;

@@ -159,7 +159,6 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
         /// @warning getting the ik group is optional, so it does not throw an exception
         void construct(Params params) {
             try { logger_ = spdlog::stdout_logger_mt("console"); } catch (spdlog::spdlog_ex ex) { logger_ = spdlog::get("console"); }
-            std::cout<< "Start KukaJAVAdriver->construct()..." << std::endl;
             params_ = params;
 
             try {
@@ -201,7 +200,6 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
                 /// set arm to StartArm mode on initalization
                 /// set(grl::flatbuffer::ArmState::StartArm);
                 set(grl::flatbuffer::ArmState::MoveArmJointServo);
-                std::cout<< "End KukaJAVAdriver->construct()..." << std::endl;
             } catch( boost::exception &e) {
                 e << errmsg_info("KukaLBRiiwaRosPlugin: Unable to connect to UDP Socket from {}{}{}" +
                                  std::get<LocalUDPAddress>             (params_) + " to " +

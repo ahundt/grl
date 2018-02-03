@@ -97,8 +97,6 @@ namespace grl { namespace robot { namespace arm {
         /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
         /// @warning getting the ik group is optional, so it does not throw an exception
         void construct(Params params ) {
-            std::cout<< "Start KukaDriver->construct(), initialize params for both FRI and JAVA driver..." << std::endl;
-
             params_ = params;
             // keep driver threads from exiting immediately after creation, because they have work to do!
             //device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
@@ -141,7 +139,6 @@ namespace grl { namespace robot { namespace arm {
                     throw;
                 }
             }
-            std::cout<< "End KukaDriver->construct()..." << std::endl;
         }
 
         const Params & getParams(){
@@ -264,6 +261,7 @@ namespace grl { namespace robot { namespace arm {
     }
     bool is_recording()
     {   if(FRIdriverP_.get() != nullptr) {
+            // std::cout<< "In KukaDriver is_recording(): " << FRIdriverP_->is_recording() <<std::endl;
             return FRIdriverP_->is_recording();
         }
         return false;

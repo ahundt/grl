@@ -393,7 +393,7 @@ public:
       success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
       /// TODO(ahFusionTrackLogAndTrackundt) replace cout with proper spdlog and vrep banner notification
 #ifdef HAVE_spdlog
-      lambdaLoggerP->info("filename: {}", filename, " verifier success: {}", success);
+      lambdaLoggerP->info("For FT filename: {},  verifier success:{}", filename,success);
 #else // HAVE_spdlog
       std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
 #endif // HAVE_spdlog
@@ -440,7 +440,7 @@ private:
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
     const std::size_t single_buffer_limit_bytes = 1024*MegaByte;
-    const std::size_t single_buffer_limit_messages = 1000;;
+    const std::size_t single_buffer_limit_messages = 17000;
     std::vector<uint64_t> deviceSerialNumbers;
     try
     {

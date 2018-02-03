@@ -349,7 +349,7 @@ flatbuffers::Offset<grl::flatbuffer::ArmControlState> toFlatBuffer(
               grl::flatbuffer::CreateShutdownArm(fbb).Union());
         }
         case grl::flatbuffer::ArmState::NONE: {
-           std::cout << "Waiting for interation mode... (currently NONE)" << std::endl;
+           //std::cout << "Waiting for interation mode... (currently NONE)" << std::endl;
            break;
         }
         default:

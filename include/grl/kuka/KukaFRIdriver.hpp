@@ -164,7 +164,8 @@ public:
     cartographer::common::Time KukaTimeToCommonTime( std::chrono::time_point<std::chrono::high_resolution_clock> Kukatime)
     {
         return cartographer::common::Time(
-            std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(Kukatime.time_since_epoch()));
+            // std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(Kukatime.time_since_epoch()));
+            std::chrono::duration_cast<typename MicrosecondClock::duration>(Kukatime.time_since_epoch()));
     }
 
     cartographer::common::Time FRITimeStampToCommonTime(const ::TimeStamp &friTimeStamp)
@@ -421,7 +422,9 @@ public:
     /// return true on success, false on failure
     bool start_recording()
     {
+
         m_isRecording = true;
+        std::cout<< "m_isRecording is set to " << m_isRecording << std::endl;
         return m_isRecording;
     }
     /// stop recording the kuka state data in memory
@@ -663,14 +666,13 @@ public:
 
     bool save_recording(std::string filename = std::string())
     {
-        loggerP->info("Here is in save_recording/n ");
         if(filename.empty())
         {
             /// TODO(ahundt) Saving the file twice in one second will overwrite!!!!
             filename = current_date_and_time_string() + "_Kukaiiwa.iiwa";
         }
         #ifdef HAVE_spdlog
-            loggerP->info("Save Recording as: {}", filename);
+            loggerP->info("Save Recording as in Kuka: {}", filename);
         #else // HAVE_spdlog
             std::cout << "Save Recording as: " << filename << std::endl;
         #endif // HAVE_spdlog
@@ -685,17 +687,21 @@ public:
         {
 
             std::string currentWorkingDir = grl::GetCurrentWorkingDir();
-            // std::cout<< currentWorkingDir<<"/"<<filename<<std::endl;
-            bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaBufferP);
-            bool write_binary_stream = true;
-            success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
-            // assert(success);
-            /// TODO(ahFusionTrackLogAndTrackundt) replace cout with proper spdlog and vrep banner notification
-            #ifdef HAVE_spdlog
-                lambdaLoggerP->info("filename: {}, verifier success: {}", filename,  success);
-            #else // HAVE_spdlog
-                std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
-            #endif // HAVE_spdlog
+            lambdaLoggerP->info("currentWorkingDir ...: {}", currentWorkingDir);
+            if(save_fbbP != nullptr && save_KUKAiiwaBufferP != nullptr) {
+                bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaBufferP);
+                bool write_binary_stream = true;
+                success = success && flatbuffers::SaveFile(filename.c_str(), reinterpret_cast<const char*>(save_fbbP->GetBufferPointer()), save_fbbP->GetSize(), write_binary_stream);
+                // assert(success);
+                /// TODO(ahFusionTrackLogAndTrackundt) replace cout with proper spdlog and vrep banner notification
+                #ifdef HAVE_spdlog
+                    lambdaLoggerP->info("For KUKA filename: {},  verifier success:{}", filename,success);
+                #else // HAVE_spdlog
+                    std::cout << "filename: " << filename << " verifier success: " << success << std::endl;
+                #endif // HAVE_spdlog
+            }else{
+               lambdaLoggerP->error("pointer is nullptr...");
+            }
         };
 
         // save the recording to a file in a separate thread, memory will be freed up when file finishes saving
@@ -746,7 +752,7 @@ void saveToDisk()
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
     const std::size_t single_buffer_limit_bytes = 1024*MegaByte;
-    const std::size_t single_buffer_limit_states = 1000;
+    const std::size_t single_buffer_limit_states = 1350;
 
     // run the primary update loop in a separate thread
     bool saveFileNow = false;

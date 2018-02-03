@@ -525,17 +525,18 @@ robone.recordDataScript=function()
 
 	-- Check if the required plugin is there:
     if (grl.isModuleLoaded('KukaLBRiiwa')) then
-	    simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true)
+	    --simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true)
     else
         simDisplayDialog('Warning','KukaLBRiiwa plugin was not found so data will not be logged.',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
     end
 
 
-    if (not grl.isModuleLoaded('AtracsysFusionTrack')) then
-	    simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true)
+    if (grl.isModuleLoaded('AtracsysFusionTrack')) then
+	    --simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true)
     else
 		simDisplayDialog('Warning','Atracsys plugin was not found so data will not be logged.',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
 
+	end
 end
 
 --------------------------------------------------------------------------

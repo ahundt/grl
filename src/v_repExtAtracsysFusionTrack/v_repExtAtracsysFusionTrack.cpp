@@ -432,12 +432,13 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCa
     {
         std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         recordWhileSimulationIsRunningG = inData->at(0).boolData[0];
+        // std::cout << "Start recording while simulation is running for Tracker..." << recordWhileSimulationIsRunningG << std::endl;
         if (fusionTrackPG && recordWhileSimulationIsRunningG)
         {
             std::string log_message = std::string("simExtAtracsysFusionTrackRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
             simAddStatusbarMessage(log_message.c_str());
             loggerPG->info(log_message);
-            fusionTrackPG->start_recording();
+            success = fusionTrackPG->start_recording();
         }
 
         D.pushOutData(CLuaFunctionDataItem(success));
@@ -718,9 +719,9 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         //            LoggerPG->error( initerr);
         //        }
 
-        if(fusionTrackPG && recordWhileSimulationIsRunningG) {
-            fusionTrackPG->start_recording();
-        }
+        // if(fusionTrackPG && recordWhileSimulationIsRunningG) {
+        //     fusionTrackPG->start_recording();
+        // }
     }
 
     if (message == sim_message_eventcallback_simulationended)
@@ -730,8 +731,15 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         // SIMULATION STOPS RUNNING HERE
         // close out as necessary
         ////////////////////
+        loggerPG->error("Ending Fusion Tracker plugin connection to Kuka iiwa\n" );
+        loggerPG->info(" Atracsys recordWhileSimulationIsRunningG: {}", recordWhileSimulationIsRunningG);
+        loggerPG->info("fusionTrackPG->is_recording(): {}",fusionTrackPG->is_recording());
+
         if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
-            fusionTrackPG->save_recording();
+            bool success = fusionTrackPG->save_recording();
+            if(success) {
+                loggerPG->info("Vrep quits successfully in FT..." );
+            }
             fusionTrackPG->stop_recording();
         }
     }

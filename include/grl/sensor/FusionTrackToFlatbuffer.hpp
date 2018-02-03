@@ -143,7 +143,6 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     _fbb.Finish(_ftkGeometry);
     auto verifier = flatbuffers::Verifier(_fbb.GetBufferPointer(), _fbb.GetSize());
     bool success = verifier.VerifyBuffer<grl::flatbuffer::ftkGeometry>();
-    std::cout <<" verifier success for ftkGeometry: " << success << std::endl;
     ///////////////////////////////////////////////////////////////////////////
 
     return grl::flatbuffer::CreateftkGeometry(

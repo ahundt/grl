@@ -382,7 +382,6 @@ VREP_DLLEXPORT void v_repEnd()
 		// PUT OBJECT RESET CODE HERE
 		// close out as necessary
 		////////////////////
-
     kukaVrepPluginPG.reset();
 
 	unloadVrepLibrary(vrepLib); // release the library
@@ -515,8 +514,15 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		// close out as necessary
 		////////////////////
         loggerPG->error("Ending KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
+        loggerPG->info("recordWhileSimulationIsRunningG: {}", recordWhileSimulationIsRunningG);
+        loggerPG->info("kukaVrepPluginPG->is_recording(): {}", kukaVrepPluginPG->is_recording());
+
 		if(kukaVrepPluginPG && recordWhileSimulationIsRunningG && kukaVrepPluginPG->is_recording()) {
-            kukaVrepPluginPG->save_recording();
+            bool success = kukaVrepPluginPG->save_recording();
+            if(success) {
+                loggerPG->info("Vrep quits successfully..." );
+            }
+
             kukaVrepPluginPG->stop_recording();
         }
 		kukaVrepPluginPG->clear_recording();
