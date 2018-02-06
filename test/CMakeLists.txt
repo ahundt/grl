@@ -92,8 +92,8 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
 	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
         ${FLATBUFFERS_STATIC_LIB} v_repLib KukaFRIClient ${LINUX_ONLY_LIBS} )
 
-	basis_add_executable(kukaiiwaTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-	basis_target_link_libraries(kukaiiwaTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB})
+	basis_add_executable(FlatbuffersExampleWithKukaIiwaTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
+	basis_target_link_libraries(FlatbuffersExampleWithKukaIiwaTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB})
 
     basis_add_executable(readFRIFBTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
 	basis_target_link_libraries(readFRIFBTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB} -lboost_iostreams -lboost_system -lboost_filesystem)

@@ -87,16 +87,6 @@ struct KukaState {
   flatbuffer::EOperationMode operationMode; // KUKA::FRI::EOperationMode
   flatbuffer::EDriveState driveState;       // KUKA::FRI::EDriveState
 
-  // The point in time associated with the current measured
-  // state of the arm (position, torque, etc.). When commanding
-  // the arm use commanded_goal_timestamp.
-  /// TODO(Chunting) remove this and make all code that uses it instead set the time_event_stamp
-  /// most likely the device_time, but double check the correctness of that
-
-  /// This parameter is replaced by grl::TimeEvent time_event_stamp,
-  /// then how to integrate the TimeStamp in FRIMessage.pb.h?
-  /// time_point_type timestamp;
-
   /////////////////////////////////////////////////////////////////////////////////////////////
   // members below here define the driver state and are not part of the FRI arm
   // message format
@@ -125,6 +115,10 @@ struct KukaState {
   /// and the local computer time after receiving data
   /// This makes it possible to more accurately synchronize
   /// time between multiple hardware devices.
+
+  // The point in time associated with the current measured
+  // state of the arm (position, torque, etc.). When commanding
+  // the arm use commanded_goal_timestamp.
   grl::TimeEvent time_event_stamp;
 
   void clear() {

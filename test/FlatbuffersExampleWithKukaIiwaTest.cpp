@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
         // Default to joint servo mode for commanding motion
         kukaDriverP->set(grl::flatbuffer::ArmState::MoveArmJointServo);
         kukaDriverP->set(goal_position_command_time_duration,grl::time_duration_command_tag());
-        std::cout << "KUKA COMMAND MODE: " << std::get<grl::robot::arm::KukaDriver::KukaCommandMode>(params) << "\n";
+        // std::cout << "KUKA COMMAND MODE: " << std::get<grl::robot::arm::KukaDriver::KukaCommandMode>(params) << "\n";
     }
 
     unsigned int num_missed = 0;
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
             // std::cout<< "single message data size (bytes): " << newData << "  Buffer size: " << builder_size_bytes/MegaByte <<" MB" << std::endl;
         }
 
-        std::cout<< "kukaiiwaStateVec:" << kukaiiwaStateVec.size() << std::endl;
+        //std::cout<< "kukaiiwaStateVec:" << kukaiiwaStateVec.size() << std::endl;
 
         flatbuffers::Offset<grl::flatbuffer::KUKAiiwaStates> kukaStates = grl::toFlatBuffer(*fbbP, kukaiiwaStateVec);
 
@@ -399,7 +399,7 @@ BOOST_AUTO_TEST_CASE(runRepeatedly)
         OK = OK && grl::flatbuffer::VerifyKUKAiiwaStatesBuffer(verifier);
         assert(OK && "VerifyKUKAiiwaStatesBuffer");
 
-        std::cout << "Buffer size: " << bufsize << std::endl;
+        //std::cout << "Buffer size: " << bufsize << std::endl;
 
         std::string binary_file_path = "Kuka_test_binary.iiwa";
         std::string json_file_path = "kuka_test_text.json";

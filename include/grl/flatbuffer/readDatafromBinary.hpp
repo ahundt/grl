@@ -1,5 +1,5 @@
-#ifndef GRL_READ_KUKAIIWA_FROM_FLATBUFFER
-#define GRL_READ_KUKAIIWA_FROM_FLATBUFFER
+#ifndef GRL_READ_DATA_FROM_BINARY
+#define GRL_READ_DATA_FROM_BINARY
 
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 
@@ -10,6 +10,8 @@
 #include "grl/flatbuffer/LinkObject_generated.h"
 #include "grl/flatbuffer/Time_generated.h"
 #include "grl/flatbuffer/flatbuffer.hpp"
+#include "grl/flatbuffer/FusionTrack_generated.h"
+#include "grl/flatbuffer/LogKUKAiiwaFusionTrack_generated.h"
 #include <thirdparty/fbs_tk/fbs_tk.hpp>
 
 #include <cstdio> // For printing and file access.
@@ -23,26 +25,11 @@
 #include <iterator>
 #include <algorithm>
 namespace grl {
-    const grl::flatbuffer::KUKAiiwaStates* getKUKAiiwaStatesFromFlatbuffer(const std::string filename){
+    struct kuka_tag {};
+    struct fusiontracker_tag {};
+    enum TimeType { device_time = 0, local_request_time = 1, local_receive_time = 2 };
 
-        //std::cout << "CurrentWorkingDir: " << curWorkingDir << std::endl;
-        if(filename.empty()) return nullptr;
-        FILE* file = std::fopen(filename.c_str(), "rb");
-        if(!file) {
-            std::perror("File opening failed");
-            return nullptr;
-        }
-        std::fseek(file, 0L, SEEK_END); // seek to end
-        std::size_t length = std::ftell(file);
-        std::fseek(file, 0L, SEEK_SET); // seek to start
-        std::vector<uint8_t> buffer(length);
-        std::fread(buffer.data(), sizeof(uint8_t), buffer.size(), file);
-        std::fclose(file);
-        return grl::flatbuffer::GetKUKAiiwaStates(&buffer[0]);
-    }
-
-    std::vector<int64_t> getTimeStamp_Kuka(const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP, std::string time_type){
-
+    std::vector<int64_t> getTimeStamp(const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP, kuka_tag, TimeType time_type){
         auto states = kukaStatesP->states();
         std::vector<int64_t> timeStamp;
         std::size_t state_size = states->size();
@@ -50,18 +37,57 @@ namespace grl {
             auto KUKAiiwaState = states->Get(i);
             auto FRIMessage = KUKAiiwaState->FRIMessage();
             auto timeEvent = FRIMessage->timeStamp();
-
-            if(time_type =="device_time"){
-                timeStamp.push_back(timeEvent->device_time());
-            } else if (time_type == "local_request_time") {
-                timeStamp.push_back(timeEvent->local_request_time());
-            } else if (time_type == "local_receive_time"){
-                timeStamp.push_back(timeEvent->local_receive_time());
+            switch(time_type) {
+                case device_time:{
+                    timeStamp.push_back(timeEvent->device_time());
+                    break;
+                }
+                case local_request_time:{
+                    timeStamp.push_back(timeEvent->local_request_time());
+                    break;
+                }
+                case local_receive_time:{
+                    timeStamp.push_back(timeEvent->local_receive_time());
+                    break;
+                }
+                default:{
+                     std::perror("No time type!");
+                }
             }
         }
         return timeStamp;
     }
 
+    std::vector<int64_t> getTimeStamp(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP, fusiontracker_tag, TimeType time_type){
+
+        auto states = logKUKAiiwaFusionTrackP->states();
+        std::vector<int64_t> timeStamp;
+
+        std::size_t state_size = states->size();
+        //Eigen::VectoXd time_stamp(state_size);
+        for(int i = 0; i<state_size; ++i){
+            auto kukaiiwaFusionTrackMessage = states->Get(i);
+            auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
+            switch(time_type) {
+                case device_time:{
+                    timeStamp.push_back(timeEvent->device_time());
+                    break;
+                }
+                case local_request_time:{
+                    timeStamp.push_back(timeEvent->local_request_time());
+                    break;
+                }
+                case local_receive_time:{
+                    timeStamp.push_back(timeEvent->local_receive_time());
+                    break;
+                }
+                default:{
+                     std::perror("No time type!");
+                }
+            }
+        }
+        return timeStamp;
+    }
 
 
     /// Return the joint_index th joint angle
@@ -145,51 +171,5 @@ namespace grl {
     //     }
     //     fs.close();
     // }
-    /*
-     * A class to create and write data in a csv file.
-    */
-class CSVWriter
-{
-	std::string fileName;
-	std::string delimeter;
-	int linesCount;
-
-public:
-	CSVWriter(std::string filename, std::string delm = ",") :
-			fileName(filename), delimeter(delm), linesCount(0)
-	{}
-	/*
-	 * Member function to store a range as comma seperated value
-	 */
-	template<typename T>
-	void addDatainRow(T first, T last);
-};
-
-/*
- * This Function accepts a range and appends all the elements in the range
- * to the last row, seperated by delimeter (Default is comma)
- */
-template<typename T>
-void CSVWriter::addDatainRow(T first, T last)
-{
-	std::fstream file;
-	// Open the file in truncate mode if first line else in Append Mode
-	file.open(fileName, std::ios::out | (linesCount ? std::ios::app : std::ios::trunc));
-
-	// Iterate over the range and add each lement to file seperated by delimeter.
-	for (; first != last; )
-	{
-		file << *first;
-		if (++first != last)
-			file << delimeter;
-	}
-	file << "\n";
-	linesCount++;
-
-	// Close the file
-	file.close();
-}
-
-
 }
 #endif

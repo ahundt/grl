@@ -1,8 +1,8 @@
 #ifndef GRL_FLATBUFFER_HPP
 #define GRL_FLATBUFFER_HPP
 
-#include <stdio.h>  /* defines FILENAME_MAX */
 #include <iostream>
+// source: http://www.codebind.com/cpp-tutorial/c-get-current-directory-linuxwindows/
 // #define WINDOWS  /* uncomment this line to use it for windows.*/
 #ifdef WINDOWS
 #include <direct.h>
@@ -30,7 +30,6 @@ namespace grl {
     bool LoadJSONFlatbuffer(flatbuffers::Parser& parser, std::string schemaPath, std::string jsonPath, std::string include_directory, bool binary = false)
     {
         // source: https://github.com/google/flatbuffers/blob/master/samples/sample_text.cpp
-
         // load FlatBuffer schema (.fbs) and JSON from disk
         std::string schemafile;
         std::string jsonfile;
@@ -68,7 +67,6 @@ namespace grl {
         std::vector<std::string> includePaths = std::vector<std::string >(),
         bool read_binary_schema=false)
     {
-
         bool loadfbsfile_ok = true;
         std::string schemafile;
         if(includePaths.empty())
@@ -89,13 +87,13 @@ namespace grl {
             //std::cout << "a full path wasn't passed, so check all the include paths" << std::endl;
             for(auto includePath : includePaths)
             {
-              std::string fbs_trypath = flatbuffers::ConCatPathFileName(includePath, fbs_filename);
-              if(flatbuffers::FileExists(fbs_trypath.c_str()))
-              {
-                fbs_fullpath = fbs_trypath;
-                // we found it! no need to keep looping
-                break;
-              }
+                std::string fbs_trypath = flatbuffers::ConCatPathFileName(includePath, fbs_filename);
+                if(flatbuffers::FileExists(fbs_trypath.c_str()))
+                {
+                    fbs_fullpath = fbs_trypath;
+                    // we found it! no need to keep looping
+                    break;
+                }
             }
         }
 
@@ -111,7 +109,7 @@ namespace grl {
         // create a list of char* pointers so we can call Parse
         std::vector<const char *> include_directories;
         for(int i = 0; i < includePaths.size(); i++){
-          include_directories.push_back(includePaths[i].c_str());
+            include_directories.push_back(includePaths[i].c_str());
         }
         include_directories.push_back(nullptr);
         return parser.Parse(schemafile.c_str(), &include_directories[0]);
