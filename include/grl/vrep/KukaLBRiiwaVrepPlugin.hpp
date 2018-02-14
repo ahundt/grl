@@ -171,7 +171,7 @@ public:
         kukaDriverP_->construct();
         // Default to joint servo mode for commanding motion
         kukaDriverP_->set(flatbuffer::ArmState::MoveArmJointServo);
-        std::cout << "KUKA COMMAND MODE: " << std::get<KukaCommandMode>(params) << "\n";
+        // std::cout << "KUKA COMMAND MODE: " << std::get<KukaCommandMode>(params) << "\n";
         initHandles();
     }
 
@@ -328,7 +328,6 @@ public:
 
             vrepMeasuredRobotArmDriverP_->setState(measuredArmState);
         }
-
     }
 
     /// @todo if there aren't real limits set via the kuka model already then implement me

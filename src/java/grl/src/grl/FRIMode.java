@@ -22,15 +22,17 @@ import com.kuka.roboticsAPI.motionModel.controlModeModel.JointImpedanceControlMo
 import com.kuka.task.ITaskLogger;
 
 /**
- * 
+ *
  * Activate FRI mode in a separate thread
  *
  */
+ // Provide a Runnable object. The Runnable interface defines a single method, run, meant to contain the code executed in the thread.
+ // The Runnable object is passed to the Thread constructor,
 public class FRIMode implements Runnable {
 
-	private LBR _lbr;	
+	private LBR _lbr;
 
-	
+
 
 	private AbstractMotionControlMode _activeMotionControlMode;
 	private FRISession       _friSession = null;
@@ -41,13 +43,13 @@ public class FRIMode implements Runnable {
 	private volatile boolean isEnableEnded;
 	private volatile boolean stop = false;
     private volatile boolean timedOut = false;
-	
+
 	IMotionContainer currentMotion = null;
 	ITaskLogger _logger = null;
 	int iter = 0;
 
 	/**
-	 * 
+	 *
 	 * @param flangeAttachment
 	 * @param maxAllowedJoints
 	 * @param minAllowedJoints
@@ -61,6 +63,12 @@ public class FRIMode implements Runnable {
 
         _friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
         _friConfiguration.setSendPeriodMilliSec(sendPeriodMillisec);
+		/**
+		* Using an instance of the class FRISession, the FRI connection between the
+        * robot controller and external system is opened and Monitor mode is automatically activated.
+		* If Monitor mode is activated, the connection quality is continuously determined
+        * and evaluated.
+		*/
         if(_friSession == null) _friSession = new FRISession(_friConfiguration);
 		//_motionOverlay = new FRIJointOverlay(_friSession);
 	}
@@ -72,21 +80,28 @@ public class FRIMode implements Runnable {
 	public boolean isCommandingWaitOrActive()
 	{
 		boolean ret;
+		/**
+		* The method getFRIChannelInformation() can be used to poll the following information
+		* and save it in a variable of type FRIChannelInformation.
+		* Type: FRIChannelInformation
+        * Variable in which the data for the FRI connection and FRI state are saved
+		*/
+
 		synchronized (this) {
 			ret = _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_ACTIVE) != 0
 					&& _friSession.getFRIChannelInformation().getFRISessionState().compareTo(FRISessionState.COMMANDING_WAIT) != 0;
 		}
-		
+
 		return !ret;
 	}
-	
+
 	public String getQualityString()
 	{
 		return _friSession.getFRIChannelInformation().getQuality().toString();
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @param setControlMode
 	 */
 	public void setControlMode(AbstractMotionControlMode teachModeControlMode) {
@@ -95,7 +110,7 @@ public class FRIMode implements Runnable {
 			_activeMotionControlMode = teachModeControlMode;
 		}
 	}
-	
+
 	public void setFRIConfiguration(FRIConfiguration friConfguration){
 		_friConfiguration = friConfguration;
 	}
@@ -106,10 +121,10 @@ public class FRIMode implements Runnable {
 			useHandGuidingMotion = true;
 		}
 	}
-	
+
 	/**
 	 * Tell the hand guiding motion (teach mode) to stop
-	 * and the thread exits. Make sure 
+	 * and the thread exits. Make sure
 	 * isEnableEnded returns true before calling this!
 	 * @return false on failure; true on successfully starting the shutdown process
 	 */
@@ -118,36 +133,36 @@ public class FRIMode implements Runnable {
 		stop = true;
 
 		if(currentMotion !=null) currentMotion.cancel();
-		
+
 		return true;
 	}
-	
+
 	public synchronized boolean isTimedOut(){
 	   return timedOut;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * Cancel the motion, thread stays in existence.
 	 */
 	public boolean cancel(){
 		//warn("Cancel received");
-		
+
 		synchronized (this) {
 
 			useHandGuidingMotion = false;
-			
+
 			if(currentMotion !=null) currentMotion.cancel();
 		}
 		return true;
 		//warn("Cancel complete");
 	}
-	
+
 	/**
 	 * @brief true there are no outstanding calls made to enable() and you can switch modes
-	 * 
+	 *
 	 * @see enable()
-	 * 
+	 *
 	 * The sunrise HandGuidingMotion mode has an API
 	 * quirk where you need to push the physical button
 	 * to end the hand guiding mode. This tells you if
@@ -178,7 +193,7 @@ public class FRIMode implements Runnable {
 			useHandGuidingMotion = false;
 		}
 		_motionOverlay = null;
-		
+
 		while(!stop && !timedOut) {
 			//warn("Starting new hand guiding motion");
 
@@ -201,7 +216,7 @@ public class FRIMode implements Runnable {
 						}
 						continue;
 					}
-					
+
 					warn("creating FRI Joint Overlay " + useHandGuidingMotion);
 					isEnableEnded = false;
 					_motionOverlay = new FRIJointOverlay(_friSession);
@@ -227,7 +242,7 @@ public class FRIMode implements Runnable {
 							_motionOverlay = new FRIJointOverlay(_friSession);
 							currentMotion = _lbr.move(positionHold(_activeMotionControlMode, -1, TimeUnit.SECONDS).addMotionOverlay(_motionOverlay));
 							_logger.info("FRI Joint Overlay ended...");
-							
+
 						} catch (TimeoutException e) {
 							//_logger.error("FRISession timed out, closing...");
 							//e.printStackTrace();

@@ -51,12 +51,12 @@ public class UpdateConfiguration {
 	}
 
 	private FRISession _FRISession = null;
-	
+
 	public UpdateConfiguration(LBR lbr, Tool flangeAttachment){
 		_lbr = lbr;
 		_flangeAttachment = flangeAttachment;
 	}
-	
+
 	/**
 	 * Create an End effector tool
 	 * @param link the Flatbuffer representing the tool
@@ -81,7 +81,7 @@ public class UpdateConfiguration {
         		link.inertia().mass(),
                 centerOfMassInMillimeter);
 	}
-	
+
 	/**
 	 * Sets the FRI Configuration and FRI Session stored by the UpdateConfiguration object
 	 * @param friConfigBuf flatbuffer containing fri settings
@@ -95,11 +95,18 @@ public class UpdateConfiguration {
 
         if(friConfigBuf !=null && friConfigBuf.sendPeriodMillisec() >0){
         	_FRIConfiguration.setSendPeriodMilliSec(friConfigBuf.sendPeriodMillisec());
+			/**
+			 * Defines the answer rate factor (type: int)
+			 * The answer rate factor defines the rate at which the external
+             * system is to send data to the robot controller:
+			 * Answer rate = answer rate factor*send rate
+			 */
+
         	_FRIConfiguration.setReceiveMultiplier(friConfigBuf.setReceiveMultiplier());
         }
-        
+
         _FRISession = new FRISession(_FRIConfiguration);
-        
+
         return false;
 	}
 

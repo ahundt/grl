@@ -250,9 +250,9 @@ public:
     std::string remotehost(std::get<remotehost>(params));
     std::string rp(std::get<remoteport>(params));
     short remoteport = boost::lexical_cast<short>(rp);
-    std::cout << "using: "
-              << " " << localhost << " " << localport << " " << remotehost
-              << " " << remoteport << "\n";
+    // std::cout << "using: "
+    //           << " " << localhost << " " << localport << " " << remotehost
+    //           << " " << remoteport << "\n";
 
     boost::asio::ip::udp::socket s(
         io_service_,

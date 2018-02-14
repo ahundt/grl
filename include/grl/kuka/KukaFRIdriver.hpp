@@ -751,8 +751,8 @@ void saveToDisk()
   {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 1024*MegaByte;
-    const std::size_t single_buffer_limit_states = 1350;
+    const std::size_t single_buffer_limit_bytes = 24*MegaByte;
+    const std::size_t single_buffer_limit_states = 1350000000;
 
     // run the primary update loop in a separate thread
     bool saveFileNow = false;
@@ -763,7 +763,8 @@ void saveToDisk()
         // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB
         int buffsize = m_logFileBufferBuilderP->GetSize();
         int statessize = m_KUKAiiwaStateBufferP->size();
-        if( buffsize > single_buffer_limit_bytes || statessize > single_buffer_limit_states)
+        // if( buffsize > single_buffer_limit_bytes || statessize > single_buffer_limit_states)
+         if( buffsize > single_buffer_limit_bytes)
         {
             // save the file if we are over the limit
             saveFileNow = true;

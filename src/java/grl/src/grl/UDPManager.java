@@ -7,15 +7,16 @@ import java.io.*;
 import java.net.*;
 
 public class UDPManager {
-	
+
+	// This class represents a socket for sending and receiving datagram packets.
 	DatagramSocket socket = null;
 
 	ITaskLogger logger;
 	String _Remote_IP;
 	int _Remote_Port;
-	
+    // This class represents an Internet Protocol (IP) address.
 	InetAddress _address_send = null;
-	
+
 	int statesLength = 0;
 	long message_counter = 0;
 	long noMessageCounter = 0;
@@ -33,59 +34,64 @@ public class UDPManager {
 	long lastMessageStartTime;
 	long lastMessageElapsedTime;
 	long lastMessageTimeoutMilliseconds = 1000;
-	
+
 	int retriesAllowed = 3;
 	int retriesAttempted = 0;
-	
+
 	public UDPManager(String laptopIP, String laptopPort, ITaskLogger errorlogger) {
 		super();
 		this.logger = errorlogger;
 		_Remote_IP = laptopIP;
 		_Remote_Port = Integer.parseInt(laptopPort);
-		
+
 		try {
 			_address_send = InetAddress.getByName(_Remote_IP);
 		} catch (UnknownHostException e) {
 			logger.error("Could not create InetAddress for sending");
 		}
-		
+
 	}
 
 	/**
 	 * Blocks until a connection is established or stop() is called.
-	 * 
+	 *
 	 * @return error code: false on success, otherwise failure (or told to stop)
-	 * @throws UnknownHostException 
+	 * @throws UnknownHostException
 	 */
 	public boolean connect() {
 
 		logger.info("Waiting for connection initialization...");
-			
+
 		try {
 			socket = new DatagramSocket();
 		} catch (SocketException e1) {
 			logger.info("failed to create socket.");
 		}
-		
 
-		    
+
+
 		try {
+			// Enable/disable SO_TIMEOUT with the specified timeout, in milliseconds.
+			// With this option set to a non-zero timeout, a read() call on the InputStream associated with this Socket will block for only this amount of time. If the timeout expires, a java.net.SocketTimeoutException is raised,
 			socket.setSoTimeout(100);
 		} catch (SocketException e1) {
 			logger.error("UDPManager failed to set socket timeout");
 		}
-		
+
 		startTime = System.currentTimeMillis();
 		elapsedTime = 0L;
 		grl.flatbuffer.KUKAiiwaStates newKUKAiiwaStates = null;
-		int newStatesLength = 0; 
-		
+		int newStatesLength = 0;
+
 		boolean connectionEstablished = false;
-		
+
 		while(newStatesLength<1 && newKUKAiiwaStates == null){
-			
+            // Datagram packets are used to implement a connectionless packet delivery service.
+			// Constructs a DatagramPacket for receiving packets of length length.
+			// recBuf - buffer for holding the incoming datagram.
+			//
 			DatagramPacket packet = new DatagramPacket(recBuf, recBuf.length);
-			
+
 			// continues sending dummy messages until the server receives the address of this machine and sends a message back
 			while (!connectionEstablished){
 				connectionEstablished = preConnect();
@@ -94,14 +100,14 @@ public class UDPManager {
 					return true; // asked to exit
 				}
 			}
-			
-			if(packet.getLength() > 0){
 
+			if(packet.getLength() > 0){
+                // Wraps a byte array into a buffer.
 				bb = ByteBuffer.wrap(recBuf);
-				
+
 				newKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb);
 				newStatesLength = newKUKAiiwaStates.statesLength();
-		
+
 			}
 
 			if (stop) {
@@ -109,12 +115,12 @@ public class UDPManager {
 				return true; // asked to exit
 			}
 		}
-		
+
 		_currentKUKAiiwaStates = newKUKAiiwaStates;
 		statesLength = newStatesLength;
 
 		logger.info("States initialized...");
-		
+
 		startTime = System.currentTimeMillis();
 		lastMessageStartTime = startTime;
 		lastMessageElapsedTime = System.currentTimeMillis() - lastMessageStartTime;
@@ -122,14 +128,14 @@ public class UDPManager {
 
 		return false; // no error
 	}
-	
+
 	/// @return true successfully sent and received a message, false otherwise
     private boolean preConnect()
     {
 		// Dummy message to send to Remote pc (server), in order for the server to know the address of the client (this machine)
     	/// @todo Should probably just make this a real flatbuffers init message too
 		String dummyMessage = "Hi";
-		
+
 		DatagramPacket packetSend= new DatagramPacket(dummyMessage.getBytes(), dummyMessage.getBytes().length, _address_send, _Remote_Port);
 
 		try {
@@ -142,7 +148,7 @@ public class UDPManager {
 			socket.receive(packet);
 			return true;
 		} catch (SocketTimeoutException e) {
-			// TimeOut reached, continue sending until we receive something	
+			// TimeOut reached, continue sending until we receive something
 			return false;
 		} catch (IOException e) {
 			// Could not receive packet
@@ -152,24 +158,24 @@ public class UDPManager {
 
 	/**
 	 * Blocks until a connection is re-established or stop() is called.
-	 * 
+	 *
 	 * @return error code: false on success, otherwise failure (or told to stop)
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 
-	
+
 	public boolean sendMessage(byte[] msg, int size) throws IOException
 	{
 		DatagramPacket packet= new DatagramPacket(msg, size, _address_send , _Remote_Port );
 		socket.send(packet);
 	    return true;
 	}
-	
+
 	public grl.flatbuffer.KUKAiiwaState waitForNextMessage()
 	{
 		boolean haveNextMessage = false;
 		while(!stop && !haveNextMessage) {
-			
+
 			DatagramPacket packet = new DatagramPacket(recBuf, recBuf.length);
 			try {
 				socket.receive(packet);
@@ -178,9 +184,9 @@ public class UDPManager {
 
 					message_counter+=1;
 					bb = ByteBuffer.wrap(recBuf);
-		
+
 					_currentKUKAiiwaStates = grl.flatbuffer.KUKAiiwaStates.getRootAsKUKAiiwaStates(bb, _currentKUKAiiwaStates);
-		
+
 					if(_currentKUKAiiwaStates.statesLength()>0) {
 						// initialize the fist state
 						grl.flatbuffer.KUKAiiwaState tmp = _currentKUKAiiwaStates.states(0);
@@ -194,13 +200,13 @@ public class UDPManager {
 							_previousKUKAiiwaState = _currentKUKAiiwaState;
 							_currentKUKAiiwaState = tmp;
 						}
-							
+
 						if (_currentKUKAiiwaState == null) {
 							noMessageCounter+=1;
 							logger.error("Missing current state message!");
 							continue;
 						}
-						
+
 						haveNextMessage=true;
 						noMessageCounter = 0;
 						lastMessageStartTime = System.currentTimeMillis();
@@ -222,22 +228,22 @@ public class UDPManager {
 					preConnect();
 				}
 			}
-			
+
 		}
-		
-		return _currentKUKAiiwaState;			
+
+		return _currentKUKAiiwaState;
 	}
-	
+
 	public grl.flatbuffer.KUKAiiwaState getCurrentMessage(){
 		return _currentKUKAiiwaState;
 	}
-	
+
 	public grl.flatbuffer.KUKAiiwaState getPrevMessage(){
 		return _previousKUKAiiwaState;
 	}
 
-	
-	
+
+
 	public boolean isStop() {
 		return stop;
 	}
@@ -249,14 +255,14 @@ public class UDPManager {
             socket.close();
             logger.error("socket closed");
 			this.stop = stop;
-			
+
 		}
 	}
-	
+
 	public void stop(){
 		setStop(true);
 	}
-	
+
 	protected void finalize() {
 		try {
 			logger.error("Trying to close socket");
@@ -269,9 +275,9 @@ public class UDPManager {
 		}
 	}
 
-	
-	
-	
-	
-	
+
+
+
+
+
 }

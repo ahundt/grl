@@ -439,8 +439,8 @@ private:
   {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 1024*MegaByte;
-    const std::size_t single_buffer_limit_messages = 17000;
+    const std::size_t single_buffer_limit_bytes = 240*MegaByte;
+    // const std::size_t single_buffer_limit_messages = 13050000000000000;
     std::vector<uint64_t> deviceSerialNumbers;
     try
     {
@@ -498,8 +498,8 @@ private:
                 }
 
                 // There is a flatbuffers file size limit of 2GB, but we use a conservative 512MB
-                if(m_logFileBufferBuilderP->GetSize() > single_buffer_limit_bytes ||
-                   m_KUKAiiwaFusionTrackMessageBufferP->size() > single_buffer_limit_messages)
+                if(m_logFileBufferBuilderP->GetSize() > single_buffer_limit_bytes )
+                   // || m_KUKAiiwaFusionTrackMessageBufferP->size() > single_buffer_limit_messages)
                 {
                   // save the file if we are over the limit
                   saveFileNow = true;

@@ -95,9 +95,12 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
 	basis_add_executable(FlatbuffersExampleWithKukaIiwaTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
 	basis_target_link_libraries(FlatbuffersExampleWithKukaIiwaTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB})
 
-    basis_add_executable(readFRIFBTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
+    basis_add_executable(readFRIFBTest.cpp)
 	basis_target_link_libraries(readFRIFBTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB} -lboost_iostreams -lboost_system -lboost_filesystem)
-endif()
+
+   # basis_add_executable(KukaPoseEstimationTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
+   #	basis_target_link_libraries(KukaPoseEstimationTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB} -lboost_iostreams -lboost_system -lboost_filesystem)
+    endif()
 
 
 if(CERES_FOUND OR USE_INTERNAL_CERES)
