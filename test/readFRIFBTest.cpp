@@ -56,10 +56,19 @@ void writetoCSVforFusionTrackKukaiiwa() {
     grl::VectorXd FT_local_request_time = grl::getTimeStamp(FusionTrackStatesRoot, grl::fusiontracker_tag(), grl::TimeType::local_request_time);
     grl::VectorXd FT_local_receive_time = grl::getTimeStamp(FusionTrackStatesRoot, grl::fusiontracker_tag(), grl::TimeType::local_receive_time);
     writetoCSV(FT_CSVfilename, FT_device_time, FT_local_request_time, FT_local_receive_time);
+    int kuka_index = 0;
+    int FT_index = 0;
+    // filter out the very beginning data, which can gurantee to record the data when the two devices work simultaniously.
+    while(kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index)){
+        kuka_index++;
+    }
+    while(kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index) && kuka_index == 0){
+        FT_index++;
+    }
 
-    auto initial_local_time = std::min(FT_local_receive_time(0), kuka_local_receive_time(0));
-    auto initial_device_time_kuka = kuka_device_time(0);
-    auto initial_device_time_FT = FT_device_time(0);
+    auto initial_local_time = std::min(FT_local_receive_time(FT_index), kuka_local_receive_time(kuka_index));
+    auto initial_device_time_kuka = kuka_device_time(kuka_index);
+    auto initial_device_time_FT = FT_device_time(FT_index);
     FT_local_request_time = FT_local_request_time - initial_local_time * grl::VectorXd::Ones(FT_state_size);
     FT_local_receive_time = FT_local_receive_time - initial_local_time * grl::VectorXd::Ones(FT_state_size);
     FT_device_time = FT_device_time - initial_device_time_FT * grl::VectorXd::Ones(FT_state_size);
@@ -68,160 +77,57 @@ void writetoCSVforFusionTrackKukaiiwa() {
     kuka_local_receive_time = kuka_local_receive_time - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
     kuka_device_time = kuka_device_time - initial_device_time_kuka * grl::VectorXd::Ones(kuka_state_size);
 
-    // std::size_t states_size = kuka_state_size+FT_state_size;
-    // grl::VectorXd local_request_time_offset(states_size);
-    // grl::VectorXd local_receive_time_offset_FT(states_size);
-    // grl::VectorXd local_receive_time_offset_kuka(states_size);
-    // grl::VectorXd device_time_offset_kuka(states_size);
-    // grl::VectorXd FT_device_time_offset(states_size);
-    // grl::VectorXd device_type(states_size);
-
-    // auto kuka_size = kuka_local_request_time.size();
-
-    int kuka_index = 0;
-    int FT_index = 0;
-    int index = kuka_index + FT_index;
-    // while(kuka_local_request_time(kuka_index) > FT_local_request_time(FT_index)){
-    //     itFT_local_request_time++;
-    //     FT_index++;
-    // }
     std::ofstream fs;
     // create a name for the file output
     fs.open( CSVfilename, std::ofstream::out | std::ofstream::app);
-     // write the file headers
+    // write the file headers
     fs << "local_receive_time_offset_X,"
        << "FT_local_request_time,"
        << "KUKA_local_request_time,"
-       // << "local_receive_time_offset_kuka,"
        << "FT_device_time_offset,"
        << "device_time_offset_kuka,"
        << "Y_FT,"
-       << "Y_kuka"  << std::endl;
+       << "Y_kuka"
+       << std::endl;
 
+    int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index);
+    int64_t FT_diff = FT_device_time(FT_index) - FT_local_receive_time(FT_index);
     while ( kuka_index < kuka_state_size && FT_index < FT_state_size )
     {
         if ( kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index) ){
             // write the data to the output file
             fs << kuka_local_receive_time(kuka_index) <<","
                <<","
-               << kuka_local_request_time(kuka_index) << ","                                      // A
-                                              // D
+               << kuka_local_request_time(kuka_index) << ","
                << ","
-               << kuka_device_time(kuka_index) <<","                                         // F
+               << kuka_device_time(kuka_index) <<","
                << ","
-               << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) << std::endl;  // H
+               << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
+               << std::endl;
                kuka_index++;
-
-
         } else if( kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index)) {
             // write the data to the output file
             fs << FT_local_receive_time(FT_index) <<","
-               << FT_local_request_time(FT_index) << ","                                      // A
-               <<","                                      // C
-               << FT_device_time(FT_index) << ","                          // D
-               << ","                                     // E
-               << FT_device_time(FT_index) - FT_local_receive_time(FT_index) << ","
+               << FT_local_request_time(FT_index) << ","
+               <<","
+               << FT_device_time(FT_index) << ","
                << ","
-               << std::endl;  // H
+               << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
+               << std::endl;
             FT_index++;
         } else {
             fs << FT_local_receive_time(FT_index) <<","
                << FT_local_request_time(FT_index) << ","
-               << kuka_local_request_time(kuka_index) << ","                                   // A
-               << FT_device_time(FT_index) << ","                          // D
+               << kuka_local_request_time(kuka_index) << ","
+               << FT_device_time(FT_index) << ","
                << kuka_device_time(kuka_index) <<","
-               << FT_device_time(FT_index) - FT_local_receive_time(FT_index) << ","
-               << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) << std::endl;
+               << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
+               << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
+               << std::endl;
             FT_index++;
             kuka_index++;
         }
     }
-
-
-    // while ( kuka_index < kuka_state_size && FT_index < FT_state_size )
-    // {
-    //     if ( kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index) ){
-    //         local_request_time_offset(index) = kuka_local_request_time(kuka_index);
-    //         local_receive_time_offset_FT(index) = FT_local_receive_time(FT_index);
-    //         local_receive_time_offset_kuka(index) = kuka_local_receive_time(kuka_index);
-    //         device_time_offset_kuka (index) =  kuka_device_time(kuka_index);
-    //         FT_device_time_offset(index) = FT_device_time(FT_index);
-    //         device_type(index) = 0;
-    //         kuka_index++;
-
-
-    //     } else if( kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index)) {
-    //         local_request_time_offset(index) = FT_local_request_time(FT_index);
-    //         local_receive_time_offset_FT(index) = FT_local_receive_time(FT_index);
-    //         local_receive_time_offset_kuka(index) =  kuka_local_receive_time(kuka_index);
-    //         device_time_offset_kuka(index) = kuka_device_time(kuka_index);
-    //         FT_device_time_offset(index) = FT_device_time(FT_index);
-    //         device_type(index) = 1;
-    //         FT_index++;
-    //     } else {
-    //         local_request_time_offset(index) = FT_local_request_time(FT_index);
-    //         local_receive_time_offset_FT(index) = FT_local_receive_time(FT_index);
-    //         local_receive_time_offset_kuka(index) =  kuka_local_receive_time(kuka_index);
-    //         device_time_offset_kuka(index)=  kuka_device_time(kuka_index);
-    //         FT_device_time_offset(index) = FT_device_time(FT_index);
-    //         device_type(index) = 2;
-    //         FT_index++;
-    //         kuka_index++;
-    //     }
-    //     index++;
-    // }
-
-
-    // // // copy rest of kuka_local_request_time array
-    // // while ( itkuka_local_request_time != itkuka_local_request_timeEnd ){
-    // //     FT_index = FT_state_size-2;
-    // //     local_request_time_offset << ( kuka_local_request_time(kuka_index);
-    // //     local_receive_time_offset_FT << (FT_local_receive_time(FT_index);
-    // //     local_receive_time_offset_kuka << (kuka_local_receive_time(kuka_index);
-    // //     device_time_offset_kuka << (kuka_device_time(kuka_index);
-    // //     FT_device_time_offset << (FT_device_time(FT_index);
-    // //     kuka_index++;
-    // //     itkuka_local_request_time++;
-    // //     device_type << (0);
-    // // }
-
-
-    // // // copy rest of FT_local_request_time array
-    // // while ( itFT_local_request_time != itFT_local_request_timeEnd ) {
-    // //     kuka_index = kuka_state_size-2;
-    // //     local_request_time_offset << ( FT_local_request_time(FT_index);
-    // //     local_receive_time_offset_FT << (FT_local_receive_time(FT_index);
-    // //     local_receive_time_offset_kuka << (kuka_local_receive_time(kuka_index);
-    // //     device_time_offset_kuka << (kuka_device_time(kuka_index);
-    // //     FT_device_time_offset << (FT_device_time(FT_index);
-    // //     FT_index++;
-    // //     itFT_local_request_time++;
-    // //     device_type << (1);
-    // //    // std::cout<<"kuka_local_receive_time: " << kuka_index <<"  "<<kuka_local_receive_time(kuka_index)  << std::endl;
-    // // }
-    // // // create an ofstream for the file output (see the link on streams for more info)
-
-
-    // auto real_size = local_request_time_offset.size();
-    // std::cout<< "------FT_KUKA: "<<real_size << std::endl;
-
-    // for(int i=0; i<real_size; ++i) {
-    //     // write the data to the output file
-    //     fs << local_request_time_offset(i) << ","                                      // A
-    //        << device_type(i)<< ","                                                     // B
-    //        << local_receive_time_offset_FT(i) <<","                                    // C
-    //        << local_receive_time_offset_kuka(i) <<","                                  // D
-    //        << FT_device_time_offset(i) <<","                                           // E
-    //        << device_time_offset_kuka(i) <<","                                         // F
-    //        << FT_device_time_offset(i) - local_request_time_offset(i) <<","            // G
-    //        << device_time_offset_kuka(i) - local_request_time_offset(i) << std::endl;  // H
-    // }
-    // std::cout<< "local_request_time_offset: "<< local_request_time_offset[real_size-1] << std::endl;
-    // std::cout<< "local_receive_time_offset_FT: "<< local_receive_time_offset_FT[real_size-1] << std::endl;
-    // std::cout<< "local_receive_time_offset_kuka: "<< local_receive_time_offset_kuka[real_size-1]/10 << std::endl;
-    // std::cout<< "FT_device_time_offset: "<< FT_device_time_offset[real_size-1] << std::endl;
-    // std::cout<< "device_time_offset_kuka: "<< device_time_offset_kuka[real_size-1] << std::endl;
-
     fs.close();
 }
 void writetoCSV(
