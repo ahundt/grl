@@ -159,7 +159,6 @@ class InverseKinematicsVrepPlugin
 public:
 
     //typedef grl::InverseKinematicsController parent_type;
-
     //using parent_type::currentKinematicsStateP_;
     //using parent_type::parent_type::InitializeKinematicsState;
 
@@ -296,6 +295,7 @@ public:
                 auto I = Eigen::Matrix3d::Identity();
                 auto h = Eigen::Vector3d::Zero();
                 /// @todo TODO(ahundt) consider the origin of the inertia! https://github.com/jrl-umi3218/Tasks/issues/10#issuecomment-257198604
+                /// RBInertia is the Spatial Rigid Body Inertia implementation
                 sva::RBInertiad rbi_i(mass, h, I);
                 /// @todo TODO(ahundt) add real support for links, particularly the respondable aspects, see LBR_iiwa_14_R820_joint1_resp in RoboneSimulation.ttt
                 //  @todo TODO(ahundt) REMEMBER: The first joint is NOT respondable!
