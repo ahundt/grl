@@ -26,6 +26,7 @@
 #include <iterator>
 #include <algorithm>
 
+const double PI = 3.14159265359;
 namespace grl {
     typedef Eigen::Matrix<int64_t , Eigen::Dynamic , 1>  VectorXd;
     struct kuka_tag {};
@@ -254,16 +255,16 @@ namespace grl {
         fs << "local_receive_time_X,"
            << "local_request_time_offset,"
            << "device_time_offset,"
-           << "Y,"
+           << "time_Y,"
            << "Receive-Request,"
            << "device_time_step,"
            << "receive_time_step,"
            << "X,"
            << "Y,"
            << "Z,"
-           << "R,"
-           << "P,"
-           << "Y,"
+           << "A,"
+           << "B,"
+           << "C,"
            << std::endl;
         int64_t device_time_step = 0;
         int64_t receive_time_step = 0;

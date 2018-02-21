@@ -53,11 +53,15 @@
 #include <mc_rbdyn_urdf/urdf.h>
 #include "kukaiiwaURDF.h"
 
+// const double PI = 3.14159265359;
+const double RadtoDegree = 180/3.14159265359;
+const double MeterToMM = 1000;
+
 std::string foldname = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
-std::string kukaBinaryfile = foldname + "2018_02_13_19_06_04_Kukaiiwa.iiwa";
-std::string fusiontrackBinaryfile = foldname + "2018_02_13_19_05_49_FusionTrack.flik";
-std::string FTKUKA_CSVfilename = foldname + current_date_and_time_string() + "_FTKUKA.csv";
-std::string FT_CSVfilename = foldname + current_date_and_time_string() + "_FT.csv";
+std::string kukaBinaryfile = foldname + "2018_02_20_21_21_08_Kukaiiwa.iiwa";
+// std::string fusiontrackBinaryfile = foldname + "2018_02_20_20_27_23_FusionTrack.flik";
+// std::string FTKUKA_CSVfilename = foldname + current_date_and_time_string() + "_FTKUKA.csv";
+// std::string FT_CSVfilename = foldname + current_date_and_time_string() + "_FT.csv";
 std::string KUKA_CSVfilename = foldname + current_date_and_time_string() + "_KUKA.csv";
 std::string KUKA_CSVfilename_Joint = foldname + current_date_and_time_string() + "_KUKA_Joint.csv";
 
@@ -103,10 +107,11 @@ int main(int argc, char* argv[])
 
         Eigen::Vector3d r ;    // translation
         E = pos.rotation();
-        r = pos.translation();
+        r = MeterToMM*pos.translation();
+        Eigen::Vector3d eulerAngleEigen = RadtoDegree*E.eulerAngles(0,1,2);
         Eigen::Quaterniond q(E);
         Eigen::RowVectorXd pose(6);
-        pose << r.transpose(), r.transpose();
+        pose << r.transpose(), eulerAngleEigen.transpose();
         poseEE.row(rowIdx) = pose;
         // std::cout << "-----------------------------------" << std::endl;
         // std::cout << "Rotation:\n " << E << std::endl
@@ -116,7 +121,7 @@ int main(int argc, char* argv[])
     }
     // std::cout << poseEE << std::endl;
     grl::writePoseToCSV(KUKA_CSVfilename, kuka_device_time, kuka_local_request_time, kuka_local_receive_time, poseEE);
-
+    grl::writetoJointAngToCSV(kukaBinaryfile, KUKA_CSVfilename_Joint);
     /// Bodies transformation in world coordinate.
 	/// std::vector<sva::PTransformd> bodyPosW;
     // std::size_t nrBodies = mb.nrBodies();
