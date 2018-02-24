@@ -83,14 +83,14 @@ int main(int argc, char* argv[])
     grl::VectorXd kuka_local_request_time = grl::getTimeStamp(KUKAiiwaStatesRoot, grl::kuka_tag(), grl::TimeType::local_request_time);
     grl::VectorXd kuka_local_receive_time = grl::getTimeStamp(KUKAiiwaStatesRoot, grl::kuka_tag(), grl::TimeType::local_receive_time);
 
-    Eigen::MatrixXf jointAngles = grl::getAllJointAngles(KUKAiiwaStatesRoot);
+    Eigen::MatrixXd jointAngles = grl::getAllJointAngles(KUKAiiwaStatesRoot);
     std::size_t row_size = jointAngles.rows();
     std::size_t body_size = mbc.bodyPosW.size();
     /// The translation and Euler angles in world coordinate.
     Eigen::MatrixXd poseEE(row_size,6);
 
     for(int rowIdx=0; rowIdx<row_size; rowIdx++){
-        Eigen::VectorXf oneStateJointPosition = jointAngles.row(rowIdx);
+        Eigen::VectorXd oneStateJointPosition = jointAngles.row(rowIdx);
         int jointIdx = 0;
         for(int jointIndex = 0; jointIndex< nrJoints; jointIndex++) {
             const auto & joint = strRobot.mb.joint(jointIndex);
@@ -120,55 +120,11 @@ int main(int argc, char* argv[])
 
     }
     // std::cout << poseEE << std::endl;
-    grl::writePoseToCSV(KUKA_CSVfilename, kuka_device_time, kuka_local_request_time, kuka_local_receive_time, poseEE);
-    grl::writetoJointAngToCSV(kukaBinaryfile, KUKA_CSVfilename_Joint);
-    /// Bodies transformation in world coordinate.
-	/// std::vector<sva::PTransformd> bodyPosW;
-    // std::size_t nrBodies = mb.nrBodies();
-    // std::cout<<"Body Size: "<< nrBodies << std::endl;
-    // for(int bodyIndex=0; bodyIndex<nrBodies; bodyIndex++) {
-    //     const auto & body = strRobot.mb.body(bodyIndex);
-    //     std::cout<<"body " << bodyIndex << ":  " << body.name()
-    //              <<"  Mass: " << body.inertia().mass()
-    //              <<"  Inertia:" << body.inertia().inertia().norm() << std::endl
-    //              <<"Momentum:\n" << body.inertia().momentum() << std::endl;
-    // }
-    // std::cout << "Body size: " << nrBodies << std::endl;
-    // sva::PTransformd pos = mbc.bodyPosW[ee-1];
-    // std::cout << "Pose of EE: " << std::endl;
-    // std::cout << pos << std::endl;
+    grl::writeEEPoseToCSV(KUKA_CSVfilename, kuka_device_time, kuka_local_request_time, kuka_local_receive_time, poseEE);
+    jointAngles = RadtoDegree*jointAngles;
+    grl::writeJointAngToCSV(KUKA_CSVfilename_Joint, kuka_device_time, kuka_local_request_time, kuka_local_receive_time, jointAngles);
 
-// 	mbc.q = {{}, {cst::pi<double>()/2.}};
-//           /// @todo TODO(ahundt) warn/error when size!=0 or explicitly handle those cases
-//     // if(mbc.q[jointIdx].size()>0) simArmConfig.q[jointIdx][0] = futureAngle;
-//     //auto possize = mbc.q[1].size();
-//     std::cout<<"Joint angle: "<< mbc.q[1][0] << std::endl;
-// 	forwardKinematics(mb, mbc);
 
-//     ee = mbc.bodyPosW.size();
-//     std::cout<<"size: " << ee << std::endl;
-//     for(int i=0; i<10; ++i) {
-//         pos = mbc.bodyPosW[i];
-//         std::cout<<"Joint Position: "<< mb.jointPosInParam(i)<< std::endl;
-//         std::cout << pos << std::endl <<"---------------"<<std::endl;
-//     }
 
-//   for(int i = 0; i < strRobot.mb.nrBodies(); ++i)
-//   {
-//     // const auto & b1 = cppRobot.mb.body(i);
-//     const auto & b2 = strRobot.mb.body(i);
-//     std::cout<<"\nbody " << i << ":" <<"  \nName: " << b2.name() <<std::endl;
-//             //  <<"  \nMass: " << b2.inertia().mass()
-//             //  <<"  \nMomentum: " << b2.inertia().momentum()
-//             //  <<"  \nInertia: " << b2.inertia().inertia().norm();
-//   }
-
-//   for(int i = 0; i < strRobot.mb.nrJoints(); ++i)
-//   {
-//       //auto possize = mbc.q[i].size();
-//     const auto & j2 = strRobot.mb.joint(i);
-//     std::cout<<  j2 << std::endl;
-//     std::cout<<"\nType: " << j2.type() << std::endl;
-//  }
   return 0;
 }

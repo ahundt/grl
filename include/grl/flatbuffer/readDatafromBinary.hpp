@@ -26,13 +26,45 @@
 #include <iterator>
 #include <algorithm>
 
-const double PI = 3.14159265359;
+
 namespace grl {
     typedef Eigen::Matrix<int64_t , Eigen::Dynamic , 1>  VectorXd;
+    typedef Eigen::Matrix<int64_t , Eigen::Dynamic , Eigen::Dynamic>  MatrixXd;
     struct kuka_tag {};
     struct fusiontracker_tag {};
     enum TimeType { device_time = 0, local_request_time = 1, local_receive_time = 2 };
+    /// Help initialize a vector array of strings.
+    /// See https://stackoverflow.com/questions/4268886/initialize-a-vector-array-of-strings
+    template<typename T, size_t N>
+    T * end(T (&ra)[N]) {
+        return ra + N;
+    }
+    /// Remove a certain row or colum for the given matrix in Eigen
+    /// See https://stackoverflow.com/questions/13290395/how-to-remove-a-certain-row-or-column-while-using-eigen-library-c
+    template<typename T>
+    void removeRow(T& matrix, unsigned int rowToRemove)
+    {
+        unsigned int numRows = matrix.rows()-1;
+        unsigned int numCols = matrix.cols();
 
+        if( rowToRemove < numRows )
+            matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.bottomRows(numRows-rowToRemove);
+
+        matrix.conservativeResize(numRows,numCols);
+    }
+    template<typename T>
+    void removeColumn(T& matrix, unsigned int colToRemove)
+    {
+        unsigned int numRows = matrix.rows();
+        unsigned int numCols = matrix.cols()-1;
+
+        if( colToRemove < numCols )
+            matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.rightCols(numCols-colToRemove);
+
+        matrix.conservativeResize(numRows,numCols);
+    }
+
+    /// Get the original time from KUKAiiwaStates
     grl::VectorXd getTimeStamp(const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP, kuka_tag, TimeType time_type){
         auto states = kukaStatesP->states();
         std::size_t state_size = states->size();
@@ -61,7 +93,7 @@ namespace grl {
         }
         return timeStamp;
     }
-
+    /// Get the original time from LogKUKAiiwaFusionTrack
     grl::VectorXd  getTimeStamp(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP, fusiontracker_tag, TimeType time_type){
 
         auto states = logKUKAiiwaFusionTrackP->states();
@@ -91,12 +123,109 @@ namespace grl {
         }
         return timeStamp;
     }
+    void regularizeTimeEvent(grl::VectorXd &local_request_time, grl::VectorXd &local_receive_time, grl::VectorXd &device_time){
+        std::size_t device_time_size = device_time.size();
+        std::size_t local_request_time_size = local_request_time.size();
+        std::size_t local_receive_time_size = local_receive_time.size();
+        assert( local_receive_time_size >0 &&  device_time_size==local_request_time_size && local_request_time_size== local_receive_time_size);
+
+        grl::MatrixXd timeEventM(local_receive_time_size,3);
+        auto initial_local_time = local_receive_time(0);
+        auto initial_device_time = device_time(0);
+        local_request_time = local_request_time - initial_local_time * grl::VectorXd::Ones(local_receive_time_size);
+        local_receive_time = local_receive_time - initial_local_time * grl::VectorXd::Ones(local_receive_time_size);
+        device_time = device_time - initial_device_time * grl::VectorXd::Ones(local_receive_time_size);
+    }
+    /// Use the first timestamp of local_receive_time and device_time as the base to get the time offset
+    grl::MatrixXd  getRegularizedTimeStamp(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP, fusiontracker_tag){
+        auto states = logKUKAiiwaFusionTrackP->states();
+        std::size_t state_size = states->size();
+        std::cout<< "------FusionTrack State Size: "<< state_size << std::endl;
+        grl::VectorXd device_time = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::device_time);
+        grl::VectorXd local_request_time = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::local_request_time);
+        grl::VectorXd local_receive_time = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::local_receive_time);
+
+        regularizeTimeEvent(local_request_time, local_receive_time, device_time);
+        grl::MatrixXd timeEventM(state_size,3);
+        timeEventM.col(0) = local_receive_time;
+        timeEventM.col(1) = local_request_time;
+        timeEventM.col(2) = device_time;
+        return timeEventM;
+    }
+    template<typename T>
+    bool checkmonotonic( T &time){
+        for(int i=1; i<time.size(); ++i){
+            if(time(i)-time(i-1)<0 || time(i)<0)
+                return false;
+        }
+        return true;
+    }
+
+    /// Use the first timestamp of local_receive_time and device_time as the base to get the time offset
+    grl::MatrixXd  getRegularizedTimeStamp(const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP, kuka_tag){
+        auto states = kukaStatesP->states();
+        std::size_t state_size = states->size();
+        std::cout<< "------Kuka State Size: "<< state_size << std::endl;
+        grl::VectorXd device_time = grl::getTimeStamp(kukaStatesP, grl::kuka_tag(), grl::TimeType::device_time);
+        grl::VectorXd local_request_time = grl::getTimeStamp(kukaStatesP, grl::kuka_tag(), grl::TimeType::local_request_time);
+        grl::VectorXd local_receive_time = grl::getTimeStamp(kukaStatesP, grl::kuka_tag(), grl::TimeType::local_receive_time);
+        regularizeTimeEvent(local_request_time, local_receive_time, device_time);
+        assert(checkmonotonic(local_receive_time));
+        grl::MatrixXd timeEventM(state_size,3);
+        timeEventM.col(0) = local_receive_time;
+        timeEventM.col(1) = local_request_time;
+        timeEventM.col(2) = device_time;
+        return timeEventM;
+    }
 
 
-    /// Return the joint_index th joint angle
+    Eigen::MatrixXd  getMarkerPose(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP, uint32_t &makerID, grl::MatrixXd& timeEvent){
+        auto states = logKUKAiiwaFusionTrackP->states();
+        std::size_t state_size = states->size();
+        assert(state_size>0);
+        // The first columne is counter
+        std::size_t cols = 11;
+        int row = 0;
+        Eigen::MatrixXd markerPose(state_size, cols);
+        int BadCount = 0;
+        for(int i = 0; i<state_size-BadCount; ++i){
+            auto kukaiiwaFusionTrackMessage = states->Get(i);
+            auto FT_Message = kukaiiwaFusionTrackMessage->deviceState_as_FusionTrackMessage();
+            auto FT_Frame = FT_Message->frame();
+            auto counter = FT_Frame->counter();
+            auto Makers = FT_Frame->markers();
+            /// In some frames, there are no markers, where we skip that line. Also we need to remove the corresponding line in TimeEvent.
+            if(Makers!=nullptr) {
+                auto makerSize = Makers->size();
+                for(int markerIndex=0; markerIndex<makerSize; markerIndex++) {
+                    auto marker = Makers->Get(markerIndex);
+                    auto marker_ID = marker->geometryID();
+                    if(marker_ID == makerID){
+                        // markerPose.conservativeResize(row + 1, cols);
+                        auto Pose = marker->transform();
+                        auto position = Pose->position();
+                        auto orientationQtn = Pose->orientation();
+                        Eigen::VectorXd onePose(cols);
+                        grl::VectorXd oneTime = timeEvent.row(i);
+                        onePose << oneTime.cast<double>(), counter,1000* position.x(), 1000*position.y(), 1000*position.z(), orientationQtn.x(), orientationQtn.y(), orientationQtn.z(), orientationQtn.w();
+                        markerPose.row(row++) = onePose.transpose();
+                        continue;
+                    }
+                }
+            }
+        }
+        if(row < state_size) {
+            markerPose.conservativeResize(row, Eigen::NoChange_t{});
+        }
+        std::cout <<"State size: " << state_size <<"  markerPose size: " << markerPose.rows() << "  timeEvent: " << timeEvent.rows() << "  BadCount: " << BadCount <<std::endl;
+        return markerPose;
+    }
+
+
+
+    /// Get the joint angles of a specific joint (joint_index)
     Eigen::VectorXf getJointAnglesFromKUKA(const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP, int joint_index){
-        // if(kukaStatesP == nullptr)
-        //     return Eigen::VectorXf();
+
         auto states = kukaStatesP->states();
 
         std::size_t state_size = states->size();
@@ -109,19 +238,17 @@ namespace grl {
         }
         return jointPosition;
     }
-    /// Return the joint_index th joint angle
+    /// Reture all joint angles
+    Eigen::MatrixXd getAllJointAngles(const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP){
 
-   Eigen::MatrixXf getAllJointAngles(const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP){
-        // if(kukaStatesP == nullptr)
-        //     return Eigen::MatrixXf();
         auto states = kukaStatesP->states();
         std::size_t state_size = states->size();
-        Eigen::MatrixXf allJointPosition(state_size, 7);
+        Eigen::MatrixXd allJointPosition(state_size, 7);
         for(int i = 0; i<state_size; ++i){
             auto KUKAiiwaState = states->Get(i);
             auto FRIMessage = KUKAiiwaState->FRIMessage();
             auto joints_Position = FRIMessage->measuredJointPosition(); // flatbuffers::Vector<double> *
-            Eigen::VectorXf oneStateJointPosition(7);
+            Eigen::VectorXd oneStateJointPosition(7);
             for(int joint_index=0; joint_index<7; joint_index++){
                     oneStateJointPosition(joint_index) = joints_Position->Get(joint_index);
             }
@@ -129,8 +256,36 @@ namespace grl {
         }
         return allJointPosition;
     }
+    template <class T>
+    void writeMatrixToCSV(const std::string& CSV_FileName, std::vector<std::string> &labels, T& t){
+        std::size_t labels_size = labels.size();
+        std::size_t cols_size = t.cols();
+        std::size_t rows_size = t.rows();
+        assert(labels_size == cols_size && rows_size>0 && cols_size>0);
+        std::cout<< t.col(0) <<std::endl;
+        //assert(checkmonotonic(t.col(0)));
 
-    void writetoJointAngToCSV(std::string kukaBinaryfile, std::string csvfilename) {
+        // create an ofstream for the file output (see the link on streams for more info)
+        std::ofstream fs;
+        // create a name for the file output
+        fs.open(CSV_FileName, std::ofstream::out | std::ofstream::app);
+        // write the file labels
+        for(int col=0; col<cols_size-1; col++){
+            fs << labels[col] << ",";
+        }
+        fs << labels[cols_size-1] << std::endl;
+        for(int row_index=0; row_index<rows_size; ++row_index) {
+            // write the data to the output file
+            auto row = t.row(row_index);
+            for(int col=0; col<cols_size-1; col++){
+                fs << row[col] << ",";
+            }
+            fs << row[cols_size-1] << std::endl;
+        }
+        fs.close();
+    }
+
+    void writeJointAngToCSV(std::string kukaBinaryfile, std::string CSV_FileName) {
         fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> KUKAiiwaStatesRoot = fbs_tk::open_root<grl::flatbuffer::KUKAiiwaStates>(kukaBinaryfile);
         auto states = KUKAiiwaStatesRoot->states();
         std::size_t kuka_state_size = states->size();
@@ -145,6 +300,8 @@ namespace grl {
         kuka_local_receive_time = kuka_local_receive_time - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
         kuka_deviceTime = kuka_deviceTime - initial_device_time_kuka * grl::VectorXd::Ones(kuka_state_size);
 
+        //Eigen::MatrixXd getAllJointAngles(const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP);
+
         Eigen::VectorXf jointAngles_0 = grl::getJointAnglesFromKUKA(KUKAiiwaStatesRoot, 0);
         Eigen::VectorXf jointAngles_1 = grl::getJointAnglesFromKUKA(KUKAiiwaStatesRoot, 1);
         Eigen::VectorXf jointAngles_2 = grl::getJointAnglesFromKUKA(KUKAiiwaStatesRoot, 2);
@@ -158,14 +315,14 @@ namespace grl {
         std::ofstream fs;
         // create a name for the file output
 
-        fs.open(csvfilename, std::ofstream::out | std::ofstream::app);
+        fs.open(CSV_FileName, std::ofstream::out | std::ofstream::app);
          // write the file headers
         fs << "local_request_time"
            << ",local_receive_time"
            << ",Time_Difference"
            << ",Device_Time"
-           << ",JointPosition_0" << ",JointPosition_1" << ",JointPosition_2"
-           << ",JointPosition_3" << ",JointPosition_4" << ",JointPosition_5" << ",JointPosition_6" << std::endl;
+           << ",Joint_0" << ",Joint_1" << ",Joint_2"
+           << ",Joint_3" << ",Joint_4" << ",Joint_5" << ",Joint_6" << std::endl;
         for(int i=0; i<kuka_state_size; ++i) {
             // write the data to the output file
             fs << kuka_local_request_time[i] << ","
@@ -182,8 +339,70 @@ namespace grl {
         }
         fs.close();
     }
+
+    void writeJointAngToCSV(std::string CSV_FileName,
+                              grl::VectorXd device_time,
+                              grl::VectorXd local_request_time,
+                              grl::VectorXd local_receive_time,
+                              Eigen::MatrixXd &jointAngles) {
+        std::size_t time_size = device_time.size();
+        std::size_t row_size = jointAngles.rows();
+        assert(time_size == row_size);
+
+        // auto initial_local_time = local_request_time(0);
+        auto initial_local_time = local_receive_time(0);
+        auto initial_device_time = device_time(0);
+        local_request_time = local_request_time - initial_local_time * grl::VectorXd::Ones(time_size);
+        local_receive_time = local_receive_time - initial_local_time * grl::VectorXd::Ones(time_size);
+        device_time = device_time - initial_device_time * grl::VectorXd::Ones(time_size);
+        grl::VectorXd receive_request = local_receive_time - local_request_time;
+
+        // create an ofstream for the file output (see the link on streams for more info)
+
+        std::ofstream fs;
+        // create a name for the file output
+
+        fs.open(CSV_FileName, std::ofstream::out | std::ofstream::app);
+        fs << "local_receive_time_X,"
+           << "local_request_time_offset,"
+           << "device_time_offset,"
+           << "time_Y,"
+           << "Receive-Request,"
+           << "device_time_step,"
+           << "receive_time_step,"
+           << "Joint_1" << ",Joint_2" << ",Joint_3"
+           << ",Joint_4" << ",Joint_5" << ",Joint_6" << ",Joint_7" << std::endl;
+        int64_t device_time_step = 0;
+        int64_t receive_time_step = 0;
+        for(int i=0; i<time_size; ++i) {
+            if(i>0) {
+                device_time_step = device_time(i) - device_time(i-1);
+                receive_time_step = local_receive_time(i) - local_receive_time(i-1);
+            }
+            Eigen::RowVectorXd jointAngle = jointAngles.row(i);
+            // write the data to the output file
+            fs << local_receive_time(i) <<","          // B
+               << local_request_time(i)<< ","         // A
+               << device_time(i) <<","                        // C
+               << device_time(i) - local_receive_time(i) << ","
+               << receive_request(i) << ","
+               << device_time_step << ","
+               << receive_time_step << ","
+               << jointAngle[0] << ","
+               << jointAngle[1] << ","
+               << jointAngle[2] << ","
+               << jointAngle[3] << ","
+               << jointAngle[4] << ","
+               << jointAngle[5] << ","
+               << jointAngle[6] << std::endl;
+        }
+        fs.close();
+    }
+
+
+
     void writeTimeEventToCSV(
-    std::string & csvfilename,
+    std::string & CSV_FileName,
     grl::VectorXd device_time,
     grl::VectorXd local_request_time,
     grl::VectorXd local_receive_time){
@@ -199,7 +418,7 @@ namespace grl {
         //  grl::VectorXd device_time_offset = local_receive_time - local_request_time;
         std::ofstream fs;
         // create a name for the file output
-        fs.open( csvfilename, std::ofstream::out | std::ofstream::app);
+        fs.open( CSV_FileName, std::ofstream::out | std::ofstream::app);
          // write the file headers
         fs << "local_request_time_offset,"
            << "local_receive_time_X,"
@@ -227,10 +446,12 @@ namespace grl {
                << std::endl;  //D
         }
         fs.close();
-}
+    }
 
-    void writePoseToCSV(
-        std::string & csvfilename,
+
+
+    void writeEEPoseToCSV(
+        std::string & CSV_FileName,
         grl::VectorXd device_time,
         grl::VectorXd local_request_time,
         grl::VectorXd local_receive_time,
@@ -250,7 +471,7 @@ namespace grl {
         //  grl::VectorXd device_time_offset = local_receive_time - local_request_time;
         std::ofstream fs;
         // create a name for the file output
-        fs.open( csvfilename, std::ofstream::out | std::ofstream::app);
+        fs.open( CSV_FileName, std::ofstream::out | std::ofstream::app);
          // write the file headers
         fs << "local_receive_time_X,"
            << "local_request_time_offset,"
@@ -287,17 +508,57 @@ namespace grl {
                << pose(2) << ","
                << pose(3) << ","
                << pose(4) << ","
-               << pose(5) << ","
-               << std::endl;  //D
+               << pose(5) << std::endl;  //D
         }
         fs.close();
-}
+    }
+    void writeMarkerPoseToCSV(
+        std::string & CSV_FileName,
+        grl::MatrixXd &timeEventM,
+        Eigen::MatrixXd &markerPose){
+        std::size_t time_size = timeEventM.rows();
+        std::size_t marker_size = markerPose.rows();
+        assert(time_size == marker_size);
 
-    void writetoCSVforFusionTrackKukaiiwa(
+        std::ofstream fs;
+        // create a name for the file output
+        fs.open( CSV_FileName, std::ofstream::out | std::ofstream::app);
+         // write the file headers
+        fs << "local_receive_time_X,"
+           << "local_request_time_offset,"
+           << "device_time_offset,"
+           << "P_X,"
+           << "P_Y,"
+           << "P_Z,"
+           << "Q_X,"
+           << "Q_Y,"
+           << "Q_Z,"
+           << "Q_W"
+           << std::endl;
+        for(int i=0; i<time_size; ++i){
+            grl::VectorXd timeEvent = timeEventM.row(i);
+            Eigen::RowVectorXd pose = markerPose.row(i);
+            // write the data to the output file
+            fs << timeEvent(1)<< ","         // A
+               << timeEvent(0) <<","          // B
+               << timeEvent(2) <<","                        // C
+               << pose(0) << ","
+               << pose(1) << ","
+               << pose(2) << ","
+               << pose(3) << ","
+               << pose(4) << ","
+               << pose(5) << ","
+               << pose(6) << std::endl;
+        }
+        fs.close();
+    }
+
+    void writeFT_KUKATimeEventToCSV(
         std::string &fusiontrackBinaryfile,
         std::string &kukaBinaryfile,
         std::string& FTKUKA_CSVfilename,
         std::string& FT_CSVfilename,
+        std::string& FT_PoseCSVfilename,
         std::string& KUKA_CSVfilename) {
     fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> KUKAiiwaStatesRoot =
         fbs_tk::open_root<grl::flatbuffer::KUKAiiwaStates>(kukaBinaryfile);
@@ -312,14 +573,20 @@ namespace grl {
 
 
 
-    fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> FusionTrackStatesRoot = fbs_tk::open_root<grl::flatbuffer::LogKUKAiiwaFusionTrack>(fusiontrackBinaryfile);
-    auto FT_states = FusionTrackStatesRoot->states();
+    fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> logKUKAiiwaFusionTrackP = fbs_tk::open_root<grl::flatbuffer::LogKUKAiiwaFusionTrack>(fusiontrackBinaryfile);
+    auto FT_states = logKUKAiiwaFusionTrackP->states();
     std::size_t FT_state_size = FT_states->size();
-    std::cout<< "------FusionTrack State Size: "<< FT_state_size << std::endl;
-    grl::VectorXd FT_device_time = grl:: getTimeStamp(FusionTrackStatesRoot, grl::fusiontracker_tag(), grl::TimeType::device_time);
-    grl::VectorXd FT_local_request_time = grl::getTimeStamp(FusionTrackStatesRoot, grl::fusiontracker_tag(), grl::TimeType::local_request_time);
-    grl::VectorXd FT_local_receive_time = grl::getTimeStamp(FusionTrackStatesRoot, grl::fusiontracker_tag(), grl::TimeType::local_receive_time);
+    //std::cout<< "------FusionTrack State Size: "<< FT_state_size << std::endl;
+    grl::VectorXd FT_device_time = grl:: getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::device_time);
+    grl::VectorXd FT_local_request_time = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::local_request_time);
+    grl::VectorXd FT_local_receive_time = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::local_receive_time);
     writeTimeEventToCSV(FT_CSVfilename, FT_device_time, FT_local_request_time, FT_local_receive_time);
+    uint32_t makerID = 22;
+    // Eigen::MatrixXd markerPose = grl::getMarkerPose(logKUKAiiwaFusionTrackP, makerID);
+    // std::cout <<"Rows: " << markerPose.rows() << std::endl;
+    //writeMarkerPoseToCSV(FT_PoseCSVfilename, FT_device_time, FT_local_request_time, FT_local_receive_time, markerPose);
+
+
     int kuka_index = 0;
     int FT_index = 0;
     // filter out the very beginning data, which can gurantee to record the data when the two devices work simultaniously.
@@ -340,6 +607,8 @@ namespace grl {
     kuka_local_request_time = kuka_local_request_time - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
     kuka_local_receive_time = kuka_local_receive_time - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
     kuka_device_time = kuka_device_time - initial_device_time_kuka * grl::VectorXd::Ones(kuka_state_size);
+
+
 
     std::ofstream fs;
     // create a name for the file output
