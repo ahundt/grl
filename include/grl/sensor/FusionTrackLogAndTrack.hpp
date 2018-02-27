@@ -304,17 +304,23 @@ public:
     BOOST_VERIFY(m_receivedFrame && m_nextState && opticalTrackerP);
 
     // std::cout << "test3" << std::endl;
+    /// Markers.size() is 2, which means the tracker tracks two markers actully.
+    /// However, m_geometryIDToMotionConfigParams.find(marker.geometryId); can only reture the marker attached on the bone (55).
+    /// So poses only contains the pose of marker 55.
     Eigen::Affine3f cameraToMarkerTransform; /// Relative distance between camera and marker?
     // std::cout << "markers: " << m_receivedFrame->Markers.size() << std::endl;
     for(const auto &marker : m_receivedFrame->Markers)
     {
 
-    //   std::cout << "marker geometryid: " << marker.geometryId << std::endl;
+      // std::cout << "marker geometryid: " << marker.geometryId << std::endl;
       cameraToMarkerTransform = sensor::ftkMarkerToAffine3f(marker);
       auto configIterator = m_geometryIDToMotionConfigParams.find(marker.geometryId);
-      if (configIterator == m_geometryIDToMotionConfigParams.end()) continue; // no configuration for this item
+      if (configIterator == m_geometryIDToMotionConfigParams.end()) {
+        // std::cout << "marker geometryid: " << marker.geometryId << " NOT found config!" << std::endl;
+        continue; // no configuration for this item
+      }
       auto config = configIterator->second;
-    //   std::cout << "<<<<<<<<<<<<<<<< found config!" << std::endl;
+
 
       // invert the transform from the tracker to the object if needed
       if (m_opticalTrackerBase == std::get<ObjectToMove>(config) &&
@@ -329,6 +335,7 @@ public:
 
       poses.push_back(std::make_tuple(std::get<ObjectToMove>(config), std::get<FrameInWhichToMoveObject>(config), cameraToMarkerTransform));
     }
+    // std::cout << "Pose size: " << poses.size() << std::endl;
     return poses;
   }
 
@@ -439,8 +446,8 @@ private:
   {
     const std::size_t MegaByte = 1024*1024;
     // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 240*MegaByte;
-    // const std::size_t single_buffer_limit_messages = 13050000000000000;
+    const std::size_t single_buffer_limit_bytes = 200*MegaByte;
+    const std::size_t single_buffer_limit_messages = 600000;
     std::vector<uint64_t> deviceSerialNumbers;
     try
     {

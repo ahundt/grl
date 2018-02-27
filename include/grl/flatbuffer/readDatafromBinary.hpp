@@ -36,7 +36,10 @@ namespace grl {
     const char *Joint_Labels[] = {"Joint_1", "Joint_2", "Joint_3", "Joint_4", "Joint_5", "Joint_6", "Joint_7"};
     struct kuka_tag {};
     struct fusiontracker_tag {};
-    enum TimeType { device_time = 0, local_request_time = 1, local_receive_time = 2 };
+    int col_timeEvent=4;
+    int col_Kuka_Joint = 7;
+    int col_FT_Pose = 8;
+    enum TimeType { local_receive_time = 0, local_request_time = 1, device_time = 2, time_Y = 3};
     /// Help initialize a vector array of strings.
     /// See https://stackoverflow.com/questions/4268886/initialize-a-vector-array-of-strings
     template<typename T, size_t N>
@@ -75,7 +78,6 @@ namespace grl {
 
         if( rowToRemove < numRows )
             matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.bottomRows(numRows-rowToRemove);
-
         matrix.conservativeResize(numRows,numCols);
     }
     template<typename T>
@@ -88,6 +90,18 @@ namespace grl {
             matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.rightCols(numCols-colToRemove);
 
         matrix.conservativeResize(numRows,numCols);
+    }
+
+    template<typename T>
+    bool checkmonotonic( T &time){
+        for(int i=1; i<time.size(); ++i){
+            if(time(i)<=time(i-1) || time(i)<0) {
+                std::cout<<"Receive time NOT VALID: " << time(i) << std::endl;
+                return false;
+            }
+
+        }
+        return true;
     }
 
     /// Get the original time from KUKAiiwaStates
@@ -159,11 +173,13 @@ namespace grl {
         for(int i = 0; i<state_size; ++i){
             auto kukaiiwaFusionTrackMessage = states->Get(i);
             auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
-            timeEventM(i,0) = timeEvent->local_receive_time();
-            timeEventM(i,1) = timeEvent->local_request_time();
-            timeEventM(i,2) = timeEvent->device_time();
-            timeEventM(i,3) = timeEventM(i,2) - timeEventM(i,0);
+            timeEventM(i,TimeType::local_receive_time) = timeEvent->local_receive_time();
+            timeEventM(i,TimeType::local_request_time) = timeEvent->local_request_time();
+            timeEventM(i,TimeType::device_time) = timeEvent->device_time();
+            timeEventM(i,TimeType::time_Y) =  timeEventM(i,TimeType::device_time) - timeEventM(i,TimeType::local_receive_time);
         }
+        grl::VectorXd timeCol = timeEventM.col(TimeType::local_receive_time);
+        assert(checkmonotonic(timeCol));
         return timeEventM;
     }
     /// Return the original timeEvent
@@ -176,42 +192,42 @@ namespace grl {
             auto KUKAiiwaState = states->Get(i);
             auto FRIMessage = KUKAiiwaState->FRIMessage();
             auto timeEvent = FRIMessage->timeStamp();
-            timeEventM(i,0) = timeEvent->local_receive_time();
-            timeEventM(i,1) = timeEvent->local_request_time();
-            timeEventM(i,2) = timeEvent->device_time();
-            timeEventM(i,3) = timeEventM(i,2) - timeEventM(i,0);
+            timeEventM(i,TimeType::local_receive_time) = timeEvent->local_receive_time();
+            timeEventM(i,TimeType::local_request_time) = timeEvent->local_request_time();
+            timeEventM(i,TimeType::device_time) = timeEvent->device_time();
+            timeEventM(i,TimeType::time_Y) =  timeEventM(i,TimeType::device_time) - timeEventM(i,TimeType::local_receive_time);
         }
+        grl::VectorXd timeCol = timeEventM.col(TimeType::local_receive_time);
+        assert(checkmonotonic(timeCol));
         return timeEventM;
     }
 
     void regularizeTimeEvent(grl::MatrixXd& timeEventM){
         std::size_t time_size = timeEventM.rows();
         assert(time_size>0);
-        auto initial_local_time = timeEventM(0,0);
-        auto initial_device_time = timeEventM(0,3);
-        timeEventM.col(1) = timeEventM.col(1) - initial_local_time * grl::VectorXd::Ones(time_size);
-        timeEventM.col(0) = timeEventM.col(0) - initial_local_time * grl::VectorXd::Ones(time_size);
-        timeEventM.col(2) = timeEventM.col(2) - initial_device_time * grl::VectorXd::Ones(time_size);
-        timeEventM.col(3) = timeEventM.col(2) - timeEventM.col(0);
+        auto initial_local_time = timeEventM(0,TimeType::local_receive_time);
+        auto initial_device_time = timeEventM(0,TimeType::device_time);
+        timeEventM.col(TimeType::local_receive_time) = timeEventM.col(TimeType::local_receive_time) - initial_local_time * grl::VectorXd::Ones(time_size);
+        timeEventM.col(TimeType::local_request_time) = timeEventM.col(TimeType::local_request_time) - initial_local_time * grl::VectorXd::Ones(time_size);
+
+        timeEventM.col(TimeType::device_time) = timeEventM.col(TimeType::device_time) - initial_device_time * grl::VectorXd::Ones(time_size);
+        timeEventM.col(TimeType::time_Y) = timeEventM.col(TimeType::device_time) - timeEventM.col(TimeType::local_receive_time);
+        grl::VectorXd timeCol = timeEventM.col(TimeType::local_receive_time);
+        assert(checkmonotonic(timeCol));
     }
 
-    template<typename T>
-    bool checkmonotonic( T &time){
-        for(int i=1; i<time.size(); ++i){
-            if(time(i)-time(i-1)<0 || time(i)<0)
-                return false;
-        }
-        return true;
-    }
 
-    Eigen::MatrixXd  getMarkerPose(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP, uint32_t &makerID, grl::MatrixXd& timeEvent){
+
+    int  getMarkerPose(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP,
+                                    uint32_t &makerID,
+                                    grl::MatrixXd& timeEventM,
+                                    Eigen::MatrixXd& markerPose){
         auto states = logKUKAiiwaFusionTrackP->states();
         std::size_t state_size = states->size();
         assert(state_size>0);
         // The first columne is counter
-        std::size_t cols = 12;
         int row = 0;
-        Eigen::MatrixXd markerPose(state_size, cols);
+        // Eigen::MatrixXd markerPose(state_size, grl::col_FT_Pose);
         int BadCount = 0;
         for(int i = 0; i<state_size-BadCount; ++i){
             auto kukaiiwaFusionTrackMessage = states->Get(i);
@@ -226,24 +242,30 @@ namespace grl {
                     auto marker = Makers->Get(markerIndex);
                     auto marker_ID = marker->geometryID();
                     if(marker_ID == makerID){
-                        // markerPose.conservativeResize(row + 1, cols);
+
+
+                        auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
+                        timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
+                        timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
+                        timeEventM(row,TimeType::device_time) = timeEvent->device_time();
+                        timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
+
                         auto Pose = marker->transform();
                         auto position = Pose->position();
                         auto orientationQtn = Pose->orientation();
-                        Eigen::VectorXd onePose(cols);
-                        grl::VectorXd oneTime = timeEvent.row(i);
-                        onePose << oneTime.cast<double>(), counter,1000* position.x(), 1000*position.y(), 1000*position.z(), orientationQtn.x(), orientationQtn.y(), orientationQtn.z(), orientationQtn.w();
+                        Eigen::VectorXd onePose(grl::col_FT_Pose);
+                        onePose << counter,1000* position.x(), 1000*position.y(), 1000*position.z(), orientationQtn.x(), orientationQtn.y(), orientationQtn.z(), orientationQtn.w();
                         markerPose.row(row++) = onePose.transpose();
-                        continue;
                     }
                 }
             }
         }
         if(row < state_size) {
             markerPose.conservativeResize(row, Eigen::NoChange_t{});
+            timeEventM.conservativeResize(row, Eigen::NoChange_t{});
         }
-        std::cout <<"State size: " << state_size <<"  markerPose size: " << markerPose.rows() << "  timeEvent: " << timeEvent.rows() << "  makerID: " << makerID <<std::endl;
-        return markerPose;
+        std::cout <<"State size: " << state_size <<"  markerPose size: " << markerPose.rows() << "  timeEvent: " << timeEventM.rows() << "  makerID: " << makerID <<std::endl;
+        return row;
     }
 
 
@@ -281,12 +303,15 @@ namespace grl {
         }
         return allJointPosition;
     }
-    template <class T>
-    void writeMatrixToCSV(const std::string& CSV_FileName, std::vector<std::string> &labels, T& t){
+    template <class T1, class T2>
+    void writeMatrixToCSV(const std::string& CSV_FileName, std::vector<std::string> &labels, T1& timeM, T2& t2){
         std::size_t labels_size = labels.size();
-        std::size_t cols_size = t.cols();
-        std::size_t rows_size = t.rows();
-        assert(labels_size == cols_size && rows_size>0 && cols_size>0);
+        std::size_t cols_size = timeM.cols() + t2.cols();
+        std::size_t time_rows_size = timeM.rows();
+        std::size_t t2_rows_size = t2.rows();
+        assert(labels_size == cols_size && time_rows_size>0 && cols_size>0 && time_rows_size==t2_rows_size);
+        auto time = timeM.col(TimeType::local_receive_time);
+        assert(checkmonotonic(time));
         // create an ofstream for the file output (see the link on streams for more info)
         std::ofstream fs;
         // create a name for the file output
@@ -296,13 +321,17 @@ namespace grl {
             fs << labels[col] << ",";
         }
         fs << labels[cols_size-1] << std::endl;
-        for(int row_index=0; row_index<rows_size; ++row_index) {
+        for(int row_index=0; row_index<time_rows_size; ++row_index) {
             // write the data to the output file
-            auto row = t.row(row_index);
-            for(int col=0; col<cols_size-1; col++){
-                fs << row[col] << ",";
+            auto timerow = timeM.row(row_index);
+            auto matrixrow = t2.row(row_index);
+            for(int col=0; col<timeM.cols(); col++){
+                fs << timerow[col] << ",";
             }
-            fs << row[cols_size-1] << std::endl;
+            for(int col=0; col<t2.cols()-1; col++){
+                fs << matrixrow[col] << ",";
+            }
+            fs << matrixrow[t2.cols()-1] << std::endl;
         }
         fs.close();
     }
@@ -453,7 +482,7 @@ namespace grl {
            << "Z,"
            << "A,"
            << "B,"
-           << "C,"
+           << "C"
            << std::endl;
         int64_t device_time_step = 0;
         int64_t receive_time_step = 0;
