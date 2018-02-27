@@ -243,7 +243,6 @@ namespace grl {
                     auto marker_ID = marker->geometryID();
                     if(marker_ID == makerID){
 
-
                         auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
                         timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
                         timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
@@ -304,11 +303,11 @@ namespace grl {
         return allJointPosition;
     }
     template <class T1, class T2>
-    void writeMatrixToCSV(const std::string& CSV_FileName, std::vector<std::string> &labels, T1& timeM, T2& t2){
+    void writeMatrixToCSV(const std::string& CSV_FileName, std::vector<std::string> &labels, T1& timeM, T2& dataM){
         std::size_t labels_size = labels.size();
-        std::size_t cols_size = timeM.cols() + t2.cols();
+        std::size_t cols_size = timeM.cols() + dataM.cols();
         std::size_t time_rows_size = timeM.rows();
-        std::size_t t2_rows_size = t2.rows();
+        std::size_t t2_rows_size = dataM.rows();
         assert(labels_size == cols_size && time_rows_size>0 && cols_size>0 && time_rows_size==t2_rows_size);
         auto time = timeM.col(TimeType::local_receive_time);
         assert(checkmonotonic(time));
@@ -324,101 +323,33 @@ namespace grl {
         for(int row_index=0; row_index<time_rows_size; ++row_index) {
             // write the data to the output file
             auto timerow = timeM.row(row_index);
-            auto matrixrow = t2.row(row_index);
+            auto matrixrow = dataM.row(row_index);
             for(int col=0; col<timeM.cols(); col++){
                 fs << timerow[col] << ",";
             }
-            for(int col=0; col<t2.cols()-1; col++){
+            for(int col=0; col<dataM.cols()-1; col++){
                 fs << matrixrow[col] << ",";
             }
-            fs << matrixrow[t2.cols()-1] << std::endl;
+            fs << matrixrow[dataM.cols()-1] << std::endl;
         }
         fs.close();
     }
 
-    void writeJointAngToCSV(std::string CSV_FileName,
-                              grl::VectorXd device_time,
-                              grl::VectorXd local_request_time,
-                              grl::VectorXd local_receive_time,
-                              Eigen::MatrixXd &jointAngles) {
-        std::size_t time_size = device_time.size();
-        std::size_t row_size = jointAngles.rows();
-        assert(time_size == row_size);
-
-        // auto initial_local_time = local_request_time(0);
-        auto initial_local_time = local_receive_time(0);
-        auto initial_device_time = device_time(0);
-        local_request_time = local_request_time - initial_local_time * grl::VectorXd::Ones(time_size);
-        local_receive_time = local_receive_time - initial_local_time * grl::VectorXd::Ones(time_size);
-        device_time = device_time - initial_device_time * grl::VectorXd::Ones(time_size);
-        grl::VectorXd receive_request = local_receive_time - local_request_time;
-
-        // create an ofstream for the file output (see the link on streams for more info)
-
-        std::ofstream fs;
-        // create a name for the file output
-
-        fs.open(CSV_FileName, std::ofstream::out | std::ofstream::app);
-        fs << "local_receive_time_X,"
-           << "local_request_time_offset,"
-           << "device_time_offset,"
-           << "time_Y,"
-           << "Receive-Request,"
-           << "device_time_step,"
-           << "receive_time_step,"
-           << "Joint_1" << ",Joint_2" << ",Joint_3"
-           << ",Joint_4" << ",Joint_5" << ",Joint_6" << ",Joint_7" << std::endl;
-        int64_t device_time_step = 0;
-        int64_t receive_time_step = 0;
-        for(int i=0; i<time_size; ++i) {
-            if(i>0) {
-                device_time_step = device_time(i) - device_time(i-1);
-                receive_time_step = local_receive_time(i) - local_receive_time(i-1);
-            }
-            Eigen::RowVectorXd jointAngle = jointAngles.row(i);
-            // write the data to the output file
-            fs << local_receive_time(i) <<","          // B
-               << local_request_time(i)<< ","         // A
-               << device_time(i) <<","                        // C
-               << device_time(i) - local_receive_time(i) << ","
-               << receive_request(i) << ","
-               << device_time_step << ","
-               << receive_time_step << ","
-               << jointAngle[0] << ","
-               << jointAngle[1] << ","
-               << jointAngle[2] << ","
-               << jointAngle[3] << ","
-               << jointAngle[4] << ","
-               << jointAngle[5] << ","
-               << jointAngle[6] << std::endl;
-        }
-        fs.close();
-    }
+    void writeTimeEventToCSV( std::string & CSV_FileName, grl::MatrixXd& timeEventM) {
 
 
-
-    void writeTimeEventToCSV(
-
-        std::string & CSV_FileName,
-        grl::VectorXd device_time,
-        grl::VectorXd local_request_time,
-        grl::VectorXd local_receive_time){
-
-        std::size_t size = device_time.size();
-        // auto initial_local_time = local_request_time(0);
-        auto initial_local_time = local_receive_time(0);
-        auto initial_device_time = device_time(0);
-        local_request_time = local_request_time - initial_local_time * grl::VectorXd::Ones(size);
-        local_receive_time = local_receive_time - initial_local_time * grl::VectorXd::Ones(size);
-        device_time = device_time - initial_device_time * grl::VectorXd::Ones(size);
-        grl::VectorXd receive_request = local_receive_time - local_request_time;
+        std::size_t time_size = timeEventM.rows();
+        grl::VectorXd local_receive_timeV = timeEventM.col(local_receive_time);
+        grl::VectorXd local_request_timeV = timeEventM.col(local_request_time);
+        grl::VectorXd device_timeV = timeEventM.col(device_time);
+        grl::VectorXd receive_request = local_receive_timeV - local_request_timeV;
         //  grl::VectorXd device_time_offset = local_receive_time - local_request_time;
         std::ofstream fs;
         // create a name for the file output
         fs.open( CSV_FileName, std::ofstream::out | std::ofstream::app);
          // write the file headers
-        fs << "local_request_time_offset,"
-           << "local_receive_time_X,"
+        fs << "local_receive_time_X,"
+           << "local_request_time_offset,"
            << "device_time_offset,"
            << "Y,"
            << "Receive-Request,"
@@ -427,16 +358,16 @@ namespace grl {
            << std::endl;
         int64_t device_time_step = 0;
         int64_t receive_time_step = 0;
-        for(int i=0; i<size; ++i) {
+        for(int i=0; i<time_size; ++i) {
             if(i>0) {
-                device_time_step = device_time(i) - device_time(i-1);
-                receive_time_step = local_receive_time(i) - local_receive_time(i-1);
+                device_time_step = device_timeV(i) - device_timeV(i-1);
+                receive_time_step = local_receive_timeV(i) - local_receive_timeV(i-1);
             }
             // write the data to the output file
-            fs << local_request_time(i)<< ","         // A
-               << local_receive_time(i) <<","          // B
-               << device_time(i) <<","                        // C
-               << device_time(i) - local_receive_time(i) << ","
+            fs << local_receive_timeV(i) << ","         // A
+               << local_request_timeV(i)<<","          // B
+               << device_timeV(i) <<","                        // C
+               << device_timeV(i) - local_receive_timeV(i) << ","
                << receive_request(i) << ","
                << device_time_step << ","
                << receive_time_step << ","
@@ -509,107 +440,44 @@ namespace grl {
         }
         fs.close();
     }
-    void writeMarkerPoseToCSV(
-        std::string & CSV_FileName,
-        grl::MatrixXd &timeEventM,
-        Eigen::MatrixXd &markerPose){
-        std::size_t time_size = timeEventM.rows();
-        std::size_t marker_size = markerPose.rows();
-        assert(time_size == marker_size);
 
-        std::ofstream fs;
-        // create a name for the file output
-        fs.open( CSV_FileName, std::ofstream::out | std::ofstream::app);
-         // write the file headers
-        fs << "local_receive_time_X,"
-           << "local_request_time_offset,"
-           << "device_time_offset,"
-           << "P_X,"
-           << "P_Y,"
-           << "P_Z,"
-           << "Q_X,"
-           << "Q_Y,"
-           << "Q_Z,"
-           << "Q_W"
-           << std::endl;
-        for(int i=0; i<time_size; ++i){
-            grl::VectorXd timeEvent = timeEventM.row(i);
-            Eigen::RowVectorXd pose = markerPose.row(i);
-            // write the data to the output file
-            fs << timeEvent(1)<< ","         // A
-               << timeEvent(0) <<","          // B
-               << timeEvent(2) <<","                        // C
-               << pose(0) << ","
-               << pose(1) << ","
-               << pose(2) << ","
-               << pose(3) << ","
-               << pose(4) << ","
-               << pose(5) << ","
-               << pose(6) << std::endl;
-        }
-        fs.close();
-    }
+void writeFTKUKATimeEventToCSV(std::string& FTKUKA_TimeEvent_CSVfilename,
+                                const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP,
+                                const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP) {
 
-    void writeFT_KUKATimeEventToCSV(
-        std::string &fusiontrackBinaryfile,
-        std::string &kukaBinaryfile,
-        std::string& FTKUKA_CSVfilename,
-        std::string& FT_CSVfilename,
-        std::string& FT_PoseCSVfilename,
-        std::string& KUKA_CSVfilename) {
-    fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> KUKAiiwaStatesRoot =
-        fbs_tk::open_root<grl::flatbuffer::KUKAiiwaStates>(kukaBinaryfile);
-    auto KUKA_states = KUKAiiwaStatesRoot->states();
-    std::size_t kuka_state_size = KUKA_states->size();
-    std::cout<< "------Kuka_state_size: "<< kuka_state_size << std::endl;
+    grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag());
+    grl::MatrixXd timeEventM_Kuka = grl::getTimeStamp(kukaStatesP, grl::kuka_tag());
+    std::size_t kuka_state_size = timeEventM_Kuka.rows();
+    std::cout<< "------Kuka_state_size: "<< timeEventM_Kuka.rows() << std::endl;
 
-    grl::VectorXd kuka_device_time = grl::getTimeStamp(KUKAiiwaStatesRoot, grl::kuka_tag(), grl::TimeType::device_time);
-    grl::VectorXd kuka_local_request_time = grl::getTimeStamp(KUKAiiwaStatesRoot, grl::kuka_tag(), grl::TimeType::local_request_time);
-    grl::VectorXd kuka_local_receive_time = grl::getTimeStamp(KUKAiiwaStatesRoot, grl::kuka_tag(), grl::TimeType::local_receive_time);
-    writeTimeEventToCSV(KUKA_CSVfilename, kuka_device_time, kuka_local_request_time, kuka_local_receive_time);
-
-
-
-    fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> logKUKAiiwaFusionTrackP = fbs_tk::open_root<grl::flatbuffer::LogKUKAiiwaFusionTrack>(fusiontrackBinaryfile);
-    auto FT_states = logKUKAiiwaFusionTrackP->states();
-    std::size_t FT_state_size = FT_states->size();
-    //std::cout<< "------FusionTrack State Size: "<< FT_state_size << std::endl;
-    grl::VectorXd FT_device_time = grl:: getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::device_time);
-    grl::VectorXd FT_local_request_time = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::local_request_time);
-    grl::VectorXd FT_local_receive_time = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), grl::TimeType::local_receive_time);
-    writeTimeEventToCSV(FT_CSVfilename, FT_device_time, FT_local_request_time, FT_local_receive_time);
-    uint32_t makerID = 22;
-    // Eigen::MatrixXd markerPose = grl::getMarkerPose(logKUKAiiwaFusionTrackP, makerID);
-    // std::cout <<"Rows: " << markerPose.rows() << std::endl;
-    //writeMarkerPoseToCSV(FT_PoseCSVfilename, FT_device_time, FT_local_request_time, FT_local_receive_time, markerPose);
-
-
+    std::size_t FT_state_size = timeEventM_FT.rows();
+    std::cout<< "------FT_state_size: "<< timeEventM_FT.rows() << std::endl;
     int kuka_index = 0;
     int FT_index = 0;
+
     // filter out the very beginning data, which can gurantee to record the data when the two devices work simultaniously.
-    while(kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index)){
+    while(kuka_index<kuka_state_size && timeEventM_Kuka(kuka_index,TimeType::local_receive_time) < timeEventM_FT(FT_index,TimeType::local_receive_time)){
         kuka_index++;
     }
-    while(kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index) && kuka_index == 0){
+    while(FT_index<FT_state_size && timeEventM_Kuka(kuka_index,local_receive_time) > timeEventM_FT(FT_index,local_receive_time) && kuka_index == 0){
         FT_index++;
     }
 
-    auto initial_local_time = std::min(FT_local_receive_time(FT_index), kuka_local_receive_time(kuka_index));
-    auto initial_device_time_kuka = kuka_device_time(kuka_index);
-    auto initial_device_time_FT = FT_device_time(FT_index);
-    FT_local_request_time = FT_local_request_time - initial_local_time * grl::VectorXd::Ones(FT_state_size);
-    FT_local_receive_time = FT_local_receive_time - initial_local_time * grl::VectorXd::Ones(FT_state_size);
-    FT_device_time = FT_device_time - initial_device_time_FT * grl::VectorXd::Ones(FT_state_size);
+    auto initial_local_time = std::min(timeEventM_FT(FT_index,local_receive_time), timeEventM_Kuka(kuka_index,local_receive_time));
+    auto initial_device_time_kuka = timeEventM_Kuka(kuka_index,device_time);
+    auto initial_device_time_FT = timeEventM_FT(FT_index,device_time);
+    grl::VectorXd FT_local_request_time = timeEventM_FT.col(local_request_time) - initial_local_time * grl::VectorXd::Ones(FT_state_size);
+    grl::VectorXd FT_local_receive_time = timeEventM_FT.col(local_receive_time) - initial_local_time * grl::VectorXd::Ones(FT_state_size);
+    grl::VectorXd FT_device_time = timeEventM_FT.col(device_time) - initial_device_time_FT * grl::VectorXd::Ones(FT_state_size);
 
-    kuka_local_request_time = kuka_local_request_time - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
-    kuka_local_receive_time = kuka_local_receive_time - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
-    kuka_device_time = kuka_device_time - initial_device_time_kuka * grl::VectorXd::Ones(kuka_state_size);
-
+    grl::VectorXd kuka_local_request_time = timeEventM_Kuka.col(local_request_time) - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
+    grl::VectorXd kuka_local_receive_time = timeEventM_Kuka.col(local_receive_time) - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
+    grl::VectorXd kuka_device_time = timeEventM_Kuka.col(device_time) - initial_device_time_kuka * grl::VectorXd::Ones(kuka_state_size);
 
 
     std::ofstream fs;
     // create a name for the file output
-    fs.open( FTKUKA_CSVfilename, std::ofstream::out | std::ofstream::app);
+    fs.open( FTKUKA_TimeEvent_CSVfilename, std::ofstream::out | std::ofstream::app);
     // write the file headers
     fs << "local_receive_time_offset_X,"
        << "FT_local_request_time,"
@@ -659,92 +527,6 @@ namespace grl {
         }
     }
     fs.close();
-}
-
-
-void AnalysizeFTKUKATimeEvent(grl::MatrixXd& timeEventM_FT, grl::MatrixXd& timeEventM_Kuka)
-{
-
-    std::size_t kuka_state_size = timeEventM_Kuka.rows();
-    std::cout<< "------Kuka_state_size: "<< timeEventM_Kuka.rows() << std::endl;
-
-    std::size_t FT_state_size = timeEventM_FT.rows();
-    std::cout<< "------FT_state_size: "<< timeEventM_FT.rows() << std::endl;
-    int kuka_index = 0;
-    int FT_index = 0;
-
-    // filter out the very beginning data, which can gurantee to record the data when the two devices work simultaniously.
-    while(timeEventM_Kuka(kuka_index,0) < timeEventM_FT(FT_index,0)){
-        kuka_index++;
-    }
-    while(timeEventM_Kuka(kuka_index,0) > timeEventM_FT(FT_index,0) && kuka_index == 0){
-        FT_index++;
-    }
-
-    auto initial_local_time = std::min(timeEventM_FT(FT_index,0), timeEventM_Kuka(kuka_index,0));
-    auto initial_device_time_kuka = timeEventM_Kuka(kuka_index,2);
-    auto initial_device_time_FT = timeEventM_FT(FT_index,2);
-    grl::VectorXd FT_local_request_time = timeEventM_FT.col(1) - initial_local_time * grl::VectorXd::Ones(FT_state_size);
-    grl::VectorXd FT_local_receive_time = timeEventM_FT.col(0) - initial_local_time * grl::VectorXd::Ones(FT_state_size);
-    grl::VectorXd FT_device_time = timeEventM_FT.col(2) - initial_device_time_FT * grl::VectorXd::Ones(FT_state_size);
-
-    grl::VectorXd kuka_local_request_time = timeEventM_Kuka.col(1) - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
-    grl::VectorXd kuka_local_receive_time = timeEventM_Kuka.col(0) - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
-    grl::VectorXd kuka_device_time = timeEventM_Kuka.col(2) - initial_device_time_kuka * grl::VectorXd::Ones(kuka_state_size);
-
-
-    // std::ofstream fs;
-    // // create a name for the file output
-    // fs.open( FTKUKA_CSVfilename, std::ofstream::out | std::ofstream::app);
-    // // write the file headers
-    // fs << "local_receive_time_offset_X,"
-    //    << "FT_local_request_time,"
-    //    << "KUKA_local_request_time,"
-    //    << "FT_device_time_offset,"
-    //    << "device_time_offset_kuka,"
-    //    << "Y_FT,"
-    //    << "Y_kuka"
-    //    << std::endl;
-
-    // int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index);
-    // int64_t FT_diff = FT_device_time(FT_index) - FT_local_receive_time(FT_index);
-    // while ( kuka_index < kuka_state_size && FT_index < FT_state_size )
-    // {
-    //     if ( kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index) ){
-    //         // write the data to the output file
-    //         fs << kuka_local_receive_time(kuka_index) <<","
-    //            <<","
-    //            << kuka_local_request_time(kuka_index) << ","
-    //            << ","
-    //            << kuka_device_time(kuka_index) <<","
-    //            << ","
-    //            << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
-    //            << std::endl;
-    //            kuka_index++;
-    //     } else if( kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index)) {
-    //         // write the data to the output file
-    //         fs << FT_local_receive_time(FT_index) <<","
-    //            << FT_local_request_time(FT_index) << ","
-    //            <<","
-    //            << FT_device_time(FT_index) << ","
-    //            << ","
-    //            << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
-    //            << std::endl;
-    //         FT_index++;
-    //     } else {
-    //         fs << FT_local_receive_time(FT_index) <<","
-    //            << FT_local_request_time(FT_index) << ","
-    //            << kuka_local_request_time(kuka_index) << ","
-    //            << FT_device_time(FT_index) << ","
-    //            << kuka_device_time(kuka_index) <<","
-    //            << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
-    //            << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
-    //            << std::endl;
-    //         FT_index++;
-    //         kuka_index++;
-    //     }
-    // }
-    // fs.close();
 }
 
 }

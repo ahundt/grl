@@ -53,17 +53,29 @@
 #include <mc_rbdyn_urdf/urdf.h>
 #include "kukaiiwaURDF.h"
 
+#include <boost/filesystem.hpp>
+
 // const double PI = 3.14159265359;
 const double RadtoDegree = 180/3.14159265359;
 const double MeterToMM = 1000;
 
 std::string foldname = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
-std::string kukaBinaryfile = foldname + "2018_02_20_21_21_08_Kukaiiwa.iiwa";
-// std::string fusiontrackBinaryfile = foldname + "2018_02_20_20_27_23_FusionTrack.flik";
-// std::string FTKUKA_CSVfilename = foldname + current_date_and_time_string() + "_FTKUKA.csv";
-// std::string FT_CSVfilename = foldname + current_date_and_time_string() + "_FT.csv";
-std::string KUKA_CSVfilename = foldname + current_date_and_time_string() + "_KUKA.csv";
-std::string KUKA_CSVfilename_Joint = foldname + current_date_and_time_string() + "_KUKA_Joint.csv";
+
+std::string foldtimestamp = current_date_and_time_string();
+
+// mkdir(foldname+foldtimestamp, 0777);
+std::string kukaBinaryfile = foldname + "2018_02_26_14_23_14_Kukaiiwa.iiwa";
+std::string KUKA_TimeEvent_CSVfilename = foldname + foldtimestamp + "/KUKA_TimeEvent.csv";
+std::string KUKA_Joint_CSVfilename = foldname + foldtimestamp + "/KUKA_Joint.csv";
+
+std::string fusiontrackBinaryfile = foldname + "2018_02_26_14_19_55_FusionTrack.flik";
+
+std::string FT_TimeEvent_CSVfilename = foldname + foldtimestamp + "/FT_TimeEvent.csv";
+std::string FT_Marker22_CSVfilename = foldname + foldtimestamp + "/FT_Pose_Marker22.csv";
+std::string FT_Marker55_CSVfilename = foldname + foldtimestamp + "/FT_Pose_Marker55.csv";
+
+std::string FTKUKA_TimeEvent_CSVfilename = foldname + foldtimestamp + "/FTKUKA_TimeEvent.csv";
+
 
 int main(int argc, char* argv[])
 {
@@ -120,9 +132,9 @@ int main(int argc, char* argv[])
 
     }
     // std::cout << poseEE << std::endl;
-    grl::writeEEPoseToCSV(KUKA_CSVfilename, kuka_device_time, kuka_local_request_time, kuka_local_receive_time, poseEE);
+    grl::writeEEPoseToCSV(KUKA_TimeEvent_CSVfilename, kuka_device_time, kuka_local_request_time, kuka_local_receive_time, poseEE);
     jointAngles = RadtoDegree*jointAngles;
-    grl::writeJointAngToCSV(KUKA_CSVfilename_Joint, kuka_device_time, kuka_local_request_time, kuka_local_receive_time, jointAngles);
+    // grl::writeJointAngToCSV(KUKA_Joint_CSVfilename, kuka_device_time, kuka_local_request_time, kuka_local_receive_time, jointAngles);
 
 
 
