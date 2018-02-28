@@ -2,7 +2,7 @@
 // Library includes
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "flatbuffers/util.h"
-#include "grl/flatbuffer/readDatafromBinary.hpp"
+#include "grl/flatbuffer/ParseflatbuffertoCSV.hpp"
 #include <thirdparty/fbs_tk/fbs_tk.hpp>
 #include "grl/flatbuffer/FusionTrack_generated.h"
 #include "grl/flatbuffer/Time_generated.h"
@@ -24,26 +24,25 @@
 int main(int argc, char* argv[])
 {
     std::string foldname = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
-    std::string kukaBinaryfile = foldname + "2018_02_26_14_23_14_Kukaiiwa.iiwa";
-    std::string fusiontrackBinaryfile = foldname + "2018_02_26_14_19_55_FusionTrack.flik";
+    std::string kukaTimeStamp = "2018_02_26_14_23_14_Kukaiiwa";
+    std::string FTTimeStamp = "2018_02_26_14_19_55_FusionTrack";
+    std::string kukaBinaryfile = foldname + kukaTimeStamp+ ".iiwa";
+    std::string fusiontrackBinaryfile = foldname + FTTimeStamp +".flik";
     std::string foldtimestamp = current_date_and_time_string();
     boost::filesystem::path dir{foldname+foldtimestamp};
-
     boost::filesystem::create_directory(dir);
-    // boost::filesystem::path dir_file{kukaBinaryfile};
-    // boost::filesystem::copy_file(dir_file, dir);
-    // dir_file = boost::filesystem::path(fusiontrackBinaryfile);
-    // boost::filesystem::copy_file(dir_file, dir);
-
 
     std::string KUKA_TimeEvent_CSVfilename = foldname + foldtimestamp + "/KUKA_TimeEvent.csv";
     std::string KUKA_Joint_CSVfilename = foldname + foldtimestamp + "/KUKA_Joint.csv";
+    std::string KUKA_Pose_CSVfilename = foldname + foldtimestamp + "/KUKA_Pose.csv";
 
     std::string FT_TimeEvent_CSVfilename = foldname + foldtimestamp + "/FT_TimeEvent.csv";
     std::string FT_Marker22_CSVfilename = foldname + foldtimestamp + "/FT_Pose_Marker22.csv";
     std::string FT_Marker55_CSVfilename = foldname + foldtimestamp + "/FT_Pose_Marker55.csv";
 
     std::string FTKUKA_TimeEvent_CSVfilename = foldname + foldtimestamp + "/FTKUKA_TimeEvent.csv";
+
+
 
     /// Write FT data to CSV
     fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> logKUKAiiwaFusionTrackP = fbs_tk::open_root<grl::flatbuffer::LogKUKAiiwaFusionTrack>(fusiontrackBinaryfile);
@@ -59,7 +58,7 @@ int main(int argc, char* argv[])
     int validsize_22 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, makerID_22, timeEventM_FT, markerPose);
 
     grl::regularizeTimeEvent(timeEventM_FT);
-    std::vector<std::string> FT_Labels_Pose = getLabels(grl::fusiontracker_tag());
+    std::vector<std::string> FT_Labels_Pose = grl::getLabels(grl::LabelsType::FT_Pose);
     if(validsize_22>2){
          grl::writeMatrixToCSV(FT_Marker22_CSVfilename, FT_Labels_Pose, timeEventM_FT, markerPose);
     }
@@ -85,10 +84,14 @@ int main(int argc, char* argv[])
     grl::regularizeTimeEvent(timeEventM_Kuka);
     grl::writeTimeEventToCSV(KUKA_TimeEvent_CSVfilename, timeEventM_Kuka);
     Eigen::MatrixXd jointAngles = grl::getAllJointAngles(kukaStatesP);
-    std::vector<std::string> Kuka_Joint_Labels = getLabels(grl::kuka_tag());
+    std::vector<std::string> Kuka_Joint_Labels = grl::getLabels(grl::LabelsType::Joint);
 
     if(jointAngles.rows() == timeEventM_Kuka.rows()){
-         grl::writeMatrixToCSV(KUKA_Joint_CSVfilename, Kuka_Joint_Labels, timeEventM_Kuka, jointAngles);
+        grl::writeMatrixToCSV(KUKA_Joint_CSVfilename, Kuka_Joint_Labels, timeEventM_Kuka, jointAngles);
+        std::vector<std::string> Kuka_Pose_Labels = grl::getLabels(grl::LabelsType::Kuka_Pose);
+        Eigen::MatrixXd PoseEE = grl::getPoseEE(jointAngles);
+        grl::writeMatrixToCSV(KUKA_Pose_CSVfilename, Kuka_Pose_Labels, timeEventM_Kuka, PoseEE);
+
     }
 
 
