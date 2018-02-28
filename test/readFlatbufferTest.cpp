@@ -20,6 +20,7 @@
 /// Boost to create an empty folder
 #include <boost/filesystem.hpp>
 
+/// split -C 307m --numeric-suffixes 2018_02_26_14_19_55_FusionTrack.json 2018_02_26_14_19_55_FusionTrack
 
 int main(int argc, char* argv[])
 {
@@ -47,8 +48,8 @@ int main(int argc, char* argv[])
     /// Write FT data to CSV
     fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> logKUKAiiwaFusionTrackP = fbs_tk::open_root<grl::flatbuffer::LogKUKAiiwaFusionTrack>(fusiontrackBinaryfile);
     grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag());
-    grl::regularizeTimeEvent(timeEventM_FT);
-    grl::writeTimeEventToCSV(FT_TimeEvent_CSVfilename, timeEventM_FT);
+    //grl::regularizeTimeEvent(timeEventM_FT);
+
     std::size_t FT_size = timeEventM_FT.rows();
 
     uint32_t makerID_22 = 22;
@@ -60,7 +61,8 @@ int main(int argc, char* argv[])
     grl::regularizeTimeEvent(timeEventM_FT);
     std::vector<std::string> FT_Labels_Pose = grl::getLabels(grl::LabelsType::FT_Pose);
     if(validsize_22>2){
-         grl::writeMatrixToCSV(FT_Marker22_CSVfilename, FT_Labels_Pose, timeEventM_FT, markerPose);
+        grl::writeTimeEventToCSV(FT_TimeEvent_CSVfilename, timeEventM_FT);
+        grl::writeMatrixToCSV(FT_Marker22_CSVfilename, FT_Labels_Pose, timeEventM_FT, markerPose);
     }
 
     timeEventM_FT.resize(FT_size, grl::col_timeEvent);
@@ -78,7 +80,7 @@ int main(int argc, char* argv[])
         grl::writeMatrixToCSV(FT_Marker55_CSVfilename, FT_Labels_Pose, timeEventM_FT, markerPose);
     }
 
-    /// Write KUKA data to CSV
+    // /// Write KUKA data to CSV
     fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> kukaStatesP = fbs_tk::open_root<grl::flatbuffer::KUKAiiwaStates>(kukaBinaryfile);
     grl::MatrixXd timeEventM_Kuka = grl::getTimeStamp(kukaStatesP,grl::kuka_tag());
     grl::regularizeTimeEvent(timeEventM_Kuka);
@@ -95,7 +97,7 @@ int main(int argc, char* argv[])
     }
 
 
-    grl::writeFTKUKATimeEventToCSV(FTKUKA_TimeEvent_CSVfilename, logKUKAiiwaFusionTrackP, kukaStatesP);
+    // grl::writeFTKUKATimeEventToCSV(FTKUKA_TimeEvent_CSVfilename, logKUKAiiwaFusionTrackP, kukaStatesP);
     return 0;
 }
 

@@ -65,16 +65,17 @@ namespace grl {
     typedef Eigen::Matrix<int64_t , Eigen::Dynamic , 1>  VectorXd;
     typedef Eigen::Matrix<int64_t , Eigen::Dynamic , Eigen::Dynamic>  MatrixXd;
 
-    std::vector<std::string> Time_Labels = {"local_receive_time_X", "local_request_time_offset", "device_time_offset", "time_Y"};
-    std::vector<std::string> FT_Pose_Labels = {"Counter", "P_X", "P_Y", "P_Z", "Q_X", "Q_Y", "Q_Z", "Q_W"};
+    std::vector<std::string> Time_Labels = {"local_receive_time_X", "local_request_time_offset", "device_time_offset", "time_Y", "counter"};
+    std::vector<std::string> FT_Pose_Labels = {"P_X", "P_Y", "P_Z", "Q_X", "Q_Y", "Q_Z", "Q_W"};
     std::vector<std::string> Joint_Labels = {"Joint_1", "Joint_2", "Joint_3", "Joint_4", "Joint_5", "Joint_6", "Joint_7"};
     std::vector<std::string> Kuka_Pose_Labels  = {"X", "Y", "Z", "A", "B", "C"};
     struct kuka_tag {};
     struct fusiontracker_tag {};
-    int col_timeEvent=4;
-    int col_Kuka_Joint = 7;
-    int col_FT_Pose = 8;
-    enum TimeType { local_receive_time = 0, local_request_time = 1, device_time = 2, time_Y = 3};
+    int col_timeEvent=Time_Labels.size();
+    int col_Kuka_Joint = Joint_Labels.size();
+    int col_FT_Pose = FT_Pose_Labels.size();
+     int col_Kuka_Pose = Kuka_Pose_Labels.size();
+    enum TimeType { local_receive_time = 0, local_request_time = 1, device_time = 2, time_Y = 3, counterIdx=4};
     enum LabelsType { FT_Pose = 0, Joint = 1, Kuka_Pose= 2};
 
     /// Get CSV labels
@@ -120,14 +121,34 @@ namespace grl {
         auto states = logKUKAiiwaFusionTrackP->states();
         std::size_t state_size = states->size();
         assert(state_size);
-        grl::MatrixXd timeEventM(state_size,4);
+        int row = 0;
+        grl::MatrixXd timeEventM(state_size,col_timeEvent);
         for(int i = 0; i<state_size; ++i){
             auto kukaiiwaFusionTrackMessage = states->Get(i);
-            auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
-            timeEventM(i,TimeType::local_receive_time) = timeEvent->local_receive_time();
-            timeEventM(i,TimeType::local_request_time) = timeEvent->local_request_time();
-            timeEventM(i,TimeType::device_time) = timeEvent->device_time();
-            timeEventM(i,TimeType::time_Y) =  timeEventM(i,TimeType::device_time) - timeEventM(i,TimeType::local_receive_time);
+            auto FT_Message = kukaiiwaFusionTrackMessage->deviceState_as_FusionTrackMessage();
+            auto FT_Frame = FT_Message->frame();
+            auto counter = FT_Frame->counter();
+            auto Makers = FT_Frame->markers();
+            if(Makers!=nullptr) {
+                auto makerSize = Makers->size();
+                for(int markerIndex=0; markerIndex<makerSize; markerIndex++) {
+                    auto marker = Makers->Get(markerIndex);
+                    auto marker_ID = marker->geometryID();
+                    if(marker_ID == 22 || marker_ID == 55){
+                        auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
+                        timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
+                        timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
+                        timeEventM(row,TimeType::device_time) = timeEvent->device_time();
+                        timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
+                        timeEventM(row,TimeType::counterIdx) = counter;
+                        row++;
+                        break;
+                    }
+                }
+            }
+        }
+        if(row < state_size) {
+            timeEventM.conservativeResize(row, Eigen::NoChange_t{});
         }
         grl::VectorXd timeCol = timeEventM.col(TimeType::local_receive_time);
         assert(checkmonotonic(timeCol));
@@ -145,15 +166,17 @@ namespace grl {
         auto states = kukaStatesP->states();
         std::size_t state_size = states->size();
         assert(state_size);
-        grl::MatrixXd timeEventM(state_size,4);
+        grl::MatrixXd timeEventM(state_size,col_timeEvent);
         for(int i = 0; i<state_size; ++i){
             auto KUKAiiwaState = states->Get(i);
             auto FRIMessage = KUKAiiwaState->FRIMessage();
+            auto identifier = FRIMessage->messageIdentifier();
             auto timeEvent = FRIMessage->timeStamp();
             timeEventM(i,TimeType::local_receive_time) = timeEvent->local_receive_time();
             timeEventM(i,TimeType::local_request_time) = timeEvent->local_request_time();
             timeEventM(i,TimeType::device_time) = timeEvent->device_time();
             timeEventM(i,TimeType::time_Y) =  timeEventM(i,TimeType::device_time) - timeEventM(i,TimeType::local_receive_time);
+            timeEventM(i,TimeType::counterIdx) = identifier;
         }
         grl::VectorXd timeCol = timeEventM.col(TimeType::local_receive_time);
         assert(checkmonotonic(timeCol));
@@ -214,12 +237,12 @@ namespace grl {
                         timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
                         timeEventM(row,TimeType::device_time) = timeEvent->device_time();
                         timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
-
+                        timeEventM(row,TimeType::counterIdx) = counter;
                         auto Pose = marker->transform();
                         auto position = Pose->position();
                         auto orientationQtn = Pose->orientation();
                         Eigen::VectorXd onePose(grl::col_FT_Pose);
-                        onePose << counter,MeterToMM* position.x(), MeterToMM*position.y(), MeterToMM*position.z(), orientationQtn.x(), orientationQtn.y(), orientationQtn.z(), orientationQtn.w();
+                        onePose << MeterToMM*position.x(), MeterToMM*position.y(), MeterToMM*position.z(), orientationQtn.x(), orientationQtn.y(), orientationQtn.z(), orientationQtn.w();
                         markerPose.row(row++) = onePose.transpose();
                     }
                 }
@@ -317,6 +340,7 @@ namespace grl {
         grl::VectorXd local_receive_timeV = timeEventM.col(local_receive_time);
         grl::VectorXd local_request_timeV = timeEventM.col(local_request_time);
         grl::VectorXd device_timeV = timeEventM.col(device_time);
+        grl::VectorXd counter = timeEventM.col(counterIdx);
         grl::VectorXd receive_request = local_receive_timeV - local_request_timeV;
         //  grl::VectorXd device_time_offset = local_receive_time - local_request_time;
         std::ofstream fs;
@@ -329,7 +353,8 @@ namespace grl {
            << "Y,"
            << "Receive-Request,"
            << "device_time_step,"
-           << "receive_time_step"
+           << "receive_time_step,"
+           << "counter"
            << std::endl;
         int64_t device_time_step = 0;
         int64_t receive_time_step = 0;
@@ -345,7 +370,8 @@ namespace grl {
                << device_timeV(i) - local_receive_timeV(i) << ","
                << receive_request(i) << ","
                << device_time_step << ","
-               << receive_time_step << std::endl;  //D
+               << receive_time_step << ","
+               << counter(i) << std::endl;  //D
         }
         fs.close();
     }
