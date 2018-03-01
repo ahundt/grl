@@ -20,13 +20,13 @@
 /// Boost to create an empty folder
 #include <boost/filesystem.hpp>
 
-/// split -C 307m --numeric-suffixes 2018_02_26_14_19_55_FusionTrack.json 2018_02_26_14_19_55_FusionTrack
+/// split -C 200m --numeric-suffixes 2018_02_28_16_39_13_FusionTrack.json 2018_02_28_16_39_13_FusionTrack
 
 int main(int argc, char* argv[])
 {
     std::string foldname = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
-    std::string kukaTimeStamp = "2018_02_26_14_23_14_Kukaiiwa";
-    std::string FTTimeStamp = "2018_02_26_14_19_55_FusionTrack";
+    std::string kukaTimeStamp = "2018_02_28_20_43_50_Kukaiiwa";
+    std::string FTTimeStamp = "2018_02_28_20_43_16_FusionTrack";
     std::string kukaBinaryfile = foldname + kukaTimeStamp+ ".iiwa";
     std::string fusiontrackBinaryfile = foldname + FTTimeStamp +".flik";
     std::string foldtimestamp = current_date_and_time_string();
@@ -36,6 +36,8 @@ int main(int argc, char* argv[])
     std::string KUKA_TimeEvent_CSVfilename = foldname + foldtimestamp + "/KUKA_TimeEvent.csv";
     std::string KUKA_Joint_CSVfilename = foldname + foldtimestamp + "/KUKA_Joint.csv";
     std::string KUKA_Pose_CSVfilename = foldname + foldtimestamp + "/KUKA_Pose.csv";
+    std::string FudicialToRobotPose_CSVfilename = foldname + foldtimestamp + "/FudicialToRobot_Pose.csv";
+    std::string FudicialToFTPose_CSVfilename = foldname + foldtimestamp + "/FudicialToFT_Pose.csv";
 
     std::string FT_TimeEvent_CSVfilename = foldname + foldtimestamp + "/FT_TimeEvent.csv";
     std::string FT_Marker22_CSVfilename = foldname + foldtimestamp + "/FT_Pose_Marker22.csv";
@@ -80,7 +82,7 @@ int main(int argc, char* argv[])
         grl::writeMatrixToCSV(FT_Marker55_CSVfilename, FT_Labels_Pose, timeEventM_FT, markerPose);
     }
 
-    // /// Write KUKA data to CSV
+    /// Write KUKA data to CSV
     fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> kukaStatesP = fbs_tk::open_root<grl::flatbuffer::KUKAiiwaStates>(kukaBinaryfile);
     grl::MatrixXd timeEventM_Kuka = grl::getTimeStamp(kukaStatesP,grl::kuka_tag());
     grl::regularizeTimeEvent(timeEventM_Kuka);
@@ -91,8 +93,20 @@ int main(int argc, char* argv[])
     if(jointAngles.rows() == timeEventM_Kuka.rows()){
         grl::writeMatrixToCSV(KUKA_Joint_CSVfilename, Kuka_Joint_Labels, timeEventM_Kuka, jointAngles);
         std::vector<std::string> Kuka_Pose_Labels = grl::getLabels(grl::LabelsType::Kuka_Pose);
-        Eigen::MatrixXd PoseEE = grl::getPoseEE(jointAngles);
-        grl::writeMatrixToCSV(KUKA_Pose_CSVfilename, Kuka_Pose_Labels, timeEventM_Kuka, PoseEE);
+        std::vector<sva::PTransformd> PoseEE = grl::getPoseEE(jointAngles);
+
+        Eigen::MatrixXd PKPose = grl::getPluckerPose(PoseEE);
+        grl::writeMatrixToCSV(KUKA_Pose_CSVfilename, Kuka_Pose_Labels, timeEventM_Kuka, PKPose);
+
+        grl::getEEToFudicial22Matrix(PoseEE);
+        // PKPose.Zero();
+        PKPose = grl::getPluckerPose(PoseEE);
+        grl::writeMatrixToCSV(FudicialToRobotPose_CSVfilename, Kuka_Pose_Labels, timeEventM_Kuka, PKPose);
+
+        grl::getRobotToTrackerMatrix(PoseEE);
+        // PKPose = Eigen::MatrixXd::Zero();
+        PKPose = grl::getPluckerPose(PoseEE);
+        grl::writeMatrixToCSV(FudicialToFTPose_CSVfilename, Kuka_Pose_Labels, timeEventM_Kuka, PKPose);
 
     }
 

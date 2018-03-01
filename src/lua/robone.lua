@@ -446,6 +446,7 @@ end
 ------------------------------------------
 -- Configure the Optical Tracker --
 -- Call in a "Customization Script" --
+-- The functions in  Customization Script are executed all the time: when simulation is running, as well as when simulation is not running.
 ------------------------------------------
 robone.configureOpticalTracker=function()
 
@@ -508,7 +509,30 @@ robone.configureOpticalTracker=function()
 			-- Test the below one
 			-- Enable the recordDataScript() to call the method below.
 			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true)
+            --------------------------------------------------
+			-- Get the relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820_link8
 
+            fiducial22handl = simGetObjectHandle ('Fiducial#22')
+			link8handl = simGetObjectHandle ('LBR_iiwa_14_R820_link8')
+			relativeTransformationMatrix = simGetObjectMatrix(fiducial22handl, link8handl)
+			print('The relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820_link8')
+            for i=1,12,1 do
+			    print(relativeTransformationMatrix[i].." ")
+            end
+
+			robothandle = simGetObjectHandle ('LBR_iiwa_14_R820#0')
+			trankerhandle = simGetObjectHandle ('OpticalTrackerBase#0')
+			robotToTrakerM = simGetObjectMatrix(robothandle, trankerhandle)
+			print('The relative transformation matrix between LBR_iiwa_14_R820#0 and OpticalTrackerBase#0')
+            for i=1,12,1 do
+			    print(robotToTrakerM[i].." ")
+            end
+
+			fudicialToRobotM = simGetObjectMatrix(fiducial22handl, robothandle)
+			print('The relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820#0')
+            for i=1,12,1 do
+			    print(fudicialToRobotM[i].." ")
+            end
 		end
 
 		-- By default we disable customization script execution during simulation, in order

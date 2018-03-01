@@ -468,10 +468,44 @@ namespace grl {
         }
         fs.close();
     }
+    /// Get the transformation matrix from LBR_iiwa_14_R820_link8 to Fiducial#22.
+    /// See the physical relationship in vrep.
+    void getEEToFudicial22Matrix(std::vector<sva::PTransformd> &EEPose){
+        Eigen::Vector3d trans;
+        trans << -0.10710206627846, 0.060432970523834, 0.11829662322998;
+        Eigen::Matrix3d rot;
+        rot << -0.078461408615112, 0.13236111402512, -0.98809123039246,
+             -0.99495536088943,  -0.072545289993286, 0.069288671016693,
+             -0.062510251998901,  0.98854321241379, 0.13738548755646;
+        sva::PTransformd relativeTransform(rot, trans);
+        for(int i=0; i<EEPose.size();++i){
+            auto pose = EEPose[i];
+            EEPose[i] = relativeTransform*pose;
+        }
+        // return std::move(EEPose);
+
+    }
+
+    /// Get the transformation matrix from LBR_iiwa_14_R820#0 to OpticalTrackerBase#0.
+    /// See the physical relationship in vrep.
+    void getRobotToTrackerMatrix(std::vector<sva::PTransformd>& FudicialPose){
+        Eigen::Vector3d trans;
+        trans << -0.39689552783966, 0.34754598140717, 2.2256722450256;
+        Eigen::Matrix3d rot;
+        rot << 0.28129482269287, 0.95735365152359, 0.065933525562286,
+               0.026909112930298, 0.060811519622803, -0.99778652191162,
+               -0.95924407243729, 0.28244641423225, -0.0086555480957031;
+        sva::PTransformd relativeTransform(rot, trans);
+        for(int i=0; i<FudicialPose.size();++i){
+            auto pose = FudicialPose[i];
+            FudicialPose[i] = relativeTransform*pose;
+        }
+        //return std::move(FudicialPose);
+    }
     /// Based on the RBDy and URDF model, get the cartesian pose of the end effector.
     /// @param jointAngles, the joint angles matrix
     /// @return poseEE, contain the translation and the Euler angle.
-    Eigen::MatrixXd getPoseEE(Eigen::MatrixXd& jointAngles){
+    std::vector<sva::PTransformd> getPoseEE(Eigen::MatrixXd& jointAngles){
 
         namespace cst = boost::math::constants;
         auto strRobot = mc_rbdyn_urdf::rbdyn_from_urdf(XYZSarmUrdf);
@@ -485,7 +519,8 @@ namespace grl {
         std::size_t row_size = jointAngles.rows();
         std::size_t body_size = mbc.bodyPosW.size();
         /// The translation and Euler angles in world coordinate.
-        Eigen::MatrixXd poseEE(row_size,6);
+        ///
+        std::vector<sva::PTransformd> EEpose;
 
         for(int rowIdx=0; rowIdx<row_size; rowIdx++){
             Eigen::VectorXd oneStateJointPosition = jointAngles.row(rowIdx);
@@ -500,23 +535,29 @@ namespace grl {
                 }
             }
             rbd::forwardKinematics(mb, mbc);
-            sva::PTransformd pos = mbc.bodyPosW[body_size-1];
-            Eigen::Matrix3d E ;    // rotation
+            // Pose of the end effector relative to robot base frame.
+            EEpose.push_back(mbc.bodyPosW[body_size-1]);
+        }
+        return EEpose;
+    }
 
-            Eigen::Vector3d r ;    // translation
-            E = pos.rotation();
-            r = MeterToMM*pos.translation();
+    Eigen::MatrixXd getPluckerPose(std::vector<sva::PTransformd>& Pose ) {
+        std::size_t pose_size = Pose.size();
+        Eigen::MatrixXd PKPose(pose_size,6);
+        for(int i=0; i<pose_size; ++i) {
+            Eigen::Matrix3d E  = Pose[i].rotation();    // rotation
+            Eigen::Vector3d r = MeterToMM*Pose[i].translation();    // translation
             Eigen::Vector3d eulerAngleEigen = RadtoDegree*E.eulerAngles(0,1,2);
             Eigen::Quaterniond q(E);
             Eigen::RowVectorXd pose(6);
             pose << r.transpose(), eulerAngleEigen.transpose();
-            poseEE.row(rowIdx) = pose;
-            // std::cout << "-----------------------------------" << std::endl;
-            // std::cout << "Rotation:\n " << E << std::endl
-            //           << "Translation:\n" << r <<std::endl;
+            PKPose.row(i) = pose;
         }
-        return poseEE;
+        return PKPose;
     }
+
+
+
 
 }
 #endif

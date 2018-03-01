@@ -329,8 +329,8 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
 flatbuffers::Offset<grl::flatbuffer::FusionTrackFrame>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::sensor::FusionTrack::Frame &frame,
-             bool writeRegionOfInterest = true,
-             bool writeFiducials = true,
+             bool writeRegionOfInterest = false,
+             bool writeFiducials = false,
              bool writeMarkers = true)
 {
     /// @todo TODO(ahundt) IN PROGRESS Here we should get the markers'name
@@ -472,9 +472,9 @@ flatbuffers::Offset<grl::flatbuffer::KUKAiiwaFusionTrackMessage>
 toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
              const grl::sensor::FusionTrack &fusiontrack,
              const grl::sensor::FusionTrack::Frame &frame,
-             bool writeParameters = true,
-             bool writeRegionOfInterest = true,
-             bool writeFiducials = true,
+             bool writeParameters = false,
+             bool writeRegionOfInterest = false,
+             bool writeFiducials = false,
              bool writeMarkers = true)
 {
     static const double microsecToSec = 1 / 1000000;
