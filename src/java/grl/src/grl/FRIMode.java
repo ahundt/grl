@@ -81,10 +81,9 @@ public class FRIMode implements Runnable {
 	{
 		boolean ret;
 		/**
-		* The method getFRIChannelInformation() can be used to poll the following information
+		* The method getFRIChannelInformation() can be used to poll the following information, the FRI connection and FRI state,
 		* and save it in a variable of type FRIChannelInformation.
 		* Type: FRIChannelInformation
-        * Variable in which the data for the FRI connection and FRI state are saved
 		*/
 
 		synchronized (this) {

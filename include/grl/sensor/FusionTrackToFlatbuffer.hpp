@@ -365,16 +365,14 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
     int32_t imageStrideInBytes = frame.imageHeader.imageStrideInBytes;
     uint32_t imageHeaderVersion = frame.FrameQueryP->imageHeaderVersionSize.Version;
 
-    grl::flatbuffer::ftkQueryStatus imageHeaderStatus = toFlatBuffer(frame.FrameQueryP->imageHeaderStat);
+    int32_t imageHeaderStatus = frame.FrameQueryP->imageHeaderStat;
     flatbuffers::Offset<flatbuffers::String> imageLeftPixels = frame.CameraImageLeftP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageLeftP->begin()), sizeof(frame.CameraImageLeftP)) : 0;
     uint32_t imageLeftPixelsVersion = frame.FrameQueryP->imageLeftVersionSize.Version;
-    // int32_t imageLeftStatus = frame.FrameQueryP->imageLeftStat;
+    int32_t imageLeftStatus = frame.FrameQueryP->imageLeftStat;
 
-    grl::flatbuffer::ftkQueryStatus imageLeftStatus = toFlatBuffer(frame.FrameQueryP->imageLeftStat);
     flatbuffers::Offset<flatbuffers::String> imageRightPixels = frame.CameraImageRightP ? fbb.CreateString(reinterpret_cast<const char *>(frame.CameraImageRightP->begin()), sizeof(frame.CameraImageRightP)) : 0;
     uint32_t imageRightPixelsVersion = frame.FrameQueryP->imageRightVersionSize.Version;
-    // int32_t imageRightStatus = frame.FrameQueryP->imageRightStat;
-    grl::flatbuffer::ftkQueryStatus imageRightStatus = toFlatBuffer(frame.FrameQueryP->imageRightStat);
+    int32_t imageRightStatus = frame.FrameQueryP->imageRightStat;
 
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<grl::flatbuffer::ftkRegionOfInterest>>> regionsOfInterestLeft =
         (writeRegionOfInterest && frame.ImageRegionOfInterestBoxesLeft.size()) ? toFlatBuffer(fbb, frame.ImageRegionOfInterestBoxesLeft): 0;
@@ -393,9 +391,7 @@ toFlatBuffer(flatbuffers::FlatBufferBuilder &fbb,
         (writeMarkers && frame.Markers.size()) ? toFlatBuffer(fbb, frame.Markers, markerIndexToMarkerNames) : 0;
     uint32_t markersVersion = frame.FrameQueryP->markersVersionSize.Version;
     int32_t markersStatus = frame.FrameQueryP->markersStat;
-    // int32_t deviceType = frame.DeviceType;
-    auto deviceType = toFlatBuffer(frame.DeviceType, grl::flatbuffer::ftkDeviceType::DEV_UNKNOWN_DEVICE);
-    // auto deviceType = grl::flatbuffer::ftkDeviceType::DEV_SIMULATOR;
+    int32_t deviceType = frame.DeviceType;
     int64_t ftkError = frame.Error;
 
     return grl::flatbuffer::CreateFusionTrackFrame(

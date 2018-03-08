@@ -240,7 +240,7 @@ table KUKAiiwaMonitorConfiguration {
 }
 
 // Get state data for the arm (things that change often)
-// This table isn't used any more, since the main information of this table is the same with
+// This table isn't used any more, since the main information of this table is the same with table FRIMessageLog
 table KUKAiiwaMonitorState {
    // this is the measured current state of the arm joints
    // as seen in monitorState and _FRIMonitoringMessage
