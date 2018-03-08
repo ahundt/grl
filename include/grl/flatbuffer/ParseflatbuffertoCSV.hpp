@@ -3,6 +3,21 @@
 
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 
+// grl
+#include "grl/vrep/Vrep.hpp"
+#include "grl/vrep/VrepRobotArmDriver.hpp"
+#include "grl/vrep/VrepRobotArmJacobian.hpp"
+#include "grl/vrep/Eigen.hpp"
+#include "grl/vrep/SpaceVecAlg.hpp"
+
+//
+#include "grl/flatbuffer/FlatbufferToEigen.hpp"
+
+
+// FusionTrack Libraries
+#include <ftkInterface.h>
+
+#include "grl/vector_ostream.hpp"
 #include "flatbuffers/flatbuffers.h"
 #include "grl/flatbuffer/JointState_generated.h"
 #include "grl/flatbuffer/ArmControlState_generated.h"
@@ -13,6 +28,8 @@
 #include "grl/flatbuffer/FusionTrack_generated.h"
 #include "grl/flatbuffer/LogKUKAiiwaFusionTrack_generated.h"
 #include <thirdparty/fbs_tk/fbs_tk.hpp>
+
+
 #include <Eigen/Dense>
 
 #include <cstdio> // For printing and file access.
@@ -36,12 +53,12 @@
 #include <Eigen/Geometry>
 #include "camodocal/EigenUtils.h"
 
-//#include "grl/flatbuffer/readDatafromBinary.hpp"
 #include "grl/time.hpp"
 
 // SpaceVecAlg
 // https://github.com/jrl-umi3218/SpaceVecAlg
 #include <SpaceVecAlg/SpaceVecAlg>
+
 
 // RBDyn
 // https://github.com/jrl-umi3218/RBDyn
@@ -57,26 +74,30 @@
 #include <mc_rbdyn_urdf/urdf.h>
 #include "kukaiiwaURDF.h"
 
+
+
 namespace grl {
+
+
     /// Define some constants.
-    const double RadtoDegree = 180/3.14159265359;
-    const double MeterToMM = 1000;
+    const double RadtoDegree =1;// 180/3.14159265359;
+    const double MeterToMM = 1;
     /// Define the int64_t vector and matrix, which is used for time data.
     typedef Eigen::Matrix<int64_t , Eigen::Dynamic , 1>  VectorXd;
     typedef Eigen::Matrix<int64_t , Eigen::Dynamic , Eigen::Dynamic>  MatrixXd;
 
     std::vector<std::string> Time_Labels = {"local_receive_time_X", "local_request_time_offset", "device_time_offset", "time_Y", "counter"};
-    std::vector<std::string> FT_Pose_Labels = {"P_X", "P_Y", "P_Z", "Q_X", "Q_Y", "Q_Z", "Q_W"};
+    // std::vector<std::string> PK_Pose_Labels = {"P_X", "P_Y", "P_Z", "Q_X", "Q_Y", "Q_Z", "Q_W"};
     std::vector<std::string> Joint_Labels = {"Joint_1", "Joint_2", "Joint_3", "Joint_4", "Joint_5", "Joint_6", "Joint_7"};
-    std::vector<std::string> Kuka_Pose_Labels  = {"X", "Y", "Z", "A", "B", "C"};
+    std::vector<std::string> PK_Pose_Labels  = {"X", "Y", "Z", "A", "B", "C"};
     struct kuka_tag {};
     struct fusiontracker_tag {};
     int col_timeEvent=Time_Labels.size();
     int col_Kuka_Joint = Joint_Labels.size();
-    int col_FT_Pose = FT_Pose_Labels.size();
-     int col_Kuka_Pose = Kuka_Pose_Labels.size();
+    int col_Pose = PK_Pose_Labels.size();
     enum TimeType { local_receive_time = 0, local_request_time = 1, device_time = 2, time_Y = 3, counterIdx=4};
     enum LabelsType { FT_Pose = 0, Joint = 1, Kuka_Pose= 2};
+
 
     /// Get CSV labels
     /// @param label indicate the type of the label.
@@ -85,13 +106,13 @@ namespace grl {
         labels.insert(labels.end(), Time_Labels.begin(), Time_Labels.end());
         switch(label) {
             case FT_Pose:
-                labels.insert(labels.end(), FT_Pose_Labels.begin(), FT_Pose_Labels.end());
+                labels.insert(labels.end(), PK_Pose_Labels.begin(), PK_Pose_Labels.end());
                 break;
             case Joint:
                 labels.insert(labels.end(), Joint_Labels.begin(), Joint_Labels.end());
                 break;
             case Kuka_Pose:
-                labels.insert(labels.end(), Kuka_Pose_Labels.begin(), Kuka_Pose_Labels.end());
+                labels.insert(labels.end(), PK_Pose_Labels.begin(), PK_Pose_Labels.end());
                 break;
             default:
                 std::cout<<"Only return Time_Labels..."<<std::endl;
@@ -210,13 +231,14 @@ namespace grl {
     int  getMarkerPose(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP,
                                     uint32_t &makerID,
                                     grl::MatrixXd& timeEventM,
-                                    Eigen::MatrixXd& markerPose){
+                                    Eigen::MatrixXd& markerPose,
+                                    bool markerFrame = false){
         auto states = logKUKAiiwaFusionTrackP->states();
         std::size_t state_size = states->size();
         assert(state_size>0);
         // The first columne is counter
         int row = 0;
-        // Eigen::MatrixXd markerPose(state_size, grl::col_FT_Pose);
+        // Eigen::MatrixXd markerPose(state_size, grl::col_Pose);
         int BadCount = 0;
         for(int i = 0; i<state_size-BadCount; ++i){
             auto kukaiiwaFusionTrackMessage = states->Get(i);
@@ -239,11 +261,27 @@ namespace grl {
                         timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
                         timeEventM(row,TimeType::counterIdx) = counter;
                         auto Pose = marker->transform();
-                        auto position = Pose->position();
-                        auto orientationQtn = Pose->orientation();
-                        Eigen::VectorXd onePose(grl::col_FT_Pose);
-                        onePose << MeterToMM*position.x(), MeterToMM*position.y(), MeterToMM*position.z(), orientationQtn.x(), orientationQtn.y(), orientationQtn.z(), orientationQtn.w();
-                        markerPose.row(row++) = onePose.transpose();
+                        auto FB_r = Pose->position();
+                        auto FB_q = Pose->orientation();
+                        // Convert the flatbuffer type to Eigen type
+                        Eigen::Vector3d r(FB_r.x(), FB_r.y(), FB_r.z());
+                        Eigen::Quaterniond q(FB_q.w(), FB_q.x(), FB_q.y(), FB_q.z());
+                        Eigen::Matrix3d E = q.normalized().toRotationMatrix();
+                        Eigen::Vector3d eulerAngleEigen = RadtoDegree*E.eulerAngles(0,1,2);
+                        Eigen::RowVectorXd pose(grl::col_Pose);
+                        pose << r.transpose(), eulerAngleEigen.transpose();
+
+
+                        if(markerFrame == true) {
+                            Eigen::VectorXd onePose(7);
+                            onePose << r, q.w(), q.x(), q.y(), q.z();
+                            auto markerToCameraTransform = grl::MarkerPoseToAffine3f(onePose);
+                            auto cameraTomarkerTransform = markerToCameraTransform.inverse();
+                            auto _markerPose = grl::Affine3fToMarkerPose(cameraTomarkerTransform);
+                            pose = grl::getPluckerPose(_markerPose);
+
+                        }
+                        markerPose.row(row++) = pose;
                     }
                 }
             }
@@ -290,7 +328,7 @@ namespace grl {
             auto joints_Position = FRIMessage->measuredJointPosition(); // flatbuffers::Vector<double> *
             Eigen::VectorXd oneStateJointPosition(7);
             for(int joint_index=0; joint_index<7; joint_index++){
-                    oneStateJointPosition(joint_index) = joints_Position->Get(joint_index);
+                oneStateJointPosition(joint_index) = joints_Position->Get(joint_index);
             }
             allJointPosition.row(i) = oneStateJointPosition.transpose();
         }
@@ -314,7 +352,7 @@ namespace grl {
         std::ofstream fs;
         // create a name for the file output
         fs.open(CSV_FileName, std::ofstream::out | std::ofstream::app);
-        // write the file labels
+        // write the file labels;
         for(int col=0; col<cols_size-1; col++){
             fs << labels[col] << ",";
         }
@@ -332,6 +370,7 @@ namespace grl {
             fs << matrixrow[dataM.cols()-1] << std::endl;
         }
         fs.close();
+        std::cout<< CSV_FileName << ": Rows " << time_rows_size << "   Cols: " << cols_size << std::endl;
     }
     /// Process the timeEvent to get more information, and write the result into a csv file directly.
     /// @param timeEventM
@@ -468,51 +507,42 @@ namespace grl {
         }
         fs.close();
     }
-    /// Get the transformation matrix from LBR_iiwa_14_R820_link8 to Fiducial#22.
-    /// See the physical relationship in vrep.
-    void getEEToFudicial22Matrix(std::vector<sva::PTransformd> &EEPose){
-        Eigen::Vector3d trans;
-        trans << -0.10710206627846, 0.060432970523834, 0.11829662322998;
-        Eigen::Matrix3d rot;
-        rot << -0.078461408615112, 0.13236111402512, -0.98809123039246,
-             -0.99495536088943,  -0.072545289993286, 0.069288671016693,
-             -0.062510251998901,  0.98854321241379, 0.13738548755646;
-        sva::PTransformd relativeTransform(rot, trans);
-        for(int i=0; i<EEPose.size();++i){
-            auto pose = EEPose[i];
-            EEPose[i] = relativeTransform*pose;
-        }
-        // return std::move(EEPose);
-
-    }
-
     /// Get the transformation matrix from LBR_iiwa_14_R820#0 to OpticalTrackerBase#0.
     /// See the physical relationship in vrep.
-    void getRobotToTrackerMatrix(std::vector<sva::PTransformd>& FudicialPose){
+    std::vector<sva::PTransformd>  getRobotToTrackerMatrix(std::vector<sva::PTransformd>& FudicialPose){
         Eigen::Vector3d trans;
-        trans << -0.39689552783966, 0.34754598140717, 2.2256722450256;
+        trans << 0.20652678608894 , -0.70480275154114 ,1.4510889053345 ;
         Eigen::Matrix3d rot;
-        rot << 0.28129482269287, 0.95735365152359, 0.065933525562286,
-               0.026909112930298, 0.060811519622803, -0.99778652191162,
-               -0.95924407243729, 0.28244641423225, -0.0086555480957031;
+        rot << -0.19507896900177, -0.8963907957077, -0.39802974462509  ,
+               0.9409122467041, -0.28804504871368, 0.17808490991592,
+               -0.28378140926361, -0.33688074350357, 0.89776360988617 ;
         sva::PTransformd relativeTransform(rot, trans);
+        std::vector<sva::PTransformd> to(FudicialPose.size());
         for(int i=0; i<FudicialPose.size();++i){
             auto pose = FudicialPose[i];
-            FudicialPose[i] = relativeTransform*pose;
+            to[i] = relativeTransform*pose;
         }
-        //return std::move(FudicialPose);
+          return std::move(to);
     }
     /// Based on the RBDy and URDF model, get the cartesian pose of the end effector.
+    /// BE CAREFUL THAT THE URDF MODEL HAS BEEN MODIFIED, THE MARKER LINK HAS BEEN ADDED.
+    ///  <origin rpy="0 0 0" xyz="0.052998 0.090310 0.090627"/>
+    /// This is gotten from VREP, the oritation of the marker dummy is identical with the flange ('Fiducial#22' and 'RobotFlangeTip').
+    /// SEE kukaiiwaURDF.h
     /// @param jointAngles, the joint angles matrix
     /// @return poseEE, contain the translation and the Euler angle.
-    std::vector<sva::PTransformd> getPoseEE(Eigen::MatrixXd& jointAngles){
+    std::vector<sva::PTransformd> getPoseEE(Eigen::MatrixXd& jointAngles, bool markerPose = false){
+        using namespace Eigen;
+	    using namespace sva;
+	    using namespace rbd;
 
         namespace cst = boost::math::constants;
         auto strRobot = mc_rbdyn_urdf::rbdyn_from_urdf(XYZSarmUrdf);
         rbd::MultiBody mb = strRobot.mb;
         rbd::MultiBodyConfig mbc(mb);
         rbd::MultiBodyGraph mbg(strRobot.mbg);
-        std::size_t nrJoints = mbg.nrJoints();
+        std::size_t nrJoints = mb.nrJoints();
+        std::size_t nrBodies = strRobot.mb.nrBodies();
         std::vector<std::string> jointNames;
         std::cout<<"Joint Size: "<< nrJoints << std::endl;
 
@@ -536,25 +566,23 @@ namespace grl {
             }
             rbd::forwardKinematics(mb, mbc);
             // Pose of the end effector relative to robot base frame.
-            EEpose.push_back(mbc.bodyPosW[body_size-1]);
+            if(markerPose){
+                EEpose.push_back(mbc.bodyPosW[body_size-1]);
+            } else{
+                EEpose.push_back(mbc.bodyPosW[body_size-2]);
+            }
         }
-        return EEpose;
+        // std::cout<< "---------------------" << std::endl;
+        // for(int i=0; i<nrBodies;++i){
+        //     std::cout<< "---------------------  " << i <<  std::endl;
+        //     std::cout<< mbc.bodyPosW[i] << std::endl;
+        // }
+        return std::move(EEpose);
     }
 
-    Eigen::MatrixXd getPluckerPose(std::vector<sva::PTransformd>& Pose ) {
-        std::size_t pose_size = Pose.size();
-        Eigen::MatrixXd PKPose(pose_size,6);
-        for(int i=0; i<pose_size; ++i) {
-            Eigen::Matrix3d E  = Pose[i].rotation();    // rotation
-            Eigen::Vector3d r = MeterToMM*Pose[i].translation();    // translation
-            Eigen::Vector3d eulerAngleEigen = RadtoDegree*E.eulerAngles(0,1,2);
-            Eigen::Quaterniond q(E);
-            Eigen::RowVectorXd pose(6);
-            pose << r.transpose(), eulerAngleEigen.transpose();
-            PKPose.row(i) = pose;
-        }
-        return PKPose;
-    }
+
+
+
 
 
 

@@ -78,7 +78,8 @@ endif ()
 # For KUKA IIWA FRI Libraries
 if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
 
-    basis_include_directories(${FRI_Client_SDK_Cpp_PROJECT_INCLUDE_DIRS} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include
+    basis_include_directories(${FRI_Client_SDK_Cpp_PROJECT_INCLUDE_DIRS} ${Boost_REGEX_LIBRARY}
+                              ${FRI_Client_SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include
                               ${FLATBUFFERS_INCLUDE_DIRS} ${FUSIONTRACK_INCLUDE_DIRS})
 
 	basis_add_executable(KukaFRITest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
@@ -96,22 +97,31 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
 	basis_target_link_libraries(FlatbuffersExampleWithKukaIiwaTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB})
 
     basis_add_executable(readFlatbufferTest.cpp)
-    basis_target_link_libraries(readFlatbufferTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB} -lboost_iostreams -lboost_system -lboost_filesystem
+    basis_target_link_libraries(readFlatbufferTest
+    ${Boost_LIBRARIES}
+    ${Boost_REGEX_LIBRARY}
+    ${FRI_Client_SDK_Cpp_LIBRARIES}
+    ${Nanopb_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${FLATBUFFERS_STATIC_LIB}
+    -lboost_iostreams -lboost_system -lboost_filesystem
+    -ldl
+    KukaFRIClient
     mc_rbdyn_urdf
     SpaceVecAlg #TODO: re-enable when exported targets are correct again
     sch-core
     RBDyn
-    Tasks)
+    Tasks
+    v_repLib)
 
-    basis_add_executable(KukaPoseEstimationTest.cpp)
-       basis_target_link_libraries(KukaPoseEstimationTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}
-       ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB} -lboost_iostreams -lboost_system -lboost_filesystem
-       mc_rbdyn_urdf
-       SpaceVecAlg #TODO: re-enable when exported targets are correct again
-       sch-core
-       RBDyn
-       Tasks)
+    # basis_add_executable(KukaPoseEstimationTest.cpp)
+    #   basis_target_link_libraries(KukaPoseEstimationTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}
+    #   ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB} -lboost_iostreams -lboost_system -lboost_filesystem
+    #   mc_rbdyn_urdf
+    #   SpaceVecAlg #TODO: re-enable when exported targets are correct again
+    #  sch-core
+    #   RBDyn
+    #   Tasks)
     endif()
 
 
