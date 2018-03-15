@@ -22,12 +22,15 @@
 
 /// split -C 200m --numeric-suffixes 2018_02_28_16_39_13_FusionTrack.json 2018_02_28_16_39_13_FusionTrack
 
+/// The command to get the json file from flatbuffer binary file, these two files should be located in the same folder.
+/// flatc -I . --json LogKUKAiiwaFusionTrack.fbs -- 2018_03_14_22_06_29_FusionTrack.flik
+
 int main(int argc, char* argv[])
 {
     /// Define the file names
     std::string foldname = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
-    std::string kukaTimeStamp = "2018_03_05_10_26_21_Kukaiiwa";
-    std::string FTTimeStamp = "2018_03_05_10_26_40_FusionTrack";
+    std::string kukaTimeStamp = "2018_03_14_22_06_39_Kukaiiwa";
+    std::string FTTimeStamp = "2018_03_14_22_06_29_FusionTrack";
     std::string kukaBinaryfile = foldname + kukaTimeStamp+ ".iiwa";
     std::string fusiontrackBinaryfile = foldname + FTTimeStamp +".flik";
     std::string foldtimestamp = current_date_and_time_string();
@@ -44,6 +47,7 @@ int main(int argc, char* argv[])
     std::string FT_TimeEvent_CSV = foldname + foldtimestamp + "/FT_TimeEvent.csv";
     std::string FT_Marker22_CSV = foldname + foldtimestamp + "/FT_Pose_Marker22.csv";
     std::string FT_Marker55_CSV = foldname + foldtimestamp + "/FT_Pose_Marker55.csv";
+    std::string FT_Marker50000_CSV = foldname + foldtimestamp + "/FT_Pose_Marker50000.csv";
 
     std::string FTKUKA_TimeEvent_CSV = foldname + foldtimestamp + "/FTKUKA_TimeEvent.csv";
 
@@ -58,6 +62,7 @@ int main(int argc, char* argv[])
 
     uint32_t markerID_22 = 22;
     uint32_t markerID_55 = 55;
+    uint32_t markerID_50000 = 50000;
     timeEventM_FT = grl::MatrixXd::Zero(FT_size, timeEventM_FT.cols());
     Eigen::MatrixXd markerPose(FT_size, grl::col_Pose);
     // Get the pose of the marker 22.
@@ -83,7 +88,17 @@ int main(int argc, char* argv[])
         grl::regularizeTimeEvent(timeEventM_FT);
         grl::writeMatrixToCSV(FT_Marker55_CSV, FT_Labels_Pose, timeEventM_FT, markerPose);
     }
+     // Change it back to the original size
+    timeEventM_FT.resize(FT_size, grl::col_timeEvent);
+    markerPose.resize(FT_size, grl::col_Pose);
+    // Get the pose of the bone marker
+    int validsize_50000 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_50000, timeEventM_FT, markerPose);
 
+    std::cout<<"validsize_50000: " << validsize_50000 << std::endl;
+    if(validsize_50000>2) {
+        grl::regularizeTimeEvent(timeEventM_FT);
+        grl::writeMatrixToCSV(FT_Marker50000_CSV, FT_Labels_Pose, timeEventM_FT, markerPose);
+    }
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Write KUKA data to CSV
     ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -515,18 +515,21 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 		////////////////////
         loggerPG->error("Ending KUKA LBR iiwa plugin connection to Kuka iiwa\n" );
         loggerPG->info("recordWhileSimulationIsRunningG: {}", recordWhileSimulationIsRunningG);
-        loggerPG->info("kukaVrepPluginPG->is_recording(): {}", kukaVrepPluginPG->is_recording());
+        if (kukaVrepPluginPG.get() != nullptr) {
 
-		if(kukaVrepPluginPG && recordWhileSimulationIsRunningG && kukaVrepPluginPG->is_recording()) {
-            bool success = kukaVrepPluginPG->save_recording();
-            if(success) {
-                loggerPG->info("Vrep quits successfully..." );
+            loggerPG->info("kukaVrepPluginPG->is_recording(): {}", kukaVrepPluginPG->is_recording());
+
+		    if(kukaVrepPluginPG && recordWhileSimulationIsRunningG && kukaVrepPluginPG->is_recording()) {
+                bool success = kukaVrepPluginPG->save_recording();
+                if(success) {
+                    loggerPG->info("Vrep quits successfully..." );
+                }
+
+                kukaVrepPluginPG->stop_recording();
             }
-
-            kukaVrepPluginPG->stop_recording();
+		    kukaVrepPluginPG->clear_recording();
+		    kukaVrepPluginPG.reset();
         }
-		kukaVrepPluginPG->clear_recording();
-		kukaVrepPluginPG.reset();
 
 	}
 

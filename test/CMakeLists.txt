@@ -90,8 +90,13 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
     endif()
 
     basis_add_test(KukaLBRiiwaVrepPluginTest.cpp)
-	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-        ${FLATBUFFERS_STATIC_LIB} v_repLib KukaFRIClient ${LINUX_ONLY_LIBS} )
+    basis_target_link_libraries(KukaLBRiiwaVrepPluginTest
+    ${Boost_LIBRARIES}
+    ${Boost_REGEX_LIBRARY}
+    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+    ${FRI_Client_SDK_Cpp_LIBRARIES}
+    ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
+    ${FLATBUFFERS_STATIC_LIB} v_repLib KukaFRIClient ${LINUX_ONLY_LIBS} )
 
 	basis_add_executable(FlatbuffersExampleWithKukaIiwaTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
 	basis_target_link_libraries(FlatbuffersExampleWithKukaIiwaTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB})
@@ -114,15 +119,19 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
     Tasks
     v_repLib)
 
-    # basis_add_executable(KukaPoseEstimationTest.cpp)
-    #   basis_target_link_libraries(KukaPoseEstimationTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}
-    #   ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB} -lboost_iostreams -lboost_system -lboost_filesystem
-    #   mc_rbdyn_urdf
-    #   SpaceVecAlg #TODO: re-enable when exported targets are correct again
-    #  sch-core
-    #   RBDyn
-    #   Tasks)
-    endif()
+    basis_add_executable(KinematicsCalibration_test.cpp)
+    basis_target_link_libraries(KinematicsCalibration_test
+    ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}
+    ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${FLATBUFFERS_STATIC_LIB}
+    -lboost_iostreams -lboost_system -lboost_filesystem
+    -ldl
+    mc_rbdyn_urdf
+    SpaceVecAlg #TODO: re-enable when exported targets are correct again
+    sch-core
+    RBDyn
+    Tasks
+    v_repLib)
+endif()
 
 
 if(CERES_FOUND OR USE_INTERNAL_CERES)

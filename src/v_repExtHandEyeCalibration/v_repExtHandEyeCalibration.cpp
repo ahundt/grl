@@ -40,6 +40,7 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 #define CONCAT(x,y,z) x y z
 #define strConCat(x,y,z)	CONCAT(x,y,z)
 #define LUA_GET_SENSOR_DATA_COMMAND "simExtSkeleton_getSensorData"
+#define LUA_SIM_EXT_HAND_EYE_CALIB_START_COMMAND "simExtHandEyeCalibStart"
 
 
 
@@ -66,8 +67,8 @@ const int inArgs_HAND_EYE_CALIB_START[]={
  sim_lua_arg_string,0, //  "Robotiiwa"               , // OpticalTrackerBaseName,
  sim_lua_arg_string,0, //  "tcp://0.0.0.0:30010"     , // OpticalTrackerTipName
 };
-
-std::string LUA_SIM_EXT_HAND_EYE_CALIB_START_CALL_TIP("number result=simExtHandEyeCalibStart(string RobotBaseName , string RobotTipName, string OpticalTrackerBaseName, string OpticalTrackerDetectedObjectName) -- KukaCommandMode options are JAVA and FRI");
+// -- KukaCommandMode options are JAVA and FRI
+std::string LUA_SIM_EXT_HAND_EYE_CALIB_START_CALL_TIP("number result=simExtHandEyeCalibStart(string RobotBaseName , string RobotTipName, string OpticalTrackerBaseName, string OpticalTrackerDetectedObjectName)");
 
 
 void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
@@ -78,7 +79,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
 
     	CLuaFunctionData data;
 
-    	if (data.readDataFromLua(p,inArgs_HAND_EYE_CALIB_START,inArgs_HAND_EYE_CALIB_START[0],"simExtHandEyeCalibStart"))
+    	if (data.readDataFromLua(p,inArgs_HAND_EYE_CALIB_START,inArgs_HAND_EYE_CALIB_START[0], LUA_SIM_EXT_HAND_EYE_CALIB_START_COMMAND))
         {
     		std::vector<CLuaFunctionDataItem>* inData=data.getInDataPtr();
             std::string RobotBaseName((inData->at(0 ).stringData[0]));
@@ -86,7 +87,7 @@ void LUA_SIM_EXT_HAND_EYE_CALIB_START(SLuaCallBack* p)
             std::string OpticalTrackerBaseName((inData->at(2 ).stringData[0]));
             std::string OpticalTrackerDetectedObjectName(inData->at(3 ).stringData[0]);
             handEyeCalibrationPG=std::make_shared<grl::HandEyeCalibrationVrepPlugin>(
-                std::make_tuple(RobotBaseName , RobotTipName, OpticalTrackerBaseName, OpticalTrackerDetectedObjectName)
+               // std::make_tuple(RobotBaseName , RobotTipName, OpticalTrackerBaseName, OpticalTrackerDetectedObjectName)
 
             );
             handEyeCalibrationPG->construct();
@@ -205,9 +206,21 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	}
 	// ******************************************
 
+	std::vector<int> inArgs;
+
+    CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_HAND_EYE_CALIB_START,inArgs);
+	simRegisterCustomLuaFunction
+    (
+        LUA_SIM_EXT_HAND_EYE_CALIB_START_COMMAND,
+        LUA_SIM_EXT_HAND_EYE_CALIB_START_CALL_TIP.c_str(),
+        &inArgs[0],
+        LUA_SIM_EXT_HAND_EYE_CALIB_START
+    );
+
 
 	int noArgs[]={0}; // no input arguments
-	simRegisterCustomLuaFunction("simExtHandEyeCalibStart","number result=simExtHandEyeCalibStart()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_START);
+	//simRegisterCustomLuaFunction("simExtHandEyeCalibStart","number result=simExtHandEyeCalibStart()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_START);
+	//simRegisterCustomLuaFunction("simExtHandEyeCalibStart","number result=simExtHandEyeCalibStart()",inArgs_HAND_EYE_CALIB_START,LUA_SIM_EXT_HAND_EYE_CALIB_START);
 	simRegisterCustomLuaFunction("simExtHandEyeCalibStop","number result=simExtHandEyeCalibStop()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_STOP);
 	simRegisterCustomLuaFunction("simExtHandEyeCalibReset","number result=simExtHandEyeCalibReset()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_RESET);
 	simRegisterCustomLuaFunction("simExtHandEyeCalibAddFrame","number result=simExtHandEyeCalibAddFrame()",noArgs,LUA_SIM_EXT_HAND_EYE_CALIB_ADD_FRAME);

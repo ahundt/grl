@@ -187,6 +187,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_OBJECT(SLuaCallBack *p)
             std::string(" GeometryID: ") + inData->at(3).stringData[0];			 // GeometryID
             loggerPG->info(output);
         // convert the tuple of strings to a tuple of ints
+        // convert vrep string names to vrep handle integer ids
         auto newObjectToTrackIDs = grl::VrepStringToLogAndTrackMotionConfigParams(newObjectToTrack);
         fusionTrackParamsG.MotionConfigParamsVector.push_back(newObjectToTrackIDs);
 
@@ -697,7 +698,7 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
     }
 
     if (message == sim_message_eventcallback_simulationabouttostart)
-    { // Simulation is about to start
+    { // Simulation is about to start.  CLick the start button in VREP
 
         /////////////////////////
         // PUT OBJECT STARTUP CODE HERE
@@ -719,11 +720,11 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         //            LoggerPG->error( initerr);
         //        }
 
-        // if(fusionTrackPG && recordWhileSimulationIsRunningG) {
-        //     fusionTrackPG->start_recording();
-        // }
+        if(fusionTrackPG && recordWhileSimulationIsRunningG) {
+            fusionTrackPG->start_recording();
+        }
     }
-
+    // simulation has ended
     if (message == sim_message_eventcallback_simulationended)
     { // Simulation just ended
 

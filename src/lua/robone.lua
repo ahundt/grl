@@ -59,70 +59,74 @@ robone.cutBoneScript=function()
 		--maxVel = 0.04
 		--maxForce = 30
 
-		while true do
-			if runFollowPathMode then
-				-- Moves an object to the position/orientation of another moving object (target object)
-				-- by performing interpolations (i.e. the object will effectiviely follow the target object).
-				simMoveToObject(target,CreatedPathHandle,3,0,0.5,0.02)
-				-- http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simFollowPath
-				simFollowPath(target,CreatedPathHandle,3,0,0.01,0.01)
-				--simSwitchThread()
+		 while true do
+		 	if runFollowPathMode then
+		 		-- Moves an object ('RobotMillTipTarget') to the position/orientation of another moving object (target object, 'MillHipCutPath' or 'Straingtline')
+		 		-- by performing interpolations (i.e. the object will effectiviely follow the target object).
+		 		simMoveToObject(target,CreatedPathHandle,3,0,0.5,0.02)
+		 		-- http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simFollowPath
+		 		simFollowPath(target,CreatedPathHandle,3,0,0.01,0.01)
+		 		--simSwitchThread()
 
-			else
-				-- Calculate path length
-				pathLength = simGetPathLength(CreatedPathHandle)
-				-- Move to start of path
+		 	else
+		 		-- Calculate path length
+				-- Retrieves the length of a path object.
+		 		pathLength = simGetPathLength(CreatedPathHandle)
+		 		-- Move to start of path
 
-				simMoveToObject(target,CreatedPathHandle,3,0,0.2,0.02)
-				newPosition = 0
-
-
-
-				-- Create empty vector for tool tip forces (x,y,z,alpha,beta,gamma,joint dependence(?))
-				--toolTipForces = matrix(7,1,0)
-				toolTipForces = {0,0,0,0,0,0,0}
-				newPos = simGetPositionOnPath(CreatedPathHandle,0)
-				-- While not at end of path, traverse path
-				while newPosition < pathLength do
-					print("VREP JOINT POSITIONS")
-				for i=1,7,1 do
-					print(simGetJointPosition(jointHandles[i]))
-				end
-					externalJointTorque = getExternalJointTorque(measuredJointHandles, externalTorqueHandle)
-
-					measuredForce = calcToolTipForce(IKGroupHandle, externalJointTorque)
-					print("MEASURED FORCE: "..measuredForce)
-
-					position = simGetPathPosition(CreatedPathHandle)
-					offset = 0.001
-					newPosition = position+offset
-
-					simSetPathPosition(CreatedPathHandle, newPosition)
-					nextPos = simGetPositionOnPath(CreatedPathHandle, newPosition/pathLength)
-					nextEul = simGetOrientationOnPath(CreatedPathHandle, newPosition/pathLength)
-					nextQuat = simGetQuaternionFromMatrix(simBuildMatrix({0,0,0},nextEul))
-					nextVel = {0,0,0,0}
-					for i=1,3,1 do
-						nextVel[i] = 3*(nextPos[i]-newPos[i])
-					end
-			--timeBefore = simGetSimulationTime()
-			--print("Time nonRML takes: ".. timeBefore-timeAfter)
-			--print("Time before RML: "..timeBefore)
-			result,newPos,newQuat,currentVel,currentAccel,timeLeft=simRMLMoveToPosition(target,-1,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,nextPos,nextQuat,nextVel)
-			--timeAfter = simGetSimulationTime()
-			--print("Time after RML: "..timeAfter)
-			--print("Time RML takes: ".. timeAfter-timeBefore)
-			--print("Time left: "..timeLeft)
+		 		simMoveToObject(target,CreatedPathHandle,3,0,0.2,0.02)
+		 		newPosition = 0
 
 
-					--fcv(IKGroupHandle, CreatedPathHandle, maxVel, maxForce, measuredForce, pathLength)
 
-					--simSwitchThread()
+		 		-- Create empty vector for tool tip forces (x,y,z,alpha,beta,gamma,joint dependence(?))
+		 		-- toolTipForces = matrix(7,1,0)
+		 		toolTipForces = {0,0,0,0,0,0,0}
+				-- Retrieves the absolute interpolated position of a point along a path object.
+				-- 0 means the beginning of the path
+		 		newPos = simGetPositionOnPath(CreatedPathHandle,0)
+		 		-- While not at end of path, traverse path
+		 		while newPosition < pathLength do
+		 			print("VREP JOINT POSITIONS")
+		 		    for i=1,7,1 do
+		 		    	print(simGetJointPosition(jointHandles[i]))
+		 		    end
+		 			externalJointTorque = getExternalJointTorque(measuredJointHandles, externalTorqueHandle)
 
-				end
-				simSetPathPosition(CreatedPathHandle, 0)
-			end
-			end
+		 			measuredForce = calcToolTipForce(IKGroupHandle, externalJointTorque)
+		 			print("MEASURED FORCE: "..measuredForce)
+                    -- Retrieves the intrinsic position of a path object (a distance along the path).
+		 			position = simGetPathPosition(CreatedPathHandle)
+		 			offset = 0.001  -- step size
+		 			newPosition = position+offset
+					-- Sets the intrinsic position of a path object (i.e. the position along the path).
+		 			simSetPathPosition(CreatedPathHandle, newPosition)
+		 			nextPos = simGetPositionOnPath(CreatedPathHandle, newPosition/pathLength)
+		 			nextEul = simGetOrientationOnPath(CreatedPathHandle, newPosition/pathLength)
+		 			nextQuat = simGetQuaternionFromMatrix(simBuildMatrix({0,0,0},nextEul))
+		 			nextVel = {0,0,0,0}
+		 			for i=1,3,1 do
+		 				nextVel[i] = 3*(nextPos[i]-newPos[i])
+		 			end
+		 	        --timeBefore = simGetSimulationTime()
+		 	        --print("Time nonRML takes: ".. timeBefore-timeAfter)
+		 	        --print("Time before RML: "..timeBefore)
+					 --[[Moves an object to a given position and/or orientation using the Reflexxes Motion Library type II or IV. This function can only be called from child scripts running in a thread  --]]
+		 	        result,newPos,newQuat,currentVel,currentAccel,timeLeft=simRMLMoveToPosition(target,-1,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,nextPos,nextQuat,nextVel)
+		 	        --timeAfter = simGetSimulationTime()
+		 	        --print("Time after RML: "..timeAfter)
+		 	        --print("Time RML takes: ".. timeAfter-timeBefore)
+		 	        --print("Time left: "..timeLeft)
+
+
+		 			--fcv(IKGroupHandle, CreatedPathHandle, maxVel, maxForce, measuredForce, pathLength)
+
+		 			--simSwitchThread()
+
+		 		end
+		 		simSetPathPosition(CreatedPathHandle, 0)
+		 	end
+		 end
 
 			--Path0P,Path0O=grl.getTransformToPathPointInWorldFrame(BallJointPath,0)
 			--pathPos=simGetObjectPosition(BallJointPath,targetBase)
@@ -225,6 +229,7 @@ robone.cutBoneScript=function()
 	end
 
 	function fcv(ikGroupHandle, CreatedPathHandle, maxVelocity, maxForce, measuredForce, pathLength)
+	    print("run in fcv............... ")
 
 		-- selection parameter for simRMLPos for default behavior
 		selection = {1,1,1,1,1,1,1}
@@ -265,7 +270,7 @@ robone.cutBoneScript=function()
 	bone=simGetObjectHandle('FemurBone')
 	table=simGetObjectHandle('highTable')
 
-	testStraightLine = false
+	testStraightLine = true
 
 	CreatedPathHandle=simGetObjectHandle('MillHipCutPath')
 
@@ -343,8 +348,8 @@ robone.handEyeCalibScript=function()
 	maxJerk={jerk,jerk,jerk,jerk*DtoR}
 	targetVel={targetV,targetV,targetV,targetV*DtoR}
 
-	target=simGetObjectHandle('RobotMillTipTarget')
-	-- target=simGetObjectHandle('RobotFlangeTipTarget')
+	-- target=simGetObjectHandle('RobotMillTipTarget')
+	target=simGetObjectHandle('RobotFlangeTipTarget')
 	targetBase=simGetObjectHandle('Robotiiwa')
 	path=simGetObjectHandle('HandEyeCalibPath')
 	circleCalib = simGetObjectHandle('CircleCalibPath')
@@ -355,7 +360,7 @@ robone.handEyeCalibScript=function()
 
 	-- Enable/Disable custom IK
 	useGrlInverseKinematics=true
-	simExtHandEyeCalibStart('Robotiiwa' , 'RobotMillTipTarget', 'OpticalTrackerBase', 'Fiducial#22')
+    --simExtHandEyeCalibStart('Robotiiwa' , 'RobotFlangeTipTarget', 'OpticalTrackerBase', 'Fiducial#22')
 
 	if (grl.isModuleLoaded('GrlInverseKinematics') and useGrlInverseKinematics) then
 		simExtGrlInverseKinematicsStart()
@@ -367,8 +372,10 @@ robone.handEyeCalibScript=function()
 
 		-- Run the hand eye calibration
 
-		simExtHandEyeCalibStart()
-
+		-- simExtHandEyeCalibStart()
+		-- call handEyeCalibrationPG->construct();
+		simExtHandEyeCalibStart('Robotiiwa' , 'RobotFlangeTipTarget', 'OpticalTrackerBase', 'Fiducial#22')
+        -- Fill out the vectors, and then pass these vectors to
 		for i=0,1,1/numSteps do
 			p,o=grl.getPathPointInWorldFrame(path,i)
 			simRMLMoveToPosition(target,-1,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,p,o,nil)
@@ -443,6 +450,62 @@ robone.startRealArmDriverScript=function()
 	end
 end
 
+robone.coordinateCalibrateionScript=function()
+	print("coordinateCalibrateionScript--------------")
+-- Check if the required plugin is there:
+	if (grl.isModuleLoaded('KukaLBRiiwa')) then
+
+		-- Now disable IK and control one individual joint:
+        -- simSetExplicitHandling(ikGroupHandle,0) -- this disables automatic handling of the ik group
+
+
+	    testJointAngles = { -0.06, -0.03, 0.01, -0.06, -0.04, -0.02, 0.1}
+	    jointHandles={-1,-1,-1,-1,-1,-1,-1}
+		jointHandles[1]=simGetObjectHandle('LBR_iiwa_14_R820_joint1')
+	    for i=2,7,1 do
+	    	jointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i)
+	    	result = simSetJointPosition(jointHandles[i],0)
+			simWait(0.5)
+	    	print(result.."======--------------")
+
+
+
+			relativePosition = simGetObjectPosition(jointHandles[i], jointHandles[i-1])
+			print('XYZ')
+			for i=1,3,1 do
+				 print(relativePosition[i].." ")
+			end
+
+			relativeOrientation = simGetObjectOrientation(RobotFlangeTip, robothandle)
+			print('RPY')
+		   for i=1,3,1 do
+				print(relativeOrientation[i]*180/math.pi.." ")
+		   end
+
+	    end
+		simWait(50)
+	--robotFlangeTip = simGetObjectHandle ('RobotFlangeTip')
+	--robothandle = simGetObjectHandle ('LBR_iiwa_14_R820')
+	--Position = simGetObjectPosition(robotFlangeTip, robothandle)
+	--print('The Position of RobotFlangeTip in RobotBase Frame')
+    --for i=1,3,1 do
+	--     print(Position[i].." ")
+	--end
+	--Orientation = simGetObjectOrientation(robotFlangeTip, robothandle)
+	--print('The Orientation of RobotFlangeTip in RobotBase Frame')
+    --for i=1,3,1 do
+	--     print(Orientation[i].." ")
+    --end
+
+    else
+	    simDisplayDialog('Error','KukaLBRiiwa plugin was not found. (v_repExtKukaLBRiiwa.dll)&&nSimulation will run without hardware',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
+    end
+
+
+
+
+end
+
 ------------------------------------------
 -- Configure the Optical Tracker --
 -- Call in a "Customization Script" --
@@ -471,6 +534,10 @@ robone.configureOpticalTracker=function()
 			simExtAtracsysFusionTrackAddGeometry('geometry0022.ini')
 			simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: loading geometry0055.ini')
 			simExtAtracsysFusionTrackAddGeometry('geometry0055.ini')
+			-- Add the new geometry attached to the frame.
+			-- geometry50000.ini
+			simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: loading geometry50000.ini')
+			simExtAtracsysFusionTrackAddGeometry('geometry50000.ini')
 
 
 			--------------------------------------------------
@@ -487,7 +554,18 @@ robone.configureOpticalTracker=function()
 												'Fiducial#22',           -- ObjectBeingMeasured
 												'22'                     -- GeometryID
 												)
+
+
+
+				-- Set the new marker in vrep based on the Fiducial#22, the relative pose is read from FusionTracker
+				simExtAtracsysFusionTrackAddObject('Fiducial#50000',  -- ObjectToMove
+				                                   'OpticalTrackerBase#0',  -- FrameInWhichToMoveObject
+				                                   'Fiducial#50000',           -- ObjectBeingMeasured
+				                                   '50000'                     -- GeometryID
+				)
+
 			end
+
 
 			--------------------------------------------------
 			-- Move the Bone
@@ -502,6 +580,13 @@ robone.configureOpticalTracker=function()
 												'Fiducial#55',           -- ObjectBeingMeasured
 												'55'                     -- GeometryID
 												)
+				robothandle = simGetObjectHandle ('LBR_iiwa_14_R820#0')
+				--trankerhandle = simGetObjectHandle ('OpticalTrackerBase#0')
+				robotToWorldM = simGetObjectMatrix(robothandle, -1)
+				print('The absolute transformation matrix of LBR_iiwa_14_R820#0')
+				for i=1,12,1 do
+					print(robotToWorldM[i].." ")
+				end
 			end
 
 			-- Start collecting data from the optical tracker
@@ -511,29 +596,90 @@ robone.configureOpticalTracker=function()
 			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true)
             --------------------------------------------------
 			-- Get the relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820_link8
+			--[[
+            if (moveTracker) then
 
-            fiducial22handl = simGetObjectHandle ('Fiducial#22')
-			link8handl = simGetObjectHandle ('LBR_iiwa_14_R820_link8')
-			relativeTransformationMatrix = simGetObjectMatrix(fiducial22handl, link8handl)
-			print('The relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820_link8')
-            for i=1,12,1 do
-			    print(relativeTransformationMatrix[i].." ")
-            end
 
-			robothandle = simGetObjectHandle ('LBR_iiwa_14_R820#0')
-			trankerhandle = simGetObjectHandle ('OpticalTrackerBase#0')
-			robotToTrakerM = simGetObjectMatrix(robothandle, trankerhandle)
-			print('The relative transformation matrix between LBR_iiwa_14_R820#0 and OpticalTrackerBase#0')
-            for i=1,12,1 do
-			    print(robotToTrakerM[i].." ")
-            end
+			    -- testJointAngles = { -0.06, -0.03, 0.01, -0.06, -0.04, -0.02, 0.1}
+				jointHandles={-1,-1,-1,-1,-1,-1,-1}
+				jointHandles[1]=simGetObjectHandle('LBR_iiwa_14_R820_joint1')
+				for i=1,7,1 do
+					jointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i)
+				--	result = simSetJointPosition(jointHandles[i],testJointAngles[i])
+				end
 
-			fudicialToRobotM = simGetObjectMatrix(fiducial22handl, robothandle)
-			print('The relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820#0')
-            for i=1,12,1 do
-			    print(fudicialToRobotM[i].." ")
-            end
+
+
+			     RobotFlangeTip = simGetObjectHandle ('RobotFlangeTip')
+				 robothandle = simGetObjectHandle ('LBR_iiwa_14_R820')
+				 fiducial22handl = simGetObjectHandle ('Fiducial#22')
+			     relativeTransformationMatrix = simGetObjectMatrix(fiducial22handl, RobotFlangeTip)
+			     print('The relative transformation matrix between Fiducial#22 and RobotFlangeTip')
+                for i=1,12,1 do
+			         print(relativeTransformationMatrix[i].." ")
+                end
+
+
+			    trankerhandle = simGetObjectHandle ('OpticalTrackerBase#0')
+			    robotToTrakerM = simGetObjectMatrix(robothandle, trankerhandle)
+			    print('The relative transformation matrix between LBR_iiwa_14_R820#0 and OpticalTrackerBase#0')
+                for i=1,12,1 do
+			         print(robotToTrakerM[i].." ")
+                end
+
+			    fudicialToRobotM = simGetObjectMatrix(fiducial22handl, robothandle)
+			    print('The relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820')
+                for i=1,12,1 do
+			         print(fudicialToRobotM[i].." ")
+                end
+
+				relativePosition = simGetObjectPosition(RobotFlangeTip, robothandle)
+				print('The relative position between RobotFlangeTip and LBR_iiwa_14_R820 ')
+			    for i=1,3,1 do
+				 	print(relativePosition[i].." ")
+			    end
+
+			    relativeOrientation = simGetObjectOrientation(RobotFlangeTip, robothandle)
+			    print('The relative orientation between RobotFlangeTip and LBR_iiwa_14_R820')
+			    for i=1,3,1 do
+			  	   print(relativeOrientation[i]*180/math.pi.." ")
+			    end
+
+
+			    print("======--------------")
+			    relativePosition = simGetObjectPosition(jointHandles[1], -1)
+			    print('XYZ'..1)
+			    for i=1,3,1 do
+			  	   print(relativePosition[i].." ")
+			    end
+
+			    relativeOrientation = simGetObjectOrientation(jointHandles[1], -1)
+			    print('RPY')
+			    for i=1,3,1 do
+			    	  print(relativeOrientation[i]*180/math.pi.." ")
+			    end
+			    for i=2,7,1 do
+				  --result = simSetJointPosition(jointHandles[i],0)
+				  --simWait(0.5)
+				  print("======--------------")
+				  relativePosition = simGetObjectPosition(jointHandles[i], jointHandles[i-1])
+				  print('XYZ'..i)
+				  for j=1,3,1 do
+					   print(relativePosition[j].." ")
+				  end
+
+				  relativeOrientation = simGetObjectOrientation(jointHandles[i], jointHandles[i-1])
+				  print('RPY'..i)
+				 for j=1,3,1 do
+					  print(relativeOrientation[j]*180/math.pi.." ")
+				 end
+
+				end
+
+			end
+			--]]
 		end
+
 
 		-- By default we disable customization script execution during simulation, in order
 		-- to run simulations faster:

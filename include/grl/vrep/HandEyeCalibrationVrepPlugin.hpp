@@ -83,7 +83,7 @@ void construct(){
 
 
 void addFrame() {
-   logger_->info( "Adding hand eye calibration frame #", ++frameCount);
+   logger_->info( "Adding hand eye calibration frame {}", ++frameCount);
 
     auto robotTipInRobotBase    = getObjectTransform(robotTip,robotBase);
     auto fiducialInOpticalTrackerBase = getObjectTransform(opticalTrackerDetectedObjectName,opticalTrackerBase);
@@ -94,8 +94,8 @@ void addFrame() {
       isFirstFrame = false;
     }
 
-    auto robotTipInFirstTipBase      = firstRobotTipInRobotBaseInverse * robotTipInRobotBase;        // A_0_Inv * A_i
-    auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;  // B_0_Inv * B_i
+    auto robotTipInFirstTipBase      = firstRobotTipInRobotBaseInverse * robotTipInRobotBase;        // B_0_Inv * B_i
+    auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;  // A_0_Inv * A_i
 
 
     rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation()        ));
@@ -107,11 +107,11 @@ void addFrame() {
 
    if(debug){
 
-     logger_->info( "\nrobotTipInRobotBase:\n", poseString(robotTipInRobotBase));
-     logger_->info( "\nfiducialInOpticalTrackerBase:\n", poseString(fiducialInOpticalTrackerBase));
+     logger_->info( "\nrobotTipInRobotBase: \n{}", poseString(robotTipInRobotBase));
+     logger_->info( "\nfiducialInOpticalTrackerBase: \n{}", poseString(fiducialInOpticalTrackerBase));
 
-     logger_->info( "\nrobotTipInFirstTipBase:\n", poseString(robotTipInFirstTipBase));
-     logger_->info( "\nfiducialInFirstFiducialBase:\n", poseString(fiducialInFirstFiducialBase));
+     logger_->info( "\nrobotTipInFirstTipBase: \n{}", poseString(robotTipInFirstTipBase));
+     logger_->info( "\nfiducialInFirstFiducialBase: \n{}", poseString(fiducialInFirstFiducialBase));
 
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
@@ -129,8 +129,8 @@ void addFrame() {
 /// @todo evaluate if applyEstimate should not be called by this
 void estimateHandEyeScrew(){
 
-   logger_->info(  "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial",rvecsFiducial.size(),
-   " tvecsFiducial: ", tvecsFiducial.size(), " rvecsArm: ", rvecsArm.size(), " tvecsArm: ", tvecsArm.size());
+   logger_->info(  "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial {} , tvecsFiducial: {} , rvecsArm: {}  , tvecsArm: {}"
+   ,rvecsFiducial.size(), tvecsFiducial.size(), rvecsArm.size(), tvecsArm.size());
 
    BOOST_VERIFY(allHandlesSet);
 
@@ -140,7 +140,8 @@ void estimateHandEyeScrew(){
       tvecsArm,
       rvecsFiducial,
       tvecsFiducial,
-      transformEstimate.matrix()
+      transformEstimate.matrix(),
+      false  //PlanarMotion
   );
 
 
@@ -153,18 +154,21 @@ void estimateHandEyeScrew(){
    if(debug){
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
-     logger_->info(  "\n", poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
+     logger_->info(  "\n{}", poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
    }
 
-   logger_->info( "\n", poseString(transformEstimate,"estimated RobotTipToFiducial:"));
+   logger_->info( "\n{}", poseString(transformEstimate,"estimated RobotTipToFiducial:"));
 
    applyEstimate();
 
    // print results
    Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
-   logger_->info( "Hand Eye Screw Estimate quat wxyz\n: ", eigenQuat.w(), " ", eigenQuat.x(), " ", eigenQuat.y(), " ", eigenQuat.z(), " ", " translation xyz: ", transformEstimate.translation().x(), " ", transformEstimate.translation().y(), " ", transformEstimate.translation().z(), " ");
+   logger_->info( "Hand Eye Screw Estimate quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
+                  eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
 
-    logger_->info( "Optical Tracker Base Measured quat wxyz\n: ", detectedObjectQuaternion[0], " ", detectedObjectQuaternion[1], " ", detectedObjectQuaternion[2], " ", detectedObjectQuaternion[3], " ", " translation xyz: ", detectedObjectPosition[0], " ", detectedObjectPosition[1], " ", detectedObjectPosition[2], " ");
+   logger_->info( "Optical Tracker Base Measured quat wxyz\n: {} ,  {} , {} , {} \n translation xyz: {} , {}, {}",
+     detectedObjectQuaternion[0], detectedObjectQuaternion[1], detectedObjectQuaternion[2], detectedObjectQuaternion[3],
+     detectedObjectPosition[0], detectedObjectPosition[1], detectedObjectPosition[2]);
 
 }
 

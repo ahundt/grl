@@ -312,6 +312,16 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   </joint>
   <link name="iiwa_link_ee">
     </link>
+
+    <!-- Add the marker to the end effector.  By Chunting -->
+  <joint name="iiwa_joint_marker" type="fixed">
+    <parent link="iiwa_link_ee"/>
+    <child link="iiwa_link_marker"/>
+    <origin rpy="0 0 0" xyz="0.052998 0.090310 0.090627"/>
+  </joint>
+  <link name="iiwa_link_marker">
+    </link>
+
   <!-- Load Gazebo lib and set the robot namespace -->
   <gazebo>
     <plugin filename="libgazebo_ros_control.so" name="gazebo_ros_control">

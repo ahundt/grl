@@ -181,6 +181,8 @@ class FusionTrack
         std::vector<std::string> geometries;
         geometries.push_back("geometry0022.ini");
         geometries.push_back("geometry0055.ini");
+        // Add the new marker attached to the frame
+        geometries.push_back("geometry50000.ini");
         params.geometryFilenames = geometries;
         return params;
     }
