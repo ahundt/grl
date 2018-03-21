@@ -5,6 +5,30 @@
 /// @todo remove IGNORE_ROTATION or make it a runtime configurable parameter
 // #define IGNORE_ROTATION
 
+#include <fstream>
+#include <vector>
+#include <set>
+#include <iterator>
+#include <algorithm>
+
+#include "flatbuffers/util.h"
+#include "grl/flatbuffer/ParseflatbuffertoCSV.hpp"
+#include <thirdparty/fbs_tk/fbs_tk.hpp>
+#include "grl/flatbuffer/FusionTrack_generated.h"
+#include "grl/flatbuffer/Time_generated.h"
+#include "grl/flatbuffer/LogKUKAiiwaFusionTrack_generated.h"
+#include "grl/time.hpp"
+
+
+#include <vector>
+#include <cmath>
+#include <boost/tuple/tuple.hpp>
+#include <Eigen/Dense>
+
+#include <chrono>
+#include <thread>
+/// Boost to create an empty folder
+#include <boost/filesystem.hpp>
 
 
 #include <string>
@@ -51,6 +75,19 @@
 #include <boost/range/algorithm/copy.hpp>
 
 #include <spdlog/spdlog.h>
+
+
+// FusionTrack Libraries
+// #include <ftkInterface.h>
+// For replay the recorded data
+// #include "grl/flatbuffer/ParseflatbuffertoCSV.hpp"
+#include <thirdparty/fbs_tk/fbs_tk.hpp>
+ #include <boost/type_traits.hpp>
+
+ // mc_rbdyn_urdf
+// https://github.com/jrl-umi3218/mc_rbdyn_urdf
+#include <mc_rbdyn_urdf/urdf.h>
+#include "grl/flatbuffer/kukaiiwaURDF.h"
 
 namespace grl {
 namespace vrep {
@@ -213,9 +250,9 @@ public:
         ikGroupTargetName_ = (std::get<VrepRobotArmDriver::RobotTargetName>(armDriverSimulatedParams));
         robotFlangeTipName_ = (std::get<VrepRobotArmDriver::RobotFlangeTipName>(armDriverSimulatedParams));
 
-        ikGroupBaseHandle_ = grl::vrep::getHandle(ikGroupBaseName_);
-        ikGroupTipHandle_ = grl::vrep::getHandle(ikGroupTipName_);
-        ikGroupTargetHandle_ = grl::vrep::getHandle(ikGroupTargetName_);
+        ikGroupBaseHandle_ = grl::vrep::getHandle(ikGroupBaseName_);  // "Robotiiwa"
+        ikGroupTipHandle_ = grl::vrep::getHandle(ikGroupTipName_);    // "RobotMillTip"
+        ikGroupTargetHandle_ = grl::vrep::getHandle(ikGroupTargetName_);  //  "RobotMillTipTarget"
         /// for why this is named as it is see: https://github.com/jrl-umi3218/Tasks/blob/master/tests/arms.h#L34
         sva::PTransform<double> X_base = getObjectPTransform(ikGroupBaseHandle_);
         //X_base = sva::PTransformd(X_base.rotation().inverse(), X_base.translation());
@@ -249,12 +286,15 @@ public:
             boost::copy(linkNames_, std::back_inserter(rbd_bodyNames_));
             boost::copy(jointNames_, std::back_inserter(rbd_jointNames_));
             /// @todo TODO(ahundt) replace hardcoded joint strings with a vrep tree traversal object that generates an RBDyn MultiBodyGraph
-            jointNames_.push_back("LBR_iiwa_14_R820_link8");
+
+            // In this part, it added both joints and links into the jointNames_, why?
+            // Should we add them seperately?
+            jointNames_.push_back("LBR_iiwa_14_R820_link8");  // Is this a joint? In vrep it's a link.
             jointNames_.push_back("cutter_joint");
             rbd_jointNames_.push_back("LBR_iiwa_14_R820_link8");
             rbd_jointNames_.push_back(robotFlangeTipName_);
             rbd_jointNames_.push_back("cutter_joint");
-            rbd_jointNames_.push_back(ikGroupTipName_);
+            rbd_jointNames_.push_back(ikGroupTipName_);  // "RobotMillTip"
 
             rbd_bodyNames_.push_back("cutter_joint");
             rbd_bodyNames_.push_back(ikGroupTipName_);
@@ -272,7 +312,7 @@ public:
                 std::string thisJointName = rbd_jointNames_[i];
                 rbd::Joint::Type jointType = rbd::Joint::Fixed;
                 /// @todo TODO(ahundt) fix hard coded Revolute vs fixed joint https://github.com/ahundt/grl/issues/114
-                if(simGetObjectType(rbd_jointHandles_[i])==sim_object_joint_type)
+                if(simGetObjectType(rbd_jointHandles_[i]) == sim_object_joint_type)
                 {
                     jointType = rbd::Joint::Rev;
                 }
@@ -307,20 +347,24 @@ public:
 
                 rbd_mbg_.addBody(b_i);
             }
-
+            // Dummy10 in VRep, by default it's at the origin of the world frame.
             std::string dummyName0(("Dummy"+ boost::lexical_cast<std::string>(0+10)));
             int currentDummy0 = simGetObjectHandle(dummyName0.c_str());
             Eigen::Affine3d eto0 = getObjectTransform(rbd_jointHandles_[0],-1);
-            logger_->info("{} \n{}", dummyName0 , eto0.matrix());
+            logger_->info("InverseKinematics: \n {} \n{}", dummyName0 , eto0.matrix());
             setObjectTransform(currentDummy0,-1,eto0);
 
-            std::vector<int> frameHandles;
+            std::vector<int> frameHandles;  // Joint frames
             frameHandles.push_back(simGetObjectHandle(ikGroupBaseName_.c_str()));
             boost::copy(rbd_jointHandles_,std::back_inserter(frameHandles));
             for(std::size_t i = 0; i < rbd_jointHandles_.size()-1; i++)
             {
                 // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
                 //       thus we are getting the current joint in the frame of the next joint
+
+                // It seems strange that we get the current joint in the frame of the previous one, not the next one?
+                // to means the transform matrix of joint frameHandles[i+1] relative to frameHandles[i]?
+
                 sva::PTransformd to(getObjectPTransform(frameHandles[i+1],frameHandles[i]));
                 // this should be the identity matrix because we set the joints to 0!
                 //sva::PTransformd from(getJointPTransform(rbd_jointHandles_[i+1]));
@@ -332,13 +376,24 @@ public:
                 std::string prevBody = rbd_bodyNames_[i];
                 std::string curJoint = rbd_jointNames_[i];
                 std::string nextBody = rbd_bodyNames_[i+1];
+                /*  prevBody: Body 1 name;
+                    to: Transformation from prevBody to curJoint in prevBody coordinate.
+                    nextBody: Body 2 name.
+                    from:	Transformation from body 2 to joint in body 2 coordinate.
+                    curJoint: Joint between the two body name.
+                    isB1toB2 = true:	If true use the joint forward value as body 1 to body 2 forward value of the joint and the inverse value for body 2 to body 1 joint. If false the behavior is inversed.
+                //  The body coordinate is fixed at one end of the link, whose origin is coincident with the joint coordinate frame.
+                //  Therefore, the to matrix is the transform matrix between two joints and from matrix is Identity().
 
+                */
                 rbd_mbg_.linkBodies(prevBody, to, nextBody, from, curJoint);
+
 
             }
 
-
+            // Can't understand this comment, since didn't see the inverse of v-rep?
             // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
+
             rbd_mbs_.push_back(rbd_mbg_.makeMultiBody(ikGroupBaseName_,isFixed,X_base));
             rbd_mbcs_.push_back(rbd::MultiBodyConfig(rbd_mbs_[0]));
             rbd_mbcs_[0].zero(rbd_mbs_[0]);
@@ -352,6 +407,8 @@ public:
             for (std::size_t i = 0; i < jointHandles_.size(); ++i) {
                simSetJointPosition(jointHandles_[i],initialJointAngles[i]);
             }
+
+            // Set RBDyn joint angles from vrep joint angles.
             SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
 
             rbd::forwardKinematics(simArmMultiBody, simArmConfig);
@@ -389,6 +446,7 @@ public:
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
 
         // Debug output
+        // Every dummy represents a joint.
        for (std::size_t i=0 ; i < jointHandles_.size() ; i++)
        {
           Eigen::Affine3d eto;
@@ -405,9 +463,10 @@ public:
           }
 
           bool dummy_world_frame = true;
+          // The pose of body i is identical with that of joint i?
           if( dummy_world_frame )
           {
-              // visualize each joint position
+              // visualize each joint position in world frame
               sva::PTransform<double>     plinkWorld = simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
@@ -415,6 +474,7 @@ public:
               if(print) logger_->info("{} RBDyn World\n{}",dummyName, linkWorld.matrix());
               setObjectTransform(currentDummy,-1,linkWorld);
               prevDummy=currentDummy;
+              // Transformation from parent(i) to i in body coordinate (Xj*Xt).
               sva::PTransform<double>     plinkToSon = simArmConfig.parentToSon[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkToSon = PTranformToEigenAffine(plinkToSon);
               if(print) logger_->info("{} RBDyn ParentLinkToSon\n{}",dummyName, linkToSon.matrix());
@@ -422,7 +482,8 @@ public:
           }
           else
           {
-              // visualize each joint position
+              // visualize each joint position in the previous joint frame
+
               sva::PTransform<double>     plinkWorld = simArmConfig.parentToSon[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
@@ -439,6 +500,89 @@ public:
        setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
     }
 
+/// @brief  Will apply the stored estimate to the v-rep simulation value
+///
+/// A default transform is saved when construct() was called
+/// so if no estimate has been found that will be used.
+void applyEstimate(){
+    // Dummy10 in VRep, by default it's at the origin of the world frame.
+    std::string opticalTrackerDetectedObjectName("Fiducial#22");
+    std::string robotTipName("RobotFlangeTip");
+    int opticalTrackerDetectedObjectHandle = simGetObjectHandle(opticalTrackerDetectedObjectName.c_str());
+    int robotTipHandle = simGetObjectHandle(robotTipName.c_str());
+    Eigen::Affine3d transformEstimate = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
+    Eigen::Quaterniond eigenQuat(0.105045, 0.0502289 , 0.654843 ,  0.746742);  //wxyz
+    Eigen::Vector3d eigenPos(0.0754499, 0.0975167, 0.0882869);
+
+
+   transformEstimate = eigenQuat;
+   transformEstimate.translation() = eigenPos;
+
+   // set transform between end effector and fiducial
+   auto transform = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
+   std::cout<< "Before resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
+   setObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle, transformEstimate);
+   transform = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
+    std::cout<< "After resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
+//    logger_->info( "Hand Eye Screw Estimation has been set quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
+//                   eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
+}
+  void getPoseFromCSV(std::string filename){
+          // we only have one robot for the moment so the index of it is 0
+        // loadFromBinary();
+        if(time_index == 0){
+            applyEstimate();
+        }
+        const std::size_t simulatedRobotIndex = 0;
+        auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
+        auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
+        auto joint_angles = grl::getJointAnglesFromCSV(filename, time_index++);
+
+        std::vector<float> vrepJointAngles;
+        double angle = 0;
+        int jointIdx=0;
+        for(auto i : jointHandles_)
+        {
+            angle = joint_angles[jointIdx++];
+            simSetJointPosition(i,angle);
+            vrepJointAngles.push_back(angle);
+            std::cout << angle << std::endl;
+        }
+
+        // Set RBDyn joint angles from vrep joint angles.
+        SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
+
+        rbd::forwardKinematics(simArmMultiBody, simArmConfig);
+        rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+
+        debugFrames();
+
+    }
+
+      void replayMarker(std::string filename, int time_index){
+        auto markerPose = grl::getMarkerPoseFromCSV(filename, time_index);
+        Eigen::Vector3d eigenPos(markerPose[0], markerPose[1], markerPose[2]);
+        Eigen::Quaternionf eigenQuat;
+        eigenQuat = Eigen::AngleAxisf(markerPose[3], Eigen::Vector3f::UnitX())
+                  * Eigen::AngleAxisf(markerPose[4], Eigen::Vector3f::UnitY())
+                  * Eigen::AngleAxisf(markerPose[5], Eigen::Vector3f::UnitZ());
+
+        std::string markerPoseFromTracker("Dummy20");
+        int markerPoseHandle = simGetObjectHandle(markerPoseFromTracker.c_str());
+
+        std::string OpticalTrackerBase("OpticalTrackerBase#0");
+        int OpticalTrackerBaseHandle = simGetObjectHandle(OpticalTrackerBase.c_str());
+
+        Eigen::Affine3d transformEstimate = getObjectTransform(markerPoseHandle, OpticalTrackerBaseHandle);
+        transformEstimate = eigenQuat.cast<double>();
+        transformEstimate.translation() = eigenPos;
+
+         // set transform between end effector and fiducial
+        setObjectTransform(markerPoseHandle, OpticalTrackerBaseHandle, transformEstimate);
+        logger_->info( "MarkerPose has been set quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
+                  eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
+
+    }
 
 
     void testPose(){
@@ -471,7 +615,67 @@ public:
         debugFrames();
     }
 
+    void testURDFPose(){
 
+       /// simulation tick time step in float seconds from vrep API call
+       float simulationTimeStep = simGetSimulationTimeStep();
+
+        // we only have one robot for the moment so the index of it is 0
+        const std::size_t simulatedRobotIndex = 0;
+        auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
+        auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
+
+        std::vector<float> vrepJointAngles;
+        double angle = 0.7;
+        for(auto i : jointHandles_)
+        {
+            angle *= -1;
+            simSetJointPosition(i,angle);
+            vrepJointAngles.push_back(angle);
+        }
+
+       /// @todo TODO(ahundt) rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
+
+        ////////////////////////////////////////////////////
+        // Set joints to current arm position in simulation
+        SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
+        rbd::forwardKinematics(simArmMultiBody, simArmConfig);
+        rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+
+        debugFrames();
+    }
+
+    // void replay(){
+    //    loadFromBinary();
+    //    /// simulation tick time step in float seconds from vrep API call
+    //    float simulationTimeStep = simGetSimulationTimeStep();
+
+    //     // we only have one robot for the moment so the index of it is 0
+    //     const std::size_t simulatedRobotIndex = 0;
+    //     auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
+    //     auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
+    //     auto joint_angles = grl::getJointAnglesFromBinary(kukaStatesP_, time_index++);
+
+    //     std::vector<float> vrepJointAngles;
+    //     double angle = 0;
+    //     int jointIdx=0;
+    //     for(auto i : jointHandles_)
+    //     {
+    //         angle = joint_angles[jointIdx++];
+    //         simSetJointPosition(i,angle);
+    //         vrepJointAngles.push_back(angle);
+    //     }
+
+    //    /// @todo TODO(ahundt) rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
+
+    //     ////////////////////////////////////////////////////
+    //     // Set joints to current arm position in simulation
+    //     SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
+    //     rbd::forwardKinematics(simArmMultiBody, simArmConfig);
+    //     rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+
+    //     debugFrames();
+    // }
     /// Configures updateKinematics with the goal the kinematics should aim for
     enum class GoalPosE { realGoalPosition, debugGoalPosition };
     /// Configures updateKinematics the algorithm the kinematics should use for solving
@@ -537,7 +741,7 @@ public:
 
         /// @todo TODO(ahundt) also copy acceleration velocity, torque, etc
 
-
+        // Get the current and desired transform in V-Rep
         const auto& handleParams = VrepRobotArmDriverSimulatedP_->getVrepHandleParams();
         Eigen::Affine3d currentEndEffectorPose =
         getObjectTransform(
@@ -687,6 +891,7 @@ public:
             // use basic inverse kinematics to solve for the position
             //rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.jointIndexByName(jointNames_[6]));
             rbd::InverseKinematics ik(simArmMultiBody,simArmMultiBody.bodyIndexByName(ikGroupTipName_));
+            // Update the simArmMultiBody,simArmConfig based on the inverse kinematics.
             ik.sInverseKinematics(simArmMultiBody,simArmConfig,targetWorldTransform);
             // update the simulated arm position
         }
@@ -745,9 +950,17 @@ public:
     /// blocking call, call in separate thread, just allocates memory
     void run_one(){
        // If true, run real inverse kinematics algorith, if false go to a test pose.
-       const bool ik = true;
-       if(ik) updateKinematics();
-       else   testPose();
+       const bool ik = false;
+       if(ik) {
+           updateKinematics();
+       } else {
+           std::string fileName = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv";
+           // std::cout << "Call Run One..." << std::endl;
+           // testPose();
+           // applyEstimate();
+        //    getPoseFromCSV(fileName);
+           replayMarker(fileName, time_index);
+       }
     }
 
 
@@ -758,6 +971,9 @@ public:
     void solve(){
 
     }
+    /// for the replay purpose.
+    int time_index = 0;
+    fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> kukaStatesP_;
 
     std::shared_ptr<spdlog::logger> logger_;
 

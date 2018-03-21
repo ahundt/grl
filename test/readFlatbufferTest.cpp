@@ -29,8 +29,8 @@ int main(int argc, char* argv[])
 {
     /// Define the file names
     std::string foldname = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
-    std::string kukaTimeStamp = "2018_03_14_22_06_39_Kukaiiwa";
-    std::string FTTimeStamp = "2018_03_14_22_06_29_FusionTrack";
+    std::string kukaTimeStamp = "2018_03_20_19_36_47_Kukaiiwa";
+    std::string FTTimeStamp = "2018_03_20_19_37_08_FusionTrack";
     std::string kukaBinaryfile = foldname + kukaTimeStamp+ ".iiwa";
     std::string fusiontrackBinaryfile = foldname + FTTimeStamp +".flik";
     std::string foldtimestamp = current_date_and_time_string();
@@ -51,6 +51,15 @@ int main(int argc, char* argv[])
 
     std::string FTKUKA_TimeEvent_CSV = foldname + foldtimestamp + "/FTKUKA_TimeEvent.csv";
 
+    auto strRobot = grl::getURDFModel();
+    rbd::MultiBody mb = strRobot.mb;
+    rbd::MultiBodyConfig mbc(mb);
+    rbd::MultiBodyGraph mbg(strRobot.mbg);
+    std::size_t nrJoints = mb.nrJoints();
+    std::size_t nrBodies = strRobot.mb.nrBodies();
+    std::vector<std::string> jointNames;
+    std::cout<<"Joint Size: "<< nrJoints << std::endl;
+
     // Put all the data into the same coordinate system --- Marker frame
     bool inMarkerFrame = false;    // Indicate the marker pose is in marker frame or tracker frame.
     /// Write FT data to CSV
@@ -58,7 +67,7 @@ int main(int argc, char* argv[])
     grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag());
     grl::regularizeTimeEvent(timeEventM_FT);
 
-    std::size_t FT_size = timeEventM_FT.rows();
+    std::size_t FT_size = grl::getStateSize(logKUKAiiwaFusionTrackP);
 
     uint32_t markerID_22 = 22;
     uint32_t markerID_55 = 55;
@@ -137,8 +146,11 @@ int main(int argc, char* argv[])
         // PKPose = Eigen::MatrixXd::Zero(PKPose.rows(), PKPose.cols());
         // PKPose = grl::getPluckerPose(Fudicial_Robot_Pose);
         // grl::writeMatrixToCSV(FudicialToRobotPose_CSV, PK_Pose_Labels, timeEventM_Kuka, PKPose);
-
     }
+
+
+
+
 
 
     // grl::writeFTKUKATimeEventToCSV(FTKUKA_TimeEvent_CSV, logKUKAiiwaFusionTrackP, kukaStatesP);

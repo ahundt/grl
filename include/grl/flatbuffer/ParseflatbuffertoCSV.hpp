@@ -15,7 +15,7 @@
 
 
 // FusionTrack Libraries
-#include <ftkInterface.h>
+// #include <ftkInterface.h>
 
 #include "grl/vector_ostream.hpp"
 #include "flatbuffers/flatbuffers.h"
@@ -74,7 +74,10 @@
 #include <mc_rbdyn_urdf/urdf.h>
 #include "kukaiiwaURDF.h"
 
-
+#include <iterator>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 namespace grl {
 
@@ -97,6 +100,8 @@ namespace grl {
     int col_Pose = PK_Pose_Labels.size();
     enum TimeType { local_receive_time = 0, local_request_time = 1, device_time = 2, time_Y = 3, counterIdx=4};
     enum LabelsType { FT_Pose = 0, Joint = 1, Kuka_Pose= 2};
+
+
 
 
     /// Get CSV labels
@@ -132,6 +137,12 @@ namespace grl {
 
         }
         return true;
+    }
+
+    int getStateSize(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP)  {
+            auto states = logKUKAiiwaFusionTrackP->states();
+            return states->size();
+
     }
 
     /// Return the original timeEvent of fusiontracker
@@ -239,8 +250,9 @@ namespace grl {
         // The first columne is counter
         int row = 0;
         // Eigen::MatrixXd markerPose(state_size, grl::col_Pose);
+        // std::cout <<"State size: " << state_size << "   markerPose rows: " << markerPose.rows() << std::endl;
         int BadCount = 0;
-        for(int i = 0; i<state_size-BadCount; ++i){
+        for(int i = 0; i<state_size; ++i){
             auto kukaiiwaFusionTrackMessage = states->Get(i);
             auto FT_Message = kukaiiwaFusionTrackMessage->deviceState_as_FusionTrackMessage();
             auto FT_Frame = FT_Message->frame();
@@ -253,13 +265,13 @@ namespace grl {
                     auto marker = Makers->Get(markerIndex);
                     auto marker_ID = marker->geometryID();
                     if(marker_ID == makerID){
-
                         auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
                         timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
                         timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
                         timeEventM(row,TimeType::device_time) = timeEvent->device_time();
                         timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
                         timeEventM(row,TimeType::counterIdx) = counter;
+
                         auto Pose = marker->transform();
                         auto FB_r = Pose->position();
                         auto FB_q = Pose->orientation();
@@ -267,30 +279,42 @@ namespace grl {
                         Eigen::Vector3d r(FB_r.x(), FB_r.y(), FB_r.z());
                         Eigen::Quaterniond q(FB_q.w(), FB_q.x(), FB_q.y(), FB_q.z());
                         Eigen::Matrix3d E = q.normalized().toRotationMatrix();
-                        Eigen::Vector3d eulerAngleEigen = RadtoDegree*E.eulerAngles(0,1,2);
+                        Eigen::Vector3d eulerAngleEigen = RadtoDegree*E.eulerAngles(0,1,2); // X Y Z
                         Eigen::RowVectorXd pose(grl::col_Pose);
                         pose << r.transpose(), eulerAngleEigen.transpose();
 
 
-                        if(markerFrame == true) {
-                            Eigen::VectorXd onePose(7);
-                            onePose << r, q.w(), q.x(), q.y(), q.z();
-                            auto markerToCameraTransform = grl::MarkerPoseToAffine3f(onePose);
-                            auto cameraTomarkerTransform = markerToCameraTransform.inverse();
-                            auto _markerPose = grl::Affine3fToMarkerPose(cameraTomarkerTransform);
-                            pose = grl::getPluckerPose(_markerPose);
+                        // if(markerFrame == true) {
+                        //     Eigen::VectorXd onePose(7);
+                        //     onePose << r, q.w(), q.x(), q.y(), q.z();
+                        //     auto markerToCameraTransform = grl::MarkerPoseToAffine3f(onePose);
+                        //     auto cameraTomarkerTransform = markerToCameraTransform.inverse();
+                        //     auto _markerPose = grl::Affine3fToMarkerPose(cameraTomarkerTransform);
+                        //     pose = grl::getPluckerPose(_markerPose);
 
-                        }
+                        // }
+
+
+
                         markerPose.row(row++) = pose;
+
+                        // Once read the specified marker information, skip out of the marker loop.
+                        // It can keep from reading duplicate information.
+                        // Sometimes in the same frame, there exists two markers with the same geometryID
+                        break;
                     }
                 }
+            } else {
+                BadCount++;
             }
         }
         if(row < state_size) {
             markerPose.conservativeResize(row, Eigen::NoChange_t{});
             timeEventM.conservativeResize(row, Eigen::NoChange_t{});
         }
-        std::cout <<"State size: " << state_size <<"  markerPose size: " << markerPose.rows() << "  timeEvent: " << timeEventM.rows() << "  makerID: " << makerID <<std::endl;
+        double diff = static_cast<double>(state_size-markerPose.rows());
+        std::cout <<"State size: " << state_size <<"  markerPose size: " << markerPose.rows()
+                  << "  lossing rate " << diff/state_size << "  makerID: " << makerID <<std::endl;
         return row;
     }
 
@@ -580,8 +604,135 @@ namespace grl {
         return std::move(EEpose);
     }
 
+    mc_rbdyn_urdf::URDFParserResult getURDFModel(){
+        using namespace Eigen;
+	    using namespace sva;
+	    using namespace rbd;
 
+        namespace cst = boost::math::constants;
+        auto strRobot = mc_rbdyn_urdf::rbdyn_from_urdf(XYZSarmUrdf);
+        return std::move(strRobot);
+    }
 
+class CSVRow
+{
+    public:
+        std::string const& operator[](std::size_t index) const
+        {
+            return m_data[index];
+        }
+        std::size_t size() const
+        {
+            return m_data.size();
+        }
+        void readNextRow(std::istream& str)
+        {
+            std::string         line;
+            std::getline(str, line);
+
+            std::stringstream   lineStream(line);
+            std::string         cell;
+
+            m_data.clear();
+            while(std::getline(lineStream, cell, ','))
+            {
+                m_data.push_back(cell);
+            }
+            // This checks for a trailing comma with no data after it.
+            if (!lineStream && cell.empty())
+            {
+                // If there was a trailing comma then add an empty element.
+                m_data.push_back("");
+            }
+        }
+    private:
+        std::vector<std::string>    m_data;
+};
+
+std::istream& operator>>(std::istream& str, CSVRow& data)
+{
+    data.readNextRow(str);
+    return str;
+}
+
+class CSVIterator
+{
+    public:
+        typedef std::input_iterator_tag     iterator_category;
+        typedef CSVRow                      value_type;
+        typedef std::size_t                 difference_type;
+        typedef CSVRow*                     pointer;
+        typedef CSVRow&                     reference;
+
+        CSVIterator(std::istream& str)  :m_str(str.good()?&str:NULL) { ++(*this); }
+        CSVIterator()                   :m_str(NULL) {}
+
+        // Pre Increment
+        CSVIterator& operator++()               {if (m_str) { if (!((*m_str) >> m_row)){m_str = NULL;}}return *this;}
+        // Post increment
+        CSVIterator operator++(int)             {CSVIterator    tmp(*this);++(*this);return tmp;}
+        CSVRow const& operator*()   const       {return m_row;}
+        CSVRow const* operator->()  const       {return &m_row;}
+
+        bool operator==(CSVIterator const& rhs) {return ((this == &rhs) || ((this->m_str == NULL) && (rhs.m_str == NULL)));}
+        bool operator!=(CSVIterator const& rhs) {return !((*this) == rhs);}
+    private:
+        std::istream*       m_str;
+        CSVRow              m_row;
+};
+
+    /// Get the joint angles at specific time point (index)
+
+    /// @return jointPosition, Eigen vector which contains joint position of the seven joints.
+    Eigen::VectorXf getJointAnglesFromCSV(std::string filename, int rowIdx){
+
+        // std::ifstream     file("/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv");
+        std::ifstream     file(filename);
+        grl::CSVIterator loop(file);
+        std::size_t joint_size = 7;
+        Eigen::VectorXf jointPosition(joint_size);
+        int row = 0;
+
+        for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
+        {
+
+            if(row == rowIdx){
+                for(int joint_index = 0; joint_index<joint_size; ++joint_index){
+
+                    jointPosition(joint_index) = std::stof((*loop)[joint_index+5]);
+                }
+
+            }
+            row++;
+        }
+        return jointPosition;
+    }
+
+    /// Get the joint angles at specific time point (index)
+
+    /// @return jointPosition, Eigen vector which contains joint position of the seven joints.
+    Eigen::VectorXf getMarkerPoseFromCSV(std::string filename, int rowIdx){
+
+        std::ifstream file(filename);
+        grl::CSVIterator loop(file);
+        std::size_t size = 6;
+        Eigen::VectorXf markerpose(size);
+        int row = 0;
+
+        for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
+        {
+
+            if(row == rowIdx){
+                for(int index = 0; index<size; ++index){
+
+                    markerpose(index) = std::stof((*loop)[index+5]);
+                }
+
+            }
+            row++;
+        }
+        return markerpose;
+    }
 
 
 

@@ -97,27 +97,43 @@ void addFrame() {
     auto robotTipInFirstTipBase      = firstRobotTipInRobotBaseInverse * robotTipInRobotBase;        // B_0_Inv * B_i
     auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;  // A_0_Inv * A_i
 
+    auto rvec1 = eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation());
+    auto tvec1 = robotTipInFirstTipBase.translation();
+    auto rvec2 = eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation());
+    auto tvec2 = fiducialInFirstFiducialBase.translation();
 
-    rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation()        ));
-    tvecsArm.push_back(                                      robotTipInFirstTipBase.translation()     );
+    if (rvec1.norm() != 0 && rvec2.norm() != 0) {
 
-    rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
-    tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
+        rvecsArm.push_back(rvec1);
+        tvecsArm.push_back(tvec1);
+
+        rvecsFiducial.push_back(rvec2);
+        tvecsFiducial.push_back(tvec2);
+    } else {
+      std::cout << "Empty Vector" << std::endl;
+      std::cout << rvec1 << std::endl;
+      std::cout << rvec2 << std::endl;
+    }
 
 
    if(debug){
 
-     logger_->info( "\nrobotTipInRobotBase: \n{}", poseString(robotTipInRobotBase));
-     logger_->info( "\nfiducialInOpticalTrackerBase: \n{}", poseString(fiducialInOpticalTrackerBase));
+       std::cout << "rvec1: " << std::endl << rvec1 << std::endl;
+       std::cout << "tvec1: " << std::endl << tvec1 << std::endl;
+       std::cout << "rvec2: " << std::endl << rvec2 << std::endl;
+       std::cout << "tvec2: " << std::endl << tvec2 << std::endl;
 
-     logger_->info( "\nrobotTipInFirstTipBase: \n{}", poseString(robotTipInFirstTipBase));
-     logger_->info( "\nfiducialInFirstFiducialBase: \n{}", poseString(fiducialInFirstFiducialBase));
+       logger_->info( "\nrobotTipInRobotBase: \n{}", poseString(robotTipInRobotBase));
+       logger_->info( "\nfiducialInOpticalTrackerBase: \n{}", poseString(fiducialInOpticalTrackerBase));
 
-     // print simulation transfrom from tip to fiducial
-     Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
-     logger_->info( poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
+       logger_->info( "\nrobotTipInFirstTipBase: \n{}", poseString(robotTipInFirstTipBase));
+       logger_->info( "\nfiducialInFirstFiducialBase: \n{}", poseString(fiducialInFirstFiducialBase));
 
-     BOOST_VERIFY(robotTipInFirstTipBase.translation().norm() - fiducialInFirstFiducialBase.translation().norm() < 0.1);
+       // print simulation transfrom from tip to fiducial
+       Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
+       logger_->info( poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
+
+       //BOOST_VERIFY(robotTipInFirstTipBase.translation().norm() - fiducialInFirstFiducialBase.translation().norm() < 0.1);
    }
 }
 

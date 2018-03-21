@@ -265,7 +265,7 @@ robone.cutBoneScript=function()
 		end
 	end
 
-	target=simGetObjectHandle('RobotMillTipTarget')
+	target = simGetObjectHandle('RobotMillTipTarget')
 	targetBase=simGetObjectHandle('Robotiiwa')
 	bone=simGetObjectHandle('FemurBone')
 	table=simGetObjectHandle('highTable')
@@ -348,13 +348,13 @@ robone.handEyeCalibScript=function()
 	maxJerk={jerk,jerk,jerk,jerk*DtoR}
 	targetVel={targetV,targetV,targetV,targetV*DtoR}
 
-	-- target=simGetObjectHandle('RobotMillTipTarget')
-	target=simGetObjectHandle('RobotFlangeTipTarget')
+	target=simGetObjectHandle('RobotMillTipTarget')
+	-- target=simGetObjectHandle('RobotFlangeTipTarget')
 	targetBase=simGetObjectHandle('Robotiiwa')
 	path=simGetObjectHandle('HandEyeCalibPath')
 	circleCalib = simGetObjectHandle('CircleCalibPath')
 	endeffectorTarget=simGetObjectHandle('RobotMillTipTarget')
-	numSteps=36
+	numSteps=16
 
 	startP,startO=grl.getTransformBetweenHandles(target,targetBase)
 
@@ -370,16 +370,18 @@ robone.handEyeCalibScript=function()
 		simDisplayDialog('Error','HandEyeCalibration plugin was not found. (v_repExtHandEyeCalibration.dll)&&nSimulation will not run correctly',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
 	else
 
+		simWait(30.0)
 		-- Run the hand eye calibration
 
 		-- simExtHandEyeCalibStart()
 		-- call handEyeCalibrationPG->construct();
-		simExtHandEyeCalibStart('Robotiiwa' , 'RobotFlangeTipTarget', 'OpticalTrackerBase', 'Fiducial#22')
+		simExtHandEyeCalibStart('Robotiiwa' , 'RobotMillTipTarget', 'OpticalTrackerBase', 'Fiducial#22')
         -- Fill out the vectors, and then pass these vectors to
+
 		for i=0,1,1/numSteps do
 			p,o=grl.getPathPointInWorldFrame(path,i)
 			simRMLMoveToPosition(target,-1,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,p,o,nil)
-			simWait(0.5)
+			simWait(0.2) --0.5
 			simExtHandEyeCalibAddFrame()
 			simWait(0.25)
 		end
@@ -564,6 +566,7 @@ robone.configureOpticalTracker=function()
 				                                   '50000'                     -- GeometryID
 				)
 
+
 			end
 
 
@@ -575,11 +578,14 @@ robone.configureOpticalTracker=function()
 				simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: Moving bone marker position relative to the optical tracker.')
 				simExtAtracsysFusionTrackClearObjects()
 			-- The bone should move  (bone is attached to Fiducial #55)
+
 				simExtAtracsysFusionTrackAddObject('Fiducial#55',           -- ObjectToMove
 												'OpticalTrackerBase#0',  -- FrameInWhichToMoveObject
 												'Fiducial#55',           -- ObjectBeingMeasured
 												'55'                     -- GeometryID
 												)
+
+
 				robothandle = simGetObjectHandle ('LBR_iiwa_14_R820#0')
 				--trankerhandle = simGetObjectHandle ('OpticalTrackerBase#0')
 				robotToWorldM = simGetObjectMatrix(robothandle, -1)

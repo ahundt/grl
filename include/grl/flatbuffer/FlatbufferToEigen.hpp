@@ -4,23 +4,11 @@
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 // // grl
 
-/// Can't include the vrep header files.
-// #include "grl/vrep/Vrep.hpp"
-// #include "grl/vrep/VrepRobotArmDriver.hpp"
-// #include "grl/vrep/VrepRobotArmJacobian.hpp"
-
-// #include "grl/vrep/Eigen.hpp"
-// #include "grl/vrep/Vrep.hpp"
-// #include "camodocal/calib/HandEyeCalibration.h"
-
-// #include "v_repLib.h"
-// FusionTrack Libraries
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "camodocal/EigenUtils.h"
-
-
+#include <SpaceVecAlg/SpaceVecAlg>
+#include "grl/vrep/SpaceVecAlg.hpp"
 
 
 namespace grl {
@@ -65,7 +53,26 @@ namespace grl {
             pose << r.transpose(), eulerAngleEigen.transpose();
             PKPose.row(i) = pose;
         }
-        return PKPose;
+        return std::move(PKPose);
+    }
+
+    std::vector<sva::PTransformd> getPTransform(Eigen::MatrixXd& PKPose ) {
+        std::size_t pose_size = PKPose.size();
+        std::vector<sva::PTransformd> PTPose;
+        for(int i=0; i<pose_size; ++i) {
+
+            Eigen::VectorXd oneCartesianPos = PKPose.row(i);
+            Eigen::Vector3d trans;
+            trans << oneCartesianPos[0], oneCartesianPos[1], oneCartesianPos[2];
+            Eigen::Matrix3d m;
+            m = Eigen::AngleAxisd(oneCartesianPos[5], Eigen::Vector3d::UnitX())
+              * Eigen::AngleAxisd(oneCartesianPos[4], Eigen::Vector3d::UnitY())
+              * Eigen::AngleAxisd(oneCartesianPos[3], Eigen::Vector3d::UnitZ());
+
+            sva::PTransformd onePTpose(m, trans);
+            PTPose.push_back(onePTpose);
+        }
+        return std::move(PTPose);
     }
 
     Eigen::RowVectorXd getPluckerPose(const Eigen::VectorXd& markerPose){
