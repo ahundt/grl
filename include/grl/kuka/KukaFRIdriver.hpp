@@ -103,13 +103,27 @@ public:
     }
 
     const Params &getParams() { return params_; }
+    
+    /// Saves any log files and shuts down the driver
+    /// Called by the destructor, but since this may take a while
+    /// a separate funtion is provided so the process can be started in parallel.
+    void destruct()
+    {
+        m_shouldStop = true;
+        device_driver_workP_.reset();
+        if (m_driverThread)
+        {
+        m_driverThread->join();
+        }
+
+        for(auto saveThreadP : m_saveRecordingThreads)
+        {
+        saveThreadP->join();
+        }
+    }
 
     ~KukaFRIdriver() {
-        device_driver_workP_.reset();
-        if (driver_threadP) {
-            device_driver_io_service.stop();
-            driver_threadP->join();
-        }
+        destruct();
     }
 
     /// gets the number of seconds in one message exchange "tick" aka "cycle",
@@ -612,7 +626,9 @@ public:
         for(int i = 0; i<KUKA::LBRState::NUM_DOF; i++) {
             position.push_back(armState.position[i]);
             torque.push_back(armState.torque[i]);
-            jointIpoPostion.push_back(armState.ipoJointPosition[i]);
+            if(armState.ipoJointPosition.size() > i){
+                jointIpoPostion.push_back(armState.ipoJointPosition[i]);
+            }
             externalTorque.push_back(armState.externalTorque[i]);
         }
         flatbuffers::Offset<grl::flatbuffer::JointState> jointStatetab = grl::toFlatBuffer(*m_logFileBufferBuilderP, position, velocity, acceleration, torque);

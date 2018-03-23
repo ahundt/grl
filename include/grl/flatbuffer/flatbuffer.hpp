@@ -37,7 +37,7 @@ namespace grl {
                 flatbuffers::LoadFile(jsonPath.c_str(), binary, &jsonfile);
         if (!ok) {
             printf("couldn't load files!\n");
-            return nullptr;
+            return false;
         }
 
         // parse schema first, so we can use it to parse the data after
