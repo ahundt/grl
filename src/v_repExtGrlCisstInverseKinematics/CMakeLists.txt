@@ -62,7 +62,7 @@ if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_
                     ${Nanopb_LIBRARIES}
                     ${CMAKE_THREAD_LIBS_INIT}
                     ${FLATBUFFERS_STATIC_LIB}
-                    -ldl
+                    ${LINUX_ONLY_LIBS}
                     KukaFRIClient
                     mc_rbdyn_urdf
                     SpaceVecAlg #TODO: re-enable when exported targets are correct again

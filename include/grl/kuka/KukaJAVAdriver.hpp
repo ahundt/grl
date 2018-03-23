@@ -188,7 +188,7 @@ class KukaJAVAdriver : public std::enable_shared_from_this<KukaJAVAdriver> {
                 /// @todo TODO(ahundt) Need to switch back to an appropriate exception rather than exiting so VREP isn't taken down.
                 /// @todo TODO(ahundt) switch from linux socket to boost::asio::ip::udp::socket, see Kuka.hpp and KukaFRIdriver.hpp for examples, and make use of KukaUDP class.
                 /// After creation of the socket, bind function binds the socket to the address and port number specified in local_sockaddr(custom data structure).
-                if (bind(socket_local, (struct sockaddr *)&local_sockaddr, sizeof(local_sockaddr)) < 0) {
+                if (::bind(socket_local, (struct sockaddr *)&local_sockaddr, sizeof(local_sockaddr)) < 0) {
                     printf("Error binding sr_joint!\n");
                     BOOST_THROW_EXCEPTION(std::runtime_error("KukaJAVAdriver Error opening socket. Check that the port is available, and that all the cables are connected tightly. If you have no other options try restarting your computer."));
                 }
