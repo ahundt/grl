@@ -60,7 +60,6 @@ message(STATUS v_repExtGrlInverseKinematics BUILDING!!!)
     ${Nanopb_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${FLATBUFFERS_STATIC_LIB}
-    -lboost_iostreams -lboost_system -lboost_filesystem
     -ldl
     KukaFRIClient
     mc_rbdyn_urdf

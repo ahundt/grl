@@ -104,7 +104,7 @@ basis_project (
   # dependencies
   DEPENDS
     FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
-    Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,chrono}
+    Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,chrono,iostreams}
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>

@@ -109,8 +109,7 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
     ${Nanopb_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${FLATBUFFERS_STATIC_LIB}
-    -lboost_iostreams -lboost_system -lboost_filesystem
-    -ldl
+    ${LINUX_ONLY_LIBS}
     KukaFRIClient
     mc_rbdyn_urdf
     SpaceVecAlg #TODO: re-enable when exported targets are correct again
@@ -123,8 +122,7 @@ if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
     basis_target_link_libraries(KinematicsCalibration_test
     ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}
     ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${FLATBUFFERS_STATIC_LIB}
-    -lboost_iostreams -lboost_system -lboost_filesystem
-    -ldl
+    ${LINUX_ONLY_LIBS}
     mc_rbdyn_urdf
     SpaceVecAlg #TODO: re-enable when exported targets are correct again
     sch-core
