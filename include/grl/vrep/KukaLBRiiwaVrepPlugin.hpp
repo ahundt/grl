@@ -177,12 +177,12 @@ public:
 
     /// start recording the kuka state data in memory
     /// return true on success, false on failure
-    bool start_recording()
+    bool start_recording(int single_buffer_limit_bytes)
     {
         if(kukaDriverP_.get() != nullptr) {
-            return kukaDriverP_->start_recording();
+            return kukaDriverP_->start_recording(single_buffer_limit_bytes);
         }
-        std::cout << "kukaDriverP_ is nullptr..." << std::endl;
+        std::cout << "kukaDriverP_ is nullptr..." << single_buffer_limit_bytes << std::endl;
         return false;
     }
     /// stop recording the kuka state data in memory

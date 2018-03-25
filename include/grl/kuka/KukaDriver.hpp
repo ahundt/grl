@@ -230,10 +230,10 @@ namespace grl { namespace robot { namespace arm {
 
     /// start recording the kuka state data in memory
     /// return true on success, false on failure
-    bool start_recording()
+    bool start_recording(int single_buffer_limit_bytes)
     {
         if(FRIdriverP_.get() != nullptr) {
-            return FRIdriverP_->start_recording();
+            return FRIdriverP_->start_recording(single_buffer_limit_bytes);
         }
         return false;
     }

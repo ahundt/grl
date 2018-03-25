@@ -47,6 +47,9 @@ std::shared_ptr<grl::vrep::KukaVrepPlugin> kukaVrepPluginPG;
 std::shared_ptr<spdlog::logger>            loggerPG;
 /// Recording will begin when the simulation starts running, and log files will be saved every time it stops running.
 bool recordWhileSimulationIsRunningG = false;
+const std::size_t MegaByte = 1024*1024;
+// If we write too large a flatbuffer
+std::size_t single_buffer_limit_bytes = 20*MegaByte;
 
 const int inArgs_KUKA_LBR_IIWA_START[]={
  16,                   //   Example Value              // Parameter name
@@ -65,7 +68,7 @@ const int inArgs_KUKA_LBR_IIWA_START[]={
  sim_lua_arg_string,0, //  "30200"                   , // RemoteHostKukaKoniUDPPort
  sim_lua_arg_string,0, //  "JAVA"                    , // KukaCommandMode (options are "JAVA", "FRI")
  sim_lua_arg_string,0, //  "FRI"                     , // KukaMonitorMode (options are "JAVA", "FRI")
- sim_lua_arg_string,0, //  "IK_Group1_iiwa"            // IKGroupName (VREP built in inverse kinematics group)
+ sim_lua_arg_string,0  //  "IK_Group1_iiwa"            // IKGroupName (VREP built in inverse kinematics group)
 };
 
 std::string LUA_KUKA_LBR_IIWA_START_CALL_TIP("number result=simExtKukaLBRiiwaStart(string_table JointHandles , string RobotTipHandle, string RobotFlangeTipHandle, string RobotTargetHandle, string RobotTargetBaseHandle, string RobotModel, string LocalUDPAddress, string LocalUDPPort, string RemoteUDPAddress, string LocalHostKukaKoniUDPAddress, string LocalHostKukaKoniUDPPort, string RemoteHostKukaKoniUDPAddress, string RemoteHostKukaKoniUDPPort, string KukaCommandMode, string KukaMonitorMode, string IKGroupName) -- KukaCommandMode options are JAVA and FRI");
@@ -161,7 +164,10 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 /////////////////////////////////////////////////////////////////////////////////////////
 ///  LUA function to actually start recording the fusiontrack frame data in memory.
 /////////////////////////////////////////////////////////////////////////////////////////
-
+const int inArgs_LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING[] = {
+    1,
+    sim_lua_arg_float,0  // Signle buffer limit
+};
 // simExtKUKAiiwaStartRecording
 void LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING(SLuaCallBack *p)
 {
@@ -170,9 +176,11 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING(SLuaCallBack *p)
     if (kukaVrepPluginPG)
     {
         std::string log_message("Starting the recording of KUKAiiwa state data in memory.\n");
+        std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         simAddStatusbarMessage(log_message.c_str());
         loggerPG->info(log_message);
-        success = kukaVrepPluginPG->start_recording();
+        single_buffer_limit_bytes = inData->at(0).floatData[0];
+        success = kukaVrepPluginPG->start_recording(single_buffer_limit_bytes);
     }
     D.pushOutData(CLuaFunctionDataItem(success));
     D.writeDataToLua(p);
@@ -252,11 +260,12 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_CLEAR_RECORDING(SLuaCallBack *p)
 #define LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING_COMMAND "simExtKukaLBRiiwaRecordWhileSimulationIsRunning"
 
 const int inArgs_LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING[] = {
-    1,
-    sim_lua_arg_bool, 1 // string file name
+    2,
+    sim_lua_arg_bool, 1, // string file name
+    sim_lua_arg_float,0  // Signle buffer limit
 };
 
-std::string LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING_CALL_TIP("number result=simExtKukaLBRiiwaRecordWhileSimulationIsRunning(bool recording)");
+std::string LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING_CALL_TIP("number result=simExtKukaLBRiiwaRecordWhileSimulationIsRunning(bool recording, float single_buffer_limit_bytes)");
 
 void LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCallBack *p)
 {
@@ -270,13 +279,14 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCallBack *
     {
         std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         recordWhileSimulationIsRunningG = inData->at(0).boolData[0];
+        single_buffer_limit_bytes = inData->at(1).floatData[0];
         std::cout << "Start recording while simulation is running..." << recordWhileSimulationIsRunningG << std::endl;
         if (kukaVrepPluginPG && recordWhileSimulationIsRunningG)
         {
             std::string log_message = std::string("simExtKukaLBRiiwaRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
             simAddStatusbarMessage(log_message.c_str());
             loggerPG->info(log_message);
-            kukaVrepPluginPG->start_recording();
+            kukaVrepPluginPG->start_recording(single_buffer_limit_bytes);
         }
 
         D.pushOutData(CLuaFunctionDataItem(success));
@@ -352,10 +362,15 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 
     int inArgs1[] = {0}; // no input arguments
     /// Register functions to control the recording procedure of the fusiontrack frame data in memory
-    simRegisterCustomLuaFunction("simExtKukaLBRiiwaStartRecording", "number result=simExtKukaLBRiiwaStartRecording()", inArgs1, LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING);
     simRegisterCustomLuaFunction("simExtKukaLBRiiwaStopRecording", "number result=simExtKukaLBRiiwaStopRecording()", inArgs1, LUA_SIM_EXT_KUKA_LBR_IIWA_STOP_RECORDING);
     simRegisterCustomLuaFunction("simExtKukaLBRiiwaClearRecording", "number result=simExtKukaLBRiiwaClearRecording()", inArgs1, LUA_SIM_EXT_KUKA_LBR_IIWA_CLEAR_RECORDING);
 
+    CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING, inArgs);
+    simRegisterCustomLuaFunction("simExtKukaLBRiiwaStartRecording", 
+                                 "number result=simExtKukaLBRiiwaStartRecording(simxFloat singlebuffersize)", 
+                                  &inArgs[0],
+                                  LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING);
+    
     CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_LUA_SIM_EXT_KUKA_LBR_IIWA_SAVE_RECORDING, inArgs);
     simRegisterCustomLuaFunction(LUA_SIM_EXT_KUKA_LBR_IIWA_SAVE_RECORDING_COMMAND,
                                  LUA_SIM_EXT_KUKA_LBR_IIWA_SAVE_RECORDING_CALL_TIP.c_str(),
@@ -502,7 +517,7 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 //            loggerPG->error( initerr );
 //        }
         if(kukaVrepPluginPG && recordWhileSimulationIsRunningG) {
-            kukaVrepPluginPG->start_recording();
+            kukaVrepPluginPG->start_recording(single_buffer_limit_bytes);
         }
 	}
 

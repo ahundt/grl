@@ -346,9 +346,10 @@ public:
 
   /// start recording the fusiontrack frame data in memory
   /// return true on success, false on failure
-  bool start_recording()
+  bool start_recording(int _single_buffer_limit_bytes)
   {
-
+    single_buffer_limit_bytes = _single_buffer_limit_bytes*MegaByte;
+   
     m_isRecording = true;
     return m_isRecording;
   }
@@ -444,10 +445,7 @@ private:
   /// Reads data off of the real optical tracker device in a separate thread
   void update()
   {
-    const std::size_t MegaByte = 1024*1024;
-    // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 200*MegaByte;
-    const std::size_t single_buffer_limit_messages = 600000;
+
     std::vector<uint64_t> deviceSerialNumbers;
     try
     {
@@ -582,6 +580,11 @@ private:
   //
   // this is because sometimes you want to move the optical tracker itself.
   GeometryIDToMotionConfigParams m_geometryIDToMotionConfigParams;
+
+  const std::size_t MegaByte = 1024*1024;
+  // If we write too large a flatbuffer
+  std::size_t single_buffer_limit_bytes = 100*MegaByte;
+  const std::size_t single_buffer_limit_states = 1350000000;
 #ifdef HAVE_spdlog
   std::shared_ptr<spdlog::logger> loggerP;
 #endif // HAVE_spdlog

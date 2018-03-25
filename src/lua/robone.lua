@@ -11,6 +11,9 @@
 robone = {}
 
 require "grl"
+
+KUKA_single_buffer_limit_bytes = 16   -- MB
+FB_single_buffer_limit_bytes = 180   -- MB
 ------------------------------------------
 -- Move the arm along the cut file path --
 ------------------------------------------
@@ -229,9 +232,7 @@ robone.cutBoneScript=function()
 	end
 
 	function fcv(ikGroupHandle, CreatedPathHandle, maxVelocity, maxForce, measuredForce, pathLength)
-	    print("run in fcv............... ")
-
-		-- selection parameter for simRMLPos for default behavior
+	    -- selection parameter for simRMLPos for default behavior
 		selection = {1,1,1,1,1,1,1}
 
 		-- Get position (in meters) on the path (0 = start, pathLength = end)
@@ -354,7 +355,7 @@ robone.handEyeCalibScript=function()
 	path=simGetObjectHandle('HandEyeCalibPath')
 	circleCalib = simGetObjectHandle('CircleCalibPath')
 	endeffectorTarget=simGetObjectHandle('RobotMillTipTarget')
-	numSteps=16
+	numSteps=18
 
 	startP,startO=grl.getTransformBetweenHandles(target,targetBase)
 
@@ -445,8 +446,8 @@ robone.startRealArmDriverScript=function()
 			'FRI'                     , -- KukaMonitorMode (options are FRI, JAVA)
 			"IK_Group1_iiwa"            -- IKGroupName
 		)
-
-		simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true)
+         
+		simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true, KUKA_single_buffer_limit_bytes)
 	else
 		simDisplayDialog('Error','KukaLBRiiwa plugin was not found. (v_repExtKukaLBRiiwa.dll)&&nSimulation will run without hardware',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
 	end
@@ -594,12 +595,13 @@ robone.configureOpticalTracker=function()
 					print(robotToWorldM[i].." ")
 				end
 			end
-
+            
+			
 			-- Start collecting data from the optical tracker
 			simExtAtracsysFusionTrackStart()
 			-- Test the below one
 			-- Enable the recordDataScript() to call the method below.
-			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true)
+			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true, FB_single_buffer_limit_bytes)
             --------------------------------------------------
 			-- Get the relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820_link8
 			--[[

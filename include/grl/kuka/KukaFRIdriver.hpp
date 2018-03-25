@@ -434,11 +434,13 @@ public:
 
     /// start recording the kuka state data in memory
     /// return true on success, false on failure
-    bool start_recording()
+    bool start_recording(int _single_buffer_limit_bytes)
     {
 
         m_isRecording = true;
+        single_buffer_limit_bytes = _single_buffer_limit_bytes*MegaByte;
         std::cout<< "m_isRecording is set to " << m_isRecording << std::endl;
+        std::cout<< "Kuka single_buffer_limit_bytes:  " << _single_buffer_limit_bytes << " MB" << std::endl;
         return m_isRecording;
     }
     /// stop recording the kuka state data in memory
@@ -765,10 +767,7 @@ private:
 /// Check the size of the buffer, when it hit the limit, save it to disk.
 void saveToDisk()
   {
-    const std::size_t MegaByte = 1024*1024;
-    // If we write too large a flatbuffer
-    const std::size_t single_buffer_limit_bytes = 24*MegaByte;
-    const std::size_t single_buffer_limit_states = 1350000000;
+   
 
     // run the primary update loop in a separate thread
     bool saveFileNow = false;
@@ -815,7 +814,12 @@ private:
     /// @todo TODO(ahundt) the threads that saved files will build up forever, figure out how they can clear themselves out
     std::vector<std::shared_ptr<std::thread>> m_saveRecordingThreads;
 
-     grl::TimeEvent time_event_stamp;
+    grl::TimeEvent time_event_stamp;
+
+    const std::size_t MegaByte = 1024*1024;
+    // If we write too large a flatbuffer
+    std::size_t single_buffer_limit_bytes = 20*MegaByte;
+    const std::size_t single_buffer_limit_states = 1350000000;
 
     #ifdef HAVE_spdlog
         std::shared_ptr<spdlog::logger> loggerP;
