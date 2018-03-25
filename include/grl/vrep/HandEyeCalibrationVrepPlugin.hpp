@@ -9,11 +9,17 @@
 
 #include "grl/vrep/Eigen.hpp"
 #include "grl/vrep/Vrep.hpp"
+#include "grl/time.hpp"
 #include "camodocal/calib/HandEyeCalibration.h"
 
 #include "v_repLib.h"
 
 #include "grl/vector_ostream.hpp"
+// boost::filesystem
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <iostream>
+
 
 namespace grl {
 
@@ -173,11 +179,15 @@ void estimateHandEyeScrew(){
      logger_->info(  "\n{}", poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
    }
 
+   
+
+
    logger_->info( "\n{}", poseString(transformEstimate,"estimated RobotTipToFiducial:"));
 
    applyEstimate();
 
    // print results
+   
    Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
    logger_->info( "Hand Eye Screw Estimate quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
                   eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
@@ -185,6 +195,16 @@ void estimateHandEyeScrew(){
    logger_->info( "Optical Tracker Base Measured quat wxyz\n: {} ,  {} , {} , {} \n translation xyz: {} , {}, {}",
      detectedObjectQuaternion[0], detectedObjectQuaternion[1], detectedObjectQuaternion[2], detectedObjectQuaternion[3],
      detectedObjectPosition[0], detectedObjectPosition[1], detectedObjectPosition[2]);
+
+
+     // Write the hand eye calibration result into a file
+   auto myFile = boost::filesystem::current_path() /"HandEyeCalibration_Result.txt";
+   boost::filesystem::ofstream ofs(myFile/*.native()*/);
+   // boost::archive::text_oarchive ta(ofs);
+   ofs <<"\n\n=========== " + current_date_and_time_string() + " =======================================\n";
+   ofs << "Hand Eye Screw Estimate quat wxyz:  " << eigenQuat.w() << "  "<< eigenQuat.x() << "  " << eigenQuat.y() << "  " << eigenQuat.z() 
+      << "\ntranslation xyz: " << transformEstimate.translation().x() << "  " 
+      << transformEstimate.translation().y() << "  " << transformEstimate.translation().z();
 
 }
 
