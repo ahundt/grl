@@ -59,7 +59,7 @@
 const double RadtoDegree = 180/3.14159265359;
 const double MeterToMM = 1000;
 
-std::string foldname = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
+std::string foldname = "/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/";
 
 std::string foldtimestamp = current_date_and_time_string();
 

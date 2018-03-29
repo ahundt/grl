@@ -28,9 +28,9 @@
 int main(int argc, char* argv[])
 {
     /// Define the file names
-    std::string foldname = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
-    std::string kukaTimeStamp = "2018_03_20_19_36_47_Kukaiiwa";
-    std::string FTTimeStamp = "2018_03_20_19_37_08_FusionTrack";
+    std::string foldname = "/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/";
+    std::string kukaTimeStamp = "2018_03_26_19_06_21_Kukaiiwa";
+    std::string FTTimeStamp = "2018_03_26_19_06_21_FusionTrack";
     std::string kukaBinaryfile = foldname + kukaTimeStamp+ ".iiwa";
     std::string fusiontrackBinaryfile = foldname + FTTimeStamp +".flik";
     std::string foldtimestamp = current_date_and_time_string();
@@ -62,16 +62,17 @@ int main(int argc, char* argv[])
 
     // Put all the data into the same coordinate system --- Marker frame
     bool inMarkerFrame = false;    // Indicate the marker pose is in marker frame or tracker frame.
+    uint32_t markerID_22 = 22;
+    uint32_t markerID_55 = 55;
+    uint32_t markerID_50000 = 50000;
     /// Write FT data to CSV
     fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> logKUKAiiwaFusionTrackP = fbs_tk::open_root<grl::flatbuffer::LogKUKAiiwaFusionTrack>(fusiontrackBinaryfile);
-    grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag());
+    grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), markerID_22);
     grl::regularizeTimeEvent(timeEventM_FT);
 
     std::size_t FT_size = grl::getStateSize(logKUKAiiwaFusionTrackP);
 
-    uint32_t markerID_22 = 22;
-    uint32_t markerID_55 = 55;
-    uint32_t markerID_50000 = 50000;
+   
     timeEventM_FT = grl::MatrixXd::Zero(FT_size, timeEventM_FT.cols());
     Eigen::MatrixXd markerPose(FT_size, grl::col_Pose);
     // Get the pose of the marker 22.
@@ -153,7 +154,7 @@ int main(int argc, char* argv[])
 
 
 
-    // grl::writeFTKUKATimeEventToCSV(FTKUKA_TimeEvent_CSV, logKUKAiiwaFusionTrackP, kukaStatesP);
+    grl::writeFTKUKATimeEventToCSV(FTKUKA_TimeEvent_CSV, logKUKAiiwaFusionTrackP, kukaStatesP, markerID_22);
     return 0;
 }
 

@@ -12,8 +12,8 @@ robone = {}
 
 require "grl"
 
-KUKA_single_buffer_limit_bytes = 16   -- MB
-FB_single_buffer_limit_bytes = 180   -- MB
+KUKA_single_buffer_limit_bytes = 15   -- MB
+FB_single_buffer_limit_bytes = 160   -- MB
 ------------------------------------------
 -- Move the arm along the cut file path --
 ------------------------------------------
@@ -355,7 +355,7 @@ robone.handEyeCalibScript=function()
 	path=simGetObjectHandle('HandEyeCalibPath')
 	circleCalib = simGetObjectHandle('CircleCalibPath')
 	endeffectorTarget=simGetObjectHandle('RobotMillTipTarget')
-	numSteps=18
+	numSteps=24
 
 	startP,startO=grl.getTransformBetweenHandles(target,targetBase)
 

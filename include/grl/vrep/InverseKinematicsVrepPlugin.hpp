@@ -76,6 +76,12 @@
 
 #include <spdlog/spdlog.h>
 
+// boost::filesystem
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <iostream>
+
 
 // FusionTrack Libraries
 // #include <ftkInterface.h>
@@ -88,6 +94,7 @@
 // https://github.com/jrl-umi3218/mc_rbdyn_urdf
 #include <mc_rbdyn_urdf/urdf.h>
 #include "grl/flatbuffer/kukaiiwaURDF.h"
+#include "grl/flatbuffer/CSVIterator.hpp"
 
 namespace grl {
 namespace vrep {
@@ -505,14 +512,20 @@ public:
 /// A default transform is saved when construct() was called
 /// so if no estimate has been found that will be used.
 void applyEstimate(){
-    // Dummy10 in VRep, by default it's at the origin of the world frame.
+   
     std::string opticalTrackerDetectedObjectName("Fiducial#22");
     std::string robotTipName("RobotFlangeTip");
     int opticalTrackerDetectedObjectHandle = simGetObjectHandle(opticalTrackerDetectedObjectName.c_str());
     int robotTipHandle = simGetObjectHandle(robotTipName.c_str());
     Eigen::Affine3d transformEstimate = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
-    Eigen::Quaterniond eigenQuat(0.105045, 0.0502289 , 0.654843 ,  0.746742);  //wxyz
-    Eigen::Vector3d eigenPos(0.0754499, 0.0975167, 0.0882869);
+    Eigen::Quaterniond eigenQuat(0.105064, 0.0503505, 0.65479, 0.746777);  //wxyz
+    // 0.0251104, 0.00752018, 0.996255, 0.0823903
+    // 0.105045, 0.0502289 , 0.654843 ,  0.746742
+
+    Eigen::Vector3d eigenPos(0.0753178, 0.0973988, 0.088042);
+    // 0.0754499, 0.0975167, 0.0882869
+    // 0.0388255, 0.102084, 0.0902271
+
 
 
    transformEstimate = eigenQuat;
@@ -522,32 +535,40 @@ void applyEstimate(){
    auto transform = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
    std::cout<< "Before resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
    setObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle, transformEstimate);
+   // auto myFile = boost::filesystem::current_path() /"RoboneSimulation_private_calibration_2.ttt";
+   std::string sceneName = "/home/cjiao1/src/robonetracker/modules/roboneprivate/data/RoboneSimulation_private_calibration_2.ttt";
+   simSaveScene(sceneName.c_str());
    transform = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
-    std::cout<< "After resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
+   std::cout<< "After resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
 //    logger_->info( "Hand Eye Screw Estimation has been set quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
 //                   eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
 }
-  void getPoseFromCSV(std::string filename){
+void getPoseFromCSV(std::string filename, int time_index){
           // we only have one robot for the moment so the index of it is 0
         // loadFromBinary();
-        if(time_index == 0){
-            applyEstimate();
-        }
+        // if(time_index == 0){
+        //     applyEstimate();
+        // }
         const std::size_t simulatedRobotIndex = 0;
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
-        auto joint_angles = grl::getJointAnglesFromCSV(filename, time_index++);
+        Eigen::VectorXf joint_angles =  Eigen::VectorXf::Zero(7);
+        // std::cout << "\nBefore: " << joint_angles  << std::endl;
+        int timeStamp = grl::getJointAnglesFromCSV(filename, joint_angles, time_index);
+        assert(timeStamp != -1 );
 
         std::vector<float> vrepJointAngles;
         double angle = 0;
-        int jointIdx=0;
+        int jointIdx = 0;
+        // std::cout << "Time: " << timeStamp  << std::endl;
         for(auto i : jointHandles_)
         {
             angle = joint_angles[jointIdx++];
             simSetJointPosition(i,angle);
             vrepJointAngles.push_back(angle);
-            std::cout << angle << std::endl;
+            // std::cout << angle << "  ";
         }
+        // std::cout << std::endl;
 
         // Set RBDyn joint angles from vrep joint angles.
         SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
@@ -557,30 +578,61 @@ void applyEstimate(){
 
         debugFrames();
 
-    }
-
-      void replayMarker(std::string filename, int time_index){
-        auto markerPose = grl::getMarkerPoseFromCSV(filename, time_index);
-        Eigen::Vector3d eigenPos(markerPose[0], markerPose[1], markerPose[2]);
-        Eigen::Quaternionf eigenQuat;
-        eigenQuat = Eigen::AngleAxisf(markerPose[3], Eigen::Vector3f::UnitX())
-                  * Eigen::AngleAxisf(markerPose[4], Eigen::Vector3f::UnitY())
-                  * Eigen::AngleAxisf(markerPose[5], Eigen::Vector3f::UnitZ());
-
-        std::string markerPoseFromTracker("Dummy20");
-        int markerPoseHandle = simGetObjectHandle(markerPoseFromTracker.c_str());
-
+        std::string opticalTrackerDetectedObjectName("Fiducial#22");
+        int opticalTrackerDetectedObjectHandle = simGetObjectHandle(opticalTrackerDetectedObjectName.c_str());
         std::string OpticalTrackerBase("OpticalTrackerBase#0");
         int OpticalTrackerBaseHandle = simGetObjectHandle(OpticalTrackerBase.c_str());
+        // get fiducial in optical tracker base frame
+        Eigen::Affine3d transformEstimate = getObjectTransform(opticalTrackerDetectedObjectHandle, OpticalTrackerBaseHandle);
+        Eigen::VectorXd markerPose = grl::Affine3fToMarkerPose(transformEstimate.cast<float>());
+        Eigen::RowVectorXd pose = grl::getPluckerPose(markerPose);
 
-        Eigen::Affine3d transformEstimate = getObjectTransform(markerPoseHandle, OpticalTrackerBaseHandle);
-        transformEstimate = eigenQuat.cast<double>();
-        transformEstimate.translation() = eigenPos;
+        
+        // // Write the hand eye calibration results into a file
+        std::string suffix = "ForwardKinematics_Pose.csv";
+        auto myFile = boost::filesystem::current_path() /suffix;
+        // if(boost::filesystem::exists(myFile)){
+        //     boost::filesystem::remove(myFile);
+        // }
+        boost::filesystem::ofstream ofs(myFile, std::ios_base::app);
+        if(time_index == 0) {
+            ofs << "local_receive_time_offset_X, K_X,K_Y,K_Z,K_A,K_B,K_C\n";
+        }
+        ofs << timeStamp << ", " << pose[0] << ", " << pose[1] << ", "<< pose[2] << ", "<< pose[3] << ", "<< pose[4] << ", "<< pose[5] << "\n";
+        ofs.close();
+   
+        
+        
+       
 
-         // set transform between end effector and fiducial
-        setObjectTransform(markerPoseHandle, OpticalTrackerBaseHandle, transformEstimate);
-        logger_->info( "MarkerPose has been set quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
-                  eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
+    }
+
+    void replayMarker(std::string filename, int time_index){
+        int rowIdx = time_index*10;
+        //for(int i=rowIdx; i<rowIdx+10; ++i){
+            auto markerPose = grl::getMarkerPoseFromCSV(filename, time_index);
+            Eigen::Vector3d eigenPos(markerPose[0], markerPose[1], markerPose[2]);
+            Eigen::Quaternionf eigenQuat;
+            eigenQuat = Eigen::AngleAxisf(markerPose[3], Eigen::Vector3f::UnitX())
+                      * Eigen::AngleAxisf(markerPose[4], Eigen::Vector3f::UnitY())
+                      * Eigen::AngleAxisf(markerPose[5], Eigen::Vector3f::UnitZ());
+    
+            std::string markerPoseFromTracker("Dummy21");
+            int markerPoseHandle = simGetObjectHandle(markerPoseFromTracker.c_str());
+    
+            std::string OpticalTrackerBase("OpticalTrackerBase#0");
+            int OpticalTrackerBaseHandle = simGetObjectHandle(OpticalTrackerBase.c_str());
+    
+            Eigen::Affine3d transformEstimate = getObjectTransform(markerPoseHandle, OpticalTrackerBaseHandle);
+            transformEstimate = eigenQuat.cast<double>();
+            transformEstimate.translation() = eigenPos;
+    
+             // set transform between end effector and fiducial
+            setObjectTransform(markerPoseHandle, OpticalTrackerBaseHandle, transformEstimate);
+            // logger_->info( "MarkerPose has been set quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
+            // eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
+
+        //}
 
     }
 
@@ -615,35 +667,7 @@ void applyEstimate(){
         debugFrames();
     }
 
-    void testURDFPose(){
 
-       /// simulation tick time step in float seconds from vrep API call
-       float simulationTimeStep = simGetSimulationTimeStep();
-
-        // we only have one robot for the moment so the index of it is 0
-        const std::size_t simulatedRobotIndex = 0;
-        auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
-        auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
-
-        std::vector<float> vrepJointAngles;
-        double angle = 0.7;
-        for(auto i : jointHandles_)
-        {
-            angle *= -1;
-            simSetJointPosition(i,angle);
-            vrepJointAngles.push_back(angle);
-        }
-
-       /// @todo TODO(ahundt) rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
-
-        ////////////////////////////////////////////////////
-        // Set joints to current arm position in simulation
-        SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
-        rbd::forwardKinematics(simArmMultiBody, simArmConfig);
-        rbd::forwardVelocity(simArmMultiBody, simArmConfig);
-
-        debugFrames();
-    }
 
     // void replay(){
     //    loadFromBinary();
@@ -954,12 +978,17 @@ void applyEstimate(){
        if(ik) {
            updateKinematics();
        } else {
-           std::string fileName = "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv";
+           auto myFile = boost::filesystem::current_path() /"2018_03_26_19_23_38";
+           std::string pathName = myFile.string();
+           std::string kukaJoint = pathName+"/FTKUKA_TimeEvent.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
+           std::string markerPose = pathName+"/FT_Pose_Marker22.csv";
+
            // std::cout << "Call Run One..." << std::endl;
            // testPose();
            // applyEstimate();
-        //    getPoseFromCSV(fileName);
-           replayMarker(fileName, time_index);
+           getPoseFromCSV(kukaJoint, time_index);
+           // replayMarker(markerPose, time_index);
+           time_index++;
        }
     }
 

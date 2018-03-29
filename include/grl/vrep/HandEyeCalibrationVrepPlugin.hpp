@@ -16,6 +16,7 @@
 
 #include "grl/vector_ostream.hpp"
 // boost::filesystem
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <iostream>
@@ -197,15 +198,19 @@ void estimateHandEyeScrew(){
      detectedObjectPosition[0], detectedObjectPosition[1], detectedObjectPosition[2]);
 
 
-     // Write the hand eye calibration result into a file
+     // Write the hand eye calibration results into a file
    auto myFile = boost::filesystem::current_path() /"HandEyeCalibration_Result.txt";
-   boost::filesystem::ofstream ofs(myFile/*.native()*/);
+   boost::filesystem::ofstream ofs(myFile, std::ios_base::app);
    // boost::archive::text_oarchive ta(ofs);
    ofs <<"\n\n=========== " + current_date_and_time_string() + " =======================================\n";
-   ofs << "Hand Eye Screw Estimate quat wxyz:  " << eigenQuat.w() << "  "<< eigenQuat.x() << "  " << eigenQuat.y() << "  " << eigenQuat.z() 
-      << "\ntranslation xyz: " << transformEstimate.translation().x() << "  " 
-      << transformEstimate.translation().y() << "  " << transformEstimate.translation().z();
-
+   ofs << "Hand Eye Screw Estimate quat wxyz:  " << eigenQuat.w() << ", "<< eigenQuat.x() << ", " << eigenQuat.y() << ", " << eigenQuat.z() 
+       << "\nTranslation xyz: " << transformEstimate.translation().x() << ", " << transformEstimate.translation().y() << ", " << transformEstimate.translation().z()
+       << "\n\nestimated RobotTipToFiducial: \n" << poseString(transformEstimate);
+   ofs.close();
+   if ( boost::filesystem::exists( myFile )) {
+    std::cout << "Hand eye calibration result has been writen into " << myFile.string() << std::endl;
+   }
+       
 }
 
 /// @brief  Will apply the stored estimate to the v-rep simulation value

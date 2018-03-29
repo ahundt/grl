@@ -12,6 +12,7 @@
 
 //
 #include "grl/flatbuffer/FlatbufferToEigen.hpp"
+#include "grl/flatbuffer/CSVIterator.hpp"
 
 
 // FusionTrack Libraries
@@ -74,10 +75,7 @@
 #include <mc_rbdyn_urdf/urdf.h>
 #include "kukaiiwaURDF.h"
 
-#include <iterator>
-#include <iostream>
-#include <fstream>
-#include <sstream>
+
 
 namespace grl {
 
@@ -148,7 +146,7 @@ namespace grl {
     /// Return the original timeEvent of fusiontracker
     /// @param TlogKUKAiiwaFusionTrackP pointer of the root object for fusiontracker.
     /// @param fusiontracker_tag tag dispatch
-    grl::MatrixXd  getTimeStamp(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP, fusiontracker_tag){
+    grl::MatrixXd  getTimeStamp(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP, fusiontracker_tag, int markerID = 0){
 
         auto states = logKUKAiiwaFusionTrackP->states();
         std::size_t state_size = states->size();
@@ -166,16 +164,30 @@ namespace grl {
                 for(int markerIndex=0; markerIndex<makerSize; markerIndex++) {
                     auto marker = Makers->Get(markerIndex);
                     auto marker_ID = marker->geometryID();
-                    if(marker_ID == 22 || marker_ID == 55){
-                        auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
-                        timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
-                        timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
-                        timeEventM(row,TimeType::device_time) = timeEvent->device_time();
-                        timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
-                        timeEventM(row,TimeType::counterIdx) = counter;
-                        row++;
-                        break;
-                    }
+                    // if(markerID == 0){
+                    //     if(marker_ID == 22 || marker_ID == 55){
+                    //         auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
+                    //         timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
+                    //         timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
+                    //         timeEventM(row,TimeType::device_time) = timeEvent->device_time();
+                    //         timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
+                    //         timeEventM(row,TimeType::counterIdx) = counter;
+                    //         row++;
+                    //         break;
+                    //     }
+                    // } else {
+                        if(marker_ID == markerID){
+                            auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
+                            timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
+                            timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
+                            timeEventM(row,TimeType::device_time) = timeEvent->device_time();
+                            timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
+                            timeEventM(row,TimeType::counterIdx) = counter;
+                            row++;
+                            break;
+                        }
+                    // }
+
                 }
             }
         }
@@ -235,12 +247,12 @@ namespace grl {
     /// Get the maker pose based on the markerID. The bad data, which means the frame doesn't have the indicated marker information, has been filtered out.
     /// As for the bad data, both the marker pose and the corresponding timeEvent is skipped.
     /// @param logKUKAiiwaFusionTrackP, pointer of the root object for fusiontracker.
-    /// @param makerID, the indicated marker.
+    /// @param markerID, the indicated marker.
     /// @param timeEventM, timeEvent without bad data, which is filled out.
     /// @param markerPose, the pose matrix, which is filled out.
     /// @return row, the number of valid rows.
     int  getMarkerPose(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP,
-                                    uint32_t &makerID,
+                                    uint32_t &markerID,
                                     grl::MatrixXd& timeEventM,
                                     Eigen::MatrixXd& markerPose,
                                     bool markerFrame = false){
@@ -264,7 +276,7 @@ namespace grl {
                 for(int markerIndex=0; markerIndex<makerSize; markerIndex++) {
                     auto marker = Makers->Get(markerIndex);
                     auto marker_ID = marker->geometryID();
-                    if(marker_ID == makerID){
+                    if(marker_ID == markerID){
                         auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
                         timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
                         timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
@@ -314,7 +326,7 @@ namespace grl {
         }
         double diff = static_cast<double>(state_size-markerPose.rows());
         std::cout <<"State size: " << state_size <<"  markerPose size: " << markerPose.rows()
-                  << "  lossing rate " << diff/state_size << "  makerID: " << makerID <<std::endl;
+                  << "  lossing rate " << diff/state_size << "  markerID: " << markerID <<std::endl;
         return row;
     }
 
@@ -442,15 +454,34 @@ namespace grl {
     /// @param FTKUKA_TimeEvent_CSVfilename, the csv file name
     void writeFTKUKATimeEventToCSV(std::string& FTKUKA_TimeEvent_CSVfilename,
                                     const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP,
-                                    const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP) {
+                                    const fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> &kukaStatesP,
+                                    uint32_t &markerID) {
 
-        grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag());
+        grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), markerID);
         grl::MatrixXd timeEventM_Kuka = grl::getTimeStamp(kukaStatesP, grl::kuka_tag());
         std::size_t kuka_state_size = timeEventM_Kuka.rows();
         std::cout<< "------Kuka_state_size: "<< timeEventM_Kuka.rows() << std::endl;
 
         std::size_t FT_state_size = timeEventM_FT.rows();
         std::cout<< "------FT_state_size: "<< timeEventM_FT.rows() << std::endl;
+
+        ///////////////////////////////////////////////////////////////////////////////////
+       
+    
+        std::size_t FT_size = grl::getStateSize(logKUKAiiwaFusionTrackP);
+    
+       
+        grl::MatrixXd timeEventM = grl::MatrixXd::Zero(FT_size, timeEventM_FT.cols());
+        Eigen::MatrixXd markerPose(FT_size, grl::col_Pose);
+        // Get the pose of the marker 22.
+        // Since the bad data is skipped, the timeEventM_FT also needs to be filled out with the orinial time stamp.
+    
+        int validsize_22 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID, timeEventM, markerPose);
+        assert(timeEventM.rows() == timeEventM_FT.rows());
+        //////////////////////////////////////////////////////////////////////////////////
+
+
+
         int kuka_index = 0;
         int FT_index = 0;
 
@@ -474,7 +505,8 @@ namespace grl {
         grl::VectorXd kuka_local_request_time = timeEventM_Kuka.col(local_request_time) - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
         grl::VectorXd kuka_local_receive_time = timeEventM_Kuka.col(local_receive_time) - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
         grl::VectorXd kuka_device_time = timeEventM_Kuka.col(device_time) - initial_device_time_kuka * grl::VectorXd::Ones(kuka_state_size);
-
+        
+        Eigen::MatrixXd jointAngles = grl::getAllJointAngles(kukaStatesP);
 
         std::ofstream fs;
         // create a name for the file output
@@ -486,9 +518,22 @@ namespace grl {
            << "FT_device_time_offset,"
            << "device_time_offset_kuka,"
            << "Y_FT,"
-           << "Y_kuka"
+           << "Y_kuka,"
+           << "FT_X,"
+           << "FT_Y,"
+           << "FT_Z,"
+           << "FT_A,"
+           << "FT_B,"
+           << "FT_C,"
+           << "K_Joint1,"
+           << "K_Joint2,"
+           << "K_Joint3,"
+           << "K_Joint4,"
+           << "K_Joint5,"
+           << "K_Joint6,"
+           << "K_Joint7"
            << std::endl;
-
+        std::cout << "Start to write ... "<< std::endl <<"FT_index: " << FT_index << "   kuka_index: " << kuka_index << std::endl;
         int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index);
         int64_t FT_diff = FT_device_time(FT_index) - FT_local_receive_time(FT_index);
         while ( kuka_index < kuka_state_size && FT_index < FT_state_size )
@@ -496,16 +541,26 @@ namespace grl {
             // If the row value is the kuka time, then the FT cells should be left blank.
             if ( kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index) ){
                 // write the data to the output file
+                auto jointrow = jointAngles.row(kuka_index);
                 fs << kuka_local_receive_time(kuka_index) <<","
                    <<","
                    << kuka_local_request_time(kuka_index) << ","
                    << ","
                    << kuka_device_time(kuka_index) <<","
                    << ","
-                   << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
+                   << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff << ","
+                   << ",,,,,,"
+                   << jointrow[0] << ","
+                   << jointrow[1] << ","
+                   << jointrow[2] << ","
+                   << jointrow[3] << ","
+                   << jointrow[4] << ","
+                   << jointrow[5] << ","
+                   << jointrow[6]
                    << std::endl;
                    kuka_index++;
             } else if( kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index)) {
+                auto matrixrow = markerPose.row(FT_index);
                 // If the row value is the FT time, then the kuka cells should be left blank.
                 fs << FT_local_receive_time(FT_index) <<","
                    << FT_local_request_time(FT_index) << ","
@@ -513,7 +568,13 @@ namespace grl {
                    << FT_device_time(FT_index) << ","
                    << ","
                    << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
-                   << std::endl;
+                   << ","
+                   << matrixrow[0] << ","
+                   << matrixrow[1] << ","
+                   << matrixrow[2] << ","
+                   << matrixrow[3] << ","
+                   << matrixrow[4] << ","
+                   << matrixrow[5] << std::endl;
                 FT_index++;
             } else {
                 // In case the time is extactly equivent with each other.
@@ -529,25 +590,155 @@ namespace grl {
                 kuka_index++;
             }
         }
+        std::cout << "FT_index: " << FT_index << "   kuka_index: " << kuka_index << "  Sum:  " << FT_index+kuka_index << std::endl;
         fs.close();
     }
-    /// Get the transformation matrix from LBR_iiwa_14_R820#0 to OpticalTrackerBase#0.
-    /// See the physical relationship in vrep.
-    std::vector<sva::PTransformd>  getRobotToTrackerMatrix(std::vector<sva::PTransformd>& FudicialPose){
-        Eigen::Vector3d trans;
-        trans << 0.20652678608894 , -0.70480275154114 ,1.4510889053345 ;
-        Eigen::Matrix3d rot;
-        rot << -0.19507896900177, -0.8963907957077, -0.39802974462509  ,
-               0.9409122467041, -0.28804504871368, 0.17808490991592,
-               -0.28378140926361, -0.33688074350357, 0.89776360988617 ;
-        sva::PTransformd relativeTransform(rot, trans);
-        std::vector<sva::PTransformd> to(FudicialPose.size());
-        for(int i=0; i<FudicialPose.size();++i){
-            auto pose = FudicialPose[i];
-            to[i] = relativeTransform*pose;
-        }
-          return std::move(to);
-    }
+
+
+      /// With the same method to process the time data from both Kuka and fusiontracker, combine it and write to a csv file.
+    /// @param FTKUKA_TimeEvent_CSVfilename, the csv file name
+//     int CombineToCSV(std::string& FTKUKA_TimeEvent_CSVfilename,
+//                       std::string& FT_Marker22_CSVfilename,
+//                       std::string& Kuka_Pose_CSVfilename
+//         ) {
+
+//         // std::ifstream     file("/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv");
+//         std::ifstream     Time_file(FTKUKA_TimeEvent_CSVfilename);
+//         std::ifstream     FT_file(FT_Marker22_CSVfilename);
+//         std::ifstream     KUKA_file(Kuka_Pose_CSVfilename);
+//         std::size_t joint_size = 7;
+//         Eigen::VectorXf jointPosition(joint_size);
+//         if (!Time_file.is_open()) {
+//             std::cout << "failed to open " << FTKUKA_TimeEvent_CSVfilename << '\n';
+//             return -1;
+//         }
+//         if (!FT_file.is_open()) {
+//             std::cout << "failed to open " << FT_Marker22_CSVfilename << '\n';
+//             return -1;
+//         } 
+//         if (!KUKA_file.is_open()) {
+//             std::cout << "failed to open " << Kuka_Pose_CSVfilename << '\n';
+//             return -1;
+//         } 
+
+//         grl::CSVIterator Time_loop(Time_file);
+//         grl::CSVIterator FT_loop(FT_file);
+//         grl::CSVIterator Kuka_loop(_file);
+          
+//             int row = 0;
+    
+//             for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
+//             {
+    
+//                 if(row == rowIdx){
+//                     for(int joint_index = 0; joint_index<joint_size; ++joint_index){
+    
+//                         jointPosition(joint_index) = std::stof((*loop)[joint_index+5]);
+//                     }
+//                     break;
+//                 }
+//                 row++;
+//             }
+//         }
+
+//         //  // // Write the hand eye calibration results into a file
+//         //  std::string suffix = current_date_and_time_string()+"Combined_Data_Analysis.csv";
+//         //  auto myFile = boost::filesystem::current_path() /suffix;
+ 
+//         //  boost::filesystem::ofstream ofs(myFile, std::ios_base::app);
+//         //  if(time_index == 0) {
+//         //      ofs << "time_index,X,Y,Z,A,B,C\n";
+//         //  }
+//         //  ofs << time_index << ", " << pose[0] << ", " << pose[1] << ", "<< pose[2] << ", "<< pose[3] << ", "<< pose[4] << ", "<< pose[5] << "\n";
+//         //  ofs.close();
+//         grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag());
+//         grl::MatrixXd timeEventM_Kuka = grl::getTimeStamp(kukaStatesP, grl::kuka_tag());
+//         std::size_t kuka_state_size = timeEventM_Kuka.rows();
+//         std::cout<< "------Kuka_state_size: "<< timeEventM_Kuka.rows() << std::endl;
+        
+//         std::size_t FT_state_size = timeEventM_FT.rows();
+//         std::cout<< "------FT_state_size: "<< timeEventM_FT.rows() << std::endl;
+//         int kuka_index = 0;
+//         int FT_index = 0;
+        
+//         // Filter out the very beginning data,since the tracker starts to work once the scene is loaded in vrep.
+//         // But kuka starts to work only after clicking on the start button.
+//         // To combine the time from two devices, they should share the same starting time point.
+//         while(kuka_index<kuka_state_size && timeEventM_Kuka(kuka_index,TimeType::local_receive_time) < timeEventM_FT(FT_index,TimeType::local_receive_time)){
+//             kuka_index++;
+//         }
+//         while(FT_index<FT_state_size && timeEventM_Kuka(kuka_index,local_receive_time) > timeEventM_FT(FT_index,local_receive_time) && kuka_index == 0){
+//             FT_index++;
+//         }
+        
+//         auto initial_local_time = std::min(timeEventM_FT(FT_index,local_receive_time), timeEventM_Kuka(kuka_index,local_receive_time));
+//         auto initial_device_time_kuka = timeEventM_Kuka(kuka_index,device_time);
+//         auto initial_device_time_FT = timeEventM_FT(FT_index,device_time);
+//         grl::VectorXd FT_local_request_time = timeEventM_FT.col(local_request_time) - initial_local_time * grl::VectorXd::Ones(FT_state_size);
+//         grl::VectorXd FT_local_receive_time = timeEventM_FT.col(local_receive_time) - initial_local_time * grl::VectorXd::Ones(FT_state_size);
+//         grl::VectorXd FT_device_time = timeEventM_FT.col(device_time) - initial_device_time_FT * grl::VectorXd::Ones(FT_state_size);
+        
+//         grl::VectorXd kuka_local_request_time = timeEventM_Kuka.col(local_request_time) - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
+//         grl::VectorXd kuka_local_receive_time = timeEventM_Kuka.col(local_receive_time) - initial_local_time * grl::VectorXd::Ones(kuka_state_size);
+//         grl::VectorXd kuka_device_time = timeEventM_Kuka.col(device_time) - initial_device_time_kuka * grl::VectorXd::Ones(kuka_state_size);
+        
+        
+//         std::ofstream fs;
+//         // create a name for the file output
+//         fs.open( FTKUKA_TimeEvent_CSVfilename, std::ofstream::out | std::ofstream::app);
+//         // write the file headers
+//         fs << "local_receive_time_offset_X,"
+//         << "FT_local_request_time,"
+//         << "KUKA_local_request_time,"
+//         << "FT_device_time_offset,"
+//         << "device_time_offset_kuka,"
+//         << "Y_FT,"
+//         << "Y_kuka"
+//         << std::endl;
+        
+//         int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index);
+//         int64_t FT_diff = FT_device_time(FT_index) - FT_local_receive_time(FT_index);
+//         while ( kuka_index < kuka_state_size && FT_index < FT_state_size )
+//         {
+//             // If the row value is the kuka time, then the FT cells should be left blank.
+//             if ( kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index) ){
+//                 // write the data to the output file
+//                 fs << kuka_local_receive_time(kuka_index) <<","
+//                 <<","
+//                 << kuka_local_request_time(kuka_index) << ","
+//                 << ","
+//                 << kuka_device_time(kuka_index) <<","
+//                 << ","
+//                 << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
+//                 << std::endl;
+//                 kuka_index++;
+//             } else if( kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index)) {
+//             // If the row value is the FT time, then the kuka cells should be left blank.
+//                 fs << FT_local_receive_time(FT_index) <<","
+//                 << FT_local_request_time(FT_index) << ","
+//                 <<","
+//                 << FT_device_time(FT_index) << ","
+//                 << ","
+//                 << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
+//                 << std::endl;
+//                 FT_index++;
+//             } else {
+//                 // In case the time is extactly equivent with each other.
+//                 fs << FT_local_receive_time(FT_index) <<","
+//                 << FT_local_request_time(FT_index) << ","
+//                 << kuka_local_request_time(kuka_index) << ","
+//                 << FT_device_time(FT_index) << ","
+//                 << kuka_device_time(kuka_index) <<","
+//                 << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
+//                 << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
+//                 << std::endl;
+//                 FT_index++;
+//                 kuka_index++;
+//             }
+//         }
+//         fs.close();
+// }
+   
     /// Based on the RBDy and URDF model, get the cartesian pose of the end effector.
     /// BE CAREFUL THAT THE URDF MODEL HAS BEEN MODIFIED, THE MARKER LINK HAS BEEN ADDED.
     ///  <origin rpy="0 0 0" xyz="0.052998 0.090310 0.090627"/>
@@ -614,98 +805,59 @@ namespace grl {
         return std::move(strRobot);
     }
 
-class CSVRow
-{
-    public:
-        std::string const& operator[](std::size_t index) const
-        {
-            return m_data[index];
-        }
-        std::size_t size() const
-        {
-            return m_data.size();
-        }
-        void readNextRow(std::istream& str)
-        {
-            std::string         line;
-            std::getline(str, line);
 
-            std::stringstream   lineStream(line);
-            std::string         cell;
+int getRowsNumber(std::string filename){
+     // std::ifstream     file("/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv");
+     std::ifstream     file(filename);
+     std::size_t row_size = 0;
+    
+     if (!file.is_open()) {
+         std::cout << "failed to open " << filename << '\n';
+     } else {
+         grl::CSVIterator loop(file);
+ 
+         for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
+         {  
+            row_size++;
+         }
+     }
+     return row_size;
 
-            m_data.clear();
-            while(std::getline(lineStream, cell, ','))
-            {
-                m_data.push_back(cell);
-            }
-            // This checks for a trailing comma with no data after it.
-            if (!lineStream && cell.empty())
-            {
-                // If there was a trailing comma then add an empty element.
-                m_data.push_back("");
-            }
-        }
-    private:
-        std::vector<std::string>    m_data;
-};
-
-std::istream& operator>>(std::istream& str, CSVRow& data)
-{
-    data.readNextRow(str);
-    return str;
 }
 
-class CSVIterator
-{
-    public:
-        typedef std::input_iterator_tag     iterator_category;
-        typedef CSVRow                      value_type;
-        typedef std::size_t                 difference_type;
-        typedef CSVRow*                     pointer;
-        typedef CSVRow&                     reference;
-
-        CSVIterator(std::istream& str)  :m_str(str.good()?&str:NULL) { ++(*this); }
-        CSVIterator()                   :m_str(NULL) {}
-
-        // Pre Increment
-        CSVIterator& operator++()               {if (m_str) { if (!((*m_str) >> m_row)){m_str = NULL;}}return *this;}
-        // Post increment
-        CSVIterator operator++(int)             {CSVIterator    tmp(*this);++(*this);return tmp;}
-        CSVRow const& operator*()   const       {return m_row;}
-        CSVRow const* operator->()  const       {return &m_row;}
-
-        bool operator==(CSVIterator const& rhs) {return ((this == &rhs) || ((this->m_str == NULL) && (rhs.m_str == NULL)));}
-        bool operator!=(CSVIterator const& rhs) {return !((*this) == rhs);}
-    private:
-        std::istream*       m_str;
-        CSVRow              m_row;
-};
-
     /// Get the joint angles at specific time point (index)
-
     /// @return jointPosition, Eigen vector which contains joint position of the seven joints.
-    Eigen::VectorXf getJointAnglesFromCSV(std::string filename, int rowIdx){
+    int getJointAnglesFromCSV(std::string filename, Eigen::VectorXf &jointPosition, int rowIdx){
 
-        // std::ifstream     file("/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv");
+        // std::ifstream     file("/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv");
+        // int rowNum = getRowsNumber(filename);
         std::ifstream     file(filename);
-        grl::CSVIterator loop(file);
         std::size_t joint_size = 7;
-        Eigen::VectorXf jointPosition(joint_size);
-        int row = 0;
-
-        for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
-        {
-
-            if(row == rowIdx){
-                for(int joint_index = 0; joint_index<joint_size; ++joint_index){
-
-                    jointPosition(joint_index) = std::stof((*loop)[joint_index+5]);
+        // Eigen::VectorXf jointPosition(joint_size);
+        if (!file.is_open()) {
+            std::cout << "failed to open " << filename << '\n';
+        } else {
+            grl::CSVIterator loop(file);
+          
+            int row = 0;
+    
+            for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
+            {
+                if (!(*loop)[2].empty()) {
+                    if(row == rowIdx){
+                        
+                        for(int joint_index = 0; joint_index<joint_size; ++joint_index){
+                          
+                            jointPosition(joint_index) = std::stof((*loop)[joint_index+13]);
+                        }
+                        return boost::lexical_cast<uint64_t>((*loop)[0]);
+                    }
+                    row++;
                 }
-
             }
-            row++;
         }
-        return jointPosition;
+        return -1;
+        
     }
 
     /// Get the joint angles at specific time point (index)
@@ -714,22 +866,29 @@ class CSVIterator
     Eigen::VectorXf getMarkerPoseFromCSV(std::string filename, int rowIdx){
 
         std::ifstream file(filename);
-        grl::CSVIterator loop(file);
         std::size_t size = 6;
         Eigen::VectorXf markerpose(size);
-        int row = 0;
-
-        for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
-        {
-
-            if(row == rowIdx){
-                for(int index = 0; index<size; ++index){
-
-                    markerpose(index) = std::stof((*loop)[index+5]);
+        if (!file.is_open()) {
+            std::cout << "failed to open " << filename << '\n';
+        } else {
+            grl::CSVIterator loop(file);
+           
+            int row = 0;
+    
+            for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
+            {
+    
+                if(row == rowIdx){
+                    for(int index = 0; index<size; ++index){
+    
+                        markerpose(index) = std::stof((*loop)[index+5]);
+                    }
+                    break;
                 }
-
+               
+                assert(row <= rowIdx);
+                row++;
             }
-            row++;
         }
         return markerpose;
     }
