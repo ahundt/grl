@@ -67,22 +67,71 @@ int main(int argc, char* argv[])
     uint32_t markerID_50000 = 50000;
     /// Write FT data to CSV
     fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> logKUKAiiwaFusionTrackP = fbs_tk::open_root<grl::flatbuffer::LogKUKAiiwaFusionTrack>(fusiontrackBinaryfile);
-    grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), markerID_22);
-    grl::regularizeTimeEvent(timeEventM_FT);
-
+    fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> kukaStatesP = fbs_tk::open_root<grl::flatbuffer::KUKAiiwaStates>(kukaBinaryfile);
     std::size_t FT_size = grl::getStateSize(logKUKAiiwaFusionTrackP);
-
-   
-    timeEventM_FT = grl::MatrixXd::Zero(FT_size, timeEventM_FT.cols());
+    std::size_t kuka_size = grl::getStateSize(kukaStatesP);
     Eigen::MatrixXd markerPose(FT_size, grl::col_Pose);
+    // grl::MatrixXd timeEventM_FT = grl::getTimeStamp(logKUKAiiwaFusionTrackP, grl::fusiontracker_tag(), markerID_22);
+   
+    grl::MatrixXd timeEventM_FT = grl::MatrixXd::Zero(FT_size, grl::Time_Labels.size());
+    grl::MatrixXd timeEventM_Kuka = grl::MatrixXd::Zero(kuka_size, grl::Time_Labels.size());
+    timeEventM_Kuka = grl::getTimeStamp(kukaStatesP,grl::kuka_tag());
+    int validsize_22 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_22, timeEventM_FT, markerPose);
+    std::cout<<"validsize_22: " << validsize_22 << std::endl;
+    
+    
+    
+    Eigen::MatrixXd jointAngles = grl::getAllJointAngles(kukaStatesP);
+    std::cout<< "------Kuka_size: "<< kuka_size << std::endl;
+    std::cout<< "------FT_size: "<< FT_size << std::endl;
+    std::size_t FT_time_size = timeEventM_FT.rows();
+    std::size_t kuka_time_size = timeEventM_Kuka.rows();
+    grl::MatrixXd timeEventM = grl::MatrixXd::Zero(FT_size, timeEventM_FT.cols());
+    
+
+
+    int kuka_index = 0;
+    int FT_index = 0;
+
+    // Skip the very beginning data,since the tracker starts to work once the scene is loaded in vrep.
+    // But kuka starts to work only after clicking on the start button.
+    // To combine the time from two devices, they should have the same starting time point.
+    while(kuka_index<kuka_time_size && timeEventM_Kuka(kuka_index, grl::TimeType::local_receive_time) < timeEventM_FT(FT_index,grl::TimeType::local_receive_time)){
+        kuka_index++;
+    }
+    while(FT_index<FT_time_size && timeEventM_Kuka(kuka_index,grl::TimeType::local_receive_time) > timeEventM_FT(FT_index,grl::TimeType::local_receive_time) && kuka_index == 0){
+        FT_index++;
+    }
+ 
+    auto initial_local_time = std::min(timeEventM_FT(FT_index,grl::TimeType::local_receive_time), timeEventM_Kuka(kuka_index, grl::TimeType::local_receive_time));
+    auto initial_device_time_kuka = timeEventM_Kuka(kuka_index,grl::TimeType::device_time);
+    auto initial_device_time_FT = timeEventM_FT(FT_index,grl::TimeType::device_time);
+    timeEventM_FT.col(grl::TimeType::local_request_time) = timeEventM_FT.col(grl::TimeType::local_request_time) - initial_local_time * grl::VectorXd::Ones(FT_time_size);
+    timeEventM_FT.col(grl::TimeType::local_receive_time) = timeEventM_FT.col(grl::TimeType::local_receive_time) - initial_local_time * grl::VectorXd::Ones(FT_time_size);
+    timeEventM_FT.col(grl::TimeType::device_time) = timeEventM_FT.col(grl::TimeType::device_time) - initial_device_time_FT * grl::VectorXd::Ones(FT_time_size);
+
+    timeEventM_Kuka.col(grl::TimeType::local_request_time) = timeEventM_Kuka.col(grl::TimeType::local_request_time) - initial_local_time * grl::VectorXd::Ones(kuka_time_size);
+    timeEventM_Kuka.col(grl::TimeType::local_receive_time) = timeEventM_Kuka.col(grl::TimeType::local_receive_time) - initial_local_time * grl::VectorXd::Ones(kuka_time_size);
+    timeEventM_Kuka.col(grl::TimeType::device_time) = timeEventM_Kuka.col(grl::TimeType::device_time) - initial_device_time_kuka * grl::VectorXd::Ones(kuka_time_size);
+    
+    
+
+
+    // grl::regularizeTimeEvent(timeEventM_FT);
+
+     
+    // timeEventM_FT = grl::MatrixXd::Zero(FT_size, timeEventM_FT.cols());
+   
     // Get the pose of the marker 22.
     // Since the bad data is skipped, the timeEventM_FT also needs to be filled out with the orinial time stamp.
 
-    int validsize_22 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_22, timeEventM_FT, markerPose, inMarkerFrame);
-    std::cout<<"validsize_22: " << validsize_22 << std::endl;
+    
     std::vector<std::string> FT_Labels_Pose = grl::getLabels(grl::LabelsType::FT_Pose);
+
+    grl::writeFTKUKATimeEventToCSV(FTKUKA_TimeEvent_CSV,
+        timeEventM_FT, timeEventM_Kuka, jointAngles, markerPose, FT_index, kuka_index);
     if(validsize_22>2){
-        grl::regularizeTimeEvent(timeEventM_FT);
+        // grl::regularizeTimeEvent(timeEventM_FT);
 
         grl::writeTimeEventToCSV(FT_TimeEvent_CSV, timeEventM_FT);
         grl::writeMatrixToCSV(FT_Marker22_CSV, FT_Labels_Pose, timeEventM_FT, markerPose);
@@ -112,11 +161,11 @@ int main(int argc, char* argv[])
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Write KUKA data to CSV
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    fbs_tk::Root<grl::flatbuffer::KUKAiiwaStates> kukaStatesP = fbs_tk::open_root<grl::flatbuffer::KUKAiiwaStates>(kukaBinaryfile);
-    grl::MatrixXd timeEventM_Kuka = grl::getTimeStamp(kukaStatesP,grl::kuka_tag());
+  
+    
     grl::regularizeTimeEvent(timeEventM_Kuka);
     grl::writeTimeEventToCSV(KUKA_TimeEvent_CSV, timeEventM_Kuka);
-    Eigen::MatrixXd jointAngles = grl::getAllJointAngles(kukaStatesP);
+
     std::vector<std::string> Kuka_Joint_Labels = grl::getLabels(grl::LabelsType::Joint);
 
     if(jointAngles.rows() == timeEventM_Kuka.rows()){
@@ -154,7 +203,7 @@ int main(int argc, char* argv[])
 
 
 
-    grl::writeFTKUKATimeEventToCSV(FTKUKA_TimeEvent_CSV, logKUKAiiwaFusionTrackP, kukaStatesP, markerID_22);
+    // grl::writeFTKUKATimeEventToCSV(FTKUKA_TimeEvent_CSV, logKUKAiiwaFusionTrackP, kukaStatesP, markerID_22);
     return 0;
 }
 
