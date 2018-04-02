@@ -1067,7 +1067,7 @@ int getRowsNumber(std::string filename){
 
     /// Get the joint angles at specific time point (index)
     /// @return jointPosition, Eigen vector which contains joint position of the seven joints.
-    int getJointAnglesFromCSV(std::string filename, Eigen::VectorXf &jointPosition, int rowIdx){
+    int64_t getJointAnglesFromCSV(std::string filename, Eigen::VectorXf &jointPosition, int rowIdx){
 
         // std::ifstream     file("/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv");
         // int rowNum = getRowsNumber(filename);
@@ -1083,17 +1083,16 @@ int getRowsNumber(std::string filename){
     
             for(grl::CSVIterator loop(file); loop != grl::CSVIterator(); ++loop)
             {
-                if (!(*loop)[2].empty()) {
                     if(row == rowIdx){
                         
                         for(int joint_index = 0; joint_index<joint_size; ++joint_index){
                           
-                            jointPosition(joint_index) = std::stof((*loop)[joint_index+13]);
+                            jointPosition(joint_index) = boost::lexical_cast<double>((*loop)[joint_index+5]);
                         }
                         return boost::lexical_cast<uint64_t>((*loop)[0]);
                     }
                     row++;
-                }
+
             }
         }
         return -1;

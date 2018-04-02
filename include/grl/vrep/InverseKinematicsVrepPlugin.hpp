@@ -526,8 +526,6 @@ void applyEstimate(){
     // 0.0754499, 0.0975167, 0.0882869
     // 0.0388255, 0.102084, 0.0902271
 
-
-
    transformEstimate = eigenQuat;
    transformEstimate.translation() = eigenPos;
 
@@ -554,13 +552,13 @@ void getPoseFromCSV(std::string filename, int time_index){
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
         Eigen::VectorXf joint_angles =  Eigen::VectorXf::Zero(7);
         // std::cout << "\nBefore: " << joint_angles  << std::endl;
-        int timeStamp = grl::getJointAnglesFromCSV(filename, joint_angles, time_index);
+        int64_t timeStamp = grl::getJointAnglesFromCSV(filename, joint_angles, time_index);
         assert(timeStamp != -1 );
 
         std::vector<float> vrepJointAngles;
         double angle = 0;
         int jointIdx = 0;
-        // std::cout << "Time: " << timeStamp  << std::endl;
+        std::cout << "Time: " << timeStamp  << std::endl;
         for(auto i : jointHandles_)
         {
             angle = joint_angles[jointIdx++];
@@ -669,37 +667,7 @@ void getPoseFromCSV(std::string filename, int time_index){
 
 
 
-    // void replay(){
-    //    loadFromBinary();
-    //    /// simulation tick time step in float seconds from vrep API call
-    //    float simulationTimeStep = simGetSimulationTimeStep();
-
-    //     // we only have one robot for the moment so the index of it is 0
-    //     const std::size_t simulatedRobotIndex = 0;
-    //     auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
-    //     auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
-    //     auto joint_angles = grl::getJointAnglesFromBinary(kukaStatesP_, time_index++);
-
-    //     std::vector<float> vrepJointAngles;
-    //     double angle = 0;
-    //     int jointIdx=0;
-    //     for(auto i : jointHandles_)
-    //     {
-    //         angle = joint_angles[jointIdx++];
-    //         simSetJointPosition(i,angle);
-    //         vrepJointAngles.push_back(angle);
-    //     }
-
-    //    /// @todo TODO(ahundt) rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
-
-    //     ////////////////////////////////////////////////////
-    //     // Set joints to current arm position in simulation
-    //     SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
-    //     rbd::forwardKinematics(simArmMultiBody, simArmConfig);
-    //     rbd::forwardVelocity(simArmMultiBody, simArmConfig);
-
-    //     debugFrames();
-    // }
+  
     /// Configures updateKinematics with the goal the kinematics should aim for
     enum class GoalPosE { realGoalPosition, debugGoalPosition };
     /// Configures updateKinematics the algorithm the kinematics should use for solving
@@ -978,9 +946,9 @@ void getPoseFromCSV(std::string filename, int time_index){
        if(ik) {
            updateKinematics();
        } else {
-           auto myFile = boost::filesystem::current_path() /"2018_03_26_19_23_38";
+           auto myFile = boost::filesystem::current_path() /"2018_03_30_17_07_55";
            std::string pathName = myFile.string();
-           std::string kukaJoint = pathName+"/FTKUKA_TimeEvent.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
+           std::string kukaJoint = pathName+"/KUKA_Joint.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
            std::string markerPose = pathName+"/FT_Pose_Marker22.csv";
 
            // std::cout << "Call Run One..." << std::endl;
