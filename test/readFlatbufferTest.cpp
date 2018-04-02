@@ -39,7 +39,8 @@ int main(int argc, char* argv[])
     
     std::string KUKA_FRI_CSVfilename = foldname + foldtimestamp + "/KUKA_FRIMessage.csv";
     std::string KUKA_TimeEvent_CSV = foldname + foldtimestamp + "/KUKA_TimeEvent.csv";
-    std::string KUKA_Joint_CSV = foldname + foldtimestamp + "/KUKA_Joint.csv";
+    std::string M_Joint_CSV = foldname + foldtimestamp + "/KUKA_Measured_Joint.csv";
+    std::string C_Joint_CSV = foldname + foldtimestamp + "/KUKA_Command_Joint.csv";
     std::string KUKA_Pose_CSV = foldname + foldtimestamp + "/KUKA_Pose.csv";
     std::string KUKA_Inverse_Pose_CSV = foldname + foldtimestamp + "/Inverse_KUKA_Pose.csv";
     std::string FudicialToRobotPose_CSV = foldname + foldtimestamp + "/FudicialToRobot_Pose.csv";
@@ -109,14 +110,14 @@ int main(int argc, char* argv[])
     // Skip the very beginning data,since the tracker starts to work once the scene is loaded in vrep.
     // But kuka starts to work only after clicking on the start button.
     // To combine the time from two devices, they should have the same starting time point.
-    while(kuka_index<kuka_time_size && timeEventM_Kuka(kuka_index, grl::TimeType::local_receive_time) < timeEventM_FT(FT_index,grl::TimeType::local_receive_time)){
+    while(kuka_index<kuka_time_size && timeEventM_Kuka(kuka_index, grl::timeBaseline_index) < timeEventM_FT(FT_index,grl::timeBaseline_index)){
         kuka_index++;
     }
-    while(kuka_index == 0 && FT_index<FT_time_size && timeEventM_Kuka(kuka_index,grl::TimeType::local_receive_time) > timeEventM_FT(FT_index,grl::TimeType::local_receive_time) ){
+    while(kuka_index == 0 && FT_index<FT_time_size && timeEventM_Kuka(kuka_index,grl::timeBaseline_index) > timeEventM_FT(FT_index,grl::timeBaseline_index) ){
         FT_index++;
     }
  
-    auto initial_local_time = std::min(timeEventM_FT(FT_index,grl::TimeType::local_receive_time), timeEventM_Kuka(kuka_index, grl::TimeType::local_receive_time));
+    auto initial_local_time = std::min(timeEventM_FT(FT_index,grl::timeBaseline_index), timeEventM_Kuka(kuka_index, grl::timeBaseline_index));
     auto initial_device_time_kuka = timeEventM_Kuka(kuka_index,grl::TimeType::device_time);
     auto initial_device_time_FT = timeEventM_FT(FT_index,grl::TimeType::device_time);
     std::cout<< "Main initial_local_time: " << initial_local_time << std::endl;
@@ -151,7 +152,9 @@ int main(int argc, char* argv[])
         std::vector<std::string> kuka_labels = grl::Time_Labels;
         kuka_labels.insert(std::end(kuka_labels), std::begin(grl::M_Pos_Joint_Labels), std::end(grl::M_Pos_Joint_Labels));
         // Write the joint angles into csv
-        grl::writeMatrixToCSV(KUKA_Joint_CSV, kuka_labels, timeEventM_Kuka, measuredJointPosition);
+        grl::writeMatrixToCSV(M_Joint_CSV, kuka_labels, timeEventM_Kuka, measuredJointPosition);
+        std::copy(std::begin(grl::C_Pos_Joint_Labels), std::end(grl::C_Pos_Joint_Labels),std::begin(kuka_labels)+grl::Time_Labels.size());
+        grl::writeMatrixToCSV(C_Joint_CSV, kuka_labels, timeEventM_Kuka, commandedJointPosition);
         std::vector<std::string> PK_Pose_Labels = grl::getLabels(grl::LabelsType::Kuka_Pose);
         // forward kinematic to get the of the end effector
         // markerPose_FT = true;  // Get the marker pose directly, or get the end effector pose.
@@ -214,12 +217,6 @@ int main(int argc, char* argv[])
         grl::writeMatrixToCSV(FT_Marker50000_CSV, FT_Labels_Pose, timeEventM_FT, markerPose_FT, FT_index);
     }
    
-    
-
-
-
-
-
     // grl::writeFTKUKAMessageToCSV(FTKUKA_TimeEvent_CSV, logKUKAiiwaFusionTrackP, kukaStatesP, markerID_22);
     return 0;
 }

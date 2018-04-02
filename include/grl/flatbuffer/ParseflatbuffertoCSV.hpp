@@ -87,7 +87,7 @@ namespace grl {
     typedef Eigen::Matrix<int64_t , Eigen::Dynamic , 1>  VectorXd;
     typedef Eigen::Matrix<int64_t , Eigen::Dynamic , Eigen::Dynamic>  MatrixXd;
 
-    std::vector<std::string> Time_Labels = {"local_receive_time_X", "local_request_time_offset", "device_time_offset", "time_Y", "counter"};
+    std::vector<std::string> Time_Labels = { "local_request_time_offset", "local_receive_time_offset", "device_time_offset", "time_Y", "counter"};
     // std::vector<std::string> PK_Pose_Labels = {"P_X", "P_Y", "P_Z", "Q_X", "Q_Y", "Q_Z", "Q_W"};
     std::vector<std::string> M_Pos_Joint_Labels = {"M_Pos_J1", "M_Pos_J2", "M_Pos_J3", "M_Pos_J4", "M_Pos_J5", "M_Pos_J6", "M_Pos_J7"};
     std::vector<std::string> M_Tor_Joint_Labels = {"M_Tor_J1", "M_Tor_J2", "M_Tor_J3", "M_Tor_J4", "M_Tor_J5", "M_Tor_J6", "M_Tor_J7"};
@@ -98,10 +98,10 @@ namespace grl {
     std::vector<std::string> Joint_Labels = {"Joint_1", "Joint_2", "Joint_3", "Joint_4", "Joint_5", "Joint_6", "Joint_7"};
     std::vector<std::string> Transform_Labels  = {"X", "Y", "Z", "Q_W", "Q_X", "Q_Y", "Q_Z"};
     std::vector<std::string> PK_Pose_Labels  = {"X", "Y", "Z", "A", "B", "C"};
-    enum TimeType { local_receive_time = 0, local_request_time = 1, device_time = 2, time_Y = 3, counterIdx=4};
+    enum TimeType { local_request_time = 0, local_receive_time = 1,  device_time = 2, time_Y = 3, counterIdx=4};
     enum Joint_Index { joint_1, joint_2, joint_3, joint_4, joint_5, joint_6, joint_7};
     enum LabelsType { FT_Pose = 0, Joint = 1, Kuka_Pose= 2};
-    
+    int timeBaseline_index = TimeType::local_request_time; //  Another option is TimeType::local_receive_time
     struct kuka_tag {};
     struct fusiontracker_tag {};
     int col_timeEvent=Time_Labels.size();
@@ -165,6 +165,7 @@ namespace grl {
         assert(state_size);
         int row = 0;
         grl::MatrixXd timeEventM(state_size,col_timeEvent);
+      
         for(int i = 0; i<state_size; ++i){
             auto kukaiiwaFusionTrackMessage = states->Get(i);
             auto FT_Message = kukaiiwaFusionTrackMessage->deviceState_as_FusionTrackMessage();
@@ -176,29 +177,16 @@ namespace grl {
                 for(int markerIndex=0; markerIndex<makerSize; markerIndex++) {
                     auto marker = Makers->Get(markerIndex);
                     auto marker_ID = marker->geometryID();
-                    // if(markerID == 0){
-                    //     if(marker_ID == 22 || marker_ID == 55){
-                    //         auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
-                    //         timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
-                    //         timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
-                    //         timeEventM(row,TimeType::device_time) = timeEvent->device_time();
-                    //         timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
-                    //         timeEventM(row,TimeType::counterIdx) = counter;
-                    //         row++;
-                    //         break;
-                    //     }
-                    // } else {
-                        if(marker_ID == markerID){
-                            auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
-                            timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
-                            timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
-                            timeEventM(row,TimeType::device_time) = timeEvent->device_time();
-                            timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
-                            timeEventM(row,TimeType::counterIdx) = counter;
-                            row++;
-                            break;
-                        }
-                    // }
+                    if(marker_ID == markerID){
+                        auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
+                        timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
+                        timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
+                        timeEventM(row,TimeType::device_time) = timeEvent->device_time();
+                        timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,timeBaseline_index);
+                        timeEventM(row,TimeType::counterIdx) = counter;
+                        row++;
+                        break;
+                    }
 
                 }
             }
@@ -206,7 +194,7 @@ namespace grl {
         if(row < state_size) {
             timeEventM.conservativeResize(row, Eigen::NoChange_t{});
         }
-        grl::VectorXd timeCol = timeEventM.col(TimeType::local_receive_time);
+        grl::VectorXd timeCol = timeEventM.col(timeBaseline_index);
         assert(checkmonotonic(timeCol));
         return timeEventM;
     }
@@ -223,6 +211,7 @@ namespace grl {
         std::size_t state_size = states->size();
         assert(state_size);
         grl::MatrixXd timeEventM(state_size,col_timeEvent);
+       
         for(int i = 0; i<state_size; ++i){
             auto KUKAiiwaState = states->Get(i);
             auto FRIMessage = KUKAiiwaState->FRIMessage();
@@ -231,10 +220,10 @@ namespace grl {
             timeEventM(i,TimeType::local_receive_time) = timeEvent->local_receive_time();
             timeEventM(i,TimeType::local_request_time) = timeEvent->local_request_time();
             timeEventM(i,TimeType::device_time) = timeEvent->device_time();
-            timeEventM(i,TimeType::time_Y) =  timeEventM(i,TimeType::device_time) - timeEventM(i,TimeType::local_receive_time);
+            timeEventM(i,TimeType::time_Y) =  timeEventM(i,TimeType::device_time) - timeEventM(i,timeBaseline_index);
             timeEventM(i,TimeType::counterIdx) = identifier;
         }
-        grl::VectorXd timeCol = timeEventM.col(TimeType::local_receive_time);
+        grl::VectorXd timeCol = timeEventM.col(timeBaseline_index);
         assert(checkmonotonic(timeCol));
         return timeEventM;
     }
@@ -275,6 +264,7 @@ namespace grl {
         // Eigen::MatrixXd markerPose(state_size, grl::col_Pose);
         // std::cout <<"State size: " << state_size << "   markerPose rows: " << markerPose.rows() << std::endl;
         int BadCount = 0;
+
         for(int i = 0; i<state_size; ++i){
             auto kukaiiwaFusionTrackMessage = states->Get(i);
             auto FT_Message = kukaiiwaFusionTrackMessage->deviceState_as_FusionTrackMessage();
@@ -289,10 +279,10 @@ namespace grl {
                     auto marker_ID = marker->geometryID();
                     if(marker_ID == markerID){
                         auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
-                        timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
                         timeEventM(row,TimeType::local_request_time) = timeEvent->local_request_time();
+                        timeEventM(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
                         timeEventM(row,TimeType::device_time) = timeEvent->device_time();
-                        timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,TimeType::local_receive_time);
+                        timeEventM(row,TimeType::time_Y) = timeEventM(row,TimeType::device_time) - timeEventM(row,timeBaseline_index);
  
                         timeEventM(row,TimeType::counterIdx) = counter;
 
@@ -307,19 +297,6 @@ namespace grl {
                         Eigen::RowVectorXd pose(grl::col_Pose);
                         pose << r.transpose(), eulerAngleEigen.transpose();
 
-
-                        // if(markerFrame == true) {
-                        //     Eigen::VectorXd onePose(7);
-                        //     onePose << r, q.w(), q.x(), q.y(), q.z();
-                        //     auto markerToCameraTransform = grl::MarkerPoseToAffine3f(onePose);
-                        //     auto cameraTomarkerTransform = markerToCameraTransform.inverse();
-                        //     auto _markerPose = grl::Affine3fToMarkerPose(cameraTomarkerTransform);
-                        //     pose = grl::getPluckerPose(_markerPose);
-
-                        // }
-
-
-
                         markerPose.row(row++) = pose;
 
                         // Once read the specified marker information, skip out of the marker loop.
@@ -333,7 +310,7 @@ namespace grl {
             }
         }
         if(row < state_size) {
-            int64_t FT_diff = timeEventM(0,TimeType::device_time) - timeEventM(0,TimeType::local_receive_time);
+            int64_t FT_diff = timeEventM(0,TimeType::device_time) - timeEventM(0,timeBaseline_index);
             timeEventM.col(TimeType::time_Y) = timeEventM.col(TimeType::time_Y) - FT_diff * grl::VectorXd::Ones(timeEventM.rows());
             markerPose.conservativeResize(row, Eigen::NoChange_t{});
             timeEventM.conservativeResize(row, Eigen::NoChange_t{});
@@ -363,6 +340,7 @@ namespace grl {
             // Eigen::MatrixXd markerPose(state_size, grl::col_Pose);
             // std::cout <<"State size: " << state_size << "   markerPose rows: " << markerPose.rows() << std::endl;
             int BadCount = 0;
+
             for(int stateIdx = startIndex; startIndex<state_size; ++startIndex){
                 auto kukaiiwaFusionTrackMessage = states->Get(stateIdx);
                 auto FT_Message = kukaiiwaFusionTrackMessage->deviceState_as_FusionTrackMessage();
@@ -377,10 +355,10 @@ namespace grl {
                         auto marker_ID = marker->geometryID();
                         if(marker_ID == markerID){
                             auto timeEvent = kukaiiwaFusionTrackMessage->timeEvent();
-                            timeEventM_FT(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
                             timeEventM_FT(row,TimeType::local_request_time) = timeEvent->local_request_time();
+                            timeEventM_FT(row,TimeType::local_receive_time) = timeEvent->local_receive_time();
                             timeEventM_FT(row,TimeType::device_time) = timeEvent->device_time();
-                            timeEventM_FT(row,TimeType::time_Y) = timeEventM_FT(row,TimeType::device_time) - timeEventM_FT(row,TimeType::local_receive_time);
+                            timeEventM_FT(row,TimeType::time_Y) = timeEventM_FT(row,TimeType::device_time) - timeEventM_FT(row,timeBaseline_index);
                             timeEventM_FT(row,TimeType::counterIdx) = counter;
                             auto Pose = marker->transform();
                             auto FB_r = Pose->position();
@@ -397,7 +375,7 @@ namespace grl {
                 }
             }
             if(row < state_size) {
-                int64_t FT_diff = timeEventM_FT(0,TimeType::device_time) - timeEventM_FT(0,TimeType::local_receive_time);
+                int64_t FT_diff = timeEventM_FT(0,TimeType::device_time) - timeEventM_FT(0,timeBaseline_index);
                 timeEventM_FT.col(TimeType::time_Y) = timeEventM_FT.col(TimeType::time_Y) - FT_diff * grl::VectorXd::Ones(timeEventM_FT.rows());
                 transform.conservativeResize(row, Eigen::NoChange_t{});
                 timeEventM_FT.conservativeResize(row, Eigen::NoChange_t{});
@@ -430,14 +408,16 @@ namespace grl {
             if(startIndex>state_size){
                 return -1;
             }
+          
             for(int stateIdx = startIndex; stateIdx<state_size; ++stateIdx){
                 auto KUKAiiwaState = states->Get(stateIdx);
                 auto FRIMessage = KUKAiiwaState->FRIMessage();
                 auto timeEvent = FRIMessage->timeStamp();
-                timeEventM_Kuka(stateIdx,TimeType::local_receive_time) = timeEvent->local_receive_time();
                 timeEventM_Kuka(stateIdx,TimeType::local_request_time) = timeEvent->local_request_time();
+                timeEventM_Kuka(stateIdx,TimeType::local_receive_time) = timeEvent->local_receive_time();
                 timeEventM_Kuka(stateIdx,TimeType::device_time) = timeEvent->device_time();
-                timeEventM_Kuka(stateIdx,TimeType::time_Y) =  timeEventM_Kuka(stateIdx,TimeType::device_time) - timeEventM_Kuka(stateIdx,TimeType::local_receive_time);
+                // timeEventM_Kuka(stateIdx,TimeType::time_Y) =  timeEventM_Kuka(stateIdx,TimeType::device_time) - timeEventM_Kuka(stateIdx,TimeType::local_receive_time);
+                timeEventM_Kuka(stateIdx,TimeType::time_Y) =  timeEventM_Kuka(stateIdx,TimeType::device_time) - timeEventM_Kuka(stateIdx,timeBaseline_index);
                 // timeEventM_Kuka(stateIdx,TimeType::counterIdx) = identifier;
                 sequenceCounterVec(stateIdx) = FRIMessage->sequenceCounter();
                 reflectedSequenceCounterVec(stateIdx) = FRIMessage->reflectedSequenceCounter();
@@ -486,8 +466,8 @@ namespace grl {
             // create a name for the file output
             fs.open(KUKA_FRI_CSVfilename, std::ofstream::out | std::ofstream::app);
             // write the file headers
-            fs << grl::Time_Labels[grl::TimeType::local_receive_time] << ","
-            << grl::Time_Labels[grl::TimeType::local_request_time] << ","
+            fs << grl::Time_Labels[grl::TimeType::local_request_time] << ","
+            << grl::Time_Labels[grl::TimeType::local_receive_time] << ","
             << grl::Time_Labels[grl::TimeType::device_time] << ","
             << grl::Time_Labels[grl::TimeType::time_Y] << ","
             << "SequenceCounter,"
@@ -545,8 +525,8 @@ namespace grl {
             while ( kuka_index < kuka_time_size)
             {
                 
-                fs << timeEventM_Kuka(kuka_index, grl::TimeType::local_receive_time) <<","
-                   << timeEventM_Kuka(kuka_index, grl::TimeType::local_request_time) <<","
+                fs << timeEventM_Kuka(kuka_index, grl::TimeType::local_request_time) <<","
+                   << timeEventM_Kuka(kuka_index, grl::TimeType::local_receive_time) <<","
                    << timeEventM_Kuka(kuka_index, grl::TimeType::device_time) <<","
                    << timeEventM_Kuka(kuka_index, grl::TimeType::time_Y)<<","
                    << sequenceCounterVec(kuka_index) <<","
@@ -685,8 +665,8 @@ namespace grl {
     /// @param timeEventM
     void writeTimeEventToCSV( std::string & CSV_FileName, grl::MatrixXd& timeEventM, int rowIdx) {
         std::size_t time_size = timeEventM.rows();
-        grl::VectorXd local_receive_timeV = timeEventM.col(grl::TimeType::local_receive_time);
         grl::VectorXd local_request_timeV = timeEventM.col(grl::TimeType::local_request_time);
+        grl::VectorXd local_receive_timeV = timeEventM.col(grl::TimeType::local_receive_time);
         grl::VectorXd device_timeV = timeEventM.col(grl::TimeType::device_time);
         grl::VectorXd time_YV = timeEventM.col(grl::TimeType::time_Y);
         grl::VectorXd counter = timeEventM.col(grl::TimeType::counterIdx);
@@ -696,8 +676,8 @@ namespace grl {
         // create a name for the file output
         fs.open( CSV_FileName, std::ofstream::out | std::ofstream::app);
          // write the file headers
-        fs << grl::Time_Labels[grl::TimeType::local_receive_time] << ","
-           << grl::Time_Labels[grl::TimeType::local_request_time] << ","
+        fs << grl::Time_Labels[grl::TimeType::local_request_time] << ","
+           << grl::Time_Labels[grl::TimeType::local_receive_time] << ","
            << grl::Time_Labels[grl::TimeType::device_time] << ","
            << grl::Time_Labels[grl::TimeType::time_Y] << ","
            << "Receive-Request,"
@@ -713,9 +693,9 @@ namespace grl {
                 receive_time_step = local_receive_timeV(i) - local_receive_timeV(i-1);
             }
             // write the data to the output file
-            fs << local_receive_timeV(i) << ","         // A
-               << local_request_timeV(i) <<","          // B
-               << device_timeV(i) <<","                         // C
+            fs << local_request_timeV(i) <<","
+               << local_receive_timeV(i) << ","         
+               << device_timeV(i) <<","                         
                << time_YV(i) <<","   
                << receive_request(i) << ","
                << device_time_step << ","
@@ -735,6 +715,7 @@ namespace grl {
         Eigen::MatrixXd& markerPose,
         int FT_index=0,
         int kuka_index=0) {
+
             int FT_time_size = timeEventM_FT.rows();
             int kuka_time_size = timeEventM_Kuka.rows();
             grl::VectorXd FT_local_request_time = timeEventM_FT.col(local_request_time);
@@ -746,17 +727,24 @@ namespace grl {
             grl::VectorXd kuka_local_receive_time = timeEventM_Kuka.col(local_receive_time);
             grl::VectorXd kuka_device_time = timeEventM_Kuka.col(device_time);   
             // assert(checkmonotonic(kuka_local_receive_time));
-            int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index);
-            int64_t FT_diff = FT_device_time(FT_index) - FT_local_receive_time(FT_index);
+            // Use the receive time as the baseline.
+            // int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index);
+            // int64_t FT_diff = FT_device_time(FT_index) - FT_local_receive_time(FT_index);
+            // Use the request time as the baseline
+            int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_request_time(kuka_index);
+            int64_t FT_diff = FT_device_time(FT_index) - FT_local_request_time(FT_index);
+            
+            grl::VectorXd Y_kuka = kuka_device_time - kuka_local_request_time - grl::VectorXd::Ones(kuka_time_size)*kuka_diff;
+            grl::VectorXd Y_FT = FT_device_time - FT_local_request_time - grl::VectorXd::Ones(FT_time_size)*FT_diff;
+
           
         
             std::ofstream fs;
             // create a name for the file output
             fs.open( FTKUKA_TimeEvent_CSVfilename, std::ofstream::out | std::ofstream::app);
             // write the file headers
-            fs << "local_receive_time_offset_X,"
-            << "FT_local_request_time,"
-            << "KUKA_local_request_time,"
+            fs << "local_request_time,"
+            << "local_receive_time,"
             << "FT_device_time_offset,"
             << "device_time_offset_kuka,"
             << "Y_FT,"
@@ -779,57 +767,57 @@ namespace grl {
         
             while ( kuka_index < kuka_time_size && FT_index < FT_time_size )
             {
-                // If the row value is the kuka time, then the FT cells should be left blank.
-                if ( kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index) ){
-                // write the data to the output file
-                auto jointrow = jointAngles.row(kuka_index);
-                fs << kuka_local_receive_time(kuka_index) <<","
-                <<","
-                << kuka_local_request_time(kuka_index) << ","
-                << ","
-                << kuka_device_time(kuka_index) <<","
-                << ","
-                << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff << ","
-                << ",,,,,,"
-                << jointrow[0] << ","
-                << jointrow[1] << ","
-                << jointrow[2] << ","
-                << jointrow[3] << ","
-                << jointrow[4] << ","
-                << jointrow[5] << ","
-                << jointrow[6]
-                << std::endl;
-                kuka_index++;
-            } else if( kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index)) {
-                auto matrixrow = markerPose.row(FT_index);
-                // If the row value is the FT time, then the kuka cells should be left blank.
-                fs << FT_local_receive_time(FT_index) <<","
-                << FT_local_request_time(FT_index) << ","
-                <<","
-                << FT_device_time(FT_index) << ","
-                << ","
-                << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
-                << ","
-                << matrixrow[0] << ","
-                << matrixrow[1] << ","
-                << matrixrow[2] << ","
-                << matrixrow[3] << ","
-                << matrixrow[4] << ","
-                << matrixrow[5] << std::endl;
-                FT_index++;
-            } else {
-                // In case the time is extactly equivent with each other.
-                fs << FT_local_receive_time(FT_index) <<","
-                << FT_local_request_time(FT_index) << ","
-                << kuka_local_request_time(kuka_index) << ","
-                << FT_device_time(FT_index) << ","
-                << kuka_device_time(kuka_index) <<","
-                << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
-                << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
-                << std::endl;
-                FT_index++;
-                kuka_index++;
-            }
+                // If the row value is the kuka time, then the FT cells should be left empty.
+                // Use the receive time as the baseline
+                // if ( kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index) ){
+                if ( kuka_local_request_time(kuka_index) < FT_local_request_time(FT_index) ){
+                    // write the data to the output file
+                    auto jointrow = jointAngles.row(kuka_index);
+                    fs << kuka_local_request_time(kuka_index) <<","
+                    << kuka_local_receive_time(kuka_index) << ","
+                    << ","
+                    << kuka_device_time(kuka_index) <<","
+                    << ","
+                    << Y_kuka(kuka_index) << ","
+                    << ",,,,,,"
+                    << jointrow[0] << ","
+                    << jointrow[1] << ","
+                    << jointrow[2] << ","
+                    << jointrow[3] << ","
+                    << jointrow[4] << ","
+                    << jointrow[5] << ","
+                    << jointrow[6]
+                    << std::endl;
+                    kuka_index++;
+                } else if( kuka_local_request_time(kuka_index) > FT_local_request_time(FT_index)) {
+                    auto matrixrow = markerPose.row(FT_index);
+                    // If the row value is the FT time, then the kuka cells should be left blank.
+                    fs << FT_local_request_time(FT_index) << ","
+                       << FT_local_receive_time(FT_index) <<","
+                       << FT_device_time(FT_index) << ","
+                       << ","
+                       << Y_FT(FT_index) << ","
+                       << ","
+                       << matrixrow[0] << ","
+                       << matrixrow[1] << ","
+                       << matrixrow[2] << ","
+                       << matrixrow[3] << ","
+                       << matrixrow[4] << ","
+                       << matrixrow[5] << std::endl;
+                       FT_index++;
+                } else {
+                    // In case the time is extactly equivent with each other.
+                    fs << FT_local_request_time(FT_index) << ","
+                       << FT_local_receive_time(FT_index) <<","
+                       // << kuka_local_request_time(kuka_index) << ","
+                       << FT_device_time(FT_index) << ","
+                       << kuka_device_time(kuka_index) <<","
+                       << Y_FT(FT_index)<< ","
+                       << Y_kuka(kuka_index)
+                       << std::endl;
+                       FT_index++;
+                       kuka_index++;
+                }
             }
             std::cout << "FT_index: " << FT_index << "   kuka_index: " << kuka_index << "  Sum:  " << FT_index+kuka_index << std::endl;
             fs.close();
@@ -869,14 +857,15 @@ namespace grl {
         // Skip the very beginning data,since the tracker starts to work once the scene is loaded in vrep.
         // But kuka starts to work only after clicking on the start button.
         // To combine the time from two devices, they should have the same starting time point.
-        while(kuka_index<kuka_time_size && timeEventM_Kuka(kuka_index,TimeType::local_receive_time) < timeEventM_FT(FT_index,TimeType::local_receive_time)){
+
+        while(kuka_index<kuka_time_size && timeEventM_Kuka(kuka_index,timeBaseline_index ) < timeEventM_FT(FT_index,timeBaseline_index )){
             kuka_index++;
         }
-        while(FT_index<FT_time_size && timeEventM_Kuka(kuka_index,local_receive_time) > timeEventM_FT(FT_index,local_receive_time) && kuka_index == 0){
+        while(FT_index<FT_time_size && timeEventM_Kuka(kuka_index,timeBaseline_index ) > timeEventM_FT(FT_index,timeBaseline_index ) && kuka_index == 0){
             FT_index++;
         }
 
-        auto initial_local_time = std::min(timeEventM_FT(FT_index,local_receive_time), timeEventM_Kuka(kuka_index,local_receive_time));
+        auto initial_local_time = std::min(timeEventM_FT(FT_index,timeBaseline_index ), timeEventM_Kuka(kuka_index,timeBaseline_index ));
         auto initial_device_time_kuka = timeEventM_Kuka(kuka_index,device_time);
         auto initial_device_time_FT = timeEventM_FT(FT_index,device_time);
         grl::VectorXd FT_local_request_time = timeEventM_FT.col(local_request_time) - initial_local_time * grl::VectorXd::Ones(FT_time_size);
@@ -890,8 +879,12 @@ namespace grl {
         Eigen::MatrixXd jointAngles = grl::getAllJointAngles(kukaStatesP);
 
         
-        int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index);
-        int64_t FT_diff = FT_device_time(FT_index) - FT_local_receive_time(FT_index);
+        int64_t kuka_diff = kuka_device_time(kuka_index) - kuka_local_request_time(kuka_index);
+        int64_t FT_diff = FT_device_time(FT_index) - FT_local_request_time(FT_index);
+        
+        grl::VectorXd Y_kuka = kuka_device_time - kuka_local_request_time - grl::VectorXd::Ones(kuka_time_size)*kuka_diff;
+        grl::VectorXd Y_FT = FT_device_time - FT_local_request_time - grl::VectorXd::Ones(FT_time_size)*FT_diff;
+
        
         std::ofstream fs;
         // create a name for the file output
@@ -926,13 +919,12 @@ namespace grl {
             if ( kuka_local_receive_time(kuka_index) < FT_local_receive_time(FT_index) ){
                 // write the data to the output file
                 auto jointrow = jointAngles.row(kuka_index);
-                fs << kuka_local_receive_time(kuka_index) <<","
-                   <<","
-                   << kuka_local_request_time(kuka_index) << ","
+                fs << kuka_local_request_time(kuka_index) <<","
+                   << kuka_local_receive_time(kuka_index) << ","
                    << ","
                    << kuka_device_time(kuka_index) <<","
                    << ","
-                   << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff << ","
+                   << Y_kuka(kuka_index) << ","
                    << ",,,,,,"
                    << jointrow[0] << ","
                    << jointrow[1] << ","
@@ -943,15 +935,14 @@ namespace grl {
                    << jointrow[6]
                    << std::endl;
                    kuka_index++;
-            } else if( kuka_local_receive_time(kuka_index) > FT_local_receive_time(FT_index)) {
+            } else if( kuka_local_request_time(kuka_index) > FT_local_request_time(FT_index)) {
                 auto matrixrow = markerPose.row(FT_index);
                 // If the row value is the FT time, then the kuka cells should be left blank.
-                fs << FT_local_receive_time(FT_index) <<","
-                   << FT_local_request_time(FT_index) << ","
-                   <<","
+                fs << FT_local_request_time(FT_index) <<","
+                   << FT_local_receive_time(FT_index) << ","
                    << FT_device_time(FT_index) << ","
                    << ","
-                   << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
+                   << Y_FT(FT_index) << ","
                    << ","
                    << matrixrow[0] << ","
                    << matrixrow[1] << ","
@@ -962,13 +953,12 @@ namespace grl {
                 FT_index++;
             } else {
                 // In case the time is extactly equivent with each other.
-                fs << FT_local_receive_time(FT_index) <<","
-                   << FT_local_request_time(FT_index) << ","
-                   << kuka_local_request_time(kuka_index) << ","
+                fs << kuka_local_request_time(FT_index) <<","
+                   << kuka_local_receive_time(FT_index) << ","
                    << FT_device_time(FT_index) << ","
                    << kuka_device_time(kuka_index) <<","
-                   << FT_device_time(FT_index) - FT_local_receive_time(FT_index) - FT_diff << ","
-                   << kuka_device_time(kuka_index) - kuka_local_receive_time(kuka_index) - kuka_diff
+                   << Y_FT(FT_index) << ","
+                   << Y_kuka(kuka_index)
                    << std::endl;
                 FT_index++;
                 kuka_index++;
