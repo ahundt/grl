@@ -117,12 +117,12 @@ if(FLATBUFFERS_FOUND)
       set(ABSOLUTE_FBS_FILE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}/${FILE})
 
       add_custom_command(OUTPUT ${FLATC_OUTPUT}
-        COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
+        COMMAND ${FLATBUFFERS_COMPILER}
         # Note: We are setting several custom parameters here to make life easier.
         # see flatbuffers documentation for details.
         # flatc --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o
         # see https://google.github.io/flatbuffers/flatbuffers_guide_using_schema_compiler.html
-        ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "${OUTPUT_DIR}" ${FILE}
+        ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "${OUTPUT_DIR}" ${ABSOLUTE_FBS_FILE_PATH}
 		    MAIN_DEPENDENCY ${ABSOLUTE_FBS_FILE_PATH}
         COMMENT "Building C++, Java, and Python header for ${FILE}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR})
