@@ -1037,7 +1037,7 @@ namespace grl {
 
 
 int getRowsNumber(std::string filename){
-     // std::ifstream     file("/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv");
+    
      std::ifstream     file(filename);
      std::size_t row_size = 0;
     
@@ -1059,7 +1059,7 @@ int getRowsNumber(std::string filename){
     /// @return jointPosition, Eigen vector which contains joint position of the seven joints.
     int64_t getJointAnglesFromCSV(std::string filename, Eigen::VectorXf &jointPosition, int rowIdx){
 
-        // std::ifstream     file("/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/2018_03_20_20_35_20/KUKA_Joint.csv");
+       
         // int rowNum = getRowsNumber(filename);
         std::ifstream     file(filename);
         std::size_t joint_size = 7;
@@ -1120,6 +1120,35 @@ int getRowsNumber(std::string filename){
             }
         }
         return markerpose;
+    }
+
+    void writeRBDytoFile(rbd::MultiBodyGraph& rbd_mbg_, rbd::MultiBody &rbd_mbs_, rbd::MultiBodyConfig& rbd_mbcs_) {
+        std::size_t nrBodies = rbd_mbs_.nrBodies();
+        std::size_t nrJoints = rbd_mbs_.nrJoints();
+        for(int bIdx=0; bIdx<nrBodies; bIdx++){
+            auto body = rbd_mbs_.body(bIdx);
+            std::cout<< body.name() << ":" << std::endl;
+            std::cout<< "mass: " << body.inertia().mass() << std::endl;
+            std::cout<< "momentum: " << body.inertia().momentum() << std::endl;
+            std::cout<< "inertia: " << body.inertia().inertia() << std::endl;
+        }
+        for(int jIdx=0; jIdx<nrJoints; jIdx++){
+            auto joint = rbd_mbs_.joint(jIdx);
+            std::cout<< joint.name() << ":" << std::endl;
+            std::cout<< "direction: " << joint.direction() << std::endl;
+            std::cout<< "type: " << joint.type() << std::endl;
+            std::cout<< "motionSubspace: " << joint.motionSubspace() << std::endl;
+        }
+
+        // auto strRobot = grl::getURDFModel();
+        // rbd::MultiBody mb = strRobot.mb;
+        // rbd::MultiBodyConfig mbc(mb);
+        // rbd::MultiBodyGraph mbg(strRobot.mbg);
+        // std::size_t nrJoints = mb.nrJoints();
+        // std::size_t nrBodies = strRobot.mb.nrBodies();
+        // std::vector<std::string> jointNames;
+        // std::cout<<"Joint Size: "<< nrJoints << std::endl;
+
     }
 
 

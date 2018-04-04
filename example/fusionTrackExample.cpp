@@ -87,8 +87,7 @@ int main(int argc, char **argv)
   std::string json_file_prefix = "test_text_";
   std::string json_file_suffix = ".json";
   std::string fbs_filename("LogKUKAiiwaFusionTrack.fbs");
-  // std::string includePath = grl::getpathtofbsfile(fbs_filename);
-  std::string includePath = "/home/cjiao1/src/robonetracker/build/";
+
   std::size_t builder_size_bytes = 0;
 
 

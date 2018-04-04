@@ -59,14 +59,15 @@
 const double RadtoDegree = 180/3.14159265359;
 const double MeterToMM = 1000;
 
-std::string foldname = "/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/";
+// "/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
+std::string currentPath = boost::filesystem::current_path().string();
 
 std::string foldtimestamp = current_date_and_time_string();
 
-std::string kukaBinaryfile = foldname + "2018_02_26_14_23_14_Kukaiiwa.iiwa";
-std::string KUKA_TimeEvent_CSVfilename = foldname + foldtimestamp + "/KUKA_TimeEvent.csv";
-std::string KUKA_Joint_CSVfilename = foldname + foldtimestamp + "/KUKA_Joint.csv";
-std::string KUKA_Pose_CSVfilename = foldname + foldtimestamp + "/KUKA_Pose.csv";
+std::string kukaBinaryfile = currentPath + "2018_02_26_14_23_14_Kukaiiwa.iiwa";
+std::string KUKA_TimeEvent_CSVfilename = currentPath + foldtimestamp + "/KUKA_TimeEvent.csv";
+std::string KUKA_Joint_CSVfilename = currentPath + foldtimestamp + "/KUKA_Joint.csv";
+std::string KUKA_Pose_CSVfilename = currentPath + foldtimestamp + "/KUKA_Pose.csv";
 
 
 

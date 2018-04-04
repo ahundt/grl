@@ -18,7 +18,10 @@
 #include <chrono>
 #include <thread>
 /// Boost to create an empty folder
+// boost::filesystem
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
 
 /// split -C 200m --numeric-suffixes 2018_02_28_16_39_13_FusionTrack.json 2018_02_28_16_39_13_FusionTrack
 
@@ -27,41 +30,38 @@
 
 int main(int argc, char* argv[])
 {
+    std::string kukaTimeStamp("2018_03_26_19_06_21_Kukaiiwa.iiwa");
+    std::string FTTimeStamp("2018_03_26_19_06_21_FusionTrack.flik");
     /// Define the csv file names
-    std::string foldname = "/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/";
-    std::string kukaTimeStamp = "2018_03_26_19_06_21_Kukaiiwa";
-    std::string FTTimeStamp = "2018_03_26_19_06_21_FusionTrack";
-    std::string kukaBinaryfile = foldname + kukaTimeStamp+ ".iiwa";
-    std::string fusiontrackBinaryfile = foldname + FTTimeStamp +".flik";
-    std::string foldtimestamp = current_date_and_time_string();
-    boost::filesystem::path dir{foldname+foldtimestamp};
+    if(argc == 2){
+          kukaTimeStamp = std::string(argv[1]);
+          FTTimeStamp = std::string(argv[2]);
+          
+    }
+    std::string currentPath = boost::filesystem::current_path().string();  //"/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
+    std::string kukaBinaryfile = currentPath + kukaTimeStamp;
+    std::string fusiontrackBinaryfile = currentPath + FTTimeStamp;
+    std::string foldtimestamp = current_date_and_time_string(); // Write the generated files into a new fold
+    boost::filesystem::path dir{currentPath+foldtimestamp};
     boost::filesystem::create_directory(dir);
     
-    std::string KUKA_FRI_CSVfilename = foldname + foldtimestamp + "/KUKA_FRIMessage.csv";
-    std::string KUKA_TimeEvent_CSV = foldname + foldtimestamp + "/KUKA_TimeEvent.csv";
-    std::string M_Joint_CSV = foldname + foldtimestamp + "/KUKA_Measured_Joint.csv";
-    std::string C_Joint_CSV = foldname + foldtimestamp + "/KUKA_Command_Joint.csv";
-    std::string KUKA_Pose_CSV = foldname + foldtimestamp + "/KUKA_Pose.csv";
-    std::string KUKA_Inverse_Pose_CSV = foldname + foldtimestamp + "/Inverse_KUKA_Pose.csv";
-    std::string FudicialToRobotPose_CSV = foldname + foldtimestamp + "/FudicialToRobot_Pose.csv";
-    std::string FudicialToFTPose_CSV = foldname + foldtimestamp + "/FudicialToFT_Pose.csv";
+    std::string KUKA_FRI_CSVfilename = currentPath + foldtimestamp + "/KUKA_FRIMessage.csv";
+    std::string KUKA_TimeEvent_CSV = currentPath + foldtimestamp + "/KUKA_TimeEvent.csv";
+    std::string M_Joint_CSV = currentPath + foldtimestamp + "/KUKA_Measured_Joint.csv";
+    std::string C_Joint_CSV = currentPath + foldtimestamp + "/KUKA_Command_Joint.csv";
+    std::string KUKA_Pose_CSV = currentPath + foldtimestamp + "/KUKA_Pose.csv";
+    std::string KUKA_Inverse_Pose_CSV = currentPath + foldtimestamp + "/Inverse_KUKA_Pose.csv";
+    std::string FudicialToRobotPose_CSV = currentPath + foldtimestamp + "/FudicialToRobot_Pose.csv";
+    std::string FudicialToFTPose_CSV = currentPath + foldtimestamp + "/FudicialToFT_Pose.csv";
 
-    std::string FT_TimeEvent_CSV = foldname + foldtimestamp + "/FT_TimeEvent.csv";
-    std::string FT_Marker22_CSV = foldname + foldtimestamp + "/FT_Pose_Marker22.csv";
-    std::string FT_Marker55_CSV = foldname + foldtimestamp + "/FT_Pose_Marker55.csv";
-    std::string FT_Marker50000_CSV = foldname + foldtimestamp + "/FT_Pose_Marker50000.csv";
+    std::string FT_TimeEvent_CSV = currentPath + foldtimestamp + "/FT_TimeEvent.csv";
+    std::string FT_Marker22_CSV = currentPath + foldtimestamp + "/FT_Pose_Marker22.csv";
+    std::string FT_Marker55_CSV = currentPath + foldtimestamp + "/FT_Pose_Marker55.csv";
+    std::string FT_Marker50000_CSV = currentPath + foldtimestamp + "/FT_Pose_Marker50000.csv";
 
-    std::string FTKUKA_TimeEvent_CSV = foldname + foldtimestamp + "/FTKUKA_TimeEvent.csv";
+    std::string FTKUKA_TimeEvent_CSV = currentPath + foldtimestamp + "/FTKUKA_TimeEvent.csv";
 
-    auto strRobot = grl::getURDFModel();
-    rbd::MultiBody mb = strRobot.mb;
-    rbd::MultiBodyConfig mbc(mb);
-    rbd::MultiBodyGraph mbg(strRobot.mbg);
-    std::size_t nrJoints = mb.nrJoints();
-    std::size_t nrBodies = strRobot.mb.nrBodies();
-    std::vector<std::string> jointNames;
-    std::cout<<"Joint Size: "<< nrJoints << std::endl;
-
+    
     // Put all the data into the same coordinate system --- Marker frame
     bool inMarkerFrame = false;    // Indicate the marker pose is in marker frame or tracker frame.
     uint32_t markerID_22 = 22;
@@ -155,6 +155,17 @@ int main(int argc, char* argv[])
         grl::writeMatrixToCSV(M_Joint_CSV, kuka_labels, timeEventM_Kuka, measuredJointPosition);
         std::copy(std::begin(grl::C_Pos_Joint_Labels), std::end(grl::C_Pos_Joint_Labels),std::begin(kuka_labels)+grl::Time_Labels.size());
         grl::writeMatrixToCSV(C_Joint_CSV, kuka_labels, timeEventM_Kuka, commandedJointPosition);
+
+
+        auto strRobot = grl::getURDFModel();
+        rbd::MultiBody mb = strRobot.mb;
+        rbd::MultiBodyConfig mbc(mb);
+        rbd::MultiBodyGraph mbg(strRobot.mbg);
+        std::size_t nrJoints = mb.nrJoints();
+        std::size_t nrBodies = strRobot.mb.nrBodies();
+        std::vector<std::string> jointNames;
+        std::cout<<"Joint Size: "<< nrJoints << std::endl;
+
         std::vector<std::string> PK_Pose_Labels = grl::getLabels(grl::LabelsType::Kuka_Pose);
         // forward kinematic to get the of the end effector
         // markerPose_FT = true;  // Get the marker pose directly, or get the end effector pose.

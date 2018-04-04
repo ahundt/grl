@@ -394,10 +394,9 @@ public:
 
                 */
                 rbd_mbg_.linkBodies(prevBody, to, nextBody, from, curJoint);
-
-
             }
 
+            
             // Can't understand this comment, since didn't see the inverse of v-rep?
             // note: Tasks takes transforms in the successor (child link) frame, so it is the inverse of v-rep
 
@@ -409,6 +408,8 @@ public:
             const std::size_t simulatedRobotIndex = 0;
             auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
             auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
+
+            
 
             // update the simulated arm position
             for (std::size_t i = 0; i < jointHandles_.size(); ++i) {
@@ -533,8 +534,9 @@ void applyEstimate(){
    auto transform = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
    std::cout<< "Before resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
    setObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle, transformEstimate);
-   // auto myFile = boost::filesystem::current_path() /"RoboneSimulation_private_calibration_2.ttt";
-   std::string sceneName = "/home/cjiao1/src/robonetracker/modules/roboneprivate/data/RoboneSimulation_private_calibration_2.ttt";
+   auto myFile = boost::filesystem::current_path().string();
+   std::cout << "current path: " << myFile << std::endl; 
+   std::string sceneName = "/home/chunting/src/robonetracker/modules/roboneprivate/data/RoboneSimulation_private_calibration_2.ttt";
    simSaveScene(sceneName.c_str());
    transform = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
    std::cout<< "After resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
@@ -645,6 +647,15 @@ void getPoseFromCSV(std::string filename, int time_index){
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
 
+        auto strRobot = grl::getURDFModel();
+        rbd::MultiBody mb = strRobot.mb;
+        rbd::MultiBodyConfig mbc(mb);
+        rbd::MultiBodyGraph mbg(strRobot.mbg);
+        std::size_t nrJoints = mb.nrJoints();
+        std::size_t nrBodies = strRobot.mb.nrBodies();
+        std::vector<std::string> jointNames;
+        std::cout<<"Joint Size: "<< nrJoints << std::endl;
+
         std::vector<float> vrepJointAngles;
         double angle = 0.7;
         for(auto i : jointHandles_)
@@ -654,13 +665,19 @@ void getPoseFromCSV(std::string filename, int time_index){
             vrepJointAngles.push_back(angle);
         }
 
+      
+
        /// @todo TODO(ahundt) rethink where/when/how to send command for the joint angles. Return to LUA? Set Directly? Distribute via vrep send message command?
 
         ////////////////////////////////////////////////////
         // Set joints to current arm position in simulation
-        SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
-        rbd::forwardKinematics(simArmMultiBody, simArmConfig);
-        rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+        // SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
+        // rbd::forwardKinematics(simArmMultiBody, simArmConfig);
+        // rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+
+        SetRBDynArmFromVrep(jointNames_,jointHandles_,mb,mbc);
+        rbd::forwardKinematics(mb, mbc);
+        rbd::forwardVelocity(mb, mbc);
 
         debugFrames();
     }
@@ -950,13 +967,12 @@ void getPoseFromCSV(std::string filename, int time_index){
            std::string pathName = myFile.string();
            std::string kukaJoint = pathName+"/KUKA_Joint.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
            std::string markerPose = pathName+"/FT_Pose_Marker22.csv";
-
-           // std::cout << "Call Run One..." << std::endl;
-           // testPose();
-           // applyEstimate();
-           getPoseFromCSV(kukaJoint, time_index);
+           
+           testPose();
+           applyEstimate();
+           // getPoseFromCSV(kukaJoint, time_index);
            // replayMarker(markerPose, time_index);
-           time_index++;
+           // time_index++;
        }
     }
 
