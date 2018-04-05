@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
           FTTimeStamp = std::string(argv[2]);
           
     }
-    std::string currentPath = boost::filesystem::current_path().string();  //"/home/chunting/src/V-REP_PRO_EDU_V3_4_0_Linux/";
+    std::string currentPath = boost::filesystem::current_path().string()+"/";  //"/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/";
     std::string kukaBinaryfile = currentPath + kukaTimeStamp;
     std::string fusiontrackBinaryfile = currentPath + FTTimeStamp;
     std::string foldtimestamp = current_date_and_time_string(); // Write the generated files into a new fold

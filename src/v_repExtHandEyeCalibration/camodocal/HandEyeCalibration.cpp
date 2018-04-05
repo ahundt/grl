@@ -143,7 +143,6 @@ HandEyeCalibration::estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eige
 
         // Skip cases with zero rotation
         if (rvec1.norm() == 0 || rvec2.norm() == 0) continue;
-        std::cout<< "i = " << i << std::endl;
         T.block<6,8>(i * 6, 0) = AxisAngleToSTransposeBlockOfT(rvec1,tvec1,rvec2,tvec2);
     }
 

@@ -96,6 +96,8 @@
 #include "grl/flatbuffer/kukaiiwaURDF.h"
 #include "grl/flatbuffer/CSVIterator.hpp"
 
+#include <cstdlib>
+
 namespace grl {
 namespace vrep {
 
@@ -508,47 +510,8 @@ public:
        setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
     }
 
-/// @brief  Will apply the stored estimate to the v-rep simulation value
-///
-/// A default transform is saved when construct() was called
-/// so if no estimate has been found that will be used.
-void applyEstimate(){
-   
-    std::string opticalTrackerDetectedObjectName("Fiducial#22");
-    std::string robotTipName("RobotFlangeTip");
-    int opticalTrackerDetectedObjectHandle = simGetObjectHandle(opticalTrackerDetectedObjectName.c_str());
-    int robotTipHandle = simGetObjectHandle(robotTipName.c_str());
-    Eigen::Affine3d transformEstimate = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
-    Eigen::Quaterniond eigenQuat(0.105064, 0.0503505, 0.65479, 0.746777);  //wxyz
-    // 0.0251104, 0.00752018, 0.996255, 0.0823903
-    // 0.105045, 0.0502289 , 0.654843 ,  0.746742
-
-    Eigen::Vector3d eigenPos(0.0753178, 0.0973988, 0.088042);
-    // 0.0754499, 0.0975167, 0.0882869
-    // 0.0388255, 0.102084, 0.0902271
-
-   transformEstimate = eigenQuat;
-   transformEstimate.translation() = eigenPos;
-
-   // set transform between end effector and fiducial
-   auto transform = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
-   std::cout<< "Before resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
-   setObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle, transformEstimate);
-   auto myFile = boost::filesystem::current_path().string();
-   std::cout << "current path: " << myFile << std::endl; 
-   std::string sceneName = "/home/chunting/src/robonetracker/modules/roboneprivate/data/RoboneSimulation_private_calibration_2.ttt";
-   simSaveScene(sceneName.c_str());
-   transform = getObjectTransform(opticalTrackerDetectedObjectHandle, robotTipHandle);
-   std::cout<< "After resetting the hand eye calibration: " << std::endl << transform.matrix() << std::endl;
-//    logger_->info( "Hand Eye Screw Estimation has been set quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
-//                   eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
-}
 void getPoseFromCSV(std::string filename, int time_index){
           // we only have one robot for the moment so the index of it is 0
-        // loadFromBinary();
-        // if(time_index == 0){
-        //     applyEstimate();
-        // }
         const std::size_t simulatedRobotIndex = 0;
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
@@ -671,13 +634,13 @@ void getPoseFromCSV(std::string filename, int time_index){
 
         ////////////////////////////////////////////////////
         // Set joints to current arm position in simulation
-        // SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
-        // rbd::forwardKinematics(simArmMultiBody, simArmConfig);
-        // rbd::forwardVelocity(simArmMultiBody, simArmConfig);
+        SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
+        rbd::forwardKinematics(simArmMultiBody, simArmConfig);
+        rbd::forwardVelocity(simArmMultiBody, simArmConfig);
 
-        SetRBDynArmFromVrep(jointNames_,jointHandles_,mb,mbc);
-        rbd::forwardKinematics(mb, mbc);
-        rbd::forwardVelocity(mb, mbc);
+        // SetRBDynArmFromVrep(jointNames_,jointHandles_,mb,mbc);
+        // rbd::forwardKinematics(mb, mbc);
+        // rbd::forwardVelocity(mb, mbc);
 
         debugFrames();
     }
@@ -963,13 +926,12 @@ void getPoseFromCSV(std::string filename, int time_index){
        if(ik) {
            updateKinematics();
        } else {
-           auto myFile = boost::filesystem::current_path() /"2018_03_30_17_07_55";
+           auto myFile = boost::filesystem::current_path() /"data_in";
            std::string pathName = myFile.string();
            std::string kukaJoint = pathName+"/KUKA_Joint.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
            std::string markerPose = pathName+"/FT_Pose_Marker22.csv";
            
            testPose();
-           applyEstimate();
            // getPoseFromCSV(kukaJoint, time_index);
            // replayMarker(markerPose, time_index);
            // time_index++;

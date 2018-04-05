@@ -217,10 +217,20 @@ void estimateHandEyeScrew(){
 ///
 /// A default transform is saved when construct() was called
 /// so if no estimate has been found that will be used.
-void applyEstimate(){
+void applyEstimate(std::string sceneName=""){
 
    // set transform between end effector and fiducial
    setObjectTransform(opticalTrackerDetectedObjectName, robotTip, transformEstimate);
+   if(!sceneName.empty()){
+      int ret = simSaveScene(sceneName.c_str());
+      if(ret == -1){
+        logger_->info(  "\n{} fails to be saved...", sceneName);
+      } else {
+        logger_->info(  "\n{} has been saved...", sceneName);
+      }
+      
+   }
+   
 }
 
 Eigen::Affine3d getEstimate(){

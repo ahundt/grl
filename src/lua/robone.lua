@@ -392,7 +392,9 @@ robone.handEyeCalibScript=function()
 
 		-- calculate the transform
 		simExtHandEyeCalibFindTransform()
-		simExtHandEyeCalibApplyTransform()
+		-- apply the transform and save the scene
+		sceneName = "/home/cjiao1/src/robonetracker/modules/roboneprivate/data/RoboneSimulation_private_calibration_5.ttt"
+		simExtHandEyeCalibApplyTransform(sceneName)
 
 	-- check for fusiontrack
 	if (not grl.isModuleLoaded('AtracsysFusionTrack')) then
