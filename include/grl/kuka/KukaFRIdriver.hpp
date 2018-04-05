@@ -704,7 +704,7 @@ public:
         ]() mutable
         {
 
-            std::string currentWorkingDir = grl::GetCurrentWorkingDir();
+            std::string currentWorkingDir = boost::filesystem::current_path().string();
             lambdaLoggerP->info("currentWorkingDir ...: {}", currentWorkingDir);
             if(save_fbbP != nullptr && save_KUKAiiwaBufferP != nullptr) {
                 bool success = grl::FinishAndVerifyBuffer(*save_fbbP, *save_KUKAiiwaBufferP);

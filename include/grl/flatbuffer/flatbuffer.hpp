@@ -2,29 +2,16 @@
 #define GRL_FLATBUFFER_HPP
 
 #include <iostream>
-// source: http://www.codebind.com/cpp-tutorial/c-get-current-directory-linuxwindows/
-// #define WINDOWS  /* uncomment this line to use it for windows.*/
-#ifdef WINDOWS
-#include <direct.h>
-#define GetCurrentDir _getcwd
-#else
-#include <unistd.h>
-#define GetCurrentDir getcwd
-#endif
-
 #include <flatbuffers/flatbuffers.h>
 #include <flatbuffers/idl.h>
+// boost::filesystem
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
 
 
 
 namespace grl {
-
-    std::string GetCurrentWorkingDir( void ) {
-        char buff[FILENAME_MAX];
-        GetCurrentDir( buff, FILENAME_MAX );
-        std::string current_working_dir(buff);
-        return current_working_dir;
-    }
 
     // loads a json flatbuffer from a file
     bool LoadJSONFlatbuffer(flatbuffers::Parser& parser, std::string schemaPath, std::string jsonPath, std::string include_directory, bool binary = false)
@@ -72,7 +59,7 @@ namespace grl {
         if(includePaths.empty())
         {
 
-            std::string current_working_dir = GetCurrentWorkingDir();
+            std::string current_working_dir = boost::filesystem::current_path().string();
             //std::cout << "The current working dir: " << current_working_dir << std::endl;
             includePaths.push_back(current_working_dir);
         }
