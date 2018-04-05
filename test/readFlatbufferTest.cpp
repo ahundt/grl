@@ -233,7 +233,6 @@ int main(int argc, char* argv[])
         grl::writeMatrixToCSV(FT_Marker50000_CSV, FT_Labels_Pose, timeEventM_FT, markerPose_FT, FT_index);
     }
    
-    // grl::writeFTKUKAMessageToCSV(FTKUKA_TimeEvent_CSV, logKUKAiiwaFusionTrackP, kukaStatesP, markerID_22);
     return 0;
 }
 
