@@ -1025,13 +1025,12 @@ namespace grl {
         return std::move(EEpose);
     }
 
-    mc_rbdyn_urdf::URDFParserResult getURDFModel(){
-        using namespace Eigen;
-	    using namespace sva;
-	    using namespace rbd;
-
+    mc_rbdyn_urdf::URDFParserResult getURDFModel(std::string filename = "/Robone_KukaLBRiiwa.urdf"){
         namespace cst = boost::math::constants;
-        auto strRobot = mc_rbdyn_urdf::rbdyn_from_urdf(XYZSarmUrdf);
+        std::string urdfmodel = readFile(filename);
+       
+        auto strRobot = mc_rbdyn_urdf::rbdyn_from_urdf(urdfmodel);
+        // auto strRobot = mc_rbdyn_urdf::rbdyn_from_urdf(XYZSarmUrdf);
         return std::move(strRobot);
     }
 

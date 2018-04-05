@@ -23,6 +23,8 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 
+#include <cstdlib>
+
 /// split -C 200m --numeric-suffixes 2018_02_28_16_39_13_FusionTrack.json 2018_02_28_16_39_13_FusionTrack
 
 /// The command to get the json file from flatbuffer binary file, these two files should be located in the same folder.
@@ -32,15 +34,18 @@ int main(int argc, char* argv[])
 {
     std::string kukaTimeStamp("2018_03_26_19_06_21_Kukaiiwa.iiwa");
     std::string FTTimeStamp("2018_03_26_19_06_21_FusionTrack.flik");
+    std::string URDFModrl("Robone_KukaLBRiiwa.urdf");
     /// Define the csv file names
     if(argc == 2){
-          kukaTimeStamp = std::string(argv[1]);
-          FTTimeStamp = std::string(argv[2]);
-          
+        kukaTimeStamp = std::string(argv[1]);
+        FTTimeStamp = std::string(argv[2]);
     }
-    std::string currentPath = boost::filesystem::current_path().string()+"/";  //"/home/cjiao1/src/V-REP_PRO_EDU_V3_4_0_Linux/";
+
+    std::string currentPath = boost::filesystem::current_path().string()+"/";  
     std::string kukaBinaryfile = currentPath + kukaTimeStamp;
+    std::cout << kukaBinaryfile << std::endl;
     std::string fusiontrackBinaryfile = currentPath + FTTimeStamp;
+    std::string urdfFile = currentPath + URDFModrl;
     std::string foldtimestamp = current_date_and_time_string(); // Write the generated files into a new fold
     boost::filesystem::path dir{currentPath+foldtimestamp};
     boost::filesystem::create_directory(dir);
@@ -156,8 +161,8 @@ int main(int argc, char* argv[])
         std::copy(std::begin(grl::C_Pos_Joint_Labels), std::end(grl::C_Pos_Joint_Labels),std::begin(kuka_labels)+grl::Time_Labels.size());
         grl::writeMatrixToCSV(C_Joint_CSV, kuka_labels, timeEventM_Kuka, commandedJointPosition);
 
-
-        auto strRobot = grl::getURDFModel();
+        
+        auto strRobot = grl::getURDFModel(urdfFile);
         rbd::MultiBody mb = strRobot.mb;
         rbd::MultiBodyConfig mbc(mb);
         rbd::MultiBodyGraph mbg(strRobot.mbg);
