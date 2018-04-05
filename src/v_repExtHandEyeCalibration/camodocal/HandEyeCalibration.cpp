@@ -130,9 +130,6 @@ HandEyeCalibration::estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eige
 
     Eigen::MatrixXd T(motionCount * 6, 8);
     T.setZero();
-    std::cout<< "motionCount: " << motionCount << std::endl;
-
-
 
     for (size_t i = 0; i < motionCount; ++i)
     {
@@ -145,8 +142,6 @@ HandEyeCalibration::estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eige
         if (rvec1.norm() == 0 || rvec2.norm() == 0) continue;
         T.block<6,8>(i * 6, 0) = AxisAngleToSTransposeBlockOfT(rvec1,tvec1,rvec2,tvec2);
     }
-
-    //std::cout<< "Test Matrix: " << T << std::endl;
 
     auto dq = estimateHandEyeScrewInitial(T,planarMotion);
 
@@ -267,7 +262,7 @@ HandEyeCalibration::estimateHandEyeScrewInitial(Eigen::MatrixXd& T,
             ss << v2 << std::endl;
             ss << "Not handled yet. Your rotations and translations are probably either not aligned or not passed in properly." << std::endl;
 
-            // BOOST_THROW_EXCEPTION(std::runtime_error(ss.str()));
+            BOOST_THROW_EXCEPTION(std::runtime_error(ss.str()));
         }
     }
 
