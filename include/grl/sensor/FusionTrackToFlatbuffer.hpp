@@ -54,29 +54,6 @@ grl::flatbuffer::Vector3d toFlatBuffer(const ::ftk3DPoint &pt)
     return grl::flatbuffer::Vector3d(pt.x, pt.y, pt.z);
 }
 
-// grl::flatbuffer::Vector3d toFlatBuffer(const Eigen::Vector3d &pt)
-// {
-//     return grl::flatbuffer::Vector3d(pt.x(), pt.y(), pt.z());
-// }
-
-// grl::flatbuffer::Quaternion toFlatBuffer(Eigen::Quaterniond q)
-// {
-//     return grl::flatbuffer::Quaternion(q.x(), q.y(), q.z(), q.w());
-// }
-
-// grl::flatbuffer::Pose toFlatBuffer(Eigen::Affine3d tf)
-// {
-//     Eigen::Vector3d pos = tf.translation();
-//     Eigen::Quaterniond eigenQuat(tf.rotation());
-//     return grl::flatbuffer::Pose(toFlatBuffer(pos), toFlatBuffer(eigenQuat));
-// }
-
-// grl::flatbuffer::Pose toFlatBuffer(Eigen::Affine3f tf)
-// {
-//     return toFlatBuffer(tf.cast<double>());
-// }
-
-
 ///  the second parameter is merely a tag to uniquely identify this function so it compiles
 /// its value is not utilized or modified.
 grl::flatbuffer::ftkQueryStatus toFlatBuffer(const ::ftkQueryStatus queryStatus) {
