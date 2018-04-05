@@ -56,12 +56,12 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <!-- Fix to world just for testing -->
   <link name="world"/>
   <!--joint between {parent} and link_0-->
-  <joint name="world_iiwa_joint" type="fixed">
+  <joint name="world_LBR_iiwa_14_R820_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="world"/>
-    <child link="iiwa_link_0"/>
+    <child link="LBR_iiwa_14_R820_link0"/>
   </joint>
-  <link name="iiwa_link_0">
+  <link name="LBR_iiwa_14_R820_link0">
     <inertial>
       <origin rpy="0 0 0" xyz="-0.1 0 0.07"/>
       <mass value="5"/>
@@ -89,16 +89,16 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
     </self_collision_checking>
   </link>
   <!-- joint between link_0 and link_1 -->
-  <joint name="iiwa_joint_1" type="revolute">
-    <parent link="iiwa_link_0"/>
-    <child link="iiwa_link_1"/>
+  <joint name="LBR_iiwa_14_R820_joint1" type="revolute">
+    <parent link="LBR_iiwa_14_R820_link0"/>
+    <child link="LBR_iiwa_14_R820_link1"/>
     <origin rpy="0 0 0" xyz="0 0 0.1575"/>
     <axis xyz="0 0 1"/>
     <limit effort="300" lower="-2.96705972839" upper="2.96705972839" velocity="10"/>
     <safety_controller k_position="100" k_velocity="2" soft_lower_limit="-2.93215314335" soft_upper_limit="2.93215314335"/>
     <dynamics damping="0.5"/>
   </joint>
-  <link name="iiwa_link_1">
+  <link name="LBR_iiwa_14_R820_link1">
     <inertial>
       <origin rpy="0 0 0" xyz="0 -0.03 0.12"/>
       <mass value="4"/>
@@ -120,16 +120,16 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
     </collision>
   </link>
   <!-- joint between link_1 and link_2 -->
-  <joint name="iiwa_joint_2" type="revolute">
-    <parent link="iiwa_link_1"/>
-    <child link="iiwa_link_2"/>
+  <joint name="LBR_iiwa_14_R820_joint2" type="revolute">
+    <parent link="LBR_iiwa_14_R820_link1"/>
+    <child link="LBR_iiwa_14_R820_link2"/>
     <origin rpy="1.57079632679   0 3.14159265359" xyz="0 0 0.2025"/>
     <axis xyz="0 0 1"/>
     <limit effort="300" lower="-2.09439510239" upper="2.09439510239" velocity="10"/>
     <safety_controller k_position="100" k_velocity="2" soft_lower_limit="-2.05948851735" soft_upper_limit="2.05948851735"/>
     <dynamics damping="0.5"/>
   </joint>
-  <link name="iiwa_link_2">
+  <link name="LBR_iiwa_14_R820_link2">
     <inertial>
       <origin rpy="0 0 0" xyz="0.0003 0.059 0.042"/>
       <mass value="4"/>
@@ -151,16 +151,16 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
     </collision>
   </link>
   <!-- joint between link_2 and link_3 -->
-  <joint name="iiwa_joint_3" type="revolute">
-    <parent link="iiwa_link_2"/>
-    <child link="iiwa_link_3"/>
+  <joint name="LBR_iiwa_14_R820_joint3" type="revolute">
+    <parent link="LBR_iiwa_14_R820_link2"/>
+    <child link="LBR_iiwa_14_R820_link3"/>
     <origin rpy="1.57079632679 0 3.14159265359" xyz="0 0.2045 0"/>
     <axis xyz="0 0 1"/>
     <limit effort="300" lower="-2.96705972839" upper="2.96705972839" velocity="10"/>
     <safety_controller k_position="100" k_velocity="2" soft_lower_limit="-2.93215314335" soft_upper_limit="2.93215314335"/>
     <dynamics damping="0.5"/>
   </joint>
-  <link name="iiwa_link_3">
+  <link name="LBR_iiwa_14_R820_link3">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0.03 0.13"/>
       <mass value="3"/>
@@ -182,16 +182,16 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
     </collision>
   </link>
   <!-- joint between link_3 and link_4 -->
-  <joint name="iiwa_joint_4" type="revolute">
-    <parent link="iiwa_link_3"/>
-    <child link="iiwa_link_4"/>
+  <joint name="LBR_iiwa_14_R820_joint4" type="revolute">
+    <parent link="LBR_iiwa_14_R820_link3"/>
+    <child link="LBR_iiwa_14_R820_link4"/>
     <origin rpy="1.57079632679 0 0" xyz="0 0 0.2155"/>
     <axis xyz="0 0 1"/>
     <limit effort="300" lower="-2.09439510239" upper="2.09439510239" velocity="10"/>
     <safety_controller k_position="100" k_velocity="2" soft_lower_limit="-2.05948851735" soft_upper_limit="2.05948851735"/>
     <dynamics damping="0.5"/>
   </joint>
-  <link name="iiwa_link_4">
+  <link name="LBR_iiwa_14_R820_link4">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0.067 0.034"/>
       <mass value="2.7"/>
@@ -213,16 +213,16 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
     </collision>
   </link>
   <!-- joint between link_4 and link_5 -->
-  <joint name="iiwa_joint_5" type="revolute">
-    <parent link="iiwa_link_4"/>
-    <child link="iiwa_link_5"/>
+  <joint name="LBR_iiwa_14_R820_joint5" type="revolute">
+    <parent link="LBR_iiwa_14_R820_link4"/>
+    <child link="LBR_iiwa_14_R820_link5"/>
     <origin rpy="-1.57079632679 3.14159265359 0" xyz="0 0.1845 0"/>
     <axis xyz="0 0 1"/>
     <limit effort="300" lower="-2.96705972839" upper="2.96705972839" velocity="10"/>
     <safety_controller k_position="100" k_velocity="2" soft_lower_limit="-2.93215314335" soft_upper_limit="2.93215314335"/>
     <dynamics damping="0.5"/>
   </joint>
-  <link name="iiwa_link_5">
+  <link name="LBR_iiwa_14_R820_link5">
     <inertial>
       <origin rpy="0 0 0" xyz="0.0001 0.021 0.076"/>
       <mass value="1.7"/>
@@ -244,16 +244,16 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
     </collision>
   </link>
   <!-- joint between link_5 and link_6 -->
-  <joint name="iiwa_joint_6" type="revolute">
-    <parent link="iiwa_link_5"/>
-    <child link="iiwa_link_6"/>
+  <joint name="LBR_iiwa_14_R820_joint6" type="revolute">
+    <parent link="LBR_iiwa_14_R820_link5"/>
+    <child link="LBR_iiwa_14_R820_link6"/>
     <origin rpy="1.57079632679 0 0" xyz="0 0 0.2155"/>
     <axis xyz="0 0 1"/>
     <limit effort="300" lower="-2.09439510239" upper="2.09439510239" velocity="10"/>
     <safety_controller k_position="100" k_velocity="2" soft_lower_limit="-2.05948851735" soft_upper_limit="2.05948851735"/>
     <dynamics damping="0.5"/>
   </joint>
-  <link name="iiwa_link_6">
+  <link name="LBR_iiwa_14_R820_link6">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0.0006 0.0004"/>
       <mass value="1.8"/>
@@ -275,16 +275,16 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
     </collision>
   </link>
   <!-- joint between link_6 and link_7 -->
-  <joint name="iiwa_joint_7" type="revolute">
-    <parent link="iiwa_link_6"/>
-    <child link="iiwa_link_7"/>
+  <joint name="LBR_iiwa_14_R820_joint7" type="revolute">
+    <parent link="LBR_iiwa_14_R820_link6"/>
+    <child link="LBR_iiwa_14_R820_link7"/>
     <origin rpy="-1.57079632679 3.14159265359 0" xyz="0 0.081 0"/>
     <axis xyz="0 0 1"/>
     <limit effort="300" lower="-3.05432619099" upper="3.05432619099" velocity="10"/>
     <safety_controller k_position="100" k_velocity="2" soft_lower_limit="-3.01941960595" soft_upper_limit="3.01941960595"/>
     <dynamics damping="0.5"/>
   </joint>
-  <link name="iiwa_link_7">
+  <link name="LBR_iiwa_14_R820_link7">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0.02"/>
       <mass value="0.3"/>
@@ -305,21 +305,21 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
       <material name="Grey"/>
     </collision>
   </link>
-  <joint name="iiwa_joint_ee" type="fixed">
-    <parent link="iiwa_link_7"/>
-    <child link="iiwa_link_ee"/>
+  <joint name="LBR_iiwa_14_R820_joint_ee" type="fixed">
+    <parent link="LBR_iiwa_14_R820_link7"/>
+    <child link="RobotFlangeTip"/>
     <origin rpy="0 0 0" xyz="0 0 0.045"/>
   </joint>
-  <link name="iiwa_link_ee">
+  <link name="RobotFlangeTip">
     </link>
 
     <!-- Add the marker to the end effector.  By Chunting -->
-  <joint name="iiwa_joint_marker" type="fixed">
-    <parent link="iiwa_link_ee"/>
-    <child link="iiwa_link_marker"/>
+  <joint name="LBR_iiwa_14_R820_joint_marker" type="fixed">
+    <parent link="RobotFlangeTip"/>
+    <child link="LBR_iiwa_14_R820_link_marker"/>
     <origin rpy="0 0 0" xyz="0.052998 0.090310 0.090627"/>
   </joint>
-  <link name="iiwa_link_marker">
+  <link name="LBR_iiwa_14_R820_link_marker">
     </link>
 
   <!-- Load Gazebo lib and set the robot namespace -->
@@ -329,49 +329,49 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
     </plugin>
   </gazebo>
   <!-- Link0 -->
-  <gazebo reference="iiwa_link_0">
+  <gazebo reference="LBR_iiwa_14_R820_link0">
     <material>Gazebo/Grey</material>
     <mu1>0.2</mu1>
     <mu2>0.2</mu2>
   </gazebo>
   <!-- Link1 -->
-  <gazebo reference="iiwa_link_1">
+  <gazebo reference="LBR_iiwa_14_R820_link1">
     <material>Gazebo/Orange</material>
     <mu1>0.2</mu1>
     <mu2>0.2</mu2>
   </gazebo>
   <!-- Link2 -->
-  <gazebo reference="iiwa_link_2">
+  <gazebo reference="LBR_iiwa_14_R820_link2">
     <material>Gazebo/Orange</material>
     <mu1>0.2</mu1>
     <mu2>0.2</mu2>
   </gazebo>
   <!-- Link3 -->
-  <gazebo reference="iiwa_link_3">
+  <gazebo reference="LBR_iiwa_14_R820_link3">
     <material>Gazebo/Orange</material>
     <mu1>0.2</mu1>
     <mu2>0.2</mu2>
   </gazebo>
   <!-- Link4 -->
-  <gazebo reference="iiwa_link_4">
+  <gazebo reference="LBR_iiwa_14_R820_link4">
     <material>Gazebo/Orange</material>
     <mu1>0.2</mu1>
     <mu2>0.2</mu2>
   </gazebo>
   <!-- Link5 -->
-  <gazebo reference="iiwa_link_5">
+  <gazebo reference="LBR_iiwa_14_R820_link5">
     <material>Gazebo/Orange</material>
     <mu1>0.2</mu1>
     <mu2>0.2</mu2>
   </gazebo>
   <!-- Link6 -->
-  <gazebo reference="iiwa_link_6">
+  <gazebo reference="LBR_iiwa_14_R820_link6">
     <material>Gazebo/Orange</material>
     <mu1>0.2</mu1>
     <mu2>0.2</mu2>
   </gazebo>
   <!-- Link7 -->
-  <gazebo reference="iiwa_link_7">
+  <gazebo reference="LBR_iiwa_14_R820_link7">
     <material>Gazebo/Grey</material>
     <mu1>0.2</mu1>
     <mu2>0.2</mu2>
@@ -379,7 +379,7 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <transmission name="iiwa_tran_1">
     <robotNamespace>/iiwa</robotNamespace>
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="iiwa_joint_1">
+    <joint name="LBR_iiwa_14_R820_joint1">
       <hardwareInterface>PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="iiwa_motor_1">
@@ -390,7 +390,7 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <transmission name="iiwa_tran_2">
     <robotNamespace>/iiwa</robotNamespace>
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="iiwa_joint_2">
+    <joint name="LBR_iiwa_14_R820_joint2">
       <hardwareInterface>PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="iiwa_motor_2">
@@ -401,7 +401,7 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <transmission name="iiwa_tran_3">
     <robotNamespace>/iiwa</robotNamespace>
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="iiwa_joint_3">
+    <joint name="LBR_iiwa_14_R820_joint3">
       <hardwareInterface>PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="iiwa_motor_3">
@@ -412,7 +412,7 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <transmission name="iiwa_tran_4">
     <robotNamespace>/iiwa</robotNamespace>
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="iiwa_joint_4">
+    <joint name="LBR_iiwa_14_R820_joint4">
       <hardwareInterface>PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="iiwa_motor_4">
@@ -423,7 +423,7 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <transmission name="iiwa_tran_5">
     <robotNamespace>/iiwa</robotNamespace>
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="iiwa_joint_5">
+    <joint name="LBR_iiwa_14_R820_joint5">
       <hardwareInterface>PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="iiwa_motor_5">
@@ -434,7 +434,7 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <transmission name="iiwa_tran_6">
     <robotNamespace>/iiwa</robotNamespace>
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="iiwa_joint_6">
+    <joint name="LBR_iiwa_14_R820_joint6">
       <hardwareInterface>PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="iiwa_motor_6">
@@ -445,7 +445,7 @@ R"(<robot name="iiwa14" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <transmission name="iiwa_tran_7">
     <robotNamespace>/iiwa</robotNamespace>
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="iiwa_joint_7">
+    <joint name="LBR_iiwa_14_R820_joint7">
       <hardwareInterface>PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="iiwa_motor_7">
