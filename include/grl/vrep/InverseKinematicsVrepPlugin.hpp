@@ -610,7 +610,6 @@ void getPoseFromCSV(std::string filename, int time_index){
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
         std::string currentPath = boost::filesystem::current_path().string()+"/data_in/Robone_KukaLBRiiwa.urdf"; 
-        std::cout<<"currentPat: "<< currentPath << std::endl;
 
         auto strRobot = grl::getURDFModel(currentPath);
         rbd::MultiBody mb = strRobot.mb;
