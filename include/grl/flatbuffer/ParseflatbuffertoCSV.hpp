@@ -770,7 +770,10 @@ namespace grl {
         return std::move(EEpose);
     }
     
-    mc_rbdyn_urdf::URDFParserResult getURDFModel(std::string filename = "/Robone_KukaLBRiiwa.urdf"){
+    mc_rbdyn_urdf::URDFParserResult getURDFModel(std::string filename = "~/src/robonetracker/modules/grl/include/grl/flatbuffer/Robone_KukaLBRiiwa.urdf"){
+        if(!boost::filesystem::exists(filename)){
+             std::cerr << filename << " doesn't exist..." << std::endl;
+        }
         namespace cst = boost::math::constants;
         std::string urdfmodel = readFile(filename);
         auto strRobot = mc_rbdyn_urdf::rbdyn_from_urdf(urdfmodel);

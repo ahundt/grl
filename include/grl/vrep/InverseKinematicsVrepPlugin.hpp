@@ -609,16 +609,17 @@ void getPoseFromCSV(std::string filename, int time_index){
         const std::size_t simulatedRobotIndex = 0;
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
+        std::string currentPath = boost::filesystem::current_path().string()+"/data_in/Robone_KukaLBRiiwa.urdf"; 
+        std::cout<<"currentPat: "<< currentPath << std::endl;
 
-        auto strRobot = grl::getURDFModel();
+        auto strRobot = grl::getURDFModel(currentPath);
         rbd::MultiBody mb = strRobot.mb;
         rbd::MultiBodyConfig mbc(mb);
         rbd::MultiBodyGraph mbg(strRobot.mbg);
         std::size_t nrJoints = mb.nrJoints();
         std::size_t nrBodies = strRobot.mb.nrBodies();
         std::vector<std::string> jointNames;
-        std::cout<<"Joint Size: "<< nrJoints << std::endl;
-
+        
         std::vector<float> vrepJointAngles;
         double angle = 0.7;
         for(auto i : jointHandles_)
