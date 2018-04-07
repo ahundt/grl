@@ -22,7 +22,9 @@ CSV file
 ==================================
 
 When Parsing the flatbuffer file to CSV, you need to follow the instructions below:
+
 1. Copy the binary files to the location of the actual 'readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>'__executable;
+
 2. Run 'readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>'__ with the arguments of the name of binary file.
    .. code-block:: bash
         ./readFlatbufferTest 2018_03_26_19_06_21_Kukaiiwa.iiwa 2018_03_26_19_06_21_FusionTrack.flik
@@ -62,43 +64,3 @@ When Parsing the flatbuffer file to CSV, you need to follow the instructions bel
 	   ForwardKinematics_Pose.csv is created by the replay process(at this moment, it's in the InverseKinematicsVrepPlug.cpp. 
 	   In future, It's better to creat a replay plugin to handl this process). It will read the measured joint angles from KUKA_Measured_Joint.csv, excute forward kinematics based on vrep model,
 	   then write the cartesian pose (in Atracsys space) into ForwardKinematics_Pose.csv, which should be in ~/src/V-REP_PRO_EDU_V3_4_0_Linux/.
-
-       
-	   
-	   
-
-
-
-
-
-
-
-
-   .. code-block:: bash
-       FT_Pose_Marker22.csv 
-        
-      
-
-
-run 'readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>'__.
-There is a `SymbolicLinksRoboneSimulation.sh <https://github.com/ahundt/robone/blob/master/data/SymbolicLinksRoboneSimulation.sh>`__ script to assist with this, which you can open and edit for your particular system.
-
-.. code-block:: bash
-
-	GDIR="/path/to/grl/"
-	# Mac example directory:   VDIR="/Applications/V-REP_PRO_EDU_V3_3_2_Mac/vrep.app/Contents/MacOS/"
-	# Linux example directory: VDIR="~/V-REP_PRO_EDU_V3_3_2_Linux/"
-	#
-	# cd into the appropriate directory, then create the following symlinks
-	ln -s src/lua/grl.lua ${VDIR}/
-	ln -s build/libv_repExtKukaLBRiiwa ${VDIR}/
-	# ... continue for all libraries created for grl
-
-
-An example simulation can be found in the `Robone/data <https://github.com/ahundt/robone/tree/master/data>`__ project folder.
-
-
-Then simply open the project with V-REP and you can be on your way!
-
-Please note that this project is currently set up in a fairly specific way,
-so you will most 
