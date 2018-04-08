@@ -40,31 +40,32 @@ int main(int argc, char* argv[])
         kukaTimeStamp = std::string(argv[1]);
         FTTimeStamp = std::string(argv[2]);
     }
-
-    std::string currentPath = boost::filesystem::current_path().string()+"/";  
-    std::string kukaBinaryfile = currentPath + kukaTimeStamp;
-    std::cout << kukaBinaryfile << std::endl;
-    std::string fusiontrackBinaryfile = currentPath + FTTimeStamp;
-    std::string urdfFile = currentPath + URDFModrl;
-    std::string foldtimestamp = current_date_and_time_string(); // Write the generated files into a new fold
-    boost::filesystem::path dir{currentPath+foldtimestamp};
-    boost::filesystem::create_directory(dir);
+    std::string homePath = std::getenv("HOME");
+    std::string vrepPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
     
-    std::string KUKA_FRI_CSVfilename = currentPath + foldtimestamp + "/KUKA_FRIMessage.csv";
-    std::string KUKA_TimeEvent_CSV = currentPath + foldtimestamp + "/KUKA_TimeEvent.csv";
-    std::string M_Joint_CSV = currentPath + foldtimestamp + "/KUKA_Measured_Joint.csv";
-    std::string C_Joint_CSV = currentPath + foldtimestamp + "/KUKA_Command_Joint.csv";
-    std::string KUKA_Pose_CSV = currentPath + foldtimestamp + "/KUKA_Pose.csv";
-    std::string KUKA_Inverse_Pose_CSV = currentPath + foldtimestamp + "/Inverse_KUKA_Pose.csv";
-    std::string FudicialToRobotPose_CSV = currentPath + foldtimestamp + "/FudicialToRobot_Pose.csv";
-    std::string FudicialToFTPose_CSV = currentPath + foldtimestamp + "/FudicialToFT_Pose.csv";
+    std::string kukaBinaryfile = vrepPath + kukaTimeStamp;
+    std::cout << kukaBinaryfile << std::endl;
+    std::string fusiontrackBinaryfile = vrepPath + FTTimeStamp;
+    std::string urdfFile = vrepPath + URDFModrl;
+    std::string foldtimestamp = current_date_and_time_string(); // Write the generated files into a new fold
+    boost::filesystem::path dir{vrepPath+foldtimestamp};
+    boost::filesystem::create_directory(vrepPath+foldtimestamp);
+    
+    std::string KUKA_FRI_CSVfilename = vrepPath + foldtimestamp + "/KUKA_FRIMessage.csv";
+    std::string KUKA_TimeEvent_CSV = vrepPath + foldtimestamp + "/KUKA_TimeEvent.csv";
+    std::string M_Joint_CSV = vrepPath + foldtimestamp + "/KUKA_Measured_Joint.csv";
+    std::string C_Joint_CSV = vrepPath + foldtimestamp + "/KUKA_Command_Joint.csv";
+    std::string KUKA_Pose_CSV = vrepPath + foldtimestamp + "/KUKA_Pose.csv";
+    std::string KUKA_Inverse_Pose_CSV = vrepPath + foldtimestamp + "/Inverse_KUKA_Pose.csv";
+    std::string FudicialToRobotPose_CSV = vrepPath + foldtimestamp + "/FudicialToRobot_Pose.csv";
+    std::string FudicialToFTPose_CSV = vrepPath + foldtimestamp + "/FudicialToFT_Pose.csv";
 
-    std::string FT_TimeEvent_CSV = currentPath + foldtimestamp + "/FT_TimeEvent.csv";
-    std::string FT_Marker22_CSV = currentPath + foldtimestamp + "/FT_Pose_Marker22.csv";
-    std::string FT_Marker55_CSV = currentPath + foldtimestamp + "/FT_Pose_Marker55.csv";
-    std::string FT_Marker50000_CSV = currentPath + foldtimestamp + "/FT_Pose_Marker50000.csv";
+    std::string FT_TimeEvent_CSV = vrepPath + foldtimestamp + "/FT_TimeEvent.csv";
+    std::string FT_Marker22_CSV = vrepPath + foldtimestamp + "/FT_Pose_Marker22.csv";
+    std::string FT_Marker55_CSV = vrepPath + foldtimestamp + "/FT_Pose_Marker55.csv";
+    std::string FT_Marker50000_CSV = vrepPath + foldtimestamp + "/FT_Pose_Marker50000.csv";
 
-    std::string FTKUKA_TimeEvent_CSV = currentPath + foldtimestamp + "/FTKUKA_TimeEvent.csv";
+    std::string FTKUKA_TimeEvent_CSV = vrepPath + foldtimestamp + "/FTKUKA_TimeEvent.csv";
 
     
     // Put all the data into the same coordinate system --- Marker frame

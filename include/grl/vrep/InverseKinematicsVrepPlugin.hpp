@@ -554,10 +554,8 @@ void getPoseFromCSV(std::string filename, int time_index){
         // // Write the hand eye calibration results into a file
         std::string suffix = "ForwardKinematics_Pose.csv";
         auto myFile = boost::filesystem::current_path() /suffix;
-        // if(boost::filesystem::exists(myFile)){
-        //     boost::filesystem::remove(myFile);
-        // }
-        boost::filesystem::ofstream ofs(myFile, std::ios_base::app);
+
+        boost::filesystem::ofstream ofs(myFile, std::ios_base::trunc | std::ios_base::out);
         if(time_index == 0) {
             ofs << "local_receive_time_offset_X, K_X,K_Y,K_Z,K_A,K_B,K_C\n";
         }
@@ -609,10 +607,13 @@ void getPoseFromCSV(std::string filename, int time_index){
         const std::size_t simulatedRobotIndex = 0;
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
-        std::string currentPath = boost::filesystem::current_path().string()+"/data_in/Robone_KukaLBRiiwa.urdf"; 
-        std::cout<<"currentPat: "<< currentPath << std::endl;
 
-        auto strRobot = grl::getURDFModel(currentPath);
+        std::string homePath = std::getenv("HOME");
+        std::string vrepDataPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
+        std::string urdfPath = vrepDataPath + "Robone_KukaLBRiiwa.urdf"; 
+       
+
+        auto strRobot = grl::getURDFModel(urdfPath);
         rbd::MultiBody mb = strRobot.mb;
         rbd::MultiBodyConfig mbc(mb);
         rbd::MultiBodyGraph mbg(strRobot.mbg);
@@ -927,10 +928,12 @@ void getPoseFromCSV(std::string filename, int time_index){
        if(ik) {
            updateKinematics();
        } else {
-           auto myFile = boost::filesystem::current_path() /"data_in";
-           std::string pathName = myFile.string();
-           std::string kukaJoint = pathName+"/KUKA_Joint.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
-           std::string markerPose = pathName+"/FT_Pose_Marker22.csv";
+            std::string homePath = std::getenv("HOME");
+            std::string vrepDataPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
+            std::string data_inPath = vrepDataPath + "data_in";
+            
+            std::string kukaJoint = data_inPath+"/KUKA_Measured_Joint.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
+            std::string markerPose = data_inPath+"/FT_Pose_Marker22.csv";
            
            testPose();
            // getPoseFromCSV(kukaJoint, time_index);
