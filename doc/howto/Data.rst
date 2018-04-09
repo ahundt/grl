@@ -2,7 +2,7 @@
 Data Setup
 ==========
 
-.. note:: Here I will interpret the data file, including the relative location and the main content.
+.. note:: I will interpret the data files, including the relative location and the main content.
 
 Flatbuffer fbs file
 ==================================
@@ -10,9 +10,10 @@ Flatbuffer fbs file
 First install `VREP <http://coppeliarobotics.com/>`__ and grl.
 
 The location of the 'fbs file <https://github.com/ahundt/robonetracker/tree/master/modules/grl/include/grl/flatbuffer/>'__.
-They define the data we collect from Kuka and Atracsys.
+They define the data structure we collect from Kuka and Atracsys.
 
-The binary files are put in VREP folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux), and are named by the time stamp (i.e. 2018_03_26_19_06_21_FusionTrack.flik, 2018_03_26_19_06_21_Kukaiiwa.iiwa).
+The binary files are put in VREP data folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/), 
+and are named by the time stamp (i.e. 2018_03_26_19_06_21_FusionTrack.flik, 2018_03_26_19_06_21_Kukaiiwa.iiwa).
 
 The command to generate json file, the binary file and the fbs file should be put in the same folder:
 flatc -I . --json LogKUKAiiwaFusionTrack.fbs -- 2018_03_26_19_06_21_FusionTrack.flik
@@ -23,13 +24,13 @@ CSV file
 
 When Parsing the flatbuffer file to CSV, you need to follow the instructions below:
 
-1. Copy the binary files to the location of the actual 'readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>'__executable;
+1. Keep the binary files in the VREP data folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/);
 
 2. Run 'readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>'__ with the arguments of the name of binary file.
    .. code-block:: bash
         ./readFlatbufferTest 2018_03_26_19_06_21_Kukaiiwa.iiwa 2018_03_26_19_06_21_FusionTrack.flik
 	   # You can also pass the arguments manually to the main() function in readFlatbufferTest.cpp.
-3. The generated csv files will be put into a folder in the name of time stamp.
+3. The generated csv files will be put into the VREP data folder  in which the subfolder is named by time stamp.
     Label explanation:
 	.. code-block:: bash
         local_request_time_offset: PC time of sending a requesting command to devices;
@@ -61,6 +62,11 @@ When Parsing the flatbuffer file to CSV, you need to follow the instructions bel
 	 
 	   All the CSV files above are generated from binary files. To make it convenient, all the files have time event information, which can be used as X-axis when plotting. 
 
-	   ForwardKinematics_Pose.csv is created by the replay process(at this moment, it's in the InverseKinematicsVrepPlug.cpp. 
-	   In future, It's better to creat a replay plugin to handl this process). It will read the measured joint angles from KUKA_Measured_Joint.csv, excute forward kinematics based on vrep model,
-	   then write the cartesian pose (in Atracsys space) into ForwardKinematics_Pose.csv, which should be in ~/src/V-REP_PRO_EDU_V3_4_0_Linux/.
+
+Replay Process
+==================================
+At this moment, the replay process is set and called in InverseKinematicsVrepPlug.cpp.
+In future, It's better to creat a replay plugin to handl this process.
+
+Before run it, you should copy the KUKA_Measured_Joint.csv and FT_Pose_Marker22.csv to the  ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/data_in/.
+The result will be writen in ForwardKinematics_Pose.csv.
