@@ -166,7 +166,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
 /////////////////////////////////////////////////////////////////////////////////////////
 const int inArgs_LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING[] = {
     1,
-    sim_lua_arg_float,0  // Signle buffer limit
+    sim_lua_arg_float,0  // Single buffer limit
 };
 // simExtKUKAiiwaStartRecording
 void LUA_SIM_EXT_KUKA_LBR_IIWA_START_RECORDING(SLuaCallBack *p)
@@ -262,7 +262,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_CLEAR_RECORDING(SLuaCallBack *p)
 const int inArgs_LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING[] = {
     2,
     sim_lua_arg_bool, 1, // string file name
-    sim_lua_arg_float,0  // Signle buffer limit
+    sim_lua_arg_float,0  // Single buffer limit
 };
 
 std::string LUA_SIM_EXT_KUKA_LBR_IIWA_RECORD_WHILE_SIMULATION_IS_RUNNING_CALL_TIP("number result=simExtKukaLBRiiwaRecordWhileSimulationIsRunning(bool recording, float single_buffer_limit_bytes)");
@@ -536,10 +536,6 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 
 		    if(kukaVrepPluginPG && recordWhileSimulationIsRunningG && kukaVrepPluginPG->is_recording()) {
                 bool success = kukaVrepPluginPG->save_recording();
-                if(success) {
-                    loggerPG->info("Vrep quits successfully..." );
-                }
-
                 kukaVrepPluginPG->stop_recording();
             }
 		    kukaVrepPluginPG->clear_recording();

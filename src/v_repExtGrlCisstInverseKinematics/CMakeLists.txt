@@ -32,7 +32,6 @@
 
 #TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
 if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_FOUND AND Boost_FOUND)
-    #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc.
     #@see https://github.com/schuhschuh/cmake-basis/issues/442
     basis_include_directories(
       ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include

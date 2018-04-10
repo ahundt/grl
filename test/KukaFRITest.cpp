@@ -87,6 +87,7 @@ int main(int argc, char* argv[])
         std::string localport("30200");
         std::string remotehost("192.170.10.2");
         std::string remoteport("30200");
+        int single_buffer_limit = 2;
 
         std::cout << "argc: " << argc << "\n";
         if (argc !=5 && argc !=1)
@@ -248,7 +249,7 @@ int main(int argc, char* argv[])
         {
 
             kukaDriverP->set( jointStateToCommand, grl::revolute_joint_angle_open_chain_command_tag());
-            kukaDriverP->start_recording(2);
+            kukaDriverP->start_recording(single_buffer_limit);
             kukaDriverP->run_one();
         }
 
