@@ -9,8 +9,6 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 
-
-
 namespace grl {
 
     // loads a json flatbuffer from a file
