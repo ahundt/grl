@@ -1,5 +1,5 @@
 ==========
-Data Setup
+Data Analysis 
 ==========
 
 .. note:: I will interpret the data files, including the relative location and the main content.
@@ -7,10 +7,16 @@ Data Setup
 Flatbuffer fbs file
 ==================================
 
-First install `VREP <http://coppeliarobotics.com/>`__ and grl.
+'FlatBuffers <https://google.github.io/flatbuffers/>' __ is an efficient cross platform serialization library for C++, C#, C, Go, Java, JavaScript, TypeScript, PHP, and Python. 
+It was originally created at Google for game development and other performance-critical applications.
+
+In this project, the messages are communicated by flatbuffer between PC and Kuka workstation, which makes reading and writing data efficient. 
+
+
+First install `VREP <http://coppeliarobotics.com/>`__ and 'grl <https://github.com/ahundt/robotics_setup>'__.
 
 The location of the 'fbs file <https://github.com/ahundt/robonetracker/tree/master/modules/grl/include/grl/flatbuffer/>'__.
-They define the data structure we collect from Kuka and Atracsys.
+fbs files define the binary format we use for high performance data collection from devices, such as the Kuka LBR iiwa 14kg and Atracsys FusionTrack.
 
 The binary files are put in VREP data folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/), 
 and are named by the time stamp (i.e. 2018_03_26_19_06_21_FusionTrack.flik, 2018_03_26_19_06_21_Kukaiiwa.iiwa).
@@ -22,7 +28,7 @@ flatc -I . --json KUKAiiwa.fbs -- 2018_03_26_19_06_21_Kukaiiwa.iiwa
 CSV file
 ==================================
 
-When Parsing the flatbuffer file to CSV, you need to follow the instructions below:
+When exporting the flatbuffer file to CSV, you need to follow the instructions below:
 
 1. Keep the binary files in the VREP data folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/);
 
