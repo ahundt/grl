@@ -325,7 +325,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_IS_ACTIVE(SLuaCallBack *p)
 /////////////////////////////////////////////////////////////////////////////////////////
 const int inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING[] = {
     1,
-    sim_lua_arg_float,0  // Signle buffer limit
+    sim_lua_arg_float,0  // Single buffer limit
 };
 // simExtAtracsysFusionTrackStartRecording
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING(SLuaCallBack *p)
@@ -334,7 +334,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING(SLuaCallBack *p)
     bool success = false;
     if (fusionTrackPG)
     {
-        std::string log_message("Starting the recording of fusiontrack frame data in memory.\n");
+        std::string log_message("Starting in-memory recording of fusiontrack frame data.\n");
         std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         simAddStatusbarMessage(log_message.c_str());
         loggerPG->info(log_message);
@@ -354,7 +354,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_STOP_RECORDING(SLuaCallBack *p)
     bool success = false;
     if (fusionTrackPG)
     {
-        std::string log_message("Stopping the recording of fusiontrack frame data in memory.\n");
+        std::string log_message("Stoping in-memory recording of fusiontrack frame data.\n");
         simAddStatusbarMessage(log_message.c_str());
         loggerPG->info(log_message);
         success = fusionTrackPG->stop_recording();
@@ -422,11 +422,13 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING(SLuaCallBack *p)
 /////////////////////////////////////////////////////////////////////////////
 
 #define LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_COMMAND "simExtAtracsysFusionTrackRecordWhileSimulationIsRunning"
-
+// 2GB is the hard limit for flatbuffer binary file, so when it hits this hard limit, it should write the data from memory to disk.
+// Here to make it convenient to analysis the data, you can set it any capacity based on your purpose.
+// When it reaches the capacity, new file will be created.
 const int inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING[] = {
     2,
     sim_lua_arg_bool, 1, // string file name
-    sim_lua_arg_float,0  // Signle buffer limit
+    sim_lua_arg_float,0  // Single buffer limit
 };
 
 std::string LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_CALL_TIP("number result=simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(bool recording, float single_buffer_limit_bytes)");

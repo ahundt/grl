@@ -367,8 +367,10 @@ public:
   {
     if(filename.empty())
     {
+      std::string homePath = std::getenv("HOME");
+      std::string vrepDataPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
       /// TODO(ahundt) Saving the file twice in one second will overwrite!!!!
-      filename = current_date_and_time_string() + "_FusionTrack.flik";
+      filename = vrepDataPath + current_date_and_time_string() + "_FusionTrack.flik";
     }
     #ifdef HAVE_spdlog
         loggerP->info("Save Recording as: {}", filename);

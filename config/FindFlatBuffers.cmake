@@ -97,6 +97,7 @@ FLATBUFFERS_COMPILER
 
 if(FLATBUFFERS_FOUND)
   function(FLATBUFFERS_GENERATE_C_HEADERS Name FLATBUFFERS_DIR OUTPUT_DIR)
+  
   # Name is the name of the user defined variable that will be created by this function
   #     Another variable that will be set is ${NAME}_OUTPUTS which will be set to the names
   #     of all output files that have been generated.
@@ -114,15 +115,20 @@ if(FLATBUFFERS_FOUND)
         list(APPEND FLATC_OUTPUTS ${FLATC_OUTPUT} ${FBS_FILE_COPY_INCLUDE} ${FBS_FILE_COPY_BIN})
 
       # this is the absolute path to the actual filename.fbs file
-      set(ABSOLUTE_FBS_FILE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}/${FILE})
+      set(ABSOLUTE_FBS_FILE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR}${FILE})
+
 
       add_custom_command(OUTPUT ${FLATC_OUTPUT}
+     
         COMMAND ${FLATBUFFERS_COMPILER}
         # Note: We are setting several custom parameters here to make life easier.
         # see flatbuffers documentation for details.
         # flatc --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o
         # see https://google.github.io/flatbuffers/flatbuffers_guide_using_schema_compiler.html
-        ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "${OUTPUT_DIR}" ${ABSOLUTE_FBS_FILE_PATH}
+
+
+        #ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "${OUTPUT_DIR}" ${ABSOLUTE_FBS_FILE_PATH}
+        ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "./" ${ABSOLUTE_FBS_FILE_PATH}
 		    MAIN_DEPENDENCY ${ABSOLUTE_FBS_FILE_PATH}
         COMMENT "Building C++, Java, and Python header for ${FILE}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR})

@@ -1,6 +1,7 @@
 #ifndef GRL_CSV_ITERATOR
 #define GRL_CSV_ITERATOR
-
+/// Read and parse CSV files in C++
+/// See https://stackoverflow.com/questions/1120140/how-can-i-read-and-parse-csv-files-in-c
 #include <iterator>
 #include <iostream>
 #include <fstream>

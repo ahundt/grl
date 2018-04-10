@@ -109,10 +109,6 @@ namespace grl {
     const static int jointNum = 7;
     int col_Pose = PK_Pose_Labels.size();
  
-    
-
-
-
 
     /// Get CSV labels
     /// @param label indicate the type of the label.
@@ -172,7 +168,8 @@ namespace grl {
 
 
     /// Get the maker pose based on the markerID. The bad data, which means the frame doesn't have the indicated marker information, has been filtered out.
-    /// As for the bad data, both the marker pose and the corresponding timeEvent is skipped.
+    /// Bad data filtering is provided by this functions(both the marker pose and the corresponding timeEvent is skipped).
+    /// In the method we get the orientation in Euler-Angles
     /// @param logKUKAiiwaFusionTrackP, pointer of the root object for fusiontracker.
     /// @param markerID, the indicated marker.
     /// @param timeEventM, timeEvent without bad data, which is filled out.
@@ -188,10 +185,8 @@ namespace grl {
         assert(state_size>0);
         // The first columne is counter
         int row = 0;
-        // Eigen::MatrixXd markerPose(state_size, grl::col_Pose);
-        // std::cout <<"State size: " << state_size << "   markerPose rows: " << markerPose.rows() << std::endl;
         int BadCount = 0;
-
+        // Loop through the marker states in flatbuffer binary file and then reach all the parameters we need.
         for(int i = 0; i<state_size; ++i){
             auto kukaiiwaFusionTrackMessage = states->Get(i);
             auto FT_Message = kukaiiwaFusionTrackMessage->deviceState_as_FusionTrackMessage();
@@ -226,17 +221,22 @@ namespace grl {
 
                         markerPose.row(row++) = pose;
 
-                        // Once read the specified marker information, skip out of the marker loop.
+                        // Once read the specific marker information, skip out of the marker loop.
                         // It can keep from reading duplicate information.
                         // Sometimes in the same frame, there exists two markers with the same geometryID
                         break;
                     }
                 }
             } else {
+                // Count the number of bad data.
                 BadCount++;
             }
         }
+        // Resize the matrix. The size of the matrix is initialized by the number of the states, 
+        // because of the bad data, the final size of the matrix should be smaller than the original one.
+        // 
         if(row < state_size) {
+            // For the time_Y axis, all the following value minus the first one, make it start from 0
             int64_t FT_diff = timeEventM(0,TimeType::device_time) - timeEventM(0,timeBaseline_index);
             timeEventM.col(TimeType::time_Y) = timeEventM.col(TimeType::time_Y) - FT_diff * grl::VectorXd::Ones(timeEventM.rows());
             markerPose.conservativeResize(row, Eigen::NoChange_t{});
@@ -247,8 +247,9 @@ namespace grl {
                   << "  lossing rate " << diff/state_size << "  markerID: " << markerID <<std::endl;
         return row;
     }
-     /// Get the maker pose based on the markerID. The bad data, which means the frame doesn't have the indicated marker information, has been filtered out.
-    /// As for the bad data, both the marker pose and the corresponding timeEvent is skipped.
+    /// Get the maker pose based on the markerID. The bad data, which means the frame doesn't have the indicated marker information, has been filtered out.
+    /// Bad data filtering is provided by this functions(both the marker pose and the corresponding timeEvent is skipped).
+    /// In the method we get the orientation in Quaternion form
     /// @param logKUKAiiwaFusionTrackP, pointer of the root object for fusiontracker.
     /// @param markerID, the indicated marker.
     /// @param timeEventM, timeEvent without bad data, which is filled out.
@@ -313,7 +314,7 @@ namespace grl {
             return row;
     }
 
-     /// Get the joint angles of a specific joint (joint_index)
+    /// Get the joint angles of a specific joint (joint_index)
     /// @param kukaStatesP pointer of the root object for kuka.
     /// @param joint_index, return the joint angles of the indicated joint.
     /// @return jointPosition, Eigen vector which contains joint position.
@@ -328,7 +329,6 @@ namespace grl {
         Eigen::MatrixXd&  externalTorque,
         Eigen::MatrixXd&  jointStateInterpolated,
         int startIndex = 0){
-        
             auto states = kukaStatesP->states();
             std::size_t state_size = states->size();
             Eigen::VectorXf measurdjointPosVec(state_size);
@@ -361,7 +361,6 @@ namespace grl {
             return 1;
         }
 
-
     /// Write FRI message into a csv file, all the data are read from flatbuffer binary file.
     /// @param KUKA_FRI_CSVfilename, the csv file name
     void writeFRIMessageToCSV(std::string& KUKA_FRI_CSVfilename,
@@ -375,9 +374,7 @@ namespace grl {
         Eigen::MatrixXd&  externalTorque,
         Eigen::MatrixXd&  jointStateInterpolated,
         int startIndex = 0) {
-
             int kuka_time_size = timeEventM_Kuka.rows();
-
             assert(kuka_time_size == sequenceCounterVec.size());
             assert(kuka_time_size == reflectedSequenceCounterVec.size());
             assert(kuka_time_size == measuredJointPosition.rows());
@@ -770,7 +767,7 @@ namespace grl {
         return std::move(EEpose);
     }
     
-    mc_rbdyn_urdf::URDFParserResult getURDFModel(std::string filename = "~/src/robonetracker/modules/grl/include/grl/flatbuffer/Robone_KukaLBRiiwa.urdf"){
+    mc_rbdyn_urdf::URDFParserResult getURDFModel(std::string filename){
         if(!boost::filesystem::exists(filename)){
              std::cerr << filename << " doesn't exist..." << std::endl;
         }

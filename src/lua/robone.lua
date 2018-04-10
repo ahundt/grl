@@ -455,62 +455,6 @@ robone.startRealArmDriverScript=function()
 	end
 end
 
-robone.coordinateCalibrateionScript=function()
-	print("coordinateCalibrateionScript--------------")
--- Check if the required plugin is there:
-	if (grl.isModuleLoaded('KukaLBRiiwa')) then
-
-		-- Now disable IK and control one individual joint:
-        -- simSetExplicitHandling(ikGroupHandle,0) -- this disables automatic handling of the ik group
-
-
-	    testJointAngles = { -0.06, -0.03, 0.01, -0.06, -0.04, -0.02, 0.1}
-	    jointHandles={-1,-1,-1,-1,-1,-1,-1}
-		jointHandles[1]=simGetObjectHandle('LBR_iiwa_14_R820_joint1')
-	    for i=2,7,1 do
-	    	jointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i)
-	    	result = simSetJointPosition(jointHandles[i],0)
-			simWait(0.5)
-	    	print(result.."======--------------")
-
-
-
-			relativePosition = simGetObjectPosition(jointHandles[i], jointHandles[i-1])
-			print('XYZ')
-			for i=1,3,1 do
-				 print(relativePosition[i].." ")
-			end
-
-			relativeOrientation = simGetObjectOrientation(RobotFlangeTip, robothandle)
-			print('RPY')
-		   for i=1,3,1 do
-				print(relativeOrientation[i]*180/math.pi.." ")
-		   end
-
-	    end
-		simWait(50)
-	--robotFlangeTip = simGetObjectHandle ('RobotFlangeTip')
-	--robothandle = simGetObjectHandle ('LBR_iiwa_14_R820')
-	--Position = simGetObjectPosition(robotFlangeTip, robothandle)
-	--print('The Position of RobotFlangeTip in RobotBase Frame')
-    --for i=1,3,1 do
-	--     print(Position[i].." ")
-	--end
-	--Orientation = simGetObjectOrientation(robotFlangeTip, robothandle)
-	--print('The Orientation of RobotFlangeTip in RobotBase Frame')
-    --for i=1,3,1 do
-	--     print(Orientation[i].." ")
-    --end
-
-    else
-	    simDisplayDialog('Error','KukaLBRiiwa plugin was not found. (v_repExtKukaLBRiiwa.dll)&&nSimulation will run without hardware',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
-    end
-
-
-
-
-end
-
 ------------------------------------------
 -- Configure the Optical Tracker --
 -- Call in a "Customization Script" --
@@ -546,6 +490,7 @@ robone.configureOpticalTracker=function()
 
 
 			--------------------------------------------------
+			-- Move the Tracker---
 			-- Move the Tracker
 			-- true enables moving the tracker, false disables it
 			moveTracker = false
@@ -571,8 +516,6 @@ robone.configureOpticalTracker=function()
 
 
 			end
-
-
 			--------------------------------------------------
 			-- Move the Bone
 			-- true enables moving the bone, false disables it
@@ -588,7 +531,8 @@ robone.configureOpticalTracker=function()
 												'55'                     -- GeometryID
 												)
 
-
+				-- Get the transform matrix of robot base against world frame.
+				-- This is also for the calibration purpose, it can print the absolute position and orientation of the robot base.
 				robothandle = simGetObjectHandle ('LBR_iiwa_14_R820#0')
 				--trankerhandle = simGetObjectHandle ('OpticalTrackerBase#0')
 				robotToWorldM = simGetObjectMatrix(robothandle, -1)
@@ -604,90 +548,7 @@ robone.configureOpticalTracker=function()
 			-- Test the below one
 			-- Enable the recordDataScript() to call the method below.
 			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true, FB_single_buffer_limit_bytes)
-            --------------------------------------------------
-			-- Get the relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820_link8
-			--[[
-            if (moveTracker) then
-
-
-			    -- testJointAngles = { -0.06, -0.03, 0.01, -0.06, -0.04, -0.02, 0.1}
-				jointHandles={-1,-1,-1,-1,-1,-1,-1}
-				jointHandles[1]=simGetObjectHandle('LBR_iiwa_14_R820_joint1')
-				for i=1,7,1 do
-					jointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i)
-				--	result = simSetJointPosition(jointHandles[i],testJointAngles[i])
-				end
-
-
-
-			     RobotFlangeTip = simGetObjectHandle ('RobotFlangeTip')
-				 robothandle = simGetObjectHandle ('LBR_iiwa_14_R820')
-				 fiducial22handl = simGetObjectHandle ('Fiducial#22')
-			     relativeTransformationMatrix = simGetObjectMatrix(fiducial22handl, RobotFlangeTip)
-			     print('The relative transformation matrix between Fiducial#22 and RobotFlangeTip')
-                for i=1,12,1 do
-			         print(relativeTransformationMatrix[i].." ")
-                end
-
-
-			    trankerhandle = simGetObjectHandle ('OpticalTrackerBase#0')
-			    robotToTrakerM = simGetObjectMatrix(robothandle, trankerhandle)
-			    print('The relative transformation matrix between LBR_iiwa_14_R820#0 and OpticalTrackerBase#0')
-                for i=1,12,1 do
-			         print(robotToTrakerM[i].." ")
-                end
-
-			    fudicialToRobotM = simGetObjectMatrix(fiducial22handl, robothandle)
-			    print('The relative transformation matrix between Fiducial#22 and LBR_iiwa_14_R820')
-                for i=1,12,1 do
-			         print(fudicialToRobotM[i].." ")
-                end
-
-				relativePosition = simGetObjectPosition(RobotFlangeTip, robothandle)
-				print('The relative position between RobotFlangeTip and LBR_iiwa_14_R820 ')
-			    for i=1,3,1 do
-				 	print(relativePosition[i].." ")
-			    end
-
-			    relativeOrientation = simGetObjectOrientation(RobotFlangeTip, robothandle)
-			    print('The relative orientation between RobotFlangeTip and LBR_iiwa_14_R820')
-			    for i=1,3,1 do
-			  	   print(relativeOrientation[i]*180/math.pi.." ")
-			    end
-
-
-			    print("======--------------")
-			    relativePosition = simGetObjectPosition(jointHandles[1], -1)
-			    print('XYZ'..1)
-			    for i=1,3,1 do
-			  	   print(relativePosition[i].." ")
-			    end
-
-			    relativeOrientation = simGetObjectOrientation(jointHandles[1], -1)
-			    print('RPY')
-			    for i=1,3,1 do
-			    	  print(relativeOrientation[i]*180/math.pi.." ")
-			    end
-			    for i=2,7,1 do
-				  --result = simSetJointPosition(jointHandles[i],0)
-				  --simWait(0.5)
-				  print("======--------------")
-				  relativePosition = simGetObjectPosition(jointHandles[i], jointHandles[i-1])
-				  print('XYZ'..i)
-				  for j=1,3,1 do
-					   print(relativePosition[j].." ")
-				  end
-
-				  relativeOrientation = simGetObjectOrientation(jointHandles[i], jointHandles[i-1])
-				  print('RPY'..i)
-				 for j=1,3,1 do
-					  print(relativeOrientation[j]*180/math.pi.." ")
-				 end
-
-				end
-
-			end
-			--]]
+          
 		end
 
 
