@@ -48,10 +48,11 @@ find_library( FLATBUFFERS_LIBRARIES NAMES flatbuffers
     PATH_SUFFIXES "lib" )
 else ()
 find_path( FLATBUFFERS_INCLUDE_DIR NAMES flatbuffers/flatbuffers.h )
-find_library( FLATBUFFERS_LIBRARIES NAMES flatbuffers )
+find_library( FLATBUFFERS_LIBRARIES NAMES flatbufferFLATBUFFERS_FLATC_EXECUTABLEs )
 endif ()
 
 find_program(FLATBUFFERS_COMPILER flatc
+PATH
 $ENV{FLATBUFFERS_HOME}/bin
 ${_flatbuffers_roots}/bin
 /usr/local/bin
@@ -71,7 +72,7 @@ endif ()
 if (FLATBUFFERS_FOUND)
 if (NOT Flatbuffers_FIND_QUIETLY)
 message(STATUS "Found the Flatbuffers library: ${FLATBUFFERS_LIBRARIES}")
-endif ()
+endif ()FLATBUFFERS_COMPILER
 else ()
 if (NOT Flatbuffers_FIND_QUIETLY)
 set(FLATBUFFERS_ERR_MSG "Could not find the Flatbuffers library. Looked in ")
@@ -99,7 +100,7 @@ if(FLATBUFFERS_FOUND)
   function(FLATBUFFERS_GENERATE_C_HEADERS Name FLATBUFFERS_DIR OUTPUT_DIR)
   # Name is the name of the user defined variable that will be created by this function
   #     Another variable that will be set is ${NAME}_OUTPUTS which will be set to the names
-  #     of all output files that have been generated.
+  #     of all output files that have been generated.FLATBUFFERS_COMPILER
   # FLATBUFFERS_DIR is the directory in which to look for the .fbs files
   # OUTPUT_DIR is the directory in which all output files should be placed
     set(FLATC_OUTPUTS)
@@ -122,7 +123,7 @@ if(FLATBUFFERS_FOUND)
         # see flatbuffers documentation for details.
         # flatc --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o
         # see https://google.github.io/flatbuffers/flatbuffers_guide_using_schema_compiler.html
-        ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "${OUTPUT_DIR}" ${ABSOLUTE_FBS_FILE_PATH}
+        ARGS --gen-name-strings --scoped-enums --gen-object-api -c -j -p -o "${OUTPUT_DIR}" ${FILE}
 		    MAIN_DEPENDENCY ${ABSOLUTE_FBS_FILE_PATH}
         COMMENT "Building C++, Java, and Python header for ${FILE}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${FLATBUFFERS_DIR})
