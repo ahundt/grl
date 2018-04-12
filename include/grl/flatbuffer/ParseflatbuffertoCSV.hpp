@@ -799,7 +799,7 @@ int getRowsNumber(std::string filename){
 
     /// Get the joint angles at specific time point (index)
     /// @return jointPosition, Eigen vector which contains joint position of the seven joints.
-    int64_t getJointAnglesFromCSV(std::string filename, Eigen::VectorXf &jointPosition, int rowIdx){
+    int64_t getJointAnglesFromCSV(std::string filename, Eigen::VectorXf &jointPosition, int rowIdx, bool commanddata){
 
        
         // int rowNum = getRowsNumber(filename);
@@ -821,7 +821,11 @@ int getRowsNumber(std::string filename){
                           
                             jointPosition(joint_index) = boost::lexical_cast<double>((*loop)[joint_index+5]);
                         }
+                        if(commanddata){
+                            return boost::lexical_cast<uint64_t>((*loop)[1]);
+                        }
                         return boost::lexical_cast<uint64_t>((*loop)[0]);
+                        
                     }
                     row++;
 

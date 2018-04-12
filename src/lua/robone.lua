@@ -312,7 +312,9 @@ robone.cutBoneScript=function()
 	useRMLSmoothing = false
 
 	if (grl.isModuleLoaded('GrlInverseKinematics') and useGrlInverseKinematics) then
-		simExtGrlInverseKinematicsStart()
+		-- Didn't find any example about lua enum, so here use different int to determine run_mode.
+		run_mode = { ik_mode = 1, replay_mode = 2, test_mode = 3}
+		simExtGrlInverseKinematicsStart(run_mode.test_mode, false)
 	end
 
 	print("Moving Robotiiwa arm along cut path...")

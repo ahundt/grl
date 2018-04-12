@@ -510,14 +510,27 @@ public:
        setObjectTransform(simGetObjectHandle("Dummy"),-1,tipTf);
     }
 
-void getPoseFromCSV(std::string filename, int time_index){
+void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
           // we only have one robot for the moment so the index of it is 0
         const std::size_t simulatedRobotIndex = 0;
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
         Eigen::VectorXf joint_angles =  Eigen::VectorXf::Zero(7);
         // std::cout << "\nBefore: " << joint_angles  << std::endl;
-        int64_t timeStamp = grl::getJointAnglesFromCSV(filename, joint_angles, time_index);
+        std::string homePath = std::getenv("HOME");
+        std::string vrepDataPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
+        std::string data_inPath = vrepDataPath + "data_in";
+        // std::string markerPoseCSV = data_inPath+"/FT_Pose_Marker22.csv";
+        std::string FK_CSV = "ForwardKinematics_Pose_M.csv";
+        
+        std::string kukaJoint = data_inPath+"/KUKA_Measured_Joint.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
+        if(commanddata) {
+            kukaJoint = data_inPath+"/KUKA_Command_Joint.csv"; 
+            FK_CSV = "ForwardKinematics_Pose_C.csv";
+        }
+
+        
+        int64_t timeStamp = grl::getJointAnglesFromCSV(kukaJoint, joint_angles, time_index, commanddata);
         assert(timeStamp != -1 );
 
         std::vector<float> vrepJointAngles;
@@ -550,14 +563,18 @@ void getPoseFromCSV(std::string filename, int time_index){
         Eigen::VectorXd markerPose = grl::Affine3fToMarkerPose(transformEstimate.cast<float>());
         Eigen::RowVectorXd pose = grl::getPluckerPose(markerPose);
 
-        
-        // // Write the hand eye calibration results into a file
-        std::string suffix = "ForwardKinematics_Pose.csv";
-        auto myFile = boost::filesystem::current_path() /suffix;
-
-        boost::filesystem::ofstream ofs(myFile, std::ios_base::trunc | std::ios_base::out);
+        std::string myFile = vrepDataPath + FK_CSV;
+        boost::filesystem::ofstream ofs(myFile, std::ios_base::app | std::ios_base::out);
+        // if(time_index == 0){
+        //     ofs.open(myFile, std::ios_base::trunc | std::ios_base::out);
+        // }       
+       
         if(time_index == 0) {
-            ofs << "local_receive_time_offset_X, K_X,K_Y,K_Z,K_A,K_B,K_C\n";
+            if(commanddata){ 
+                ofs << "local_receive_time_offset_X, C_K_X, C_K_Y, C_K_Z, C_K_A, C_K_B, C_K_C\n";
+            }else{
+                 ofs << "local_receive_time_offset_X, M_K_X, M_K_Y, M_K_Z, M_K_A, M_K_B, M_K_C\n";    
+            }
         }
         ofs << timeStamp << ", " << pose[0] << ", " << pose[1] << ", "<< pose[2] << ", "<< pose[3] << ", "<< pose[4] << ", "<< pose[5] << "\n";
         ofs.close();
@@ -662,6 +679,11 @@ void getPoseFromCSV(std::string filename, int time_index){
     /// simulatedArm is the current simulation, measuredArm
     /// is based off of data measured from the real physical arm
     enum class ArmStateSource { simulatedArm, measuredArm };
+    /// Determines which mode to call in run_one function.
+    /// ik_mode, run the  updateKinematics();
+    /// replay_mode, replay the collected data from robot, including command and measured joint angles;
+    /// test_mode, for the calibration purpose in vrep model; 
+    enum class InvRunMode {ik_mode=1, replay_mode=2, test_mode=3 };
 
 
     /// Runs inverse kinematics or constrained optimization at every simulation time step
@@ -719,7 +741,7 @@ void getPoseFromCSV(std::string filename, int time_index){
         const auto& handleParams = VrepRobotArmDriverSimulatedP_->getVrepHandleParams();
         Eigen::Affine3d currentEndEffectorPose =
         getObjectTransform(
-                             std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams)
+                            std::get<vrep::VrepRobotArmDriver::RobotTipName>(handleParams)
                             ,std::get<vrep::VrepRobotArmDriver::RobotTargetBaseName>(handleParams)
                           );
         auto  currentEigenT = currentEndEffectorPose.translation();
@@ -727,7 +749,7 @@ void getPoseFromCSV(std::string filename, int time_index){
 
         Eigen::Affine3d desiredEndEffectorPose =
         getObjectTransform(
-                             std::get<vrep::VrepRobotArmDriver::RobotTargetName>(handleParams)
+                            std::get<vrep::VrepRobotArmDriver::RobotTargetName>(handleParams)
                             ,std::get<vrep::VrepRobotArmDriver::RobotTargetBaseName>(handleParams)
                           );
         auto  desiredEigenT = desiredEndEffectorPose.translation();
@@ -923,30 +945,50 @@ void getPoseFromCSV(std::string filename, int time_index){
     /// may not need this it is in the base class
     /// blocking call, call in separate thread, just allocates memory
     void run_one(){
-       // If true, run real inverse kinematics algorith, if false go to a test pose.
-       const bool ik = false;
-       if(ik) {
-           updateKinematics();
-       } else {
-            std::string homePath = std::getenv("HOME");
-            std::string vrepDataPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
-            std::string data_inPath = vrepDataPath + "data_in";
-            
-            std::string kukaJoint = data_inPath+"/KUKA_Measured_Joint.csv";   // KUKA_Joint.csv   FTKUKA_TimeEvent.csv
-            std::string markerPose = data_inPath+"/FT_Pose_Marker22.csv";
-           
-           testPose();
-           // getPoseFromCSV(kukaJoint, time_index);
-           // replayMarker(markerPose, time_index);
-           // time_index++;
-       }
+       // ik_mode, run real inverse kinematics algorith;
+       // replay_mode, run the replay process;
+       // otherwise, go to a test pose.
+       switch(run_mode){
+           case InvRunMode::ik_mode:
+               updateKinematics();
+               logger_->info("run ik_mode....");
+               break;
+            case InvRunMode::replay_mode:
+                ForwardKinematicsFromCSV(time_index, commanddata);
+                // replayMarker(markerPose, time_index);
+                time_index++;
+                logger_->info("run replay_mode.... and commanddata {}", commanddata);
+                break;
+            case InvRunMode::test_mode:
+                testPose();
+                logger_->info("run test_mode....");
+                break;
+            default:
+                logger_->info("Wrong parameter for run_mode, the only options are ik_mode=0, replay_mode=1, and test_mode=2 ");
+        }
     }
-
-
+    /// Call this function in construct function to determine the running mode and running data.
+    void setInvRunMode(int _run_mode = 1, bool _commanddata = false) {
+        switch(_run_mode){
+            case 1:
+                run_mode = InvRunMode::ik_mode;
+                break;
+            case 2:
+                run_mode = InvRunMode::replay_mode;
+                break;
+            case 3:
+                run_mode = InvRunMode::test_mode;
+                break;
+            default:
+                run_mode = InvRunMode::ik_mode;
+                std::cout << "_run_mode: " << _run_mode << "is beyond index..." << std::endl;
+        }
+        commanddata = _commanddata;
+    }
     /// may not need this it is in the base class
     /// this will have output
     /// blocking call, call in separate thread, just allocates memory
-    /// this runs the actual optimization algorithm
+    /// this runs the actual optimization algorithmn
     void solve(){
 
     }
@@ -1008,6 +1050,10 @@ void getPoseFromCSV(std::string filename, int time_index){
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverSimulatedP_;
     std::shared_ptr<vrep::VrepRobotArmDriver> VrepRobotArmDriverMeasuredP_;
     vrep::VrepRobotArmDriver::State currentArmState_;
+    
+    /// These two parameters are for the replay process.
+    InvRunMode run_mode = InvRunMode::ik_mode;
+    bool commanddata = false;  // Determines what kind of joint angles to run, command or measured?
 
     bool ranOnce_ = false;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
