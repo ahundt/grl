@@ -563,17 +563,19 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
         Eigen::VectorXd markerPose = grl::Affine3fToMarkerPose(transformEstimate.cast<float>());
         Eigen::RowVectorXd pose = grl::getPluckerPose(markerPose);
 
-        std::string myFile = vrepDataPath + FK_CSV;
+        auto myFile = boost::filesystem::path(vrepDataPath + FK_CSV);
+        if(time_index == 0 && boost::filesystem::exists(myFile)){
+            boost::filesystem::remove(myFile);
+            std::cout << myFile << " has been removed..." << std::endl;
+        }
         boost::filesystem::ofstream ofs(myFile, std::ios_base::app | std::ios_base::out);
-        // if(time_index == 0){
-        //     ofs.open(myFile, std::ios_base::trunc | std::ios_base::out);
-        // }       
+    
        
         if(time_index == 0) {
             if(commanddata){ 
-                ofs << "local_receive_time_offset_X, C_K_X, C_K_Y, C_K_Z, C_K_A, C_K_B, C_K_C\n";
+                ofs << "local_request_time_offset_X, C_K_X, C_K_Y, C_K_Z, C_K_A, C_K_B, C_K_C\n";
             }else{
-                 ofs << "local_receive_time_offset_X, M_K_X, M_K_Y, M_K_Z, M_K_A, M_K_B, M_K_C\n";    
+                ofs << "local_receive_time_offset_X, M_K_X, M_K_Y, M_K_Z, M_K_A, M_K_B, M_K_C\n";    
             }
         }
         ofs << timeStamp << ", " << pose[0] << ", " << pose[1] << ", "<< pose[2] << ", "<< pose[3] << ", "<< pose[4] << ", "<< pose[5] << "\n";
@@ -707,7 +709,6 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
         ranOnce_ = true;
 
         jointHandles_ = VrepRobotArmDriverSimulatedP_->getJointHandles();
-
 
         ///////////////////////////////////////////////////////////
         // Copy Joint Interval, the range of motion for each joint
@@ -951,17 +952,17 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
        switch(run_mode){
            case InvRunMode::ik_mode:
                updateKinematics();
-               logger_->info("run ik_mode....");
+               // logger_->info("run ik_mode....");
                break;
             case InvRunMode::replay_mode:
                 ForwardKinematicsFromCSV(time_index, commanddata);
                 // replayMarker(markerPose, time_index);
                 time_index++;
-                logger_->info("run replay_mode.... and commanddata {}", commanddata);
+                // logger_->info("run replay_mode.... and commanddata {}", commanddata);
                 break;
             case InvRunMode::test_mode:
                 testPose();
-                logger_->info("run test_mode....");
+                // logger_->info("run test_mode....");
                 break;
             default:
                 logger_->info("Wrong parameter for run_mode, the only options are ik_mode=0, replay_mode=1, and test_mode=2 ");
@@ -984,6 +985,7 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
                 std::cout << "_run_mode: " << _run_mode << "is beyond index..." << std::endl;
         }
         commanddata = _commanddata;
+        std::cout << "_run_mode: " << _run_mode << "  commanddata" << commanddata << std::endl;
     }
     /// may not need this it is in the base class
     /// this will have output

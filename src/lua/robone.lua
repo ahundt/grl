@@ -12,8 +12,8 @@ robone = {}
 
 require "grl"
 
-KUKA_single_buffer_limit_bytes = 15   -- MB
-FB_single_buffer_limit_bytes = 160   -- MB
+KUKA_single_buffer_limit_bytes = 256   -- MB
+FB_single_buffer_limit_bytes = 1024   -- MB
 ------------------------------------------
 -- Move the arm along the cut file path --
 ------------------------------------------
@@ -79,8 +79,6 @@ robone.cutBoneScript=function()
 
 		 		simMoveToObject(target,CreatedPathHandle,3,0,0.2,0.02)
 		 		newPosition = 0
-
-
 
 		 		-- Create empty vector for tool tip forces (x,y,z,alpha,beta,gamma,joint dependence(?))
 		 		-- toolTipForces = matrix(7,1,0)
@@ -312,9 +310,14 @@ robone.cutBoneScript=function()
 	useRMLSmoothing = false
 
 	if (grl.isModuleLoaded('GrlInverseKinematics') and useGrlInverseKinematics) then
-		-- Didn't find any example about lua enum, so here use different int to determine run_mode.
+		-- ik_mode, run real inverse kinematics algorith;
+		-- replay_mode, run the replay process;
+		-- otherwise, go to a test pose.
+		-- commanddata, only in replay_mode we need to set it to determine the joint data set.
+		commanddata = false
 		run_mode = { ik_mode = 1, replay_mode = 2, test_mode = 3}
-		simExtGrlInverseKinematicsStart(run_mode.test_mode, false)
+		print("Moving Robotiiwa arm along inversekinematics")
+		simExtGrlInverseKinematicsStart(run_mode.replay_mode, commanddata)
 	end
 
 	print("Moving Robotiiwa arm along cut path...")

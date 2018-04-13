@@ -751,7 +751,7 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         ////////////////////
         loggerPG->error("Ending Fusion Tracker plugin connection to Kuka iiwa\n" );
         loggerPG->info(" Atracsys recordWhileSimulationIsRunningG: {}", recordWhileSimulationIsRunningG);
-        loggerPG->info("fusionTrackPG->is_recording(): {}",fusionTrackPG->is_recording());
+        // loggerPG->info("fusionTrackPG->is_recording(): {}",fusionTrackPG->is_recording());
 
         if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
             bool success = fusionTrackPG->save_recording();

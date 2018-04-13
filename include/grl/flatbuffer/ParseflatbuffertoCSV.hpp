@@ -158,12 +158,12 @@ namespace grl {
         int64_t initial_device_time,
         int rowIndex){
             std::cout<< "initial_local_time: " << initial_local_time << std::endl;
-        std::size_t time_size = timeEventM.rows();
-        assert(time_size>0);
-        timeEventM.col(grl::TimeType::local_request_time) = timeEventM.col(grl::TimeType::local_request_time) - initial_local_time * grl::VectorXd::Ones(time_size);
-        timeEventM.col(grl::TimeType::local_receive_time) = timeEventM.col(grl::TimeType::local_receive_time) - initial_local_time * grl::VectorXd::Ones(time_size);
-        timeEventM.col(grl::TimeType::device_time) = timeEventM.col(grl::TimeType::device_time) - initial_device_time * grl::VectorXd::Ones(time_size);
-        timeEventM.col(grl::TimeType::time_Y) = timeEventM.col(grl::TimeType::time_Y) - timeEventM(rowIndex, grl::TimeType::time_Y) * grl::VectorXd::Ones(time_size);
+            std::size_t time_size = timeEventM.rows();
+            assert(time_size>0);
+            timeEventM.col(grl::TimeType::local_request_time) = timeEventM.col(grl::TimeType::local_request_time) - initial_local_time * grl::VectorXd::Ones(time_size);
+            timeEventM.col(grl::TimeType::local_receive_time) = timeEventM.col(grl::TimeType::local_receive_time) - initial_local_time * grl::VectorXd::Ones(time_size);
+            timeEventM.col(grl::TimeType::device_time) = timeEventM.col(grl::TimeType::device_time) - initial_device_time * grl::VectorXd::Ones(time_size);
+            timeEventM.col(grl::TimeType::time_Y) = timeEventM.col(grl::TimeType::time_Y) - timeEventM(rowIndex, grl::TimeType::time_Y) * grl::VectorXd::Ones(time_size);
     }
 
 
@@ -384,7 +384,7 @@ namespace grl {
             assert(kuka_time_size == externalTorque.rows());
             assert(kuka_time_size == jointStateInterpolated.rows());
             auto receive_time = timeEventM_Kuka.col(grl::TimeType::local_receive_time);
-            assert(checkmonotonic(receive_time));
+            // assert(checkmonotonic(receive_time));
         
             std::ofstream fs;
             // create a name for the file output
@@ -822,9 +822,9 @@ int getRowsNumber(std::string filename){
                             jointPosition(joint_index) = boost::lexical_cast<double>((*loop)[joint_index+5]);
                         }
                         if(commanddata){
-                            return boost::lexical_cast<uint64_t>((*loop)[1]);
+                            return boost::lexical_cast<uint64_t>((*loop)[0]);
                         }
-                        return boost::lexical_cast<uint64_t>((*loop)[0]);
+                        return boost::lexical_cast<uint64_t>((*loop)[1]);
                         
                     }
                     row++;

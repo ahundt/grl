@@ -81,6 +81,7 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
       ///
       if (!kukaVrepPluginPG) {
         loggerPG->error("simExtKukaLBRiiwaStart: Starting KUKA LBR iiwa plugin connection to Kuka iiwa...\n kukaVrepPluginPG hasn't been initialized...\n" );
+      }
 
     	CLuaFunctionData data;
 
@@ -136,8 +137,6 @@ void LUA_SIM_EXT_KUKA_LBR_IIWA_START(SLuaCallBack* p)
             kukaVrepPluginPG=std::make_shared<grl::vrep::KukaVrepPlugin>();
             kukaVrepPluginPG->construct();
         }
-
-      }
 
   } catch (const boost::exception& e){
       // log the error and print it to the screen, don't release the exception

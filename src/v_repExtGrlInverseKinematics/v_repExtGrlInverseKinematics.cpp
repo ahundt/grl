@@ -65,14 +65,14 @@ std::shared_ptr<spdlog::logger>                  loggerPG;
 */
 const int inArgs_SIM_EXT_GRL_IK_START[]={
     2,                   
-    sim_lua_arg_int,0,
+    sim_lua_arg_int, 0,
     sim_lua_arg_bool, 0
 };
 std::string LUA_SIM_EXT_GRL_IK_START_CALL_TIP("number result=simExtGrlInverseKinematicsStart(int run_mode, bool commanddataing)");
 void LUA_SIM_EXT_GRL_IK_START(SLuaCallBack* p)
 {
     if (!InverseKinematicsControllerPG) {
-        loggerPG->error("v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin\n");
+        loggerPG->info("v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin\n");
         CLuaFunctionData data;
 	    if (data.readDataFromLua(p, inArgs_SIM_EXT_GRL_IK_START, inArgs_SIM_EXT_GRL_IK_START[0], LUA_SIM_EXT_GRL_IK_START_COMMAND))
         {

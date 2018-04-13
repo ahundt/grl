@@ -31,13 +31,14 @@
 
 int main(int argc, char* argv[])
 {
-    std::string kukaTimeStamp("2018_03_26_19_06_21_Kukaiiwa.iiwa");
-    std::string FTTimeStamp("2018_03_26_19_06_21_FusionTrack.flik");
+    std::string kukaTimeStamp("2018_04_13_16_20_28_Kukaiiwa.iiwa");
+    std::string FTTimeStamp("2018_04_13_16_20_28_FusionTrack.flik");
     std::string URDFModrl("Robone_KukaLBRiiwa.urdf");
     /// Define the csv file names
     if(argc == 2){
-        kukaTimeStamp = std::string(argv[1]);
-        FTTimeStamp = std::string(argv[2]);
+        kukaTimeStamp = std::string(argv[0]);
+        FTTimeStamp = std::string(argv[1]);
+        std::cout << "Arguments: " << kukaTimeStamp << "    " << FTTimeStamp << std::endl;
     }
     /// Create a new folder in the name of time stamp for the generated csv files.
     std::string homePath = std::getenv("HOME");
@@ -211,6 +212,8 @@ int main(int argc, char* argv[])
     // Change it back to the original size
     timeEventM_FT.resize(FT_size, grl::col_timeEvent);
     markerPose_FT.resize(FT_size, grl::col_Pose);
+    timeEventM_FT = grl::MatrixXd::Zero(FT_size, grl::col_timeEvent);
+    markerPose_FT = Eigen::MatrixXd::Zero(FT_size, grl::col_Pose);
     // Get the pose of the bone marker
     int validsize_55 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_55, timeEventM_FT, markerPose_FT);
 
@@ -221,6 +224,8 @@ int main(int argc, char* argv[])
     // Change it back to the original size
     timeEventM_FT.resize(FT_size, grl::col_timeEvent);
     markerPose_FT.resize(FT_size, grl::col_Pose);
+    timeEventM_FT = grl::MatrixXd::Zero(FT_size, grl::col_timeEvent);
+    markerPose_FT = Eigen::MatrixXd::Zero(FT_size, grl::col_Pose);
     // Get the pose of the bone marker
     int validsize_50000 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_50000, timeEventM_FT, markerPose_FT);
 
