@@ -108,6 +108,7 @@ namespace grl {
     int col_Kuka_Joint = Joint_Labels.size();
     const static int jointNum = 7;
     int col_Pose = PK_Pose_Labels.size();
+    int col_trans = Transform_Labels.size();
  
 
     /// Get CSV labels
@@ -178,8 +179,7 @@ namespace grl {
     int  getMarkerPose(const fbs_tk::Root<grl::flatbuffer::LogKUKAiiwaFusionTrack> &logKUKAiiwaFusionTrackP,
                                     uint32_t &markerID,
                                     grl::MatrixXd& timeEventM,
-                                    Eigen::MatrixXd& markerPose,
-                                    bool markerFrame = false){
+                                    Eigen::MatrixXd& markerPose){
         auto states = logKUKAiiwaFusionTrackP->states();
         std::size_t state_size = states->size();
         assert(state_size>0);
@@ -265,7 +265,6 @@ namespace grl {
             assert(state_size>0);
             // The first columne is counter
             int row = 0;
-            // Eigen::MatrixXd markerPose(state_size, grl::col_Pose);
             // std::cout <<"State size: " << state_size << "   markerPose rows: " << markerPose.rows() << std::endl;
             int BadCount = 0;
 
@@ -640,15 +639,16 @@ namespace grl {
             fs << "local_request_time,"
             << "local_receive_time,"
             << "FT_device_time_offset,"
-            << "device_time_offset_kuka,"
+            << "KUKA_device_time_offset,"
             << "Y_FT,"
             << "Y_kuka,"
             << "FT_X,"
             << "FT_Y,"
             << "FT_Z,"
-            << "FT_A,"
-            << "FT_B,"
-            << "FT_C,"
+            << "FT_QW"
+            << "FT_QX,"
+            << "FT_QY,"
+            << "FT_QZ,"
             << "K_Joint1,"
             << "K_Joint2,"
             << "K_Joint3,"
@@ -697,7 +697,8 @@ namespace grl {
                        << matrixrow[2] << ","
                        << matrixrow[3] << ","
                        << matrixrow[4] << ","
-                       << matrixrow[5] << std::endl;
+                       << matrixrow[5] << ","
+                       << matrixrow[6] << std::endl;
                        FT_index++;
                 } else {
                     // In case the time is extactly equivent with each other.

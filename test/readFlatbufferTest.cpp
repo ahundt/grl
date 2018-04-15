@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
     std::size_t kuka_size = grl::getStateSize(kukaStatesP);
 
     /// Create matrix to contain data
-    Eigen::MatrixXd markerPose_FT(FT_size, grl::col_Pose);
+    Eigen::MatrixXd markerPose_FT(FT_size, grl::col_trans);
     Eigen::MatrixXd markerTransform_FT  = Eigen::MatrixXd::Zero(FT_size, grl::Transform_Labels.size());
     grl::MatrixXd timeEventM_FT = grl::MatrixXd::Zero(FT_size, grl::Time_Labels.size());
     grl::MatrixXd timeEventM_Kuka = grl::MatrixXd::Zero(kuka_size, grl::Time_Labels.size());
@@ -114,7 +114,8 @@ int main(int argc, char* argv[])
         commandedTorque, 
         externalTorque,
         jointStateInterpolated);
-    int validsize_22 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_22, timeEventM_FT, markerPose_FT);
+    // int validsize_22 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_22, timeEventM_FT, markerPose_FT);
+    int validsize_22 = grl::getMarkerMessage(logKUKAiiwaFusionTrackP, markerID_22, timeEventM_FT, markerPose_FT);
    
     std::cout<< "------Kuka_size: "<< kuka_size << "     FT_size: "<< FT_size << std::endl;
     std::cout<<"validsize_22: " << validsize_22 << std::endl;
@@ -204,34 +205,34 @@ int main(int argc, char* argv[])
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // Get the pose of the marker 22.
     // Since the bad data is skipped, the timeEventM_FT also needs to be filled out with the orinial time stamp.
-    std::vector<std::string> FT_Labels_Pose = grl::getLabels(grl::LabelsType::FT_Pose);
 
     grl::writeFTKUKAMessageToCSV(FTKUKA_TimeEvent_CSV, timeEventM_FT, timeEventM_Kuka, measuredJointPosition, markerPose_FT, FT_index, kuka_index);
     grl::writeTimeEventToCSV(FT_TimeEvent_CSV, timeEventM_FT, FT_index);
-    grl::writeMatrixToCSV(FT_Marker22_CSV, FT_Labels_Pose, timeEventM_FT, markerPose_FT, FT_index);
+    grl::writeMatrixToCSV(FT_Marker22_CSV, grl::Transform_Labels, timeEventM_FT, markerPose_FT, FT_index);
     // Change it back to the original size
     timeEventM_FT.resize(FT_size, grl::col_timeEvent);
-    markerPose_FT.resize(FT_size, grl::col_Pose);
+    markerPose_FT.resize(FT_size, grl::col_trans);
     timeEventM_FT = grl::MatrixXd::Zero(FT_size, grl::col_timeEvent);
-    markerPose_FT = Eigen::MatrixXd::Zero(FT_size, grl::col_Pose);
+    markerPose_FT = Eigen::MatrixXd::Zero(FT_size, grl::col_trans);
     // Get the pose of the bone marker
-    int validsize_55 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_55, timeEventM_FT, markerPose_FT);
-
+    // int validsize_55 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_55, timeEventM_FT, markerPose_FT);
+    int validsize_55 = grl::getMarkerMessage(logKUKAiiwaFusionTrackP, markerID_55, timeEventM_FT, markerPose_FT);
     std::cout<<"validsize_55: " << validsize_55 << std::endl;
     grl::regularizeTimeEvent(timeEventM_FT, initial_local_time, initial_device_time_FT, FT_index);
-    grl::writeMatrixToCSV(FT_Marker55_CSV, FT_Labels_Pose, timeEventM_FT, markerPose_FT, FT_index);
+    grl::writeMatrixToCSV(FT_Marker55_CSV, grl::Transform_Labels, timeEventM_FT, markerPose_FT, FT_index);
     
     // Change it back to the original size
     timeEventM_FT.resize(FT_size, grl::col_timeEvent);
-    markerPose_FT.resize(FT_size, grl::col_Pose);
+    markerPose_FT.resize(FT_size, grl::col_trans);
     timeEventM_FT = grl::MatrixXd::Zero(FT_size, grl::col_timeEvent);
-    markerPose_FT = Eigen::MatrixXd::Zero(FT_size, grl::col_Pose);
+    markerPose_FT = Eigen::MatrixXd::Zero(FT_size, grl::col_trans);
     // Get the pose of the bone marker
-    int validsize_50000 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_50000, timeEventM_FT, markerPose_FT);
+    // int validsize_50000 = grl::getMarkerPose(logKUKAiiwaFusionTrackP, markerID_50000, timeEventM_FT, markerPose_FT);
+    int validsize_50000 = grl::getMarkerMessage(logKUKAiiwaFusionTrackP, markerID_50000, timeEventM_FT, markerPose_FT);
 
     std::cout<<"validsize_50000: " << validsize_50000 << std::endl;
     grl::regularizeTimeEvent(timeEventM_FT, initial_local_time, initial_device_time_FT, FT_index);
-    grl::writeMatrixToCSV(FT_Marker50000_CSV, FT_Labels_Pose, timeEventM_FT, markerPose_FT, FT_index);
+    grl::writeMatrixToCSV(FT_Marker50000_CSV, grl::Transform_Labels, timeEventM_FT, markerPose_FT, FT_index);
    
     return 0;
 }

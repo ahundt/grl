@@ -317,7 +317,7 @@ robone.cutBoneScript=function()
 		commanddata = false
 		run_mode = { ik_mode = 1, replay_mode = 2, test_mode = 3}
 		print("Moving Robotiiwa arm along inversekinematics")
-		simExtGrlInverseKinematicsStart(run_mode.replay_mode, commanddata)
+		simExtGrlInverseKinematicsStart(run_mode.test_mode, commanddata)
 	end
 
 	print("Moving Robotiiwa arm along cut path...")

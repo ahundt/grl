@@ -433,17 +433,10 @@ public:
         }
 
         /// @todo verify object lifetimes
-
-        // add virtual fixtures? need names and number of rows
-
-
+        /// add virtual fixtures? need names and number of rows
         /// @todo read objective rows from vrep
-
         /// @todo set vrep explicit handling of IK here, plus unset in destructor of this object
-
     }
-
-
 
     /// Set dummy frames named Dummy0 to Dummy19 to the current state of the
     /// RBDyn and V-REP representations of joints for debugging.
