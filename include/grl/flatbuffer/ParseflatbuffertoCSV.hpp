@@ -108,7 +108,6 @@ namespace grl {
     int col_Kuka_Joint = Joint_Labels.size();
     const static int jointNum = 7;
     int col_Pose = PK_Pose_Labels.size();
-    int col_trans = Transform_Labels.size();
  
 
     /// Get CSV labels
@@ -645,10 +644,9 @@ namespace grl {
             << "FT_X,"
             << "FT_Y,"
             << "FT_Z,"
-            << "FT_QW"
-            << "FT_QX,"
-            << "FT_QY,"
-            << "FT_QZ,"
+            << "FT_A"
+            << "FT_B,"
+            << "FT_C,"
             << "K_Joint1,"
             << "K_Joint2,"
             << "K_Joint3,"
@@ -680,8 +678,7 @@ namespace grl {
                     << jointrow[3] << ","
                     << jointrow[4] << ","
                     << jointrow[5] << ","
-                    << jointrow[6]
-                    << std::endl;
+                    << jointrow[6] << std::endl;
                     kuka_index++;
                 } else if( kuka_local_request_time(kuka_index) > FT_local_request_time(FT_index)) {
                     auto matrixrow = markerPose.row(FT_index);
@@ -697,8 +694,7 @@ namespace grl {
                        << matrixrow[2] << ","
                        << matrixrow[3] << ","
                        << matrixrow[4] << ","
-                       << matrixrow[5] << ","
-                       << matrixrow[6] << std::endl;
+                       << matrixrow[5] << std::endl;
                        FT_index++;
                 } else {
                     // In case the time is extactly equivent with each other.
