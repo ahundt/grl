@@ -37,7 +37,6 @@ namespace grl {
             markerPose[4] = q.x();
             markerPose[5] = q.y();
             markerPose[6] = q.z();
-
             return markerPose;
     }
 

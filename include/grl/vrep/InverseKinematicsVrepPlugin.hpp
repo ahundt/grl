@@ -404,6 +404,7 @@ public:
 
             rbd_mbs_.push_back(rbd_mbg_.makeMultiBody(ikGroupBaseName_,isFixed,X_base));
             rbd_mbcs_.push_back(rbd::MultiBodyConfig(rbd_mbs_[0]));
+            // Set the multibody at zero configuration. 
             rbd_mbcs_[0].zero(rbd_mbs_[0]);
 
             // we only have one robot for the moment so the index of it is 0
@@ -427,6 +428,23 @@ public:
             // set the preferred position to the initial position
             // https://github.com/jrl-umi3218/Tasks/blob/15aff94e3e03f6a161a87799ca2cf262b756bd0c/src/QPTasks.h#L426
             rbd_preferred_mbcs_.push_back(simArmConfig);
+            
+
+            // std::string homePath = std::getenv("HOME");
+            // std::string vrepDataPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
+            // std::string urdfPath = vrepDataPath + "Robone_KukaLBRiiwa.urdf"; 
+           
+    
+            // auto strRobot = grl::getURDFModel(urdfPath);
+            // rbd::MultiBody mb = strRobot.mb;
+            // rbd::MultiBodyConfig mbc(mb);
+            // rbd::MultiBodyGraph mbg(strRobot.mbg);
+            // rbd_mbs_.push_back(mb);
+            // rbd_mbcs_.push_back(mbc);
+            // // Set the multibody at zero configuration. 
+            // rbd_mbcs_[1].zero(rbd_mbs_[1]);
+            // std::size_t nrJoints = mb.nrJoints();
+            // std::size_t nrBodies = strRobot.mb.nrBodies();
 
             debugFrames();
 
@@ -470,6 +488,7 @@ public:
           if( dummy_world_frame )
           {
               // visualize each joint position in world frame
+              std::cout << linkNames_[i] << std::endl;
               sva::PTransform<double>     plinkWorld = simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
@@ -478,6 +497,8 @@ public:
               setObjectTransform(currentDummy,-1,linkWorld);
               prevDummy=currentDummy;
               // Transformation from parent(i) to i in body coordinate (Xj*Xt).
+              std::cout << linkNames_[i] << std::endl;
+              std::cout << jointNames_[i] << std::endl;
               sva::PTransform<double>     plinkToSon = simArmConfig.parentToSon[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkToSon = PTranformToEigenAffine(plinkToSon);
               if(print) logger_->info("{} RBDyn ParentLinkToSon\n{}",dummyName, linkToSon.matrix());
@@ -566,9 +587,9 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
        
         if(time_index == 0) {
             if(commanddata){ 
-                ofs << "local_request_time_offset_X, C_K_X, C_K_Y, C_K_Z, C_K_A, C_K_B, C_K_C\n";
+                ofs << "local_request_time_offset_X, Command_KUKA_X, Command_KUKA_Y, Command_KUKA_Z, Command_KUKA_A, Command_KUKA_B, Command_KUKA_C\n";
             }else{
-                ofs << "local_receive_time_offset_X, M_K_X, M_K_Y, M_K_Z, M_K_A, M_K_B, M_K_C\n";    
+                ofs << "local_receive_time_offset_X, Measured_KUKA_X, Measured_KUKA_Y, Measured_KUKA_Z, Measured_KUKA_A, Measured_KUKA_B, Measured_KUKA_C\n";    
             }
         }
         ofs << timeStamp << ", " << pose[0] << ", " << pose[1] << ", "<< pose[2] << ", "<< pose[3] << ", "<< pose[4] << ", "<< pose[5] << "\n";
@@ -620,21 +641,11 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
 
-        std::string homePath = std::getenv("HOME");
-        std::string vrepDataPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
-        std::string urdfPath = vrepDataPath + "Robone_KukaLBRiiwa.urdf"; 
-       
-
-        auto strRobot = grl::getURDFModel(urdfPath);
-        rbd::MultiBody mb = strRobot.mb;
-        rbd::MultiBodyConfig mbc(mb);
-        rbd::MultiBodyGraph mbg(strRobot.mbg);
-        std::size_t nrJoints = mb.nrJoints();
-        std::size_t nrBodies = strRobot.mb.nrBodies();
+      
         std::vector<std::string> jointNames;
         
         std::vector<float> vrepJointAngles;
-        double angle = 0.7;
+        double angle = 0; //0.7
         for(auto i : jointHandles_)
         {
             angle *= -1;
@@ -652,9 +663,9 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
         rbd::forwardKinematics(simArmMultiBody, simArmConfig);
         rbd::forwardVelocity(simArmMultiBody, simArmConfig);
 
-        // SetRBDynArmFromVrep(jointNames_,jointHandles_,mb,mbc);
-        // rbd::forwardKinematics(mb, mbc);
-        // rbd::forwardVelocity(mb, mbc);
+        // SetRBDynArmFromVrep(jointNames_,jointHandles_,rbd_mbs_[1],rbd_mbcs_[1]);
+        // rbd::forwardKinematics(rbd_mbs_[1],rbd_mbcs_[1]);
+        // rbd::forwardVelocity(rbd_mbs_[1],rbd_mbcs_[1]);
 
         debugFrames();
     }

@@ -195,10 +195,19 @@ int main(int argc, char* argv[])
     std::size_t nrJoints = mb.nrJoints();
     std::size_t nrBodies = strRobot.mb.nrBodies();
     std::vector<std::string> jointNames;
-    ofs<<"Joint Size: "<< nrJoints << std::endl;
+    std::cout <<"Joint Size: "<< nrJoints << std::endl;
+    for(int jointIdx=0; jointIdx<nrJoints; jointIdx++){
+        std::cout << mb.joint(jointIdx).name() << std::endl;
+        jointNames.push_back(mb.joint(jointIdx).name());
+        if(mbc.q[jointIdx].size()>0){
+            mbc.q[jointIdx][0] = 0;
+        } 
+    }
+    rbd::forwardKinematics(mb, mbc);
+    
+
+
     std::vector<std::string> PK_Pose_Labels = grl::getLabels(grl::LabelsType::Kuka_Pose);
-
-
     // forward kinematic to get the of the end effector
     std::vector<sva::PTransformd> PoseEE = grl::getPoseEE(measuredJointPosition);
     // convert the sva::PTransformd to Plucker coordinate.
