@@ -14,9 +14,10 @@ In this project, the messages are communicated by `FlatBuffers <https://google.g
 
 2. Start VREP and load the scene `RoboneSimulation_private.ttt <https://github.com/ahundt/robonetracker/blob/master/modules/roboneprivate/data/RoboneSimulation_private.ttt>`__.
 
-3. Set flatbuffer limit in `robone.lua <https://github.com/ahundt/robonetracker/blob/master/modules/grl/src/lua/robone.lua>`__. 
+3. Set flatbuffer limit in `robone.lua <https://github.com/ahundt/robonetracker/blob/master/modules/grl/src/lua/robone.lua>`__.
    The hard limit for flatbuffer is 2 GB, but you can customize it based on your requirement in this project. 
-   When flatbuffer size hits this limit, the data will be written to disk. Or when you click on the STOP button in VREP, the data will also be written to disk automaticly, regardless of the limit.
+   When flatbuffer size hits this limit, the data will be written to disk. Or when you click on the STOP button in VREP, 
+   the data will also be written to disk automaticly, regardless of the limit::
    
    KUKA_single_buffer_limit_bytes = 256    -- MB
    FB_single_buffer_limit_bytes = 1024     -- MB
@@ -37,9 +38,9 @@ In this project, the messages are communicated by `FlatBuffers <https://google.g
 The binary files are put in VREP data folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/), 
 and are named by the time stamp (i.e. 2018_03_26_19_06_21_FusionTrack.flik, 2018_03_26_19_06_21_Kukaiiwa.iiwa).
 
-The command to generate json file is as below, the binary file and the fbs file should be put in the same folder:
-flatc -I . --json LogKUKAiiwaFusionTrack.fbs -- 2018_03_26_19_06_21_FusionTrack.flik
-flatc -I . --json KUKAiiwa.fbs -- 2018_03_26_19_06_21_Kukaiiwa.iiwa
+The command to generate json file is as below, the binary file and the fbs file should be put in the same folder::
+    flatc -I . --json LogKUKAiiwaFusionTrack.fbs -- 2018_03_26_19_06_21_FusionTrack.flik
+    flatc -I . --json KUKAiiwa.fbs -- 2018_03_26_19_06_21_Kukaiiwa.iiwa
 
 How to export data
 ==================================
@@ -48,10 +49,11 @@ When exporting the flatbuffer file to CSV, you need to follow the instructions b
 
 1. Keep the binary files in the VREP data folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/);
 
-2. Run `readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>`__ in terminal with the arguments of the name of binary file.
-   .. code-block:: bash
+2. Run `readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>`__ in terminal with the arguments of the name of binary file::
+
         ./readFlatbufferTest 2018_03_26_19_06_21_Kukaiiwa.iiwa 2018_03_26_19_06_21_FusionTrack.flik
-	   # You can also pass the arguments manually to the main() function in readFlatbufferTest.cpp.
+	    # You can also pass the arguments manually to the main() function in readFlatbufferTest.cpp.
+
 3. The generated csv files will be put into the VREP data folder  in which the subfolder is named by time stamp.
     Label explanation:
 	.. code-block:: bash
@@ -61,7 +63,7 @@ When exporting the flatbuffer file to CSV, you need to follow the instructions b
 	    time_Y: time driftting, device_time_offset - local_request_time_offset;
 	    counter: the identifier of message, defined by devices;
 	    X	Y	Z	A	B	C: the cartesian postion and oritation in Plucker coordinate system;
-	    M_Pos_Ji: measured joint position of joint i from kuka;
+	    M_Pos_J*: measured joint position of joint i from kuka;
 	    C_Pos_J*: command joint position of joint i to kuka;
 	    M_Tor_J*: measured joint torque of joint i form kuka;
 	    C_Tor_J*: comand joint torque of joint i to kuka;
@@ -73,6 +75,7 @@ When exporting the flatbuffer file to CSV, you need to follow the instructions b
         local_request_offset = (local_request_time - initial_local_request_time)
         device_offset = (device_time - initial_device_time)
         time_Y = device_offset - local_request_offset
+
 	CSV file explanation:
 	   FTKUKA_TimeEvent.csv has the information from both Atracsys and kuka. It can help analysis time event.
 	   FT_Pose_Marker*.csv have the time event and pose (in Plucker coordinate) of the specific marker in Atracsys space;
@@ -95,12 +98,12 @@ The result will be writen in ForwardKinematics_Pose.csv.
 2. Enable the CutBoneScript.
 
 3. Set the parameter of simExtGrlInverseKinematicsStart(...) to replay_mode in robone.lua.
-   You should run this function two times, one time commanddata is true, the other is false. Then you can get the cartesian pose for both command and measured data. 
-   .. code-block:: bash
-        -- ik_mode, run real inverse kinematics algorith;
+   You should run this function two times, one time commanddata is true, the other is false. Then you can get the cartesian pose for both command and measured data::
+        
+		-- ik_mode, run real inverse kinematics algorith;
 		-- replay_mode, run the replay process;
-		-- otherwise, go to a test pose.
-		-- commanddata, only in replay_mode we need to set it to determine the joint data set.
+		-- test_mode, go to a test pose;
+		-- commanddata, only in replay_mode we need to set it to select the joint data set.
 		commanddata = false
 		run_mode = { ik_mode = 1, replay_mode = 2, test_mode = 3}
 		print("Moving Robotiiwa arm along inversekinematics")
