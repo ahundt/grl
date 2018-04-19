@@ -31,30 +31,25 @@ In this project, the messages are communicated by `FlatBuffers <https://google.g
    Only after connecting the devices, it can start to record data correctly.
 
 6. Stop recording data.
-   There are two ways to stop the data collection process, one is the buffer hits the limit in Step 3, the other is to click on the STOP button in VREP, then it will stop and write the data to disk automatically.
+   There are two ways to stop the data collection process, one is the buffer hits the limit in Step 3, the other is to click on the STOP button in VREP, 
+   then it will stop and write the data to disk automatically.
 
-
-
-
-
-The location of the `fbs file <https://github.com/ahundt/robonetracker/tree/master/modules/grl/include/grl/flatbuffer/>`__.
-fbs files define the binary format we use for high performance data collection from devices, such as the Kuka LBR iiwa 14kg and Atracsys FusionTrack.
 
 The binary files are put in VREP data folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/), 
 and are named by the time stamp (i.e. 2018_03_26_19_06_21_FusionTrack.flik, 2018_03_26_19_06_21_Kukaiiwa.iiwa).
 
-The command to generate json file, the binary file and the fbs file should be put in the same folder:
+The command to generate json file is as below, the binary file and the fbs file should be put in the same folder:
 flatc -I . --json LogKUKAiiwaFusionTrack.fbs -- 2018_03_26_19_06_21_FusionTrack.flik
 flatc -I . --json KUKAiiwa.fbs -- 2018_03_26_19_06_21_Kukaiiwa.iiwa
 
-CSV file
+How to export data
 ==================================
 
 When exporting the flatbuffer file to CSV, you need to follow the instructions below:
 
 1. Keep the binary files in the VREP data folder (i.e. ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/);
 
-2. Run `readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>`__ with the arguments of the name of binary file.
+2. Run `readFlatbufferTest <https://github.com/ahundt/robonetracker/tree/master/modules/grl/test>`__ in terminal with the arguments of the name of binary file.
    .. code-block:: bash
         ./readFlatbufferTest 2018_03_26_19_06_21_Kukaiiwa.iiwa 2018_03_26_19_06_21_FusionTrack.flik
 	   # You can also pass the arguments manually to the main() function in readFlatbufferTest.cpp.
@@ -93,8 +88,21 @@ When exporting the flatbuffer file to CSV, you need to follow the instructions b
 
 Replay Process
 ==================================
-At this moment, the replay process is set and called in InverseKinematicsVrepPlug.cpp.
-In future, It`s better to creat a replay plugin to handl this process.
+The replay process can perform the forward kinematics to get the cartesian pose of the end effector.
 
-Before run it, you should copy the KUKA_Measured_Joint.csv and FT_Pose_Marker22.csv to the  ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/data_in/.
+1. Copy the KUKA_Measured_Joint.csv, KUKA_Command_Joint.csv and FT_Pose_Marker22.csv to the  ~/src/V-REP_PRO_EDU_V3_4_0_Linux/data/data_in/.
 The result will be writen in ForwardKinematics_Pose.csv.
+
+2. Enable the CutBoneScript.
+
+3. Set the parameter of simExtGrlInverseKinematicsStart(...) to replay_mode in robone.lua.
+   You should run this function two times, one time commanddata is true, the other is false. Then you can get the cartesian pose for both command and measured data. 
+   .. code-block:: bash
+        -- ik_mode, run real inverse kinematics algorith;
+		-- replay_mode, run the replay process;
+		-- otherwise, go to a test pose.
+		-- commanddata, only in replay_mode we need to set it to determine the joint data set.
+		commanddata = false
+		run_mode = { ik_mode = 1, replay_mode = 2, test_mode = 3}
+		print("Moving Robotiiwa arm along inversekinematics")
+        simExtGrlInverseKinematicsStart(run_mode.replay_mode, commanddata)
