@@ -17,13 +17,12 @@ In this project, the messages are communicated by `FlatBuffers <https://google.g
 3. Set flatbuffer limit in `robone.lua <https://github.com/ahundt/robonetracker/blob/master/modules/grl/src/lua/robone.lua>`__. 
    The hard limit for flatbuffer is 2 GB, but you can customize it based on your requirement in this project. 
    When flatbuffer size hits this limit, the data will be written to disk. Or when you click on the STOP button in VREP, the data will also be written to disk automaticly, regardless of the limit.
-   .. code-block:: bash
+   
    KUKA_single_buffer_limit_bytes = 256    -- MB
    FB_single_buffer_limit_bytes = 1024     -- MB
 
 4. Start to record data while simulation is running in `robone.lua <https://github.com/ahundt/robonetracker/blob/master/modules/grl/src/lua/robone.lua>`__.
    By defaut, program starts to collect data automatically. You can change it by following functions::
-   .. code-block:: bash
       simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true, KUKA_single_buffer_limit_bytes)
 	  simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true, FB_single_buffer_limit_bytes)
 
