@@ -166,7 +166,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 	// when we receive a message
 	int message_counter = 0;
 	int message_counter_since_last_mode_change = 0;
-
+	
 	private Lock configureSmartServoLock = new ReentrantLock();
 
 //    private FlexFellowIOGroup _flexFellowIOGroup;
@@ -228,7 +228,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_teachModeThread.start();
 
 
-        int millisecondsPerFRITimeStep = 4;
+        int millisecondsPerFRITimeStep = _processDataManager.get_FRI_KONI_SendPeriodMilliseconds();
 		_FRIModeRunnable = new FRIMode(
 				_lbr,
 				_processDataManager.get_FRI_KONI_LaptopIPAddress(), millisecondsPerFRITimeStep);
@@ -262,9 +262,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 		while (!stop && !_startStopUI.is_stopped() && _lbr.getSafetyState().getEmergencyStopInt()==EmergencyStop.INACTIVE) {
 			message_counter+=1;
 			_currentKUKAiiwaState = udpMan.waitForNextMessage();
-
+			
 			//Some bug in this, just set _previousKUKAiiwaState = _currentKUKAiiwaState before looping/continue?
-			_previousKUKAiiwaState = udpMan.getPrevMessage();
+			_previousKUKAiiwaState = udpMan.getPrevMessage();  
 
 
 			//////////////////////////////////////////
@@ -419,13 +419,13 @@ public class GRL_Driver extends RoboticsAPIApplication
 		        	try{
 			          if(_smartServoMotion == null){
 				        	// Initialize Smart servo the first time
-				        	getLogger().info("Initializing Smart Servo in "
+				        	getLogger().info("Initializing Smart Servo in " 
 				        			+ grl.flatbuffer.EControlMode.name(_currentKUKAiiwaState.armConfiguration().controlMode()));
 				        	switchSmartServoMotion(_currentKUKAiiwaState.armConfiguration().controlMode());
 				        	continue;
 			          }else if(_currentKUKAiiwaState.setArmConfiguration()){ //If change in mode requested
-
-			        	  //TODO: bug, _previousKUKAiiwaState & _currentKUKAiiwaState are same.
+				           
+			        	  //TODO: bug, _previousKUKAiiwaState & _currentKUKAiiwaState are same. 
 			        	 /* getLogger().info("Change controlMode requested: "
 						              +grl.flatbuffer.EControlMode.name(_previousKUKAiiwaState.armConfiguration().controlMode())
 						              +" -> "+grl.flatbuffer.EControlMode.name(_currentKUKAiiwaState.armConfiguration().controlMode()));*/
@@ -434,7 +434,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		        	}
 		        	catch (Exception e)
 		        	{
-		        		getLogger().error(e.getMessage());
+		        		getLogger().error(e.getMessage());	
 		        		getLogger().error("Exception in Starting/Switching SmartServo" );
 		        		continue;
 		        	}
@@ -501,7 +501,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			   } else {
 					getLogger().error("Couldn't issue motion command, smartServo motion was most likely reset. retrying...");
 			   }
-
+			   
 			} else if (_currentKUKAiiwaState.armControlState().stateType() == grl.flatbuffer.ArmState.StopArm) {
 
 				_smartServoRuntime.stopMotion();
@@ -528,7 +528,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				if (currentMotion != null) currentMotion.cancel();
 				if(!cancelTeachMode()) continue;
 				if(!cancelSmartServo()) continue;
-
+				
 				if(message_counter_since_last_mode_change % 500 == 0) getLogger().info("StartArm mode active, connection established!\nHolding Position while waiting for mode change...\n");
 
 				PositionControlMode controlMode = new PositionControlMode();
@@ -540,7 +540,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				System.out.println("Unsupported Mode! stopping");
 				stop = true;
 			}
-
+			
 
             ///////////////////////////////////////////////////////////////////////////
  			/// Sending commands back to the C++ interface here
@@ -590,7 +590,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 			}
 
 			}
-
+			
 			{_previousKUKAiiwaState = _currentKUKAiiwaState;}
 
 		} // end primary while loop
@@ -721,7 +721,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 
 		return roscmname.equals(kukacmname);
 	}
-
+	
 	/**
 	 * Initialize the appropriate control mode based on passed parameters
 	 *
@@ -735,7 +735,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		if(controlMode == grl.flatbuffer.EControlMode.POSITION_CONTROL_MODE){
 			mcm = new PositionControlMode();
 		} else if(controlMode==grl.flatbuffer.EControlMode.CART_IMP_CONTROL_MODE){
-
+			
 			if(defaultParams){
 				// TODO: Get missing default params from processData
 				/// @note setMaxCartesianVelocity STOPS THE ROBOT ABOVE THAT VELOCITY RATHER THAN CAPPING THE VELOCITY
@@ -745,14 +745,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 				cicm.setNullSpaceDamping(0.5);
 				cicm.setNullSpaceStiffness(2);
 				cicm.setMaxControlForce(200, 200, 200, 200, 200, 200, true);
-
+		
 				cicm.parametrize(CartDOF.X).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessX());
 				cicm.parametrize(CartDOF.Y).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessY());
 				cicm.parametrize(CartDOF.Z).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessZ());
 				cicm.parametrize(CartDOF.A).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessA());
 				cicm.parametrize(CartDOF.B).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessB());
 				cicm.parametrize(CartDOF.C).setStiffness(_processDataManager.get_CartesianImpedenceStiffnessC());
-
+				
 				cicm.parametrize(CartDOF.X).setDamping(_processDataManager.get_CartesianImpedenceDampingX());
 				cicm.parametrize(CartDOF.Y).setDamping(_processDataManager.get_CartesianImpedenceDampingY());
 				cicm.parametrize(CartDOF.Z).setDamping(_processDataManager.get_CartesianImpedenceDampingZ());
@@ -762,9 +762,9 @@ public class GRL_Driver extends RoboticsAPIApplication
 				mcm = cicm;
 			}
 			else{
-
+				
 				CartesianImpedanceControlMode cicm = new CartesianImpedanceControlMode();
-
+				
 		    	cicm.setMaxCartesianVelocity(_currentKUKAiiwaState.armConfiguration().setCartImpedance().maxCartesianVelocity().position().x(),
 						        _currentKUKAiiwaState.armConfiguration().setCartImpedance().maxCartesianVelocity().position().y(),
 										_currentKUKAiiwaState.armConfiguration().setCartImpedance().maxCartesianVelocity().position().z(),
@@ -785,14 +785,14 @@ public class GRL_Driver extends RoboticsAPIApplication
 			 							_currentKUKAiiwaState.armConfiguration().setCartImpedance().maxControlForce().rotation().r3(),
 										_currentKUKAiiwaState.armConfiguration().setCartImpedance().maxControlForce().rotation().r2(),
 										_currentKUKAiiwaState.armConfiguration().setCartImpedance().maxControlForce().rotation().r1(), true);
-
+		
 		      cicm.parametrize(CartDOF.X).setStiffness(_currentKUKAiiwaState.armConfiguration().setCartImpedance().stiffness().position().x());
 		      cicm.parametrize(CartDOF.Y).setStiffness(_currentKUKAiiwaState.armConfiguration().setCartImpedance().stiffness().position().y());
 		      cicm.parametrize(CartDOF.Z).setStiffness(_currentKUKAiiwaState.armConfiguration().setCartImpedance().stiffness().position().z());
 		      cicm.parametrize(CartDOF.A).setStiffness(_currentKUKAiiwaState.armConfiguration().setCartImpedance().stiffness().rotation().r3());
 		      cicm.parametrize(CartDOF.B).setStiffness(_currentKUKAiiwaState.armConfiguration().setCartImpedance().stiffness().rotation().r2());
 		      cicm.parametrize(CartDOF.C).setStiffness(_currentKUKAiiwaState.armConfiguration().setCartImpedance().stiffness().rotation().r1());
-
+		
 		      cicm.parametrize(CartDOF.X).setDamping(_currentKUKAiiwaState.armConfiguration().setCartImpedance().damping().position().x());
 		      cicm.parametrize(CartDOF.Y).setDamping(_currentKUKAiiwaState.armConfiguration().setCartImpedance().damping().position().y());
 		      cicm.parametrize(CartDOF.Z).setDamping(_currentKUKAiiwaState.armConfiguration().setCartImpedance().damping().position().z());
@@ -811,12 +811,12 @@ public class GRL_Driver extends RoboticsAPIApplication
 				//cicm.parametrize(CartDOF.X).setStiffness(stiffnessX);
 				//cicm.parametrize(CartDOF.Y).setStiffness(stiffnessY);
 				//cicm.parametrize(CartDOF.Z).setStiffness(stiffnessZ);
-
+	
 				mcm = jicm;
 			}
 			else{
 				JointImpedanceControlMode jicm =  new JointImpedanceControlMode(_lbr.getJointCount());
-
+				
 				if(_lbr.getJointCount() != _currentKUKAiiwaState.armConfiguration().setJointImpedance().stiffnessLength())
 				{
 					getLogger().info("stiffness/damping vector size is not correct. Set default values for now");
@@ -832,7 +832,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 						damping[k] = _currentKUKAiiwaState.armConfiguration().setJointImpedance().damping(k);
 					}
 					jicm.setStiffness(stiffness);
-					jicm.setDamping(damping);
+					jicm.setDamping(damping);	
 				}
 				mcm = jicm;
 			}
@@ -867,7 +867,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 	if(_smartServoMotion!=null){
 		if(isSameControlMode(_smartServoMotion.getMode(), controlMode)) { // We can just change the parameters if the control strategy is the same.
 			if (!(_smartServoMotion.getMode() instanceof PositionControlMode)) { // We are in PositioControlMode and the request was for the same mode, there are no parameters to change.
-				getLogger().info("Changing parameters of Smart Servo in "
+				getLogger().info("Changing parameters of Smart Servo in " 
 	        			+ grl.flatbuffer.EControlMode.name(controlMode));
 				// With the changeControlModeSettings(...) method, it is possible to change the controller parameters with which the
 				// servo motion was started. The control type itself cannot be changed during the servo motion.
@@ -875,7 +875,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 				configureSmartServoLock.unlock();
 				return;
 			}
-		}
+		} 
 	    getLogger().info("switching controlMode requested: "
 	            + _smartServoMotion.getMode().getClass().getSimpleName()
 	            +" -> "+grl.flatbuffer.EControlMode.name(controlMode));
@@ -947,7 +947,7 @@ public class GRL_Driver extends RoboticsAPIApplication
       configureSmartServoLock.unlock();
       return;
     }
-
+    
     configureSmartServoLock.unlock();
   }
 
