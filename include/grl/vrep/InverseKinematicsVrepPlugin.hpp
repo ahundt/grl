@@ -488,7 +488,6 @@ public:
           if( dummy_world_frame )
           {
               // visualize each joint position in world frame
-              std::cout << linkNames_[i] << std::endl;
               sva::PTransform<double>     plinkWorld = simArmConfig.bodyPosW[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkWorld = PTranformToEigenAffine(plinkWorld);
               std::string dummyName(("Dummy0"+ boost::lexical_cast<std::string>(i+1)));
@@ -497,8 +496,6 @@ public:
               setObjectTransform(currentDummy,-1,linkWorld);
               prevDummy=currentDummy;
               // Transformation from parent(i) to i in body coordinate (Xj*Xt).
-              std::cout << linkNames_[i] << std::endl;
-              std::cout << jointNames_[i] << std::endl;
               sva::PTransform<double>     plinkToSon = simArmConfig.parentToSon[simArmMultiBody.bodyIndexByName(linkNames_[i])];
               Eigen::Affine3d linkToSon = PTranformToEigenAffine(plinkToSon);
               if(print) logger_->info("{} RBDyn ParentLinkToSon\n{}",dummyName, linkToSon.matrix());
@@ -530,7 +527,6 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
         auto& simArmMultiBody = rbd_mbs_[simulatedRobotIndex];
         auto& simArmConfig = rbd_mbcs_[simulatedRobotIndex];
         Eigen::VectorXf joint_angles =  Eigen::VectorXf::Zero(7);
-        // std::cout << "\nBefore: " << joint_angles  << std::endl;
         std::string homePath = std::getenv("HOME");
         std::string vrepDataPath = homePath + "/src/V-REP_PRO_EDU_V3_4_0_Linux/data/";  
         std::string data_inPath = vrepDataPath + "data_in";
@@ -556,9 +552,7 @@ void ForwardKinematicsFromCSV(int time_index, bool commanddata=false){
             angle = joint_angles[jointIdx++];
             simSetJointPosition(i,angle);
             vrepJointAngles.push_back(angle);
-            // std::cout << angle << "  ";
         }
-        // std::cout << std::endl;
 
         // Set RBDyn joint angles from vrep joint angles.
         SetRBDynArmFromVrep(jointNames_,jointHandles_,simArmMultiBody,simArmConfig);
