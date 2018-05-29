@@ -35,8 +35,8 @@ if(TARGET KukaFRIClient  AND Boost_FOUND AND Boost_CHRONO_FOUND)
         ${FRI-Client-SDK_Cpp_INCLUDE_DIRS}
         ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include
     )
-    basis_add_library(v_repExtKukaLBRiiwa SHARED 
-                        v_repExtKukaLBRiiwa.cpp     
+    basis_add_library(v_repExtKukaLBRiiwa SHARED
+                        v_repExtKukaLBRiiwa.cpp
                         ../../include/grl/kuka/KukaDriver.hpp
                         ../../include/grl/kuka/KukaFRIalgorithm.hpp
                         ../../include/grl/kuka/KukaFRIdriver.hpp
@@ -45,13 +45,14 @@ if(TARGET KukaFRIClient  AND Boost_FOUND AND Boost_CHRONO_FOUND)
                         ../../include/grl/kuka/KukaJAVAdriver.hpp
                         ../../include/grl/kuka/KukaNanopb.hpp
     )
-    basis_target_link_libraries(v_repExtKukaLBRiiwa 
+    basis_target_link_libraries(v_repExtKukaLBRiiwa
         PUBLIC
-            ${Boost_LIBRARIES}  
-            ${Boost_REGEX_LIBRARY} 
-            ${Boost_CHRONO_LIBRARY} 
-            ${CMAKE_THREAD_LIBS_INIT} 
+            ${Boost_LIBRARIES}
+            ${Boost_REGEX_LIBRARY}
+            ${Boost_CHRONO_LIBRARY}
+            ${CMAKE_THREAD_LIBS_INIT}
             ${Nanopb_LIBRARIES}
+            ${FLATBUFFERS_LIBRARIES}
             v_repLib
             KukaFRIClient
     )

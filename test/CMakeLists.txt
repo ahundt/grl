@@ -78,18 +78,46 @@ endif ()
 # For KUKA IIWA FRI Libraries
 if(TARGET KukaFRIClient OR FRI_Client_SDK_Cpp_FOUND)
 
-    basis_include_directories(${FRI_Client_SDK_Cpp_PROJECT_INCLUDE_DIRS} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include)
+    basis_include_directories(${FRI_Client_SDK_Cpp_PROJECT_INCLUDE_DIRS} ${Boost_REGEX_LIBRARY}
+                              ${FRI_Client_SDK_Cpp_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include
+                              ${FLATBUFFERS_INCLUDE_DIRS} ${FUSIONTRACK_INCLUDE_DIRS})
 
 	basis_add_executable(KukaFRITest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
-	basis_target_link_libraries(KukaFRITest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient)
+	basis_target_link_libraries(KukaFRITest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${FLATBUFFERS_STATIC_LIB} KukaFRIClient )
 
     if(UNIX AND NOT APPLE)
       set(LINUX_ONLY_LIBS ${LIBDL_LIBRARIES})
     endif()
 
     basis_add_test(KukaLBRiiwaVrepPluginTest.cpp)
-	basis_target_link_libraries(KukaLBRiiwaVrepPluginTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-                    v_repLib KukaFRIClient ${LINUX_ONLY_LIBS} )
+    basis_target_link_libraries(KukaLBRiiwaVrepPluginTest
+    ${Boost_LIBRARIES}
+    ${Boost_REGEX_LIBRARY}
+    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+    ${FRI_Client_SDK_Cpp_LIBRARIES}
+    ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
+    ${FLATBUFFERS_STATIC_LIB} v_repLib KukaFRIClient ${LINUX_ONLY_LIBS} )
+
+	basis_add_executable(FlatbuffersExampleWithKukaIiwaTest.cpp)# ${GRL_FLATBUFFERS_OUTPUTS})
+	basis_target_link_libraries(FlatbuffersExampleWithKukaIiwaTest ${Boost_LIBRARIES} ${Boost_REGEX_LIBRARY} ${FRI_Client_SDK_Cpp_LIBRARIES}  ${Nanopb_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} KukaFRIClient ${FLATBUFFERS_STATIC_LIB})
+
+    basis_add_executable(readFlatbufferTest.cpp)
+    basis_target_link_libraries(readFlatbufferTest
+    ${Boost_LIBRARIES}
+    ${Boost_REGEX_LIBRARY}
+    ${FRI_Client_SDK_Cpp_LIBRARIES}
+    ${Nanopb_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${FLATBUFFERS_STATIC_LIB}
+    ${LINUX_ONLY_LIBS}
+    KukaFRIClient
+    mc_rbdyn_urdf
+    SpaceVecAlg #TODO: re-enable when exported targets are correct again
+    sch-core
+    RBDyn
+    Tasks
+    v_repLib)
+
 endif()
 
 

@@ -37,15 +37,21 @@ struct UniversalTimeScaleClock {
   using time_point = std::chrono::time_point<UniversalTimeScaleClock>;
   static constexpr bool is_steady = true;
 
-    static time_point now() noexcept
-    {
+  static time_point now() noexcept
+  {
         using namespace std::chrono;
+        // std::chrono::time_point<std::chrono::system_clock> p1 = std::chrono::system_clock::now();
+        // std::chrono::seconds sec(kUtsEpochOffsetFromUnixEpochInSeconds);
+        // int64 microsecsinceepoch = std::chrono::duration_cast<duration>(p1.time_since_epoch()).count();
+        // int64 microsec = std::chrono::microseconds(sec).count()*10;
+        // std::cout << "microseconds since epoch: " << microsecsinceepoch << '\n';
+        // std::cout << "microseconds since the Epoch which is January 1, 1 at the start of day in UTC: "
+        //           << microsecsinceepoch - microsec << '\n';
         return time_point
-          (
-            duration_cast<duration>(system_clock::now().time_since_epoch()) -
-            seconds(kUtsEpochOffsetFromUnixEpochInSeconds)
-          );
-    }
+        (
+          duration_cast<duration>(system_clock::now().time_since_epoch())
+        );
+  }
 };
 
 // Represents Universal Time Scale durations and timestamps which are 64-bit

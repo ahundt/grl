@@ -9,11 +9,18 @@
 
 #include "grl/vrep/Eigen.hpp"
 #include "grl/vrep/Vrep.hpp"
+#include "grl/time.hpp"
 #include "camodocal/calib/HandEyeCalibration.h"
 
 #include "v_repLib.h"
 
 #include "grl/vector_ostream.hpp"
+// boost::filesystem
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <iostream>
+
 
 namespace grl {
 
@@ -83,7 +90,7 @@ void construct(){
 
 
 void addFrame() {
-   logger_->info( "Adding hand eye calibration frame #", ++frameCount);
+   logger_->info( "Adding hand eye calibration frame {}", ++frameCount);
 
     auto robotTipInRobotBase    = getObjectTransform(robotTip,robotBase);
     auto fiducialInOpticalTrackerBase = getObjectTransform(opticalTrackerDetectedObjectName,opticalTrackerBase);
@@ -94,30 +101,46 @@ void addFrame() {
       isFirstFrame = false;
     }
 
-    auto robotTipInFirstTipBase      = firstRobotTipInRobotBaseInverse * robotTipInRobotBase;        // A_0_Inv * A_i
-    auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;  // B_0_Inv * B_i
+    auto robotTipInFirstTipBase      = firstRobotTipInRobotBaseInverse * robotTipInRobotBase;        // B_0_Inv * B_i
+    auto fiducialInFirstFiducialBase = firstFiducialInOpticalTrackerBaseInverse * fiducialInOpticalTrackerBase;  // A_0_Inv * A_i
 
+    auto rvec1 = eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation());
+    auto tvec1 = robotTipInFirstTipBase.translation();
+    auto rvec2 = eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation());
+    auto tvec2 = fiducialInFirstFiducialBase.translation();
 
-    rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipInFirstTipBase.rotation()        ));
-    tvecsArm.push_back(                                      robotTipInFirstTipBase.translation()     );
+    if (rvec1.norm() != 0 && rvec2.norm() != 0) {
 
-    rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
-    tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
+        rvecsArm.push_back(rvec1);
+        tvecsArm.push_back(tvec1);
+
+        rvecsFiducial.push_back(rvec2);
+        tvecsFiducial.push_back(tvec2);
+    } else {
+      std::cout << "Empty Vector" << std::endl;
+      std::cout << rvec1 << std::endl;
+      std::cout << rvec2 << std::endl;
+    }
 
 
    if(debug){
 
-     logger_->info( "\nrobotTipInRobotBase:\n", poseString(robotTipInRobotBase));
-     logger_->info( "\nfiducialInOpticalTrackerBase:\n", poseString(fiducialInOpticalTrackerBase));
+       std::cout << "rvec1: " << std::endl << rvec1 << std::endl;
+       std::cout << "tvec1: " << std::endl << tvec1 << std::endl;
+       std::cout << "rvec2: " << std::endl << rvec2 << std::endl;
+       std::cout << "tvec2: " << std::endl << tvec2 << std::endl;
 
-     logger_->info( "\nrobotTipInFirstTipBase:\n", poseString(robotTipInFirstTipBase));
-     logger_->info( "\nfiducialInFirstFiducialBase:\n", poseString(fiducialInFirstFiducialBase));
+       logger_->info( "\nrobotTipInRobotBase: \n{}", poseString(robotTipInRobotBase));
+       logger_->info( "\nfiducialInOpticalTrackerBase: \n{}", poseString(fiducialInOpticalTrackerBase));
 
-     // print simulation transfrom from tip to fiducial
-     Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
-     logger_->info( poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
+       logger_->info( "\nrobotTipInFirstTipBase: \n{}", poseString(robotTipInFirstTipBase));
+       logger_->info( "\nfiducialInFirstFiducialBase: \n{}", poseString(fiducialInFirstFiducialBase));
 
-     BOOST_VERIFY(robotTipInFirstTipBase.translation().norm() - fiducialInFirstFiducialBase.translation().norm() < 0.1);
+       // print simulation transfrom from tip to fiducial
+       Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
+       logger_->info( poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
+
+       //BOOST_VERIFY(robotTipInFirstTipBase.translation().norm() - fiducialInFirstFiducialBase.translation().norm() < 0.1);
    }
 }
 
@@ -129,8 +152,8 @@ void addFrame() {
 /// @todo evaluate if applyEstimate should not be called by this
 void estimateHandEyeScrew(){
 
-   logger_->info(  "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial",rvecsFiducial.size(),
-   " tvecsFiducial: ", tvecsFiducial.size(), " rvecsArm: ", rvecsArm.size(), " tvecsArm: ", tvecsArm.size());
+   logger_->info(  "Running Hand Eye Screw Estimate with the following numbers of entries in each category:  rvecsFiducial {} , tvecsFiducial: {} , rvecsArm: {}  , tvecsArm: {}"
+   ,rvecsFiducial.size(), tvecsFiducial.size(), rvecsArm.size(), tvecsArm.size());
 
    BOOST_VERIFY(allHandlesSet);
 
@@ -140,7 +163,8 @@ void estimateHandEyeScrew(){
       tvecsArm,
       rvecsFiducial,
       tvecsFiducial,
-      transformEstimate.matrix()
+      transformEstimate.matrix(),
+      false  //PlanarMotion
   );
 
 
@@ -153,29 +177,60 @@ void estimateHandEyeScrew(){
    if(debug){
      // print simulation transfrom from tip to fiducial
      Eigen::Affine3d RobotTipToFiducial = getObjectTransform(opticalTrackerDetectedObjectName,robotTip);
-     logger_->info(  "\n", poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
+     logger_->info(  "\n{}", poseString(RobotTipToFiducial,"expected RobotTipToFiducial (simulation only): "));
    }
 
-   logger_->info( "\n", poseString(transformEstimate,"estimated RobotTipToFiducial:"));
+   
+
+
+   logger_->info( "\n{}", poseString(transformEstimate,"estimated RobotTipToFiducial:"));
 
    applyEstimate();
 
    // print results
+   
    Eigen::Quaterniond eigenQuat(transformEstimate.rotation());
-   logger_->info( "Hand Eye Screw Estimate quat wxyz\n: ", eigenQuat.w(), " ", eigenQuat.x(), " ", eigenQuat.y(), " ", eigenQuat.z(), " ", " translation xyz: ", transformEstimate.translation().x(), " ", transformEstimate.translation().y(), " ", transformEstimate.translation().z(), " ");
+   logger_->info( "Hand Eye Screw Estimate quat wxyz\n: {} , {} , {} ,  {} \n  translation xyz: {}  {}  {}",
+                  eigenQuat.w(), eigenQuat.x(), eigenQuat.y(),eigenQuat.z(), transformEstimate.translation().x(), transformEstimate.translation().y(), transformEstimate.translation().z());
 
-    logger_->info( "Optical Tracker Base Measured quat wxyz\n: ", detectedObjectQuaternion[0], " ", detectedObjectQuaternion[1], " ", detectedObjectQuaternion[2], " ", detectedObjectQuaternion[3], " ", " translation xyz: ", detectedObjectPosition[0], " ", detectedObjectPosition[1], " ", detectedObjectPosition[2], " ");
+   logger_->info( "Optical Tracker Base Measured quat wxyz\n: {} ,  {} , {} , {} \n translation xyz: {} , {}, {}",
+     detectedObjectQuaternion[0], detectedObjectQuaternion[1], detectedObjectQuaternion[2], detectedObjectQuaternion[3],
+     detectedObjectPosition[0], detectedObjectPosition[1], detectedObjectPosition[2]);
 
+
+     // Write the hand eye calibration results into a file
+   auto myFile = boost::filesystem::current_path() /"HandEyeCalibration_Result.txt";
+   boost::filesystem::ofstream ofs(myFile, std::ios_base::app);
+   // boost::archive::text_oarchive ta(ofs);
+   ofs <<"\n\n=========== " + current_date_and_time_string() + " =======================================\n";
+   ofs << "Hand Eye Screw Estimate quat wxyz:  " << eigenQuat.w() << ", "<< eigenQuat.x() << ", " << eigenQuat.y() << ", " << eigenQuat.z() 
+       << "\nTranslation xyz: " << transformEstimate.translation().x() << ", " << transformEstimate.translation().y() << ", " << transformEstimate.translation().z()
+       << "\n\nestimated RobotTipToFiducial: \n" << poseString(transformEstimate);
+   ofs.close();
+   if ( boost::filesystem::exists( myFile )) {
+    std::cout << "Hand eye calibration result has been writen into " << myFile.string() << std::endl;
+   }
+       
 }
 
 /// @brief  Will apply the stored estimate to the v-rep simulation value
 ///
 /// A default transform is saved when construct() was called
 /// so if no estimate has been found that will be used.
-void applyEstimate(){
+void applyEstimate(std::string sceneName=""){
 
    // set transform between end effector and fiducial
    setObjectTransform(opticalTrackerDetectedObjectName, robotTip, transformEstimate);
+   if(!sceneName.empty()){
+      int ret = simSaveScene(sceneName.c_str());
+      if(ret == -1){
+        logger_->info(  "\n{} fails to be saved...", sceneName);
+      } else {
+        logger_->info(  "\n{} has been saved...", sceneName);
+      }
+      
+   }
+   
 }
 
 Eigen::Affine3d getEstimate(){

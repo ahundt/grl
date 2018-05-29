@@ -42,7 +42,9 @@ if(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 	ADD_DEFINITIONS(-fPIC)
 endif(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 
-
+if(UNIX AND NOT APPLE)
+    set(LINUX_ONLY_LIBS ${LIBDL_LIBRARIES})
+endif()
 # Link the boost.log library
 # @todo consider an alternative to always linking boost log
 ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)

@@ -32,20 +32,21 @@
 
 #TODO: add cisst-saw found flag and make it work correctly for independent grl https://github.com/jhu-cisst/cisst-saw
 if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_FOUND AND Boost_FOUND)
-    #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
     #@see https://github.com/schuhschuh/cmake-basis/issues/442
     basis_include_directories(
-      ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include 
-      ${CISSTNETLIB_INCLUDE_DIRS} 
-      ${CISST_INCLUDE_DIR}  
+      ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include
+      ${CISSTNETLIB_INCLUDE_DIRS}
+      ${CISST_INCLUDE_DIR}
       ${EIGEN3_INCLUDE_DIR}
       ${sawConstraintController_INCLUDE_DIR}
+      ${FLATBUFFERS_INCLUDE_DIRS}  ## remove it after calibration debug
     )
     # ${CISST_SAW_INCLUDE_DIRS}
     basis_add_library(v_repExtGrlCisstInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
-    basis_target_link_libraries(v_repExtGrlCisstInverseKinematics 
-                    ${Boost_LIBRARIES}  
+    basis_target_link_libraries(v_repExtGrlCisstInverseKinematics
+                    ${Boost_LIBRARIES}
                     ${CMAKE_THREAD_LIBS_INIT}
+                    ${Boost_REGEX_LIBRARY}
                     # ${cisstNetlib_LIBRARY_cisstNetlib}
                     # ${cisstNetlib_LIBRARY_cisstNetlib_gcc}
                     # ${cisstNetlib_LIBRARY_cisstNetlib_blas}
@@ -57,6 +58,16 @@ if(cisst_cisstNumerical_FOUND AND CISSTNETLIB_FOUND AND sawConstraintController_
                     #${CISSTNETLIB_LIBRARIES}
                     ${sawConstraintController_LIBRARIES}
                     sawConstraintController
+                    ${Nanopb_LIBRARIES}
+                    ${CMAKE_THREAD_LIBS_INIT}
+                    ${FLATBUFFERS_STATIC_LIB}
+                    ${LINUX_ONLY_LIBS}
+                    KukaFRIClient
+                    mc_rbdyn_urdf
+                    SpaceVecAlg #TODO: re-enable when exported targets are correct again
+                    sch-core
+                    RBDyn
+                    Tasks ## remove it after calibration work
                     v_repLib
                 )
 endif()

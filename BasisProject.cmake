@@ -104,7 +104,7 @@ basis_project (
   # dependencies
   DEPENDS
     FlatBuffers # google flatbuffers https://github.com/google/flatbuffers
-    Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,chrono}
+    Boost{program_options,filesystem,unit_test_framework,system,regex,coroutine,chrono,iostreams}
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
@@ -119,6 +119,7 @@ basis_project (
     sch-core           # Algorithms for convex hulls https://github.com/jrl-umi3218/sch-core used for inverse kinematics
     RBDyn              # Models the dynamics of rigid body system https://github.com/jrl-umi3218/RBDyn used for inverse kinematics
     Tasks              # Real time control of Kinematic Trees https://github.com/jrl-umi3218/Tasks used for inverse kinematics
+    mc_rbdyn_urdf      # This library allows to parse an URDF file and create RBDyn structure from it. https://github.com/jrl-umi3218/mc_rbdyn_urdf
     spdlog             # fast logging library https://github.com/gabime/spdlog
     LibDL              # Linux Dynamic Loader library, linux only https://refspecs.linuxfoundation.org/LSB_2.0.1/LSB-Core/LSB-Core/libdl.html
   TEST_DEPENDS

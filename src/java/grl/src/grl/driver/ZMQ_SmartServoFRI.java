@@ -25,6 +25,7 @@ import grl.flatbuffer.JointState;
 public class ZMQ_SmartServoFRI extends RoboticsAPIApplication
 {
     private Controller _lbrController;
+    // Robot instance in the application
     private LBR _lbr;
     private String _hostName;
     private String _controllingLaptopIPAddress;
@@ -44,7 +45,7 @@ public class ZMQ_SmartServoFRI extends RoboticsAPIApplication
         // *** change next line to the KUKA address and Port Number           ***
         // **********************************************************************
         _controllingLaptopIPAddress = "tcp://172.31.1.100:30010";
-        
+
 
         // FIXME: Set proper Weights or use the plugin feature
         double[] translationOfTool =
@@ -61,22 +62,27 @@ public class ZMQ_SmartServoFRI extends RoboticsAPIApplication
     public void run()
     {
         // Configure and start FRI session
+        /**
+        * The FRI connection to an external system is configured via the static method
+        * createRemoteConfiguration(robot ,IP address). The method belongs to the class FRIConfiguration.
+        **/
         FRIConfiguration friConfiguration = FRIConfiguration.createRemoteConfiguration(_lbr, _hostName);
+        //  Define the send rate (type: int, unit ms)
         friConfiguration.setSendPeriodMilliSec(4);
         FRISession friSession = new FRISession(friConfiguration);
-        
+
         // TODO: remove default start pose
         // move do default start pose
         _toolAttachedToLBR.move(ptp(Math.toRadians(10), Math.toRadians(10), Math.toRadians(10), Math.toRadians(-90), Math.toRadians(10), Math.toRadians(10),Math.toRadians(10)));
 
-        
+
        // Prepare ZeroMQ context and dealer
         ZMQ.Context context = ZMQ.context(1);
         ZMQ.Socket subscriber = context.socket(ZMQ.DEALER);
         subscriber.connect(_controllingLaptopIPAddress);
         subscriber.setRcvHWM(1000000);
-     
-       
+
+
 
         JointPosition initialPosition = new JointPosition(
                 _lbr.getCurrentJointPosition());
@@ -89,27 +95,27 @@ public class ZMQ_SmartServoFRI extends RoboticsAPIApplication
         aSmartServoMotion.setMinimumTrajectoryExecutionTime(20e-3);
 
         _toolAttachedToLBR.getDefaultMotionFrame().moveAsync(aSmartServoMotion);
-        
+
         // Fetch the Runtime of the Motion part
         theSmartServoRuntime = aSmartServoMotion.getRuntime();
-        
+
      // create an JointPosition Instance, to play with
         JointPosition destination = new JointPosition(
                 _lbr.getJointCount());
-        
-        
+
+
         byte [] data = subscriber.recv();
         ByteBuffer bb = ByteBuffer.wrap(data);
 
         JointState jointState = JointState.getRootAsJointState(bb);
-        
+
 
         // move to start pose
         //_lbr.move(ptp(jointState.position(0), jointState.position(1), jointState.position(2), jointState.position(3), jointState.position(4), jointState.position(5), jointState.position(6)));
 		//.setJointAccelerationRel(acceleration));
 
- 
-        
+
+
         // Receive Flat Buffer and Move to Position
         // TODO: make into while loop and add exception to exit loop
         // TODO: add a message that we send to the driver with data log strings
@@ -120,7 +126,7 @@ public class ZMQ_SmartServoFRI extends RoboticsAPIApplication
             bb = ByteBuffer.wrap(data);
 
             jointState = JointState.getRootAsJointState(bb);
-            
+
             for (int k = 0; k < destination.getAxisCount(); ++k)
             {
             	destination.set(k, jointState.position(k));
@@ -134,7 +140,7 @@ public class ZMQ_SmartServoFRI extends RoboticsAPIApplication
             //_lbr.moveAsync(ptp(jointState.position(0), jointState.position(1), jointState.position(2), jointState.position(3), jointState.position(4), jointState.position(5), jointState.position(6)));
             		//.setJointAccelerationRel(acceleration));
         }
-        
+
         // done
         subscriber.close();
         context.term();
@@ -144,7 +150,7 @@ public class ZMQ_SmartServoFRI extends RoboticsAPIApplication
 
     /**
      * main.
-     * 
+     *
      * @param args
      *            args
      */

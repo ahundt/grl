@@ -228,7 +228,7 @@ public class GRL_Driver extends RoboticsAPIApplication
 		_teachModeThread.start();
 
 
-        int millisecondsPerFRITimeStep = 4;
+        int millisecondsPerFRITimeStep = _processDataManager.get_FRI_KONI_SendPeriodMilliseconds();
 		_FRIModeRunnable = new FRIMode(
 				_lbr,
 				_processDataManager.get_FRI_KONI_LaptopIPAddress(), millisecondsPerFRITimeStep);
@@ -869,6 +869,8 @@ public class GRL_Driver extends RoboticsAPIApplication
 			if (!(_smartServoMotion.getMode() instanceof PositionControlMode)) { // We are in PositioControlMode and the request was for the same mode, there are no parameters to change.
 				getLogger().info("Changing parameters of Smart Servo in " 
 	        			+ grl.flatbuffer.EControlMode.name(controlMode));
+				// With the changeControlModeSettings(...) method, it is possible to change the controller parameters with which the
+				// servo motion was started. The control type itself cannot be changed during the servo motion.
 				_smartServoMotion.getRuntime().changeControlModeSettings(getMotionControlMode(controlMode, defaultParams));
 				configureSmartServoLock.unlock();
 				return;

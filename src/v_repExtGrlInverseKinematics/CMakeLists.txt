@@ -40,26 +40,34 @@ if( SpaceVecAlg_FOUND AND sch-core_FOUND AND RBDyn_FOUND AND Tasks_FOUND AND Boo
 message(STATUS v_repExtGrlInverseKinematics BUILDING!!!)
     # TODO(ahundt) link_directories is a hack, remove me!
     link_directories(/usr/local/lib)
-    #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc. 
+    #TODO: #WARNING: INSTALLER WILL BE BROKEN UNLESS THIS IS CHANGED TO USE basis_target_link_libraries, etc.
     #@see https://github.com/schuhschuh/cmake-basis/issues/442
     basis_include_directories(
-      ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include 
+      ${PROJECT_INCLUDE_DIR}/thirdparty/vrep/include
       ${EIGEN3_INCLUDE_DIR}
       ${SpaceVecAlg_INCLUDE_DIR}
+      ${FLATBUFFERS_INCLUDE_DIRS}
       # TODO(ahundt): include directories from Tasks & its deps
       #$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/mylib>
       #$<INSTALL_INTERFACE:include/mylib>  # <prefix>/include/mylib
     )
     # ${CISST_SAW_INCLUDE_DIRS}
     basis_add_library(v_repExtGrlInverseKinematics SHARED v_repExtGrlInverseKinematics.cpp )
-    basis_target_link_libraries(v_repExtGrlInverseKinematics 
-                    ${Boost_LIBRARIES}  
-                    ${CMAKE_THREAD_LIBS_INIT}
-                    SpaceVecAlg #TODO: re-enable when exported targets are correct again
-                    sch-core
-                    RBDyn
-                    Tasks
-                    v_repLib
+    basis_target_link_libraries(v_repExtGrlInverseKinematics
+    ${Boost_LIBRARIES}
+    ${Boost_REGEX_LIBRARY}
+    ${FRI_Client_SDK_Cpp_LIBRARIES}
+    ${Nanopb_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${FLATBUFFERS_STATIC_LIB}
+    ${LINUX_ONLY_LIBS}
+    KukaFRIClient
+    mc_rbdyn_urdf
+    SpaceVecAlg #TODO: re-enable when exported targets are correct again
+    sch-core
+    RBDyn
+    Tasks
+    v_repLib
                 )
 endif()
 

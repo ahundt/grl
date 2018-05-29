@@ -8,12 +8,21 @@
 #include "camodocal/calib/HandEyeCalibration.h"
 #include "camodocal/EigenUtils.h"
 
+// boost::filesystem
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+
+
 BOOST_AUTO_TEST_SUITE(HandEyeCalibration_test)
 
 BOOST_AUTO_TEST_CASE(FullMotion)
 {
-    camodocal::HandEyeCalibration::setVerbose(false);
 
+    std::string currentPath = boost::filesystem::current_path().string();
+    std::cout << "${workspaceFolder}: " << currentPath << std::endl;
+    camodocal::HandEyeCalibration::setVerbose(false);
+    
     Eigen::Matrix4d H_12_expected = Eigen::Matrix4d::Identity();
     H_12_expected.block<3,3>(0,0) = Eigen::AngleAxisd(0.4, Eigen::Vector3d(0.1, 0.2, 0.3).normalized()).toRotationMatrix();
     H_12_expected.block<3,1>(0,3) << 0.5, 0.6, 0.7;

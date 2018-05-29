@@ -41,9 +41,9 @@
 
 
 if(ROS_FOUND AND TARGET KukaFRIClient AND Boost_FOUND AND Boost_CHRONO_FOUND)
-    
+
   basis_include_directories(${FRI-Client-SDK_Cpp_PROJECT_INCLUDE_DIRS} ${FRI-Client-SDK_Cpp_INCLUDE_DIRS} ${ROS_INCLUDE_DIR})
-  basis_add_executable(grl_kuka_ros_driver grl_kuka_ros_driver.cpp)
+  basis_add_executable(grl_kuka_ros_driver grl_kuka_ros_driver.cpp )
   basis_add_dependencies(grl_kuka_ros_driver grlflatbuffers ${FRI-Client-SDK_Cpp_LIBRARIES})
   basis_target_link_libraries(grl_kuka_ros_driver
     ${Boost_LIBRARIES}
@@ -52,6 +52,7 @@ if(ROS_FOUND AND TARGET KukaFRIClient AND Boost_FOUND AND Boost_CHRONO_FOUND)
     ${CMAKE_THREAD_LIBS_INIT}
     ${Nanopb_LIBRARIES}
     ${ROS_LIBRARIES}
+    ${FLATBUFFERS_STATIC_LIB}
     KukaFRIClient
     )
   target_compile_definitions(grl_kuka_ros_driver PUBLIC $<TARGET_PROPERTY:KukaFRIClient,INTERFACE_COMPILE_DEFINITIONS>)

@@ -9,11 +9,17 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
 #include <boost/exception/all.hpp>
+#include <boost/asio.hpp>
 
 
 #include "grl/flatbuffer/KUKAiiwa_generated.h"
 #include "grl/tags.hpp"
 #include "grl/exception.hpp"
+// used for time synchronization
+#include "grl/TimeEvent.hpp"
+
+#include <chrono>
+#include <ctime>
 
 namespace KUKA {
 namespace LBRState {
@@ -39,20 +45,32 @@ namespace arm {
 /// do not depend on this struct directly.
 /// @todo commandedPosition and commandedPosition_goal are used a bit
 /// ambiguously, figure out the difference and clean it up.
+/// @TODO(ahundt) add support for a vector of Transformation data @see FRIMessages.pb.h,
+/// but store as quaternon + vector, not rotation matrix
 struct KukaState {
-  typedef boost::container::static_vector<double, KUKA::LBRState::NUM_DOF>
-      joint_state;
+  typedef boost::container::static_vector<double, KUKA::LBRState::NUM_DOF> joint_state;
+  // cartesian state entries consist of a vector x,y,z and a quaternion [x, y, z, w]
   typedef boost::container::static_vector<double, 7> cartesian_state;
-  typedef std::chrono::time_point<std::chrono::high_resolution_clock>
-      time_point_type;
+  /// Class std::chrono::high_resolution_clock represents the clock with the smallest tick period provided by the implementation.
+  typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_type;
 
+  /// measured position, identified by revolute_joint_angle_open_chain_state_tag
+  /// @see grl::revolute_joint_angle_open_chain_state_tag in grl/tags.hpp, which identifies this data
   joint_state position;
+  /// measured torque, identified by revolute_joint_torque_open_chain_state_tag
+  /// @see grl::revolute_joint_torque_open_chain_state_tag in grl/tags.hpp, which identifies this data
   joint_state torque;
+  /// torque applied to the robot from an outside source,
+  /// @see grl::revolute_joint_torque_open_chain_state_tag in grl/tags.hpp, which identifies this data
   joint_state externalTorque;
+  /// measured external force, only available in sunrise OS version 1.9
   cartesian_state externalForce;
+
+  /// commanded joint angles
+  /// @see grl::revolute_joint_angle_open_chain_command_tag in grl/tags.hpp, which identifies this data
   joint_state commandedPosition;
+  /// cartesian_wrench_command_tag
   cartesian_state commandedCartesianWrenchFeedForward;
-  cartesian_state wrenchJava;
   joint_state commandedTorque;
 
   joint_state ipoJointPosition;
@@ -64,16 +82,10 @@ struct KukaState {
   //  which needed to be reimplemented due to licensing restrictions
   //  in the corresponding C++ code
   flatbuffer::ESessionState sessionState; // KUKA::FRI::ESessionState
-  flatbuffer::EConnectionQuality
-      connectionQuality;                    // KUKA::FRI::EConnectionQuality
+  flatbuffer::EConnectionQuality connectionQuality;  // KUKA::FRI::EConnectionQuality
   flatbuffer::ESafetyState safetyState;     // KUKA::FRI::ESafetyState
   flatbuffer::EOperationMode operationMode; // KUKA::FRI::EOperationMode
   flatbuffer::EDriveState driveState;       // KUKA::FRI::EDriveState
-
-  // The point in time associated with the current measured
-  // state of the arm (position, torque, etc.). When commanding
-  // the arm use commanded_goal_timestamp.
-  time_point_type timestamp;
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   // members below here define the driver state and are not part of the FRI arm
@@ -98,6 +110,16 @@ struct KukaState {
   /// velocity limits the arm stops immediately with an error.
   joint_state velocity_limits;
 
+  /// Time event records the hardware time,
+  /// the local computer time before receiving data
+  /// and the local computer time after receiving data
+  /// This makes it possible to more accurately synchronize
+  /// time between multiple hardware devices.
+
+  // The point in time associated with the current measured
+  // state of the arm (position, torque, etc.). When commanding
+  // the arm use commanded_goal_timestamp.
+  grl::TimeEvent time_event_stamp;
 
   void clear() {
     position.clear();
@@ -120,8 +142,10 @@ struct KukaState {
   }
 };
 
+/// constexpr objects are const and are initiallized with values known during compilation
 constexpr auto KUKA_LBR_IIWA_14_R820 = "KUKA_LBR_IIWA_14_R820";
-constexpr auto KUKA_LBR_IIWA_7_R800 = "KUKA_LBR_IIWA_7_R800";
+/// constexpr auto KUKA_LBR_IIWA_7_R8, identified by00 = "KUKA_LBR_IIWA_7_R800";
+constexpr auto KUKA_LBR_IIWA_7_R8 = "KUKA_LBR_IIWA_7_R800";
 
 /// @brief copy vector of joint velocity limits in radians/s
 ///
@@ -153,7 +177,8 @@ copy(std::string model, OutputIterator it,
     maxVel.push_back(2.356194490192);
 
     return boost::copy(maxVel, it);
-  } else if (boost::iequals(model, KUKA_LBR_IIWA_7_R800)) {
+    /// KUKA_LBR_IIWA_7_R800 to KUKA_LBR_IIWA_7_R820
+  } else if (boost::iequals(model, "KUKA_LBR_IIWA_7_R800")) {
 
     /// @RK: updated the right joint velocity information based
     //  on the 800 model from the KUKA manual
@@ -203,7 +228,7 @@ public:
   };
 
   enum ThreadingRunMode { run_manually = 0, run_automatically = 1 };
-
+  /// a fixed-size collection of heterogeneous values.
   typedef std::tuple<std::string, std::string, std::string, std::string,
                      std::string, ThreadingRunMode>
       Params;
@@ -225,9 +250,9 @@ public:
     std::string remotehost(std::get<remotehost>(params));
     std::string rp(std::get<remoteport>(params));
     short remoteport = boost::lexical_cast<short>(rp);
-    std::cout << "using: "
-              << " " << localhost << " " << localport << " " << remotehost
-              << " " << remoteport << "\n";
+    // std::cout << "using: "
+    //           << " " << localhost << " " << localport << " " << remotehost
+    //           << " " << remoteport << "\n";
 
     boost::asio::ip::udp::socket s(
         io_service_,

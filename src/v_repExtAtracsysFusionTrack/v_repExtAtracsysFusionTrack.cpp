@@ -48,6 +48,11 @@ std::shared_ptr<grl::FusionTrackLogAndTrack> fusionTrackPG;
 std::shared_ptr<spdlog::logger> loggerPG;
 /// Recording will begin when the simulation starts running, and log files will be saved every time it stops running.
 bool recordWhileSimulationIsRunningG = false;
+bool shouldPrintConnectionSuccess = true;
+
+const std::size_t MegaByte = 1024*1024;
+// If we write too large a flatbuffer
+std::size_t single_buffer_limit_bytes = 20*MegaByte;
 
 
 void removeGeometryID(std::string geometryID_lua_param, grl::FusionTrackLogAndTrack::Params &params)
@@ -186,6 +191,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_OBJECT(SLuaCallBack *p)
             std::string(" GeometryID: ") + inData->at(3).stringData[0];			 // GeometryID
             loggerPG->info(output);
         // convert the tuple of strings to a tuple of ints
+        // convert vrep string names to vrep handle integer ids
         auto newObjectToTrackIDs = grl::VrepStringToLogAndTrackMotionConfigParams(newObjectToTrack);
         fusionTrackParamsG.MotionConfigParamsVector.push_back(newObjectToTrackIDs);
 
@@ -283,6 +289,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_STOP(SLuaCallBack *p)
 {
     loggerPG->info("Ending Atracsys Fusion Track Plugin connection to Optical Tracker\n");
     fusionTrackPG.reset();
+    shouldPrintConnectionSuccess = true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -293,6 +300,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RESET(SLuaCallBack *p)
 {
     fusionTrackPG.reset();
     LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START(p);
+    shouldPrintConnectionSuccess = true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -315,7 +323,10 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_IS_ACTIVE(SLuaCallBack *p)
 /////////////////////////////////////////////////////////////////////////////////////////
 ///  LUA function to actually start recording the fusiontrack frame data in memory.
 /////////////////////////////////////////////////////////////////////////////////////////
-
+const int inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING[] = {
+    1,
+    sim_lua_arg_float,0  // Single buffer limit
+};
 // simExtAtracsysFusionTrackStartRecording
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING(SLuaCallBack *p)
 {
@@ -323,10 +334,12 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING(SLuaCallBack *p)
     bool success = false;
     if (fusionTrackPG)
     {
-        std::string log_message("Starting the recording of fusiontrack frame data in memory.\n");
+        std::string log_message("Starting in-memory recording of fusiontrack frame data.\n");
+        std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         simAddStatusbarMessage(log_message.c_str());
         loggerPG->info(log_message);
-        success = fusionTrackPG->start_recording();
+        single_buffer_limit_bytes = inData->at(0).floatData[0];
+        success = fusionTrackPG->start_recording(single_buffer_limit_bytes);
     }
     D.pushOutData(CLuaFunctionDataItem(success));
     D.writeDataToLua(p);
@@ -341,7 +354,7 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_STOP_RECORDING(SLuaCallBack *p)
     bool success = false;
     if (fusionTrackPG)
     {
-        std::string log_message("Stopping the recording of fusiontrack frame data in memory.\n");
+        std::string log_message("Stoping in-memory recording of fusiontrack frame data.\n");
         simAddStatusbarMessage(log_message.c_str());
         loggerPG->info(log_message);
         success = fusionTrackPG->stop_recording();
@@ -409,13 +422,16 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING(SLuaCallBack *p)
 /////////////////////////////////////////////////////////////////////////////
 
 #define LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_COMMAND "simExtAtracsysFusionTrackRecordWhileSimulationIsRunning"
-
+// 2GB is the hard limit for flatbuffer binary file, so when it hits this hard limit, it should write the data from memory to disk.
+// Here to make it convenient to analysis the data, you can set it any capacity based on your purpose.
+// When it reaches the capacity, new file will be created.
 const int inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING[] = {
-    1,
-    sim_lua_arg_bool, 1 // string file name
+    2,
+    sim_lua_arg_bool, 1, // string file name
+    sim_lua_arg_float,0  // Single buffer limit
 };
 
-std::string LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_CALL_TIP("number result=simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(bool recording)");
+std::string LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING_CALL_TIP("number result=simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(bool recording, float single_buffer_limit_bytes)");
 
 void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCallBack *p)
 {
@@ -429,10 +445,15 @@ void LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_RECORD_WHILE_SIMULATION_IS_RUNNING(SLuaCa
     {
         std::vector<CLuaFunctionDataItem> *inData = D.getInDataPtr();
         recordWhileSimulationIsRunningG = inData->at(0).boolData[0];
-
-        std::string log_message = std::string("simExtAtracsysFusionTrackRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
-        simAddStatusbarMessage(log_message.c_str());
-        loggerPG->info(log_message);
+        single_buffer_limit_bytes = inData->at(1).floatData[0];
+        // std::cout << "Start recording while simulation is running for Tracker..." << recordWhileSimulationIsRunningG << std::endl;
+        if (fusionTrackPG && recordWhileSimulationIsRunningG)
+        {
+            std::string log_message = std::string("simExtAtracsysFusionTrackRecordWhileSimulationIsRunning: ") + boost::lexical_cast<std::string>(recordWhileSimulationIsRunningG);
+            simAddStatusbarMessage(log_message.c_str());
+            loggerPG->info(log_message);
+            success = fusionTrackPG->start_recording(single_buffer_limit_bytes);
+        }
 
         D.pushOutData(CLuaFunctionDataItem(success));
         D.writeDataToLua(p);
@@ -541,10 +562,14 @@ VREP_DLLEXPORT unsigned char v_repStart(void *reservedPointer, int reservedInt)
     simRegisterCustomLuaFunction("simExtAtracsysFusionTrackClearObjects", "number result=simExtAtracsysFusionTrackClearObjects()", inArgs1, LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_CLEAR_OBJECTS);
 
     /// Register functions to control the recording procedure of the fusiontrack frame data in memory
-    simRegisterCustomLuaFunction("simExtAtracsysFusionTrackStartRecording", "number result=simExtAtracsysFusionTrackStartRecording()", inArgs1, LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING);
     simRegisterCustomLuaFunction("simExtAtracsysFusionTrackStopRecording", "number result=simExtAtracsysFusionTrackStopRecording()", inArgs1, LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_STOP_RECORDING);
     simRegisterCustomLuaFunction("simExtAtracsysFusionTrackClearRecording", "number result=simExtAtracsysFusionTrackClearRecording()", inArgs1, LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_CLEAR_RECORDING);
-
+    
+    CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING, inArgs);
+    simRegisterCustomLuaFunction("simExtAtracsysFusionTrackStartRecording", 
+                                 "number result=simExtAtracsysFusionTrackStartRecording()", 
+                                 &inArgs[0],
+                                 LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_START_RECORDING);
     CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING, inArgs);
     simRegisterCustomLuaFunction(LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING_COMMAND,
                                  LUA_SIM_EXT_ATRACSYS_FUSION_TRACK_SAVE_RECORDING_CALL_TIP.c_str(),
@@ -660,6 +685,15 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
                                            frameInWhichToMoveObject,
                                            pose);
                     }
+
+                    // Let the user know when the connection starts successfully and sees a marker :-)
+                    if(shouldPrintConnectionSuccess && transforms.size() > 0)
+                    {
+                        std::string msg("v_repExtAtracsysFusionTrack plugin connected successfully and detected " + std::to_string(transforms.size()) +" markers!");
+                        simAddStatusbarMessage(msg.c_str());
+                        loggerPG->info(msg);
+                        shouldPrintConnectionSuccess = false;
+                    }
             }
             else if(fusionTrackPG && !fusionTrackPG->is_active())
             {
@@ -681,7 +715,7 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
     }
 
     if (message == sim_message_eventcallback_simulationabouttostart)
-    { // Simulation is about to start
+    { // Simulation is about to start.  CLick the start button in VREP
 
         /////////////////////////
         // PUT OBJECT STARTUP CODE HERE
@@ -704,10 +738,10 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         //        }
 
         if(fusionTrackPG && recordWhileSimulationIsRunningG) {
-            fusionTrackPG->start_recording();
+            fusionTrackPG->start_recording(single_buffer_limit_bytes);
         }
     }
-
+    // simulation has ended
     if (message == sim_message_eventcallback_simulationended)
     { // Simulation just ended
 
@@ -715,8 +749,15 @@ VREP_DLLEXPORT void *v_repMessage(int message, int *auxiliaryData, void *customD
         // SIMULATION STOPS RUNNING HERE
         // close out as necessary
         ////////////////////
+        loggerPG->error("Ending Fusion Tracker plugin connection to Kuka iiwa\n" );
+        loggerPG->info(" Atracsys recordWhileSimulationIsRunningG: {}", recordWhileSimulationIsRunningG);
+        // loggerPG->info("fusionTrackPG->is_recording(): {}",fusionTrackPG->is_recording());
+
         if(fusionTrackPG && recordWhileSimulationIsRunningG && fusionTrackPG->is_recording()) {
-            fusionTrackPG->save_recording();
+            bool success = fusionTrackPG->save_recording();
+            if(success) {
+                loggerPG->info("Vrep quits successfully in FT..." );
+            }
             fusionTrackPG->stop_recording();
         }
     }

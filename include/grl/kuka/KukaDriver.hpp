@@ -29,8 +29,6 @@
 
 
 namespace grl { namespace robot { namespace arm {
-
-
     ///
     ///
     /// @brief Kuka LBR iiwa Primary Multi Mode Driver, supports communication over FRI and JAVA interfaces
@@ -71,7 +69,6 @@ namespace grl { namespace robot { namespace arm {
         std::string
           > Params;
 
-
       static const Params defaultParams(){
         return std::make_tuple(
             "Robotiiwa"               , // RobotName,
@@ -88,81 +85,72 @@ namespace grl { namespace robot { namespace arm {
             );
       }
 
+        KukaDriver(Params params = defaultParams())
+          : params_(params), debug(false)
+        {}
 
-      KukaDriver(Params params = defaultParams())
-        : params_(params), debug(false)
-      {}
+        void construct(){ construct(params_);}
 
-      void construct(){ construct(params_);}
-
-      bool destruct(){ return JAVAdriverP_->destruct(); }
+        bool destruct(){ return JAVAdriverP_->destruct(); }
 
 
-      /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
-      /// @warning getting the ik group is optional, so it does not throw an exception
-      void construct(Params params ) {
+        /// @todo create a function that calls simGetObjectHandle and throws an exception when it fails
+        /// @warning getting the ik group is optional, so it does not throw an exception
+        void construct(Params params ) {
+            params_ = params;
+            // keep driver threads from exiting immediately after creation, because they have work to do!
+            //device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
 
-        params_ = params;
-        // keep driver threads from exiting immediately after creation, because they have work to do!
-        //device_driver_workP_.reset(new boost::asio::io_service::work(device_driver_io_service));
+            /// @todo figure out how to re-enable when .so isn't loaded
+            if(    boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI"))
+                || boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
+            {
+                FRIdriverP_.reset(
+                    new grl::robot::arm::KukaFRIdriver<LinearInterpolation>(
+                        //device_driver_io_service,
+                        std::make_tuple(
+                            std::string(std::get<RobotModel                  >        (params)),
+                            std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
+                            std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
+                            std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
+                            std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
+                            grl::robot::arm::KukaFRIClientDataDriver<LinearInterpolation>::run_automatically
+                            )
+                        )
+                    );
+                    FRIdriverP_->construct();
+            }
 
-        /// @todo figure out how to re-enable when .so isn't loaded
-        if(    boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI"))
-            || boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
-        {
-          FRIdriverP_.reset(
-              new grl::robot::arm::KukaFRIdriver<LinearInterpolation>(
-                  //device_driver_io_service,
-                  std::make_tuple(
-                      std::string(std::get<RobotModel                  >        (params)),
-                      std::string(std::get<LocalHostKukaKoniUDPAddress >        (params)),
-                      std::string(std::get<LocalHostKukaKoniUDPPort    >        (params)),
-                      std::string(std::get<RemoteHostKukaKoniUDPAddress>        (params)),
-                      std::string(std::get<RemoteHostKukaKoniUDPPort   >        (params)),
-                      grl::robot::arm::KukaFRIClientDataDriver<LinearInterpolation>::run_automatically
-                      )
-                  )
+            /// @todo implement reading configuration in both FRI and JAVA mode from JAVA interface
+            if(    boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA"))
+                || boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+            {
+                try {
+                    JAVAdriverP_ = boost::make_shared<KukaJAVAdriver>(params_);
+                    JAVAdriverP_->construct();
 
-              );
-              FRIdriverP_->construct();
+                    // start up the driver thread
+                    /// @todo perhaps allow user to control this?
+                    //driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
+                } catch( boost::exception &e) {
+                    e << errmsg_info("KukaDriver: Unable to connect to ZeroMQ Socket from " +
+                                   std::get<LocalUDPAddress>             (params_) + " to " +
+                                   std::get<RemoteUDPAddress>            (params_));
+                    throw;
+                }
+            }
         }
 
-        /// @todo implement reading configuration in both FRI and JAVA mode from JAVA interface
-        if(    boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA"))
-            || boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
-        {
-        try {
-          JAVAdriverP_ = boost::make_shared<KukaJAVAdriver>(params_);
-          JAVAdriverP_->construct();
-
-          // start up the driver thread
-          /// @todo perhaps allow user to control this?
-          //driver_threadP.reset(new std::thread([&]{ device_driver_io_service.run(); }));
-        } catch( boost::exception &e) {
-          e << errmsg_info("KukaDriver: Unable to connect to ZeroMQ Socket from " +
-                           std::get<LocalUDPAddress>             (params_) + " to " +
-                           std::get<RemoteUDPAddress>            (params_));
-          throw;
+        const Params & getParams(){
+            return params_;
         }
 
-        }
-      }
-
-
-
-
-
-
-      const Params & getParams(){
-        return params_;
-      }
-
-      ~KukaDriver(){
-        device_driver_workP_.reset();
+        ~KukaDriver(){
+            device_driver_workP_.reset();
 
         if(driver_threadP){
-          device_driver_io_service.stop();
-          driver_threadP->join();
+            device_driver_io_service.stop();
+            driver_threadP->join();
         }
       }
 
@@ -175,74 +163,109 @@ namespace grl { namespace robot { namespace arm {
         // @todo CHECK FOR REAL DATA BEFORE SENDING COMMANDS
         //if(!m_haveReceivedRealDataCount) return;
         bool haveNewData = false;
-
         /// @todo make this handled by template driver implementations/extensions
 
         if(JAVAdriverP_.get() != nullptr)
         {
-          if (debug) {
-            std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
-          }
+            if (debug) {
+                std::cout << "commandedpos:" << armState_.commandedPosition << "\n";
+            }
 
 
-          /////////////////////////////////////////
-          // Do some configuration
-          if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
-          {
-            // configure to send commands over FRI interface
-            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,command_tag());
-          }
+            /////////////////////////////////////////
+            // Do some configuration
+            if(boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+            {
+                // configure to send commands over FRI interface
+                JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,command_tag());
+            }
 
-          if(boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
-          {
-            // configure to send commands over FRI interface
-            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,state_tag());
-          }
+            if(boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
+            {
+                // configure to send commands over FRI interface
+                JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::FRI,state_tag());
+            }
 
 
-          /////////////////////////////////////////
-          // set new destination
+            /////////////////////////////////////////
+            // set new destination
 
-          if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
-          {
-            JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
+            if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("JAVA")))
+            {
+                JAVAdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
 
-            // configure to send commands over JAVA interface
-            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,command_tag());
+                // configure to send commands over JAVA interface
+                JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,command_tag());
 
-          }
+            }
 
-          // sync JAVA driver with the robot, note client sends to server asynchronously!
-          haveNewData = JAVAdriverP_->run_one();
+            // sync JAVA driver with the robot, note client sends to server asynchronously!
+            haveNewData = JAVAdriverP_->run_one();
 
-          if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("JAVA")))
-          {
-            JAVAdriverP_->get(armState_);
-            JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,state_tag());
+            if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("JAVA")))
+            {
+                JAVAdriverP_->get(armState_);
+                JAVAdriverP_->set(flatbuffer::KUKAiiwaInterface::SmartServo,state_tag());
 
-          }
+            }
         }
 
         if(FRIdriverP_.get() != nullptr)
         {
-          if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
-          {
-            FRIdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
-          }
+            if( boost::iequals(std::get<KukaCommandMode>(params_),std::string("FRI")))
+            {
+                FRIdriverP_->set(armState_.commandedPosition,revolute_joint_angle_open_chain_command_tag());
+            }
 
-          haveNewData = FRIdriverP_->run_one();
+            haveNewData = FRIdriverP_->run_one();
 
-          if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
-          {
-            FRIdriverP_->get(armState_);
-            JAVAdriverP_->getWrench(armState_);
-          }
+            if( boost::iequals(std::get<KukaMonitorMode>(params_),std::string("FRI")))
+            {
+                FRIdriverP_->get(armState_);
+                //JAVAdriverP_->getWrench(armState_);
+            }
         }
-
         return haveNewData;
       }
 
+    /// start recording the kuka state data in memory
+    /// return true on success, false on failure
+    bool start_recording(int single_buffer_limit_bytes)
+    {
+        if(FRIdriverP_.get() != nullptr) {
+            return FRIdriverP_->start_recording(single_buffer_limit_bytes);
+        }
+        return false;
+    }
+    /// stop recording the kuka state data in memory
+    /// return true on success, false on failure
+    bool stop_recording()
+    {
+        if(FRIdriverP_.get() != nullptr) {
+            return FRIdriverP_->stop_recording();
+        }
+        return false;
 
+    }
+    bool save_recording(std::string filename = std::string()) {
+        if(FRIdriverP_.get() != nullptr) {
+            return FRIdriverP_->save_recording(filename);
+        }
+        return false;
+    }
+    void clear_recording()
+    {
+        if(FRIdriverP_.get() != nullptr) {
+            FRIdriverP_->clear_recording();
+        }
+    }
+    bool is_recording()
+    {   if(FRIdriverP_.get() != nullptr) {
+            // std::cout<< "In KukaDriver is_recording(): " << FRIdriverP_->is_recording() <<std::endl;
+            return FRIdriverP_->is_recording();
+        }
+        return false;
+    }
    /// set the mode of the arm. Examples: Teach or MoveArmJointServo
    /// @see grl::flatbuffer::ArmState in ArmControlState_generated.h
    void set(const flatbuffer::ArmState & armControlMode)
@@ -263,49 +286,49 @@ namespace grl { namespace robot { namespace arm {
         }
    }
 
-  bool setPositionControlMode()
-  {
-    if(JAVAdriverP_)
+    bool setPositionControlMode()
     {
-      JAVAdriverP_->setPositionControlMode();
-      return true;
+      if(JAVAdriverP_)
+      {
+        JAVAdriverP_->setPositionControlMode();
+        return true;
+      }
+      else
+        return false;
     }
-    else
-      return false;
-  }
 
 
-  bool setJointImpedanceMode(std::vector<double> joint_stiffnes, std::vector<double>joint_damping)
-  {
-    if(JAVAdriverP_)
+    bool setJointImpedanceMode(std::vector<double> joint_stiffnes, std::vector<double>joint_damping)
     {
-      JAVAdriverP_->setJointImpedanceMode(joint_stiffnes, joint_damping);
-      return true;
+      if(JAVAdriverP_)
+      {
+        JAVAdriverP_->setJointImpedanceMode(joint_stiffnes, joint_damping);
+        return true;
+      }
+      else
+        return false;
     }
-    else
-      return false;
-  }
 
-  // TODO: define custom flatbuffer for Cartesion Quantities, currently flatbuffer::CartesianImpedenceControlMode
-  bool setCartesianImpedanceMode(
-      grl::flatbuffer::EulerPose cart_stiffness, grl::flatbuffer::EulerPose cart_damping,
-      double nullspace_stiffness, double nullspace_damping,
-      grl::flatbuffer::EulerPose cart_max_path_deviation,
-      grl::flatbuffer::EulerPose cart_max_ctrl_vel,
-      grl::flatbuffer::EulerPose cart_max_ctrl_force,
-      bool max_control_force_stop)
-  {
-    if(JAVAdriverP_)
+    // TODO: define custom flatbuffer for Cartesion Quantities, currently flatbuffer::CartesianImpedenceControlMode
+    bool setCartesianImpedanceMode(
+        grl::flatbuffer::EulerPose cart_stiffness, grl::flatbuffer::EulerPose cart_damping,
+        double nullspace_stiffness, double nullspace_damping,
+        grl::flatbuffer::EulerPose cart_max_path_deviation,
+        grl::flatbuffer::EulerPose cart_max_ctrl_vel,
+        grl::flatbuffer::EulerPose cart_max_ctrl_force,
+        bool max_control_force_stop)
     {
-      JAVAdriverP_->setCartesianImpedanceMode(cart_stiffness, cart_damping,
-          nullspace_stiffness, nullspace_damping,
-          cart_max_path_deviation, cart_max_ctrl_vel, cart_max_ctrl_force,
-          max_control_force_stop);
-      return true;
+        if(JAVAdriverP_)
+        {
+          JAVAdriverP_->setCartesianImpedanceMode(cart_stiffness, cart_damping,
+              nullspace_stiffness, nullspace_damping,
+              cart_max_path_deviation, cart_max_ctrl_vel, cart_max_ctrl_force,
+              max_control_force_stop);
+            return true;
+        }
+        else
+            return false;
     }
-    else
-      return false;
-  }
 
      /**
       * \brief Set the joint positions for the current interpolation step.
@@ -321,8 +344,7 @@ namespace grl { namespace robot { namespace arm {
        armState_.clearCommands();
        boost::copy(range, std::back_inserter(armState_.commandedPosition));
        boost::copy(range, std::back_inserter(armState_.commandedPosition_goal));
-
-          std::cout << "set commandedpos:" << armState_.commandedPosition;
+       // std::cout << "set commandedpos:" << armState_.commandedPosition;
     }
 
      /**
@@ -359,16 +381,16 @@ namespace grl { namespace robot { namespace arm {
      *
      */
     void set(double duration_to_goal_command, time_duration_command_tag tag) {
-       boost::lock_guard<boost::mutex> lock(jt_mutex);
-       armState_.goal_position_command_time_duration = duration_to_goal_command;
-       if(FRIdriverP_)
-       {
-         FRIdriverP_->set(duration_to_goal_command,tag);
-       }
-       if(JAVAdriverP_)
-       {
-         JAVAdriverP_->set(duration_to_goal_command,tag);
-       }
+        boost::lock_guard<boost::mutex> lock(jt_mutex);
+        armState_.goal_position_command_time_duration = duration_to_goal_command;
+        if(FRIdriverP_)
+        {
+          FRIdriverP_->set(duration_to_goal_command,tag);
+        }
+        if(JAVAdriverP_)
+        {
+          JAVAdriverP_->set(duration_to_goal_command,tag);
+        }
     }
 
 
@@ -380,9 +402,9 @@ namespace grl { namespace robot { namespace arm {
      * @see KukaFRIdriver::set(Range&& range, grl::revolute_joint_angle_open_chain_command_tag)
      *
      */
-    KukaState::time_point_type get(time_point_tag) {
+    cartographer::common::Time get(time_point_tag) {
        boost::lock_guard<boost::mutex> lock(jt_mutex);
-       return armState_.timestamp;
+       return armState_.time_event_stamp.device_time;
     }
 
      /**
@@ -447,13 +469,23 @@ namespace grl { namespace robot { namespace arm {
     }
 
     /// @todo(ahundt) replace with standard get() call with tag dispatch like above
-    template<typename OutputIterator>
-    void getWrench(OutputIterator output)
-    {
-        boost::unique_lock<boost::mutex> lock(jt_mutex);
-        boost::copy(armState_.wrenchJava,output);
+   /// get 6 element wrench entries
+   /// [force_x, force_y, force_z, torque_x, torque_y, torque_z]
+   /// @param output a C++ OutputIterator which adds the values to your output object,
+   ///        see http://en.cppreference.com/w/cpp/iterator/back_inserter
+    // template<typename OutputIterator>
+    // void getWrench(OutputIterator output)
+    // {
+    //     boost::unique_lock<boost::mutex> lock(jt_mutex);
+    //     JAVAdriverP_->getWrench(output);
+    // }
 
-    }
+        template<typename Container>
+        void getWrench(Container output)
+       {
+          boost::unique_lock<boost::mutex> lock(jt_mutex);
+          JAVAdriverP_->getWrench(output);
+       }
 
       volatile std::size_t m_haveReceivedRealDataCount = 0;
       volatile std::size_t m_attemptedCommunicationCount = 0;

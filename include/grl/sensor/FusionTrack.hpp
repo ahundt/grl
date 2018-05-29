@@ -181,6 +181,8 @@ class FusionTrack
         std::vector<std::string> geometries;
         geometries.push_back("geometry0022.ini");
         geometries.push_back("geometry0055.ini");
+        // Add the new marker attached to the frame
+        geometries.push_back("geometry50000.ini");
         params.geometryFilenames = geometries;
         return params;
     }
@@ -208,8 +210,7 @@ class FusionTrack
     cartographer::common::Time FusionTrackTimeToCommonTime(typename MicrosecondClock::time_point FTtime)
     {
         return cartographer::common::Time(
-            std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(FTtime.time_since_epoch()) +
-            std::chrono::seconds(cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds));
+            std::chrono::duration_cast<cartographer::common::UniversalTimeScaleClock::duration>(FTtime.time_since_epoch()));
     }
 
     cartographer::common::Time ImageHeaderToCommonTime(const ::ftkImageHeader &tq)
@@ -663,15 +664,18 @@ class FusionTrack
         std::string s_event_name = ss_event_name.str();
         std::string device_clock_id_str = s_event_name + m_params.deviceClockID;
         TimeEvent::UnsignedCharArray event_name;
-        s_event_name.copy(event_name.begin(), std::min(event_name.size(), s_event_name.size()));
+        std::size_t length = s_event_name.copy(event_name.begin(), std::min(event_name.size(), s_event_name.size()));
+        event_name[length] = '\0';
         m_event_names.push_back(event_name);
 
         TimeEvent::UnsignedCharArray device_clock_id;
-        device_clock_id_str.copy(device_clock_id.begin(), std::min(device_clock_id_str.size(), device_clock_id.size()));
+        length = device_clock_id_str.copy(device_clock_id.begin(), std::min(device_clock_id_str.size(), device_clock_id.size()));
+        device_clock_id[length] = '\0';
         m_device_clock_ids.push_back(device_clock_id);
 
         TimeEvent::UnsignedCharArray local_clock_name_arr;
-        m_params.localClockID.copy(local_clock_name_arr.begin(), std::min(local_clock_name_arr.size(), m_params.localClockID.size()));
+        length = m_params.localClockID.copy(local_clock_name_arr.begin(), std::min(local_clock_name_arr.size(), m_params.localClockID.size()));
+        local_clock_name_arr[length] = '\0';
         m_local_clock_ids.push_back(local_clock_name_arr);
     }
 

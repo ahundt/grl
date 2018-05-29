@@ -9,4 +9,4 @@ table JointState {
   torque:[double]; // Newton Meters (N*m)
 }
 
-root_type JointState;
+// root_type JointState;

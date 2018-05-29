@@ -18,7 +18,7 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include "v_repExtGrlInverseKinematics.h"
 #include "grl/vrep/InverseKinematicsVrepPlugin.hpp"
-
+#include "luaFunctionData.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
@@ -43,6 +43,9 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 #define CONCAT(x,y,z) x y z
 #define strConCat(x,y,z)	CONCAT(x,y,z)
 #define LUA_GET_SENSOR_DATA_COMMAND "simExtSkeleton_getSensorData"
+#define LUA_SIM_EXT_GRL_IK_START_COMMAND "simExtGrlInverseKinematicsStart"
+
+
 
 
 
@@ -60,15 +63,27 @@ std::shared_ptr<spdlog::logger>                  loggerPG;
 	return (p,o);
 }
 */
-
+const int inArgs_SIM_EXT_GRL_IK_START[]={
+    2,                   
+    sim_lua_arg_int, 0,
+    sim_lua_arg_bool, 0
+};
+std::string LUA_SIM_EXT_GRL_IK_START_CALL_TIP("number result=simExtGrlInverseKinematicsStart(int run_mode, bool commanddataing)");
 void LUA_SIM_EXT_GRL_IK_START(SLuaCallBack* p)
 {
-  if (!InverseKinematicsControllerPG) {
-
-    loggerPG->error("v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin\n");
-    InverseKinematicsControllerPG=std::make_shared<grl::vrep::InverseKinematicsVrepPlugin>();
-    InverseKinematicsControllerPG->construct();
-  }
+    if (!InverseKinematicsControllerPG) {
+        loggerPG->info("v_repExtInverseKinematicsController Starting Inverse Kinematics Plugin\n");
+        CLuaFunctionData data;
+	    if (data.readDataFromLua(p, inArgs_SIM_EXT_GRL_IK_START, inArgs_SIM_EXT_GRL_IK_START[0], LUA_SIM_EXT_GRL_IK_START_COMMAND))
+        {
+	    	std::vector<CLuaFunctionDataItem>* inData = data.getInDataPtr();
+	    	int run_mode = inData->at(0).intData[0];
+	    	bool commanddata = inData->at(1).boolData[0];
+	        InverseKinematicsControllerPG = std::make_shared<grl::vrep::InverseKinematicsVrepPlugin>();
+            InverseKinematicsControllerPG->construct();
+	    	InverseKinematicsControllerPG->setInvRunMode(run_mode, commanddata);
+        }
+    }
 }
 
 void LUA_SIM_EXT_GRL_IK_RESET(SLuaCallBack* p)
@@ -179,7 +194,7 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 
 
 	int noArgs[]={0}; // no input arguments
-	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStart","number result=simExtGrlInverseKinematicsStart()",noArgs,LUA_SIM_EXT_GRL_IK_START);
+	// simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStart","number result=simExtGrlInverseKinematicsStart()",noArgs,LUA_SIM_EXT_GRL_IK_START);
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsStop","number result=simExtGrlInverseKinematicsStop()",noArgs,LUA_SIM_EXT_GRL_IK_STOP);
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsReset","number result=simExtGrlInverseKinematicsReset()",noArgs,LUA_SIM_EXT_GRL_IK_RESET);
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsAddFrame","number result=simExtGrlInverseKinematicsAddFrame()",noArgs,LUA_SIM_EXT_GRL_IK_ADD_FRAME);
@@ -187,7 +202,16 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsApplyTransform","number result=simExtGrlInverseKinematicsApplyTransform()",noArgs,LUA_SIM_EXT_GRL_IK_APPLY_TRANSFORM);
 	simRegisterCustomLuaFunction("simExtGrlInverseKinematicsRestoreSensorPosition","number result=simExtGrlInverseKinematicsRestoreSensorPosition()",noArgs,LUA_SIM_EXT_GRL_IK_RESTORE_SENSOR_POSITION);
 
+    std::vector<int> inArgs;
 
+    CLuaFunctionData::getInputDataForFunctionRegistration(inArgs_SIM_EXT_GRL_IK_START, inArgs);
+	simRegisterCustomLuaFunction
+    (
+        LUA_SIM_EXT_GRL_IK_START_COMMAND,
+        LUA_SIM_EXT_GRL_IK_START_CALL_TIP.c_str(),
+        &inArgs[0],
+        LUA_SIM_EXT_GRL_IK_START
+    );
 	// ******************************************
 
     loggerPG->info("Inverse Kinematics plugin initialized. Build date/time: {} {}", __DATE__, __TIME__);

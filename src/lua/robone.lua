@@ -5,9 +5,15 @@
 ---       require "grl"
 --- 3) call your function! ex: grl.isModuleLoaded('')
 
+--- LRB_iiwa_14_R820#0 represents the real robot;
+--- LRB_iiwa_14_R820 represents the robot for simulation
+
 robone = {}
 
 require "grl"
+
+KUKA_single_buffer_limit_bytes = 256   -- MB
+FB_single_buffer_limit_bytes = 1024   -- MB
 ------------------------------------------
 -- Move the arm along the cut file path --
 ------------------------------------------
@@ -56,70 +62,72 @@ robone.cutBoneScript=function()
 		--maxVel = 0.04
 		--maxForce = 30
 
-		while true do
-			if runFollowPathMode then
-				-- Moves an object to the position/orientation of another moving object (target object)
-				-- by performing interpolations (i.e. the object will effectiviely follow the target object).
-				simMoveToObject(target,CreatedPathHandle,3,0,0.5,0.02)
-				-- http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simFollowPath
-				simFollowPath(target,CreatedPathHandle,3,0,0.01,0.01)
-				--simSwitchThread()
+		 while true do
+		 	if runFollowPathMode then
+		 		-- Moves an object ('RobotMillTipTarget') to the position/orientation of another moving object (target object, 'MillHipCutPath' or 'Straingtline')
+		 		-- by performing interpolations (i.e. the object will effectiviely follow the target object).
+		 		simMoveToObject(target,CreatedPathHandle,3,0,0.5,0.02)
+		 		-- http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simFollowPath
+		 		simFollowPath(target,CreatedPathHandle,3,0,0.01,0.01)
+		 		--simSwitchThread()
 
-			else
-				-- Calculate path length
-				pathLength = simGetPathLength(CreatedPathHandle)
-				-- Move to start of path
+		 	else
+		 		-- Calculate path length
+				-- Retrieves the length of a path object.
+		 		pathLength = simGetPathLength(CreatedPathHandle)
+		 		-- Move to start of path
 
-				simMoveToObject(target,CreatedPathHandle,3,0,0.2,0.02)
-				newPosition = 0
+		 		simMoveToObject(target,CreatedPathHandle,3,0,0.2,0.02)
+		 		newPosition = 0
+
+		 		-- Create empty vector for tool tip forces (x,y,z,alpha,beta,gamma,joint dependence(?))
+		 		-- toolTipForces = matrix(7,1,0)
+		 		toolTipForces = {0,0,0,0,0,0,0}
+				-- Retrieves the absolute interpolated position of a point along a path object.
+				-- 0 means the beginning of the path
+		 		newPos = simGetPositionOnPath(CreatedPathHandle,0)
+		 		-- While not at end of path, traverse path
+		 		while newPosition < pathLength do
+		 			print("VREP JOINT POSITIONS")
+		 		    for i=1,7,1 do
+		 		    	print(simGetJointPosition(jointHandles[i]))
+		 		    end
+		 			externalJointTorque = getExternalJointTorque(measuredJointHandles, externalTorqueHandle)
+
+		 			measuredForce = calcToolTipForce(IKGroupHandle, externalJointTorque)
+		 			print("MEASURED FORCE: "..measuredForce)
+                    -- Retrieves the intrinsic position of a path object (a distance along the path).
+		 			position = simGetPathPosition(CreatedPathHandle)
+		 			offset = 0.001  -- step size
+		 			newPosition = position+offset
+					-- Sets the intrinsic position of a path object (i.e. the position along the path).
+		 			simSetPathPosition(CreatedPathHandle, newPosition)
+		 			nextPos = simGetPositionOnPath(CreatedPathHandle, newPosition/pathLength)
+		 			nextEul = simGetOrientationOnPath(CreatedPathHandle, newPosition/pathLength)
+		 			nextQuat = simGetQuaternionFromMatrix(simBuildMatrix({0,0,0},nextEul))
+		 			nextVel = {0,0,0,0}
+		 			for i=1,3,1 do
+		 				nextVel[i] = 3*(nextPos[i]-newPos[i])
+		 			end
+		 	        --timeBefore = simGetSimulationTime()
+		 	        --print("Time nonRML takes: ".. timeBefore-timeAfter)
+		 	        --print("Time before RML: "..timeBefore)
+					 --[[Moves an object to a given position and/or orientation using the Reflexxes Motion Library type II or IV. This function can only be called from child scripts running in a thread  --]]
+		 	        result,newPos,newQuat,currentVel,currentAccel,timeLeft=simRMLMoveToPosition(target,-1,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,nextPos,nextQuat,nextVel)
+		 	        --timeAfter = simGetSimulationTime()
+		 	        --print("Time after RML: "..timeAfter)
+		 	        --print("Time RML takes: ".. timeAfter-timeBefore)
+		 	        --print("Time left: "..timeLeft)
 
 
+		 			--fcv(IKGroupHandle, CreatedPathHandle, maxVel, maxForce, measuredForce, pathLength)
 
-				-- Create empty vector for tool tip forces (x,y,z,alpha,beta,gamma,joint dependence(?))
-				--toolTipForces = matrix(7,1,0)
-				toolTipForces = {0,0,0,0,0,0,0}
-				newPos = simGetPositionOnPath(CreatedPathHandle,0)
-				-- While not at end of path, traverse path
-				while newPosition < pathLength do
-					print("VREP JOINT POSITIONS")
-				for i=1,7,1 do
-					print(simGetJointPosition(jointHandles[i]))
-				end
-					externalJointTorque = getExternalJointTorque(measuredJointHandles, externalTorqueHandle)
+		 			--simSwitchThread()
 
-					measuredForce = calcToolTipForce(IKGroupHandle, externalJointTorque)
-					print("MEASURED FORCE: "..measuredForce)
-
-					position = simGetPathPosition(CreatedPathHandle)
-					offset = 0.001
-					newPosition = position+offset
-
-					simSetPathPosition(CreatedPathHandle, newPosition)
-					nextPos = simGetPositionOnPath(CreatedPathHandle, newPosition/pathLength)
-					nextEul = simGetOrientationOnPath(CreatedPathHandle, newPosition/pathLength)
-					nextQuat = simGetQuaternionFromMatrix(simBuildMatrix({0,0,0},nextEul))
-					nextVel = {0,0,0,0}
-					for i=1,3,1 do
-						nextVel[i] = 3*(nextPos[i]-newPos[i])
-					end
-			--timeBefore = simGetSimulationTime()
-			--print("Time nonRML takes: ".. timeBefore-timeAfter)
-			--print("Time before RML: "..timeBefore)
-			result,newPos,newQuat,currentVel,currentAccel,timeLeft=simRMLMoveToPosition(target,-1,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,nextPos,nextQuat,nextVel)
-			--timeAfter = simGetSimulationTime()
-			--print("Time after RML: "..timeAfter)
-			--print("Time RML takes: ".. timeAfter-timeBefore)
-			--print("Time left: "..timeLeft)
-
-
-					--fcv(IKGroupHandle, CreatedPathHandle, maxVel, maxForce, measuredForce, pathLength)
-
-					--simSwitchThread()
-
-				end
-				simSetPathPosition(CreatedPathHandle, 0)
-			end
-			end
+		 		end
+		 		simSetPathPosition(CreatedPathHandle, 0)
+		 	end
+		 end
 
 			--Path0P,Path0O=grl.getTransformToPathPointInWorldFrame(BallJointPath,0)
 			--pathPos=simGetObjectPosition(BallJointPath,targetBase)
@@ -150,7 +158,7 @@ robone.cutBoneScript=function()
 	jointHandles={-1,-1,-1,-1,-1,-1,-1}
 	measuredJointHandles={-1,-1,-1,-1,-1,-1,-1}
 	for i=1,7,1 do
-		jointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i)
+		jointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i) --  	Retrieves an object handle based on its name.
 		measuredJointHandles[i]=simGetObjectHandle('LBR_iiwa_14_R820_joint'..i..'#0')
 	end
 
@@ -222,8 +230,7 @@ robone.cutBoneScript=function()
 	end
 
 	function fcv(ikGroupHandle, CreatedPathHandle, maxVelocity, maxForce, measuredForce, pathLength)
-
-		-- selection parameter for simRMLPos for default behavior
+	    -- selection parameter for simRMLPos for default behavior
 		selection = {1,1,1,1,1,1,1}
 
 		-- Get position (in meters) on the path (0 = start, pathLength = end)
@@ -257,7 +264,7 @@ robone.cutBoneScript=function()
 		end
 	end
 
-	target=simGetObjectHandle('RobotMillTipTarget')
+	target = simGetObjectHandle('RobotMillTipTarget')
 	targetBase=simGetObjectHandle('Robotiiwa')
 	bone=simGetObjectHandle('FemurBone')
 	table=simGetObjectHandle('highTable')
@@ -303,7 +310,14 @@ robone.cutBoneScript=function()
 	useRMLSmoothing = false
 
 	if (grl.isModuleLoaded('GrlInverseKinematics') and useGrlInverseKinematics) then
-		simExtGrlInverseKinematicsStart()
+		-- ik_mode, run real inverse kinematics algorith;
+		-- replay_mode, run the replay process;
+		-- otherwise, go to a test pose.
+		-- commanddata, only in replay_mode we need to set it to determine the joint data set.
+		commanddata = false
+		run_mode = { ik_mode = 1, replay_mode = 2, test_mode = 3}
+		print("Moving Robotiiwa arm along inversekinematics")
+		simExtGrlInverseKinematicsStart(run_mode.test_mode, commanddata)
 	end
 
 	print("Moving Robotiiwa arm along cut path...")
@@ -346,12 +360,13 @@ robone.handEyeCalibScript=function()
 	path=simGetObjectHandle('HandEyeCalibPath')
 	circleCalib = simGetObjectHandle('CircleCalibPath')
 	endeffectorTarget=simGetObjectHandle('RobotMillTipTarget')
-	numSteps=36
+	numSteps=24
 
 	startP,startO=grl.getTransformBetweenHandles(target,targetBase)
 
 	-- Enable/Disable custom IK
-	useGrlInverseKinematics=false
+	useGrlInverseKinematics=true
+    --simExtHandEyeCalibStart('Robotiiwa' , 'RobotFlangeTipTarget', 'OpticalTrackerBase', 'Fiducial#22')
 
 	if (grl.isModuleLoaded('GrlInverseKinematics') and useGrlInverseKinematics) then
 		simExtGrlInverseKinematicsStart()
@@ -361,14 +376,18 @@ robone.handEyeCalibScript=function()
 		simDisplayDialog('Error','HandEyeCalibration plugin was not found. (v_repExtHandEyeCalibration.dll)&&nSimulation will not run correctly',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
 	else
 
+		simWait(30.0)
 		-- Run the hand eye calibration
 
-		simExtHandEyeCalibStart()
+		-- simExtHandEyeCalibStart()
+		-- call handEyeCalibrationPG->construct();
+		simExtHandEyeCalibStart('Robotiiwa' , 'RobotMillTipTarget', 'OpticalTrackerBase', 'Fiducial#22')
+        -- Fill out the vectors, and then pass these vectors to
 
 		for i=0,1,1/numSteps do
 			p,o=grl.getPathPointInWorldFrame(path,i)
 			simRMLMoveToPosition(target,-1,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,p,o,nil)
-			simWait(0.5)
+			simWait(0.2) --0.5
 			simExtHandEyeCalibAddFrame()
 			simWait(0.25)
 		end
@@ -378,7 +397,9 @@ robone.handEyeCalibScript=function()
 
 		-- calculate the transform
 		simExtHandEyeCalibFindTransform()
-		simExtHandEyeCalibApplyTransform()
+		-- apply the transform and save the scene
+		sceneName = "/home/cjiao1/src/robonetracker/modules/roboneprivate/data/RoboneSimulation_private_calibration_5.ttt"
+		simExtHandEyeCalibApplyTransform(sceneName)
 
 	-- check for fusiontrack
 	if (not grl.isModuleLoaded('AtracsysFusionTrack')) then
@@ -428,10 +449,12 @@ robone.startRealArmDriverScript=function()
 			'30200'                   , -- LocalHostKukaKoniUDPPort,
 			'192.170.10.2'            , -- RemoteHostKukaKoniUDPAddress,
 			'30200'                   , -- RemoteHostKukaKoniUDPPort
-			'JAVA'                    , -- KukaCommandMode (options are FRI, JAVA)
+			'FRI'                     , -- KukaCommandMode (options are FRI, JAVA)
 			'FRI'                     , -- KukaMonitorMode (options are FRI, JAVA)
 			"IK_Group1_iiwa"            -- IKGroupName
 		)
+         
+		simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true, KUKA_single_buffer_limit_bytes)
 	else
 		simDisplayDialog('Error','KukaLBRiiwa plugin was not found. (v_repExtKukaLBRiiwa.dll)&&nSimulation will run without hardware',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
 	end
@@ -440,6 +463,7 @@ end
 ------------------------------------------
 -- Configure the Optical Tracker --
 -- Call in a "Customization Script" --
+-- The functions in  Customization Script are executed all the time: when simulation is running, as well as when simulation is not running.
 ------------------------------------------
 robone.configureOpticalTracker=function()
 
@@ -464,9 +488,14 @@ robone.configureOpticalTracker=function()
 			simExtAtracsysFusionTrackAddGeometry('geometry0022.ini')
 			simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: loading geometry0055.ini')
 			simExtAtracsysFusionTrackAddGeometry('geometry0055.ini')
+			-- Add the new geometry attached to the frame.
+			-- geometry50000.ini
+			simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: loading geometry50000.ini')
+			simExtAtracsysFusionTrackAddGeometry('geometry50000.ini')
 
 
 			--------------------------------------------------
+			-- Move the Tracker---
 			-- Move the Tracker
 			-- true enables moving the tracker, false disables it
 			moveTracker = false
@@ -480,8 +509,18 @@ robone.configureOpticalTracker=function()
 												'Fiducial#22',           -- ObjectBeingMeasured
 												'22'                     -- GeometryID
 												)
-			end
 
+
+
+				-- Set the new marker in vrep based on the Fiducial#22, the relative pose is read from FusionTracker
+				simExtAtracsysFusionTrackAddObject('Fiducial#50000',  -- ObjectToMove
+				                                   'OpticalTrackerBase#0',  -- FrameInWhichToMoveObject
+				                                   'Fiducial#50000',           -- ObjectBeingMeasured
+				                                   '50000'                     -- GeometryID
+				)
+
+
+			end
 			--------------------------------------------------
 			-- Move the Bone
 			-- true enables moving the bone, false disables it
@@ -490,18 +529,33 @@ robone.configureOpticalTracker=function()
 				simAddStatusbarMessage('robone.configureOpticalTracker() + v_repExtAtracsysFusionTrackVrepPlugin: Moving bone marker position relative to the optical tracker.')
 				simExtAtracsysFusionTrackClearObjects()
 			-- The bone should move  (bone is attached to Fiducial #55)
+
 				simExtAtracsysFusionTrackAddObject('Fiducial#55',           -- ObjectToMove
 												'OpticalTrackerBase#0',  -- FrameInWhichToMoveObject
 												'Fiducial#55',           -- ObjectBeingMeasured
 												'55'                     -- GeometryID
 												)
-			end
 
+				-- Get the transform matrix of robot base against world frame.
+				-- This is also for the calibration purpose, it can print the absolute position and orientation of the robot base.
+				robothandle = simGetObjectHandle ('LBR_iiwa_14_R820#0')
+				--trankerhandle = simGetObjectHandle ('OpticalTrackerBase#0')
+				robotToWorldM = simGetObjectMatrix(robothandle, -1)
+				print('The absolute transformation matrix of LBR_iiwa_14_R820#0')
+				for i=1,12,1 do
+					print(robotToWorldM[i].." ")
+				end
+			end
+            
+			
 			-- Start collecting data from the optical tracker
 			simExtAtracsysFusionTrackStart()
-			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(false)
-
+			-- Test the below one
+			-- Enable the recordDataScript() to call the method below.
+			simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true, FB_single_buffer_limit_bytes)
+          
 		end
+
 
 		-- By default we disable customization script execution during simulation, in order
 		-- to run simulations faster:
@@ -509,6 +563,27 @@ robone.configureOpticalTracker=function()
 	end
 end
 
+
+------------------------------------------------
+-- Record flatbuffers Data during simulation  --
+------------------------------------------------
+robone.recordDataScript=function()
+
+	-- Check if the required plugin is there:
+    if (grl.isModuleLoaded('KukaLBRiiwa')) then
+	    --simExtKukaLBRiiwaRecordWhileSimulationIsRunning(true)
+    else
+        simDisplayDialog('Warning','KukaLBRiiwa plugin was not found so data will not be logged.',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
+    end
+
+
+    if (grl.isModuleLoaded('AtracsysFusionTrack')) then
+	    --simExtAtracsysFusionTrackRecordWhileSimulationIsRunning(true)
+    else
+		simDisplayDialog('Warning','Atracsys plugin was not found so data will not be logged.',sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
+
+	end
+end
 
 --------------------------------------------------------------------------
 -- Get External Joint Torque Data from KUKA iiwa real arm driver plugin --

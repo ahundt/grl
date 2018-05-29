@@ -2,9 +2,11 @@
 #ifndef GRL_VREP_HPP_
 #define GRL_VREP_HPP_
 
+#include <boost/exception/all.hpp>
 #include <string>
 #include <boost/range/algorithm/transform.hpp>
 #include "v_repLib.h"
+
 
 namespace grl { namespace vrep {
 

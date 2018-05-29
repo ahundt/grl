@@ -21,6 +21,7 @@ public class ProcessDataManager {
     private String _FRI_KONI_LaptopIPAddress;
     private String _ROS_MASTER_URI;
     private String _ZMQ_MASTER_URI;
+    private int _FRI_KONI_SendPeriodMilliseconds;
 
     private double _jointVelRel;
     private double _jointAccelRel;
@@ -75,11 +76,6 @@ public class ProcessDataManager {
 		this._ZMQ_MASTER_URI = "tcp://" + _controllingLaptopIPAddress + ":" + _controllingLaptopZMQPort;
 	}
 
-
-	public String get_ROS_MASTER_URI() {
-		return _ROS_MASTER_URI;
-	}
-
 	private void update_ROS_MASTER_URI() {
 		this._ROS_MASTER_URI = "http://" + _controllingLaptopIPAddress + ":" + _controllingLaptop_ROS_MASTER_URI_Port;
 	}
@@ -96,6 +92,11 @@ public class ProcessDataManager {
 
 	public String get_controllingLaptopJAVAPort() {
 		return _controllingLaptopZMQPort;
+	}
+
+
+	public int get_FRI_KONI_SendPeriodMilliseconds() {
+		return _FRI_KONI_SendPeriodMilliseconds;
 	}
 
 	public void set_controllingLaptopJAVAPort(String _controllingLaptopJAVAPort) {
@@ -120,9 +121,19 @@ public class ProcessDataManager {
 		this._RobotIPAddress = _RobotIPAddress;
 	}
 
+
+	public void set_FRI_KONI_SendPeriodMilliseconds(int FRI_KONI_SendPeriodMilliseconds) {
+		this._FRI_KONI_SendPeriodMilliseconds = FRI_KONI_SendPeriodMilliseconds;
+	}
+
 	public String get_FRI_KONI_RobotIPAddress() {
 		return _FRI_KONI_RobotIPAddress;
 	}
+	
+	public String get_ROS_MASTER_URI() {
+		return _ROS_MASTER_URI;
+	}
+
 
 	public void set_FRI_KONI_RobotIPAddress(String _FRI_KONI_RobotIPAddress) {
 		this._FRI_KONI_RobotIPAddress = _FRI_KONI_RobotIPAddress;
@@ -220,6 +231,8 @@ public class ProcessDataManager {
         // *** change next line to the KUKA address and Port Number           ***
         // **********************************************************************
         _FRI_KONI_RobotIPAddress = _app.getApplicationData().getProcessData("Robot_KONI_FRI_IP").getValue(); //"tcp://172.31.1.100:30010";
+        
+        _FRI_KONI_SendPeriodMilliseconds = _app.getApplicationData().getProcessData("FRI_KONI_SendPeriodMilliseconds").getValue();
         
 
         _jointVelRel = _app.getApplicationData().getProcessData("JointVelRel").getValue();
