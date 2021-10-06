@@ -59,6 +59,7 @@ RUN apt-get clean && apt-get update  && apt-get install -y \
      sudo \ 
      unzip \ 
      curl \ 
+     wget \
      ctags \ 
      git \ 
      tmux  
