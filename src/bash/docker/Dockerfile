@@ -76,7 +76,8 @@ RUN apt-get clean && apt-get update  && apt-get install -y \
     libeigen3-dev \
     gfortran 
 #OpenCV
-RUN apt-get clean && add-apt-repository --yes ppa:xqms/opencv-nonfree \
+RUN apt-get clean && add-apt-repository --remove ppa:xqms/opencv-nonfree \
+    && add-apt-repository --yes ppa:jeff250/opencv \
     && apt-get update \
     && apt-get -y install \
     libopencv-nonfree-dev \
