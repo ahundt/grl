@@ -61,7 +61,6 @@ RUN apt-get clean && apt-get update  && apt-get install -y \
      curl \ 
      wget \
      ctags \ 
-     git \ 
      tmux  
 #LLVM
 RUN apt-get clean && apt-get update  && apt-get install -y \
